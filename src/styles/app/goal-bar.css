@@ -1,0 +1,127 @@
+/* The goal's pill above the composer (the changes pill's look, edited-files.css) and the card it opens. */
+.goal-pill {
+  flex: 0 1 auto;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: var(--fs-chat);
+  line-height: 1.286;
+  cursor: pointer;
+}
+.goal-pill:hover,
+.goal-pill[aria-expanded='true'] {
+  color: var(--text);
+}
+.goal-pill:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.goal-icon {
+  flex: none;
+  color: var(--text-2);
+}
+.goal-pill[data-tone='muted'] .goal-icon {
+  color: var(--text-3);
+}
+.goal-pill[data-tone='limit'],
+.goal-pill[data-tone='limit'] .goal-icon {
+  color: var(--orange);
+}
+.goal-pill-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+/* the card: the objective, what the goal has done, and its controls, on the menu surface */
+.goal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 32px));
+  padding: 10px 12px 12px;
+  border: 0.5px solid var(--menu-border);
+  border-radius: 12px;
+  background: var(--menu-bg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--menu-shadow);
+  color: var(--text);
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+}
+.goal-card:focus {
+  outline: none;
+}
+.goal-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+.goal-card-title {
+  font-weight: 500;
+}
+.goal-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.goal-control {
+  color: var(--text-3);
+}
+.goal-card button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.goal-card button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.goal-card-objective {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+.goal-objective {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+/* the pencil shows while the pointer is on the objective, or the pencil has focus */
+.goal-edit {
+  flex: none;
+  opacity: 0;
+}
+.goal-card-objective:hover .goal-edit,
+.goal-edit:focus-visible {
+  opacity: 1;
+}
+.goal-card-summary,
+.goal-budget {
+  font-size: var(--fs-small);
+  line-height: 1.39;
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+.goal-objective-edit .text-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 64px;
+  font: inherit;
+}
+.goal-objective-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 6px;
+}

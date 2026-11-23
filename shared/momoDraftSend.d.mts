@@ -1,0 +1,24 @@
+export const SEND_TOOL: 'send_mail';
+export const STATES: Readonly<{ ASKED: 'asked'; CHOSE: 'chose'; SENT: 'sent'; UNSURE: 'unsure' }>;
+export const WHY: Readonly<{
+  NOT_ALLOWED: 'not_allowed';
+  NO_DRAFT: 'no_draft';
+  BUSY: 'busy';
+  ALREADY: 'already';
+  NO_RECIPIENT: 'no_recipient';
+  NO_ACCOUNT: 'no_account';
+  LOST: 'lost';
+  CHOOSE: 'choose';
+  NOT_CONNECTED: 'not_connected';
+  RECONNECT: 'reconnect';
+  PAUSED: 'paused';
+  READ_ONLY: 'read_only';
+  DECLINED: 'declined';
+  FAILED: 'failed';
+}>;
+export type From = { id: string; label: string; account: string };
+export type Send = { state: 'asked' | 'chose' | 'sent' | 'unsure'; from: From; at: number };
+export function readSend(v: unknown): Send | null;
+export function fromName(from: From): string;
+export function sendLines(send: Send | null): ('asked' | 'chose' | 'sent' | 'unsure')[];
+export function isOpen(send: Send | null): boolean;

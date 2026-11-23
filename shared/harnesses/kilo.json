@@ -1,0 +1,80 @@
+{
+  "id": "kilo",
+  "label": "Kilo Code",
+  "vendor": "Kilo",
+  "bins": [
+    "kilo"
+  ],
+  "docsUrl": "https://kilo.ai/docs/cli",
+  "install": {
+    "docs": "https://kilo.ai/docs/cli",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g @kilocode/cli",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@kilocode/cli"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "acp"
+    ],
+    "env": {
+      "KILO_CONFIG_CONTENT": "{\"share\":\"disabled\",\"default_agent\":\"mopilot-ask\",\"agent\":{\"mopilot-ask\":{\"mode\":\"primary\",\"description\":\"Asks before edits, commands and web fetches\",\"permission\":{\"edit\":\"ask\",\"bash\":\"ask\",\"webfetch\":\"ask\"}},\"mopilot-full\":{\"mode\":\"primary\",\"description\":\"Edits, runs commands and fetches without asking\",\"permission\":{\"edit\":\"allow\",\"bash\":\"allow\",\"webfetch\":\"allow\",\"external_directory\":\"allow\"}}}}"
+    },
+    "privacyDefaults": [
+      "session sharing (share: disabled)"
+    ],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    },
+    "anchors": {
+      "plan": "readOnly",
+      "ask": "readOnly",
+      "code": "auto",
+      "debug": "auto",
+      "orchestrator": "auto",
+      "mopilot-ask": "ask",
+      "mopilot-full": "full"
+    },
+    "permissionModes": {
+      "plan": "read-only",
+      "mopilot-ask": "default",
+      "mopilot-full": "full-access"
+    },
+    "agentModes": [
+      "code",
+      "debug",
+      "orchestrator",
+      "ask"
+    ],
+    "plan": {
+      "configOption": "mode",
+      "value": "plan"
+    },
+    "loginCommand": [
+      "kilo",
+      "auth",
+      "login"
+    ]
+  },
+  "dataNotes": [
+    "Native ACP integration. MoPilot adds two modes to its own Kilo process (KILO_CONFIG_CONTENT, never written to the user's settings): mopilot-ask, the default, asks before edits, commands and web fetches; mopilot-full runs them without asking. Kilo's own code and debug modes run allowlisted commands and edits without asking. Session sharing is off."
+  ],
+  "contract": {
+    "npm": "@kilocode/cli",
+    "bin": "kilo"
+  },
+  "tested": [
+    "7.8.18"
+  ]
+}

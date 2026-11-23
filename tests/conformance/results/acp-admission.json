@@ -1,0 +1,746 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-10-10",
+  "platform": "macOS arm64 (Darwin), Node v24.21.0",
+  "how": "node tests/conformance/acp/probe.mjs with SAGE_ACP_BINS pointing at ~/.sage-harnesses installs; plus a raw initialize and session/new (one sage_<nonce> stdio MCP server) per harness. No prompt was sent and nothing was signed in. Copilot CLI was probed again on 2026-10-17 with the http tool channel the app gives a harness that takes no stdio MCP server.",
+  "note": "probeOnMain is the result of the shipped admission probe against the quirks on origin/main (before the quirks fixes); probeWithQuirksFixes is the same probe with the quirks fixes PR applied.",
+  "harnesses": {
+    "dsh": {
+      "package": "@deepseek-ai/dsh@0.2.0-rc.2",
+      "version": "0.2.0-rc.2",
+      "binary": "~/.sage-harnesses/dsh/node_modules/.bin/dsh",
+      "launchArgs": [
+        "--profile",
+        "acp",
+        "--patch",
+        "<data>/dsh/sage.patch.yml"
+      ],
+      "initialize": {
+        "protocolVersion": 1,
+        "agentInfo": {
+          "name": "deepseek-harness-acp",
+          "version": "0.0.1"
+        },
+        "agentCapabilities": {
+          "mcpCapabilities": {
+            "http": true
+          },
+          "promptCapabilities": {
+            "image": false,
+            "audio": false,
+            "embeddedContext": false
+          },
+          "sessionCapabilities": {
+            "close": {},
+            "list": {},
+            "resume": {}
+          }
+        },
+        "authMethods": [],
+        "mcpCapabilities": {
+          "http": true
+        },
+        "initializeMs": 911,
+        "note": "agentInfo.version is the ACP bridge (0.0.1), not the dsh release; image prompts are false and session/new returns no config options without a DeepSeek credential"
+      },
+      "privacyGate": {
+        "ok": true,
+        "reason": null
+      },
+      "sessionNew": {
+        "ok": true,
+        "hasModes": false,
+        "modes": null,
+        "configOptions": [],
+        "commands": null,
+        "sageMcpHello": true,
+        "helloMs": 277,
+        "sessionNewMs": 277
+      },
+      "probeOnMain": {
+        "state": "unsupported",
+        "reason": "This dsh version can't turn off its telemetry",
+        "version": null
+      },
+      "probeWithQuirksFixes": {
+        "state": "admitted",
+        "reason": null,
+        "version": "0.0.1"
+      },
+      "privacyGateDetail": {
+        "onMain": "fails: \"This dsh version can't turn off its telemetry\" (--dump-config does not reflect DSH_TELEMETRY_DISABLED)",
+        "withQuirksFixes": "passes: session-log-deepseek enabled=false and session-telemetry-otel mode DISABLED in the dumped config",
+        "packetCapture": "not done (no capture tooling); still needs a person"
+      }
+    },
+    "opencode": {
+      "package": "opencode-ai@1.18.35",
+      "version": "1.18.35",
+      "binary": "~/.sage-harnesses/opencode/node_modules/opencode-darwin-arm64/bin/opencode",
+      "launchArgs": [
+        "acp"
+      ],
+      "initialize": {
+        "protocolVersion": 1,
+        "agentInfo": {
+          "name": "OpenCode",
+          "version": "1.18.35"
+        },
+        "agentCapabilities": {
+          "loadSession": true,
+          "mcpCapabilities": {
+            "http": true,
+            "sse": true
+          },
+          "promptCapabilities": {
+            "embeddedContext": true,
+            "image": true
+          },
+          "sessionCapabilities": {
+            "close": {},
+            "fork": {},
+            "list": {},
+            "resume": {}
+          }
+        },
+        "authMethods": [
+          {
+            "id": "opencode-login",
+            "name": "Login with opencode",
+            "type": null,
+            "loginCommand": null
+          }
+        ],
+        "mcpCapabilities": {
+          "http": true,
+          "sse": true
+        },
+        "initializeMs": 925
+      },
+      "privacyGate": null,
+      "sessionNew": {
+        "ok": true,
+        "hasModes": false,
+        "modes": null,
+        "configOptions": [
+          {
+            "id": "model",
+            "category": "model",
+            "current": "opencode/big-pickle",
+            "values": [
+              "opencode/big-pickle",
+              "opencode/exo-free",
+              "opencode/ling-3.0-flash-fin-free",
+              "opencode/ling-3.1-flash-free",
+              "opencode/longcat-2.5-preview-free",
+              "opencode/mimo-v2.6-flash-free",
+              "opencode/muse-spark-1.3-contributor-free",
+              "opencode/nemotron-3-ultra-free",
+              "opencode/nemotron-3.5-lightning-free",
+              "opencode/space-bunny-free",
+              "opencode/step-5-preview-free"
+            ],
+            "valueCount": 11
+          },
+          {
+            "id": "mode",
+            "category": "mode",
+            "current": "build",
+            "values": [
+              "build",
+              "plan"
+            ],
+            "valueCount": 2
+          }
+        ],
+        "commands": [
+          "built-in-browser",
+          "chrome-browser",
+          "computer-use",
+          "customize-opencode",
+          "deep-research",
+          "docs",
+          "docx",
+          "google-workspace",
+          "import-memory",
+          "init",
+          "morning",
+          "pdf",
+          "pptx",
+          "rednote-guide-search",
+          "review",
+          "skill-creator",
+          "xlsx"
+        ],
+        "sageMcpHello": true,
+        "helloMs": 480,
+        "sessionNewMs": 480,
+        "note": "build and plan come as the mode config option, with no modes list. Works with no sign-in on its free opencode/* models; it also lists commands from the user's Claude skills folder."
+      },
+      "probeOnMain": {
+        "state": "admitted",
+        "reason": null,
+        "version": "1.18.35"
+      },
+      "probeWithQuirksFixes": {
+        "state": "admitted",
+        "reason": null,
+        "version": "1.18.35"
+      }
+    },
+    "kimi": {
+      "package": "@moonshot-ai/kimi-code@2.1.1",
+      "version": "2.1.1",
+      "binary": "~/.sage-harnesses/kimi/node_modules/.bin/kimi",
+      "launchArgs": [
+        "acp"
+      ],
+      "initialize": {
+        "protocolVersion": 1,
+        "agentInfo": {
+          "name": "Kimi Code CLI",
+          "version": "2.1.1"
+        },
+        "agentCapabilities": {
+          "loadSession": true,
+          "promptCapabilities": {
+            "image": true,
+            "audio": false,
+            "embeddedContext": true
+          },
+          "sessionCapabilities": {
+            "list": {},
+            "resume": {},
+            "close": {},
+            "delete": {},
+            "fork": {},
+            "additionalDirectories": {}
+          },
+          "mcpCapabilities": {
+            "http": true,
+            "sse": true
+          },
+          "auth": {
+            "logout": {}
+          }
+        },
+        "authMethods": [
+          {
+            "id": "login",
+            "name": "Login with Kimi account",
+            "type": "terminal",
+            "loginCommand": [
+              "~/.sage-harnesses/kimi/node_modules/.bin/kimi",
+              "login"
+            ]
+          }
+        ],
+        "mcpCapabilities": {
+          "http": true,
+          "sse": true
+        },
+        "initializeMs": 639
+      },
+      "privacyGate": null,
+      "sessionNew": {
+        "ok": false,
+        "error": {
+          "code": -32000,
+          "message": "Authentication required"
+        },
+        "sageMcpHello": false,
+        "commands": null
+      },
+      "probeOnMain": {
+        "state": "signin",
+        "reason": "Sign in to Kimi Code first",
+        "version": "2.1.1"
+      },
+      "probeWithQuirksFixes": {
+        "state": "signin",
+        "reason": "Sign in to Kimi Code first",
+        "version": "2.1.1"
+      }
+    },
+    "qwen": {
+      "package": "@qwen-code/qwen-code@0.25.0",
+      "version": "0.25.0",
+      "binary": "~/.sage-harnesses/qwen/node_modules/.bin/qwen",
+      "launchArgs": [
+        "--acp"
+      ],
+      "initialize": {
+        "protocolVersion": 1,
+        "agentInfo": {
+          "name": "qwen-code",
+          "title": "Qwen Code",
+          "version": "0.25.0"
+        },
+        "agentCapabilities": {
+          "loadSession": true,
+          "promptCapabilities": {
+            "image": true,
+            "audio": true,
+            "embeddedContext": true
+          },
+          "sessionCapabilities": {
+            "list": {},
+            "resume": {}
+          },
+          "mcpCapabilities": {
+            "sse": true,
+            "http": true
+          },
+          "_meta": {
+            "imageCapability": {
+              "autoHandlesWrongModel": true,
+              "maxBytes": 10380902,
+              "maxImagesPerTurn": 4
+            }
+          }
+        },
+        "authMethods": [
+          {
+            "id": "openai",
+            "name": "Use OpenAI API key",
+            "type": "terminal",
+            "loginCommand": null
+          }
+        ],
+        "mcpCapabilities": {
+          "sse": true,
+          "http": true
+        },
+        "initializeMs": 965
+      },
+      "privacyGate": null,
+      "sessionNew": {
+        "ok": false,
+        "error": {
+          "code": -32000,
+          "message": "Authentication required: Use Qwen Code CLI to authenticate first.",
+          "data": {
+            "authMethods": [
+              {
+                "id": "openai",
+                "name": "Use OpenAI API key",
+                "description": "Requires setting the `OPENAI_API_KEY` environment variable",
+                "_meta": {
+                  "type": "terminal",
+                  "args": [
+                    "--auth-type=openai"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "sageMcpHello": false,
+        "commands": null
+      },
+      "probeOnMain": {
+        "state": "signin",
+        "reason": "Sign in to Qwen Code first",
+        "version": "0.25.0"
+      },
+      "probeWithQuirksFixes": {
+        "state": "signin",
+        "reason": "Sign in to Qwen Code first",
+        "version": "0.25.0"
+      }
+    },
+    "copilot": {
+      "package": "@github/copilot@1.0.95",
+      "version": "1.0.95",
+      "binary": "~/.sage-harnesses/copilot/node_modules/.bin/copilot",
+      "launchArgs": [
+        "--acp"
+      ],
+      "initialize": {
+        "protocolVersion": 1,
+        "agentInfo": {
+          "name": "Copilot",
+          "title": "Copilot",
+          "version": "1.0.95"
+        },
+        "agentCapabilities": {
+          "loadSession": true,
+          "mcpCapabilities": {
+            "http": true,
+            "sse": true
+          },
+          "promptCapabilities": {
+            "image": true,
+            "audio": false,
+            "embeddedContext": true
+          },
+          "sessionCapabilities": {
+            "close": {},
+            "list": {}
+          }
+        },
+        "authMethods": [
+          {
+            "id": "copilot-login",
+            "name": "Log in with Copilot CLI",
+            "type": null,
+            "loginCommand": [
+              "~/.sage-harnesses/copilot/node_modules/@github/copilot-darwin-arm64/copilot",
+              "login"
+            ]
+          }
+        ],
+        "mcpCapabilities": {
+          "http": true,
+          "sse": true
+        },
+        "initializeMs": 820
+      },
+      "privacyGate": null,
+      "sessionNew": {
+        "ok": true,
+        "hasModes": true,
+        "modes": {
+          "current": "https://agentclientprotocol.com/protocol/session-modes#agent",
+          "ids": [
+            "https://agentclientprotocol.com/protocol/session-modes#agent",
+            "https://agentclientprotocol.com/protocol/session-modes#plan",
+            "https://agentclientprotocol.com/protocol/session-modes#autopilot"
+          ]
+        },
+        "configOptions": [
+          {
+            "id": "mode",
+            "category": "mode",
+            "current": "https://agentclientprotocol.com/protocol/session-modes#agent",
+            "values": [
+              "https://agentclientprotocol.com/protocol/session-modes#agent",
+              "https://agentclientprotocol.com/protocol/session-modes#plan",
+              "https://agentclientprotocol.com/protocol/session-modes#autopilot"
+            ],
+            "valueCount": 3
+          },
+          {
+            "id": "allow_all",
+            "category": "permissions",
+            "current": "off",
+            "values": [
+              "on",
+              "off"
+            ],
+            "valueCount": 2
+          }
+        ],
+        "commands": [
+          "add-dir",
+          "allow-all",
+          "permissions",
+          "autopilot",
+          "compact",
+          "blame",
+          "chronicle",
+          "computer",
+          "context",
+          "cwd",
+          "env",
+          "every",
+          "after",
+          "fleet",
+          "init",
+          "list-dirs",
+          "mcp",
+          "memory",
+          "model",
+          "plan",
+          "plugin",
+          "rename",
+          "research",
+          "remote",
+          "reset-allowed-tools",
+          "review",
+          "sandbox",
+          "security-review",
+          "session",
+          "share",
+          "skills",
+          "subconscious",
+          "usage"
+        ],
+        "sageMcpHello": true,
+        "helloMs": 10769,
+        "sessionNewMs": 768,
+        "sageMcpHelloAfter25s": false,
+        "note": "Copilot rejects the stdio sage-mcp server (its log: \"Rejecting non-http/sse MCP server\") and accepts only http and sse MCP servers. Since the http channel (electron/capabilities/httpMcp.cjs), its tools reach it over main's http endpoint: re-probed 2026-10-17 with node tests/conformance/acp/probe.mjs copilot, admitted (its MCP initialize over http is the hello). helloMs and sessionNewMs are from the stdio probe of 2026-10-10."
+      },
+      "probeOnMain": {
+        "state": "unsupported",
+        "reason": "MoPilot can't give Copilot CLI computer and browser control",
+        "version": "1.0.95"
+      },
+      "probeWithQuirksFixes": {
+        "state": "admitted",
+        "reason": null,
+        "version": "1.0.95"
+      }
+    },
+    "cursor": {
+      "package": "https://downloads.cursor.com/lab/2026.10.01-e373342/darwin/arm64/agent-cli-package.tar.gz",
+      "version": "2026.10.01-e373342",
+      "binary": "~/.sage-harnesses/cursor/2026.10.01-e373342/cursor-agent",
+      "launchArgs": [
+        "acp"
+      ],
+      "initialize": {
+        "protocolVersion": 1,
+        "agentInfo": null,
+        "agentCapabilities": {
+          "loadSession": true,
+          "mcpCapabilities": {
+            "http": true,
+            "sse": true
+          },
+          "promptCapabilities": {
+            "audio": false,
+            "embeddedContext": false,
+            "image": true
+          },
+          "sessionCapabilities": {
+            "list": {}
+          }
+        },
+        "authMethods": [
+          {
+            "id": "cursor_login",
+            "name": "Cursor Login",
+            "type": null,
+            "loginCommand": null
+          }
+        ],
+        "mcpCapabilities": {
+          "http": true,
+          "sse": true
+        },
+        "initializeMs": 430,
+        "note": "initialize returns no agentInfo, so the probe reports no version; `cursor-agent --version` prints 2026.10.01-e373342"
+      },
+      "privacyGate": null,
+      "sessionNew": {
+        "ok": false,
+        "error": {
+          "code": -32000,
+          "message": "Authentication required",
+          "data": {
+            "message": "Authentication required. Please run 'agent login' first, then call authenticate() with methodId 'cursor_login'."
+          }
+        },
+        "sageMcpHello": false,
+        "commands": null
+      },
+      "probeOnMain": {
+        "state": "signin",
+        "reason": "Sign in to Cursor CLI first",
+        "version": null
+      },
+      "probeWithQuirksFixes": {
+        "state": "signin",
+        "reason": "Sign in to Cursor CLI first",
+        "version": null
+      }
+    },
+    "gemini": {
+      "package": "@google/gemini-cli@0.63.0",
+      "version": "0.63.0",
+      "binary": "~/.sage-harnesses/gemini/node_modules/.bin/gemini",
+      "launchArgs": [
+        "--acp"
+      ],
+      "initialize": {
+        "protocolVersion": 1,
+        "agentInfo": {
+          "name": "gemini-cli",
+          "title": "Gemini CLI",
+          "version": "0.63.0"
+        },
+        "agentCapabilities": {
+          "loadSession": true,
+          "promptCapabilities": {
+            "image": true,
+            "audio": true,
+            "embeddedContext": true
+          },
+          "mcpCapabilities": {
+            "http": true,
+            "sse": true
+          }
+        },
+        "authMethods": [
+          {
+            "id": "oauth-personal",
+            "name": "Log in with Google",
+            "type": null,
+            "loginCommand": null
+          },
+          {
+            "id": "gemini-api-key",
+            "name": "Gemini API key",
+            "type": null,
+            "loginCommand": null
+          },
+          {
+            "id": "vertex-ai",
+            "name": "Vertex AI",
+            "type": null,
+            "loginCommand": null
+          },
+          {
+            "id": "gateway",
+            "name": "AI API Gateway",
+            "type": null,
+            "loginCommand": null
+          }
+        ],
+        "mcpCapabilities": {
+          "http": true,
+          "sse": true
+        },
+        "initializeMs": 902
+      },
+      "privacyGate": null,
+      "sessionNew": {
+        "ok": false,
+        "error": {
+          "code": -32000,
+          "message": "Gemini API key is missing or not configured."
+        },
+        "sageMcpHello": false,
+        "commands": null
+      },
+      "probeOnMain": {
+        "state": "signin",
+        "reason": "Sign in to Gemini CLI first",
+        "version": "0.63.0"
+      },
+      "probeWithQuirksFixes": {
+        "state": "signin",
+        "reason": "Sign in to Gemini CLI first",
+        "version": "0.63.0"
+      }
+    },
+    "goose": {
+      "package": "https://github.com/aaif-goose/goose/releases/download/v1.54.0/goose-aarch64-apple-darwin.tar.bz2",
+      "version": "1.54.0",
+      "binary": "~/.sage-harnesses/goose/bin/goose",
+      "launchArgs": [
+        "acp"
+      ],
+      "initialize": {
+        "protocolVersion": 1,
+        "agentInfo": {
+          "name": "goose",
+          "version": "1.54.0"
+        },
+        "agentCapabilities": {
+          "loadSession": true,
+          "promptCapabilities": {
+            "image": true,
+            "audio": false,
+            "embeddedContext": true
+          },
+          "mcpCapabilities": {
+            "http": true,
+            "sse": false
+          },
+          "sessionCapabilities": {
+            "list": {},
+            "delete": {},
+            "close": {}
+          },
+          "auth": {},
+          "_meta": {
+            "goose": {
+              "recipeParameterScopes": {},
+              "localInference": {}
+            }
+          }
+        },
+        "authMethods": [
+          {
+            "id": "goose-provider",
+            "name": "Configure Provider",
+            "type": null,
+            "loginCommand": null
+          }
+        ],
+        "mcpCapabilities": {
+          "http": true,
+          "sse": false
+        },
+        "initializeMs": 79
+      },
+      "privacyGate": null,
+      "sessionNew": {
+        "ok": false,
+        "error": {
+          "code": -32603,
+          "message": "Internal error",
+          "data": "Failed to resolve provider: Configuration value not found: GOOSE_PROVIDER"
+        },
+        "sageMcpHello": false,
+        "commands": null,
+        "note": "needs a provider (GOOSE_PROVIDER or `goose configure`) before session/new works"
+      },
+      "sessionNewWithProviderConfigured": {
+        "note": "session/new needs a provider; with GOOSE_PROVIDER=ollama and GOOSE_MODEL=llama3.2 (no credentials involved) it succeeds",
+        "ok": true,
+        "modes": {
+          "current": "auto",
+          "ids": [
+            "auto",
+            "approve",
+            "smart_approve",
+            "chat"
+          ]
+        },
+        "commands": [
+          "prompts",
+          "prompt",
+          "compact",
+          "clear",
+          "skills",
+          "doctor",
+          "goal",
+          "grind",
+          "status",
+          "rednote-guide-search",
+          "morning",
+          "deep-research",
+          "xlsx",
+          "pdf",
+          "import-memory",
+          "docs",
+          "skill-creator",
+          "pptx",
+          "google-workspace",
+          "chrome-browser",
+          "built-in-browser",
+          "computer-use",
+          "docx",
+          "goose-doc-guide",
+          "web-search"
+        ],
+        "sageMcpHello": true,
+        "helloMs": 218
+      },
+      "probeOnMain": {
+        "state": "signin",
+        "reason": "Sign in to Goose first",
+        "version": "1.54.0"
+      },
+      "probeWithQuirksFixes": {
+        "state": "signin",
+        "reason": "Sign in to Goose first",
+        "version": "1.54.0"
+      }
+    }
+  }
+}

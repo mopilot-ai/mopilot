@@ -1,0 +1,20 @@
+{
+  "layer": "L2",
+  "public": [
+    "accountState.cjs",
+    "codexProvider.cjs",
+    "loginMarks.cjs",
+    "sameAccount.cjs",
+    "switch.cjs",
+    "usageRefresh.cjs",
+    "accountDirs.cjs",
+    "claudeBilling.cjs",
+    "registry.cjs",
+    "threadRelay.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1"
+  ],
+  "allow": []
+}

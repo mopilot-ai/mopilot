@@ -1,0 +1,16 @@
+[package]
+name = "transcript"
+version = "0.1.0"
+description = "JSON-lines logs written off the JS thread: one queue per file, written in batches, read back with the lines not on disk yet."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+inventory = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

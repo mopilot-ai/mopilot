@@ -1,0 +1,6 @@
+# Append-only lists merged with git's union driver, which keeps both sides' added lines instead of conflicting.
+# Only files pull requests append to at the end; never code, JSON or prose edited in place.
+# docs/code-quality.md#append-only-files lists them and why; tests/mergeAttributes.test.ts keeps the two in step.
+docs/bug-prevention/*.md merge=union
+docs/bug-prevention/README.md !merge
+docs/bug-prevention/change-contract.md !merge

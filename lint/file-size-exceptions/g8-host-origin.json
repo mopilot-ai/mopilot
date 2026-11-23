@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "host/src/protocol.mjs": {
+      "maxLines": 516,
+      "reason": "The protocol closure owns one ordered stream and request dispatcher (including G8 handoff/human routing and the approvals engine's entry points). F1 (clients) adds the one routing branch that hands the four client-table methods to their own owner (hostClients.mjs) and the `by` principal on a chat write; both are dispatch, not new logic. Cap this change at exactly 515 lines. MoMo's home adds three one-line dispatch hooks at the points a request or event already passes (the veil before parsing, the chat veil around a connection, the turn end settling the home's ledger); none is logic. A handler also gets the connection's standing as its third argument, so a list (host.chats) can hide the chats a feature keeps apart. The `momo` option is declared with the others."
+    }
+  }
+}

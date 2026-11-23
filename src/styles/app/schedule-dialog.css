@@ -1,0 +1,138 @@
+/* The "Schedule a task" dialog. */
+/* "Schedule a task" modal, measured from the official dialog */
+.sched-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 85px;
+  padding-bottom: 24px;
+  overflow-y: auto;
+  background: rgba(var(--shadow-ink), 0.5);
+}
+.sched-dialog {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+  border-radius: 30px;
+  background: var(--composer-bg);
+  padding: 20px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 20px 60px rgba(var(--shadow-ink), 0.45);
+}
+.sched-dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.sched-instructions {
+  height: 142px;
+  resize: none;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--ink), 0.1);
+  background: rgba(var(--ink), 0.02);
+  padding: 14px 12px;
+  font: inherit;
+  font-size: var(--fs-chat);
+  color: var(--text);
+  outline: none;
+}
+.sched-card {
+  border-radius: 16px;
+  border: 1px solid rgba(var(--ink), 0.1);
+  padding: 0 12px;
+}
+.sched-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 55px;
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.sched-field + .sched-field {
+  border-top: 1px solid rgba(var(--ink), 0.08);
+}
+.sched-card.single .sched-field {
+  min-height: 54px;
+}
+.sched-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-chat);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.sched-select:hover {
+  background: rgba(var(--ink), 0.06);
+}
+.sched-inline {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.sched-advanced {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0 6px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-chat);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.sched-adv {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sched-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+.btn-pill.lg,
+.btn-white.lg {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  font-size: var(--fs-chat);
+}
+.btn-white:disabled {
+  background: rgba(var(--ink), 0.3);
+  color: rgba(var(--ink), 0.6);
+  opacity: 1;
+}
+.sched-dialog-backdrop {
+  padding-top: 125px;
+}
+.sched-dialog {
+  padding: 22px 20px 20px;
+}
+.sched-instructions {
+  height: 121px;
+}
+.sched-field {
+  min-height: 48px;
+}
+.sched-card.single .sched-field {
+  min-height: 46px;
+}

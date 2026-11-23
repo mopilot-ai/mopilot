@@ -1,0 +1,10 @@
+// Text cut with .slice(0, n) for a "…" preview: it can end in half of an emoji, which shows as �.
+// docs/bug-prevention/strings-paths-and-keys.md
+language js
+
+or {
+  JsTemplateExpression() as $t where { $t <: r"(?s).*\$\{[^{}]*\.slice\(0, [^()]*(?:\([^()]*\))?[^()]*\)\}(?:\\n)?….*" },
+  `$x.slice(0, $n) + $e` as $t where { $e <: r"^['\"`](?:\\n)?….*" }
+} as $u where {
+  register_diagnostic(span=$u, message="[cut-text] .slice(0, n) can cut an emoji in half, which shows as �. Use prefixUnits(text, n) from shared/textPrefix.mjs (docs/bug-prevention/strings-paths-and-keys.md).", severity="warn")
+}

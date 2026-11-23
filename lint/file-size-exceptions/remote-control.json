@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "src/session/harness/claude.ts": {
+      "maxLines": 581,
+      "reason": "Public renderer entry for Claude session actions and main-translated items. Remote-control and translator choices remain in focused modules."
+    }
+  }
+}

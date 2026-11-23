@@ -1,0 +1,316 @@
+/* Design tokens. The surface colors below are the first paint: src/lib/appearance.ts derives them at runtime
+   from the palette (shared/defaultPalette.mjs, a theme preset or the color overrides) through the surface
+   ladder in src/lib/surfaces.ts, so a value changed here alone is overwritten. Layout and type are measured
+   in the app itself. */
+:root {
+  --ink: 255, 255, 255;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas, monospace;
+  /* the greeting and page titles: the system's own serif, so no font file ships */
+  --font-serif: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+
+  --titlebar-h: 44px;
+  --sidebar-w: 288px;
+  --frame-gap: 4px;
+  --card-radius: 12px;
+  --row-h: 30px;
+  --row-radius: 8px;
+  --menu-radius: 12px;
+  --menu-item-radius: 8px;
+  --composer-w: 736px;
+  --summary-w: 300px;
+  --card-radius-lg: 14px;
+  --composer-radius: 18px;
+  --bubble-radius: 18px;
+
+  /* Type scale: seven steps as ratios of --fs-chat, the Chat font size (Settings -> Appearance -> Advanced),
+     which src/lib/appearance.ts writes onto the root element, so one setting moves the scale instead of 22
+     hand-written pixel sizes. At the 14px default the steps are 11.5, 12, 13, 14, 16 and 22px, the sizes the
+     stylesheets wrote by hand before they read the scale. Each step multiplies --fs-chat itself, with calc()
+     rather than `em`: an `em` is a ratio of the *inherited* size, and this app nests sized elements everywhere
+     (a .btn-pill inside a .config-warning, a .diff-stat inside a .cp-file-head), so `em` steps would multiply
+     each other -- --fs-ui under --fs-small would land on 11.1px instead of 13px. A calc() step resolves
+     against the root's --fs-chat wherever it lands, so it answers the setting without compounding.
+     --fs-display is fixed: a headline is not body text. --fs-code is the Code font size (11-14px), the
+     monospace root, also written by appearance.ts. The leading ratios are unitless, so the leading follows the
+     size it lands on; a pixel line-height shrinks the ratio as the size rises
+     (lint/rules/type-scale.grit, docs/code-quality.md#type-scale). */
+  --fs-micro: calc(var(--fs-chat) * 0.82);
+  --fs-small: calc(var(--fs-chat) * 0.857);
+  --fs-ui: calc(var(--fs-chat) * 0.929);
+  --fs-chat: 14px;
+  --fs-lg: calc(var(--fs-chat) * 1.143);
+  --fs-title: calc(var(--fs-chat) * 1.571);
+  --fs-display: 28px;
+  --fs-code: 12px;
+  --lh-prose: 1.6;
+  --lh-code: 1.55;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur: 140ms;
+  /* The motion scale (#1511), one value per kind of moment. New motion uses these. */
+  /* a press, a hover leaving */
+  --dur-fast: 60ms;
+  /* a small state change (a chip, a label crossfade) */
+  --dur-snap: 120ms;
+  /* an element entering or a row expanding */
+  --dur-base: 200ms;
+  /* a sheet, a card or a panel */
+  --dur-sheet: 300ms;
+  /* a release spring settling, a long entrance */
+  --dur-slow: 450ms;
+  /* how long a progress placeholder waits before it shows, so a quick first token never flashes one */
+  --reveal-hold: 500ms;
+  /* a snappy settle with no overshoot */
+  --ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
+  /* an entrance that overshoots a little and lands (a notice, a chip) */
+  --ease-overshoot: cubic-bezier(0.34, 1.3, 0.64, 1);
+  /* something moving from one place to another */
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);
+  /* a button released after a press: a spring that overshoots to 1.09 and settles, sampled as linear();
+     use with --dur-slow */
+  --spring-press: linear(0, 0.2459, 0.6526, 0.9468, 1.0764, 1.0915, 1.0585, 1.0219, 0.9993, 0.9914, 0.9921, 0.9957, 0.9988, 1.0004, 1);
+  /* a critically damped spring with no overshoot */
+  --spring-snappy: linear(0, 0.086, 0.2539, 0.428, 0.5786, 0.698, 0.7879, 0.8534, 0.8998, 0.9323, 0.9546, 0.9697, 0.98, 0.9868, 0.9913, 0.9943, 0.9963, 0.9976, 0.9985, 1);
+  /* enter and exit curves */
+  --ease-enter: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-exit: cubic-bezier(0.8, 0, 0.4, 1);
+  /* quick settle for hovers, popovers and folds; a softer one for content entering */
+  --ease-swift: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.165, 0.84, 0.44, 1);
+  /* the side pane's spring (duration 0.5s, bounce 0.1: stiffness 287.7,
+     damping 30.53), sampled every 1/24 of 500ms (src/lib/paneMotion.ts sets the length on .app);
+     used for the side pane opening and closing */
+  --shimmer-contrast: rgba(0, 0, 0, 0.6);
+  /* text on a filled color (the accent, an account's own color); the avatar of a profile without one */
+  --on-color: rgba(255, 255, 255, 0.92);
+  /* tooltips are near-black with white text; dark mode lifts them to the popover surface */
+  --tooltip-bg: #0b0b0b;
+  --tooltip-text: #ffffff;
+  --tooltip-muted: #9c9a94;
+  --tooltip-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --palette-shadow: 0 0 0 0.5px rgba(var(--ink), 0.1), 0 16px 48px rgba(0, 0, 0, 0.45);
+  --annotation: #3981f7;
+  /* a slider's knob: white in both modes, lifted off its track */
+  --knob: #ffffff;
+  --knob-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  /* the channels shadows, white overlays and neutral grays mix from, so a stylesheet tints with an alpha
+     (rgba(var(--shadow-ink), 0.4)) instead of writing a color */
+  --shadow-ink: 0, 0, 0;
+  --white-ink: 255, 255, 255;
+  --gray-ink: 127, 127, 127;
+  /* colors that show something other than the theme: a web page's default background, the sketch paper, the
+     light and dark previews in Settings -> Appearance, other products' logos, the plugin preview's backdrop */
+  --browser-page: #ffffff;
+  --paper: #ffffff;
+  --thumb-light: #ffffff;
+  --thumb-dark: #181818;
+  --brand-claude: #d97757;
+  --brand-cursor: #111111;
+  --plugin-preview:
+    radial-gradient(30% 45% at 62% 18%, rgba(150, 160, 215, 0.4), transparent 70%),
+    radial-gradient(50% 70% at 12% 80%, rgba(80, 95, 190, 0.45), transparent 70%),
+    radial-gradient(40% 65% at 90% 30%, rgba(110, 100, 180, 0.35), transparent 70%),
+    radial-gradient(80% 70% at 8% 0%, rgba(12, 16, 48, 0.95), transparent 70%),
+    linear-gradient(160deg, #121a42 0%, #22306c 45%, #34397a 75%, #262a5c 100%);
+  --avatar-bg: #e9b23f;
+  --avatar-text: #4a3405;
+}
+
+/* ---------- dark (default) ---------- */
+:root,
+[data-theme='dark'] {
+  --ink: 238, 241, 246;
+  color-scheme: dark;
+  --frame: #171a21;
+  --frame-inactive: #171a21;
+  --sidebar: #282b32;
+  --sidebar-inactive: #282b32;
+  --main: #171a21;
+  --card-border: #2d3036;
+  --divider: #2d3036;
+  --hairline: rgba(255, 255, 255, 0.1);
+  --hairline-strong: rgba(255, 255, 255, 0.2);
+
+  --text: #eef1f6;
+  --text-ui: rgba(238, 241, 246, 0.85);
+  --text-2: rgba(238, 241, 246, 0.795);
+  --text-3: rgba(238, 241, 246, 0.53);
+  --text-4: rgba(238, 241, 246, 0.35);
+  --text-step: rgba(238, 241, 246, 0.6);
+  --placeholder: #898c92;
+  --icon: #c2c5ca;
+  --icon-hover: #dedede;
+
+  --row-hover: rgba(255, 255, 255, 0.075);
+  --row-active: #484b52;
+  --control-active: #373a41;
+  --control-hover: #272a31;
+
+  --surface: #22252c;
+  --surface-2: #2d3036;
+  --surface-3: #35383f;
+  --surface-border: #2d3036;
+  --menu-bg: #22252c;
+  --menu-border: rgba(255, 255, 255, 0.1);
+  --menu-hover: rgba(255, 255, 255, 0.075);
+  --menu-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 24px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.06), 0 2px 8px rgba(0, 0, 0, 0.24);
+  --shadow-composer: 0 4px 20px rgba(0, 0, 0, 0.035), inset 0 0 0 1px var(--composer-border);
+
+  --composer-bg: #22252c;
+  --composer-border: #373a41;
+  --ctxbar-bg: #22252c;
+
+  --bubble: #22252c;
+  --bubble-text: #eef1f6;
+
+  --accent: #3b6ff5;
+  --accent-strong: #5c8afe;
+  --send-bg: #3b6ff5;
+  --search-bg: #22252c;
+  --card-bg: #171a21;
+  --toggle-on: #2667de;
+  --send-hover: #5c8afe;
+  --accent-soft: rgba(59, 111, 245, 0.16);
+  /* a picked choice (question options): the interactive blue (--toggle-on) at 25% over the main surface, which the Asking a question card tints at 40% */
+  --choice-accent: #1a2e45;
+  --badge-bg: #1c263f;
+  --badge-text: #3b6ff5;
+  --orange: #ef8b57;
+  --green: #4fb16b;
+  --green-text: #5dc27a;
+  --red: #e5534b;
+  --red-text: #f06a62;
+  --yellow: #e2b341;
+  /* sidebar row status dots: the yellow and the interactive blue */
+  --status-waiting: #e2b341;
+  --status-unread: #2a78d6;
+  --purple: #9b7bf0;
+  /* MoMo's blue (src/components/momo/momoColors.ts) */
+  --momo-blue: #4a93e6;
+  /* Linked-session PR lifecycle colors from the reference theme. */
+  --linked-pr-open: #32d74b;
+  --linked-pr-merged: #b796ff;
+  --linked-pr-closed: #ff6159;
+  --linked-pr-draft: #a6a6a6;
+
+  --code-bg: #22252c;
+  --code-border: rgba(255, 255, 255, 0.1);
+  --inline-code-bg: rgba(255, 255, 255, 0.05);
+  --diff-add-bg: rgba(46, 160, 67, 0.13);
+  --diff-add-gutter: rgba(46, 160, 67, 0.2);
+  --diff-del-bg: rgba(229, 83, 75, 0.12);
+  --diff-del-gutter: rgba(229, 83, 75, 0.2);
+  --diff-add-ink: #5dc27a;
+  --diff-del-ink: #f06a62;
+  --diff-add-word: rgba(64, 201, 119, 0.22);
+  --diff-del-word: rgba(250, 66, 62, 0.22);
+  --diff-hunk: rgba(59, 111, 245, 0.1);
+
+  --scrollbar: rgba(255, 255, 255, 0.16);
+  --focus-ring: rgba(38, 103, 222, 0.6);
+  --shimmer-a: #7a7a7a;
+  --shimmer-b: #f0f0f0;
+  --toggle-off: rgba(255, 255, 255, 0.1);
+  --kbd-bg: rgba(255, 255, 255, 0.05);
+  --tooltip-bg: #20201f;
+  --tooltip-text: #f0efec;
+}
+
+/* ---------- light ---------- */
+[data-theme='light'] {
+  --ink: 24, 30, 42;
+  color-scheme: light;
+  --frame: #fbfcfe;
+  --frame-inactive: #fbfcfe;
+  --sidebar: #ffffff;
+  --sidebar-inactive: #ffffff;
+  --main: #fbfcfe;
+  --card-border: #e4e6e9;
+  --divider: #e4e6e9;
+  --hairline: rgba(11, 11, 11, 0.1);
+  --hairline-strong: rgba(11, 11, 11, 0.2);
+
+  --text: #181e2a;
+  --text-ui: rgba(24, 30, 42, 0.85);
+  --text-2: rgba(24, 30, 42, 0.705);
+  --text-3: rgba(24, 30, 42, 0.477);
+  --text-4: rgba(24, 30, 42, 0.35);
+  --text-step: rgba(24, 30, 42, 0.6);
+  --shimmer-contrast: rgba(255, 255, 255, 0.75);
+  --placeholder: #8f9299;
+  --icon: #5b5f69;
+  --icon-hover: #1f1f1f;
+
+  --row-hover: rgba(11, 11, 11, 0.05);
+  --row-active: #e7e9ec;
+  --control-active: #e4e6e9;
+  --control-hover: #f0f1f3;
+
+  --surface: #f0f1f3;
+  --surface-2: #e4e6e9;
+  --surface-3: #ced0d4;
+  --surface-border: #e4e6e9;
+  --menu-bg: #ffffff;
+  --menu-border: rgba(11, 11, 11, 0.1);
+  --menu-hover: rgba(11, 11, 11, 0.05);
+  --menu-shadow: 0 0 0 1px rgba(11, 11, 11, 0.1), 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.06), 0 2px 8px rgba(11, 11, 11, 0.08);
+  --shadow-composer: 0 4px 20px rgba(0, 0, 0, 0.035), inset 0 0 0 1px var(--composer-border);
+
+  --composer-bg: #ffffff;
+  --composer-border: #e7e9ec;
+  --ctxbar-bg: #f3f4f7;
+
+  --bubble: #f0f1f3;
+  --bubble-text: #181e2a;
+
+  --accent: #3b6ff5;
+  --accent-strong: #5c8afe;
+  --send-bg: #3b6ff5;
+  --search-bg: #fcfdff;
+  --card-bg: #fbfcfe;
+  --toggle-on: #2667de;
+  --send-hover: #5c8afe;
+  --accent-soft: rgba(59, 111, 245, 0.12);
+  /* a picked choice (question options): the interactive blue (--toggle-on) at 20% over the main surface, which the Asking a question card tints at 40% */
+  --choice-accent: #d2e2f4;
+  --badge-bg: #e0e8fd;
+  --badge-text: #3b6ff5;
+  --orange: #d9692f;
+  --green: #2f9e52;
+  --green-text: #1f8a43;
+  --red: #d33c33;
+  --red-text: #c9332a;
+  --yellow: #b8860b;
+  /* a bright amber is 1.7:1 on the white sidebar; this one reaches the 3:1 non-text floor */
+  --status-waiting: #c48500;
+  --status-unread: #2a78d6;
+  --purple: #7a55e0;
+  --momo-blue: #2a78d6;
+  --linked-pr-open: #1e9e3c;
+  --linked-pr-merged: #8e6bd9;
+  --linked-pr-closed: #ff3a30;
+  --linked-pr-draft: #737373;
+
+  --code-bg: #f0f1f3;
+  --code-border: rgba(11, 11, 11, 0.1);
+  --inline-code-bg: rgba(11, 11, 11, 0.05);
+  --diff-add-bg: rgba(46, 160, 67, 0.12);
+  --diff-add-gutter: rgba(46, 160, 67, 0.22);
+  --diff-del-bg: rgba(229, 83, 75, 0.1);
+  --diff-del-gutter: rgba(229, 83, 75, 0.2);
+  --diff-add-ink: #1f8a43;
+  --diff-del-ink: #c9332a;
+  --diff-add-word: rgba(46, 160, 67, 0.2);
+  --diff-del-word: rgba(229, 83, 75, 0.2);
+  --diff-hunk: rgba(59, 111, 245, 0.1);
+
+  --scrollbar: rgba(0, 0, 0, 0.18);
+  --focus-ring: rgba(38, 103, 222, 0.6);
+  --shimmer-a: #9a9a9a;
+  --shimmer-b: #1a1a1a;
+  --toggle-off: rgba(11, 11, 11, 0.2);
+  --kbd-bg: rgba(11, 11, 11, 0.05);
+}

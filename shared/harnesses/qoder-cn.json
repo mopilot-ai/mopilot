@@ -1,0 +1,29 @@
+{
+  "id": "qoder-cn",
+  "label": "Qoder CN",
+  "vendor": "Qoder",
+  "bins": [
+    "qoderclicn",
+    "qodercn"
+  ],
+  "docsUrl": "https://docs.qoder.com/zh/cli/using-acp",
+  "install": {
+    "docs": "https://docs.qoder.com/zh/cli/using-acp",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "--acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ]
+}

@@ -1,0 +1,120 @@
+/* Task status in transcripts and sidebar rows, with the existing reduced-motion overrides. */
+/* ---------- transcript task event: a fixed 318 px card, or an inline line once settled ---------- */
+.task-event-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-self: flex-start;
+  align-items: flex-start;
+  gap: 6px;
+  width: 318px;
+  min-width: 318px;
+  max-width: 318px;
+  margin: 6px 0;
+  padding: 6px 4px 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.task-event-card:disabled {
+  cursor: default;
+}
+.task-event-surface {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--hairline-strong);
+  transform-origin: 50%;
+  transition: transform 450ms var(--task-spring), background-color 60ms var(--task-ease-out);
+}
+.task-event-card:not(:disabled):hover .task-event-surface {
+  background: var(--task-a5);
+}
+.task-event-card:not(:disabled):active .task-event-surface {
+  transform: scale(0.99);
+  transition: transform 60ms ease-out;
+}
+.task-event-icon {
+  flex: none;
+  align-self: center;
+  color: var(--text-3);
+}
+.task-event-text {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+}
+.task-event-label {
+  min-width: 0;
+  color: var(--text);
+  overflow-wrap: break-word;
+  font-variant-numeric: tabular-nums;
+}
+.task-event-label.single {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.task-event-time {
+  flex: none;
+  color: var(--text-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.task-event-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  color: var(--text-2);
+  text-align: left;
+}
+.task-event-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+}
+.task-event-head {
+  flex-shrink: 0;
+}
+.task-event-part {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+button.task-event-inline:hover {
+  color: var(--text);
+}
+button.task-event-inline:hover .task-failed {
+  color: var(--red-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tasks-caret,
+  .task-event-surface,
+  .tasks-count {
+    transition: none;
+  }
+  .task-event-card:active .task-event-surface {
+    transform: none;
+  }
+}

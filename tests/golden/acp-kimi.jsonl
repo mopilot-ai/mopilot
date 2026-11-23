@@ -1,0 +1,13 @@
+{"t":"session","harness":"kimi","sessionId":"kimi-golden-1","cwd":"/repo","at":1760090000000}
+{"t":"user","turnId":"at-1","user":{"id":"u-1","clientId":"1","content":[{"type":"text","text":"/goal make the README accurate","text_elements":[]}]},"at":1760090001000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"available_commands_update","availableCommands":[{"name":"goal","description":"Set a goal with a budget"},{"name":"swarm","description":"Run an agent swarm"},{"name":"init","description":"Write AGENTS.md"}]},"at":1760090001500}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"plan","entries":[{"content":"Read the README","status":"completed","priority":"high"},{"content":"Check each command","status":"in_progress","priority":"medium"},{"content":"Fix what's wrong","status":"pending","priority":"medium"}]},"at":1760090002000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call","toolCallId":"read-1","title":"Read README.md","kind":"read","status":"completed","locations":[{"path":"/repo/README.md"}]},"at":1760090003000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call","toolCallId":"grep-1","title":"grep npm run","kind":"search","status":"completed","rawInput":{"pattern":"npm run"}},"at":1760090004000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call","toolCallId":"mcp-1","title":"mcp__sage_0123456789ab__browser_open","kind":"other","status":"pending","rawInput":{"url":"https://example.test/docs"}},"at":1760090005000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call_update","toolCallId":"mcp-1","status":"completed","content":[{"type":"content","content":{"type":"text","text":"Opened https://example.test/docs"}}]},"at":1760090006000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call","toolCallId":"edit-1","title":"Write docs/setup.md","kind":"edit","status":"completed","content":[{"type":"diff","path":"/repo/docs/setup.md","oldText":null,"newText":"# Setup\n"}]},"at":1760090007000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"config_option_update","configOptions":[{"id":"model","name":"Model","category":"model","type":"select","currentValue":"kimi-k3","options":[{"value":"kimi-k3","name":"Kimi K3"}]}]},"at":1760090007500}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"README fixed; setup moved to "}},"at":1760090008000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"resource_link","uri":"file:///repo/docs/setup.md","name":"docs/setup.md"}},"at":1760090008100}
+{"t":"end","turnId":"at-1","stopReason":"end_turn","error":null,"at":1760090009000}

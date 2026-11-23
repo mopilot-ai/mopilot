@@ -1,0 +1,456 @@
+/* Thread messages: user messages, assistant text, the worked-for header and streamed text. */
+/* user message */
+.user-message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-bottom: 38px;
+  position: relative;
+}
+.user-bubble {
+  max-width: 85%;
+  background: var(--bubble);
+  color: var(--bubble-text);
+  padding: 10px 14px;
+  border-radius: var(--bubble-radius);
+  font-size: var(--fs-chat);
+  line-height: var(--lh-prose);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.user-quote {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid rgba(var(--ink), 0.2);
+  opacity: 0.8;
+}
+.user-actions {
+  display: flex;
+  gap: 2px;
+  height: 26px;
+  margin-top: 2px;
+  margin-bottom: -20px;
+  opacity: 0;
+  transition: opacity var(--dur);
+}
+.user-message:hover .user-actions {
+  opacity: 1;
+}
+/* one picture up to 480x320, several side by side up to 240x160 (half the row) each */
+.user-images {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+/* none of its pictures could be read: no empty row */
+.user-images:empty {
+  display: none;
+}
+.user-image {
+  display: block;
+  max-height: 320px;
+  max-width: min(100%, 480px);
+  border-radius: 14px;
+  object-fit: contain;
+}
+.user-images.several .user-image {
+  max-height: 160px;
+  max-width: min(240px, calc(50% - 4px));
+}
+/* a picture a machine holds: a pulsing block while it is fetched, a quiet line when it cannot be */
+.user-image-loading {
+  width: 160px;
+  height: 120px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  animation: user-images-pending 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.user-image-missing {
+  font-size: var(--fs-small);
+  opacity: 0.6;
+}
+.user-image-retry {
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+/* still being sent: they pulse */
+.user-images.pending {
+  animation: user-images-pending 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes user-images-pending {
+  50% {
+    opacity: 0.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-image-loading {
+    animation: none;
+    opacity: 0.6;
+  }
+  .user-images.pending {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+.user-mentions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.mention-chip {
+  font-size: var(--fs-small);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.mention-chip.file {
+  cursor: pointer;
+  text-decoration: none;
+}
+/* an `@path` a prompt names: accent text, underlined on hover */
+.bubble-file-link {
+  color: var(--accent);
+  text-decoration: none;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.bubble-file-link:hover {
+  text-decoration: underline;
+}
+.bubble-file-link:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
+}
+.mention-chip.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.skill-link,
+.md a.skill-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 100%;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.skill-link > svg {
+  flex: none;
+  align-self: center;
+}
+.skill-link:hover,
+.md a.skill-link:hover {
+  text-decoration: none;
+  filter: brightness(0.9);
+}
+.skill-link:hover > span {
+  text-decoration: none;
+}
+.skill-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+.user-mentions {
+  flex-wrap: wrap;
+}
+/* a skill a sent message starts ("/fix-bug …"): the composer's skill token, kept in the bubble */
+.bubble-skill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--accent);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.bubble-skill > svg {
+  flex: none;
+  align-self: center;
+}
+.attachment.skill .skill-link {
+  min-width: 0;
+  font-size: var(--fs-chat);
+  font-weight: 500;
+  gap: 7px;
+}
+.attachment.skill {
+  height: 28px;
+  max-width: 100%;
+  padding: 0 8px 0 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.attachment.skill .attachment-remove {
+  opacity: 0;
+}
+.attachment.skill:hover .attachment-remove,
+.attachment.skill:focus-within .attachment-remove {
+  opacity: 1;
+}
+.attachment.skill .skill-link > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.skill-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.skill-pane-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(var(--ink), 0.08);
+}
+.skill-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px 12px;
+  border: 1px solid rgba(var(--ink), 0.08);
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.skill-breadcrumb > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.skill-breadcrumb > span:last-child {
+  color: var(--text);
+}
+.skill-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.skill-pane-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+}
+.skill-metadata {
+  margin-bottom: 32px;
+  padding: 14px 16px;
+  border: 1px solid rgba(var(--ink), 0.06);
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.035);
+}
+.skill-metadata-label {
+  margin-bottom: 10px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.skill-metadata dl {
+  margin: 0;
+  font: var(--fs-code)/var(--lh-prose) var(--font-mono);
+}
+.skill-metadata dl > div {
+  display: grid;
+  grid-template-columns: minmax(70px, 20%) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 4px;
+}
+.skill-metadata dt {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.skill-metadata dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.user-annotations {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 70%;
+  margin-bottom: 6px;
+}
+.user-annotation {
+  background: var(--bubble);
+  color: var(--bubble-text);
+  padding: 8px 14px;
+  border-radius: 16px;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+}
+.user-annotation-quote {
+  border-left: 2px solid var(--divider);
+  padding-left: 8px;
+  opacity: 0.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.user-annotation-file {
+  margin-bottom: 4px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+.user-annotation-quote.code {
+  white-space: pre;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+}
+.user-annotation-comment {
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+
+/* assistant text */
+.assistant-message,
+.commentary {
+  font-size: var(--fs-chat);
+  line-height: var(--lh-prose);
+  color: var(--text);
+}
+.commentary {
+  margin: 4px 0 10px;
+}
+.message-actions {
+  display: flex;
+  gap: 2px;
+  margin: 4px 0 0 -5px;
+  height: 28px;
+  align-items: center;
+}
+.message-actions .icon-btn {
+  width: 26px;
+  height: 26px;
+  color: var(--text-3);
+}
+.message-actions .icon-btn:hover,
+.message-actions .icon-btn.on {
+  color: var(--text-ui);
+}
+
+/* worked-for header */
+.worked-for {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 22px;
+  margin: 0 0 16px;
+  padding-bottom: 0;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  color: var(--text-3);
+  text-align: left;
+  position: relative;
+  cursor: pointer;
+}
+.worked-for::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -9px;
+  height: 0.5px;
+  background: var(--divider);
+}
+.worked-for.running {
+  cursor: default;
+}
+.worked-for:not(.running):hover {
+  color: var(--text-ui);
+}
+.work {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.work .commentary {
+  margin: 0;
+}
+/* A summary belongs to the update below it; leave a larger break before the next group.
+   The arrival wrapper and restored history keep the same rhythm. */
+.work > .commentary:not(:last-child),
+.work > .item-enter:has(> .commentary):not(:last-child) {
+  margin-bottom: 8px;
+}
+.work .commentary .md p:last-child {
+  margin-bottom: 0;
+}
+
+/* New streamed text fades in over 400 ms (opacity 0 to 1, linear, fill backwards). A paced word fades on the document timeline from the moment it names (data-fade-at, stepFade.ts),
+   so a step's words fade in one after another and a word mounted again carries on where it was; the long fade
+   overlaps the next step, which hides where the steps meet. Other words fade by CSS as they mount. */
+.md-animated .fw:not([data-fade-at]) {
+  animation: arrive 400ms linear backwards;
+}
+.md-animated :is(li, tr, blockquote, hr, .code-block, .md-table-wrap, .katex-display) {
+  animation: arrive 400ms linear backwards;
+}
+/* a new step, tool row or turn rises 4px into place as it fades in, over .3s ease-out */
+.item-enter {
+  animation: step-in var(--dur-sheet) ease-out backwards;
+}
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+/* A turn's "Thinking" placeholder waits --reveal-hold (500ms) before it fades in over 150ms ease-out: a reply that
+   starts within half a second never flashes one. The person's own message shows at once. */
+.placeholder-reveal {
+  animation: fade-in 150ms ease-out var(--reveal-hold) backwards;
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .md-animated .fw,
+  .md-animated :is(li, tr, blockquote, hr, .code-block, .md-table-wrap, .katex-display),
+  .item-enter,
+  .placeholder-reveal {
+    animation: none;
+  }
+}
+
+
+/* MoMo's day and long-quiet stamp between turns, grey and centred as the design's */
+.momo-day {
+  margin: 20px 0 8px;
+  text-align: center;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}

@@ -1,0 +1,46 @@
+[package]
+name = "node"
+version = "0.1.0"
+description = "The core as a Node addon: dispatch and dispatchCancellable, which run a route on the core's threads, cancel, dispatchSync, which runs one on the JS thread, subscribe, which hears what routes emit, and routes; nothing else."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "mopilot_core"
+crate-type = ["cdylib"]
+# its tests are the JS ones that load it (tests/coreBinding*.test.ts); a Rust test binary would need Node-API to link
+test = false
+doctest = false
+
+[features]
+# routes that only the binding's tests call (src/test_routes.rs): never in a build that ships
+test-routes = ["dep:inventory"]
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+# linked for the routes it submits
+batcher = { path = "../batcher" }
+caps = { path = "../caps" }
+framing = { path = "../framing" }
+llmroute = { path = "../llmroute" }
+proc = { path = "../proc" }
+rank = { path = "../rank" }
+rollout = { path = "../rollout" }
+session = { path = "../session" }
+store = { path = "../store" }
+translate = { path = "../translate" }
+transcript = { path = "../transcript" }
+# Node-API itself, linked when Node loads the addon (napi-build); no derive macros, whose generated glue coverage cannot
+# measure
+napi-sys = { version = "3", default-features = false, features = ["napi8"] }
+inventory = { version = "0.3", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_LibraryLoader"] }
+
+[build-dependencies]
+napi-build = "2"

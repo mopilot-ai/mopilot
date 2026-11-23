@@ -1,0 +1,59 @@
+{
+  "id": "gemini",
+  "label": "Gemini",
+  "vendor": "Google",
+  "bins": [
+    "gemini"
+  ],
+  "docsUrl": "https://github.com/google-gemini/gemini-cli",
+  "install": {
+    "docs": "https://github.com/google-gemini/gemini-cli",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g @google/gemini-cli",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@google/gemini-cli"
+      }
+    ]
+  },
+  "enabled": true,
+  "order": 7,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "args": [
+      "--acp"
+    ],
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "anchors": {
+      "default": "ask",
+      "autoEdit": "auto",
+      "yolo": "full",
+      "plan": "readOnly"
+    },
+    "plan": {
+      "mode": "plan"
+    }
+  },
+  "instructionsFiles": [
+    "GEMINI.md",
+    "~/.gemini/GEMINI.md"
+  ],
+  "skillRoots": [
+    ".gemini/skills",
+    ".agents/skills"
+  ],
+  "contract": {
+    "npm": "@google/gemini-cli",
+    "bin": "gemini"
+  }
+}

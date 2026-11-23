@@ -1,0 +1,15 @@
+// A literal pixel font-size or line-height in a stylesheet: it ignores the Chat and Code font-size settings
+// (Settings -> Appearance -> Advanced), and a pinned pixel line-height shrinks the leading ratio as the size
+// rises, so raising Code font size to 14px drops the code leading from 1.58 to 1.36. The `font` shorthand
+// carries both, so it warns on a pixel size too. Use the type scale and the unitless leading ratios in
+// src/styles/tokens.css. docs/code-quality.md#type-scale
+language css
+
+CssGenericProperty(name = $name, value = $value) as $declaration where {
+  or {
+    and { $name <: r"font-size|line-height", $value <: r"[0-9.]+px" },
+    // the shorthand sets both at once: `font: 12px/1.6 var(--font-mono)`
+    and { $name <: r"font", $value <: r"[^;]*[0-9.]+px[^;]*" },
+  },
+  register_diagnostic(span=$declaration, message="[type-scale] A literal pixel font-size or line-height ignores the Chat and Code font-size settings, and a pinned line-height shrinks the leading as the size rises. Use the scale in src/styles/tokens.css (--fs-micro to --fs-display, --fs-code) with the unitless --lh-prose / --lh-code (docs/code-quality.md#type-scale).", severity="warn")
+}

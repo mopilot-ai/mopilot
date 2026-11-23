@@ -1,0 +1,408 @@
+/* Motion shared with the official app: activity lines, the thinking sweep, list and width transitions. */
+/* Reduced motion (#1511): when the system asks for less motion, every animation ends at once and runs once. Components
+   keep their own reduced-motion rules for what should still show (a fade instead of a slide); this catches the rest,
+   including animations added later. End events still fire, so code waiting on animationend goes on. Transitions are
+   left alone: a colour or opacity change is not motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ---- motion shared with the official app ---- */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+/* The cadenced "Thinking" shimmer: the first sweep 600ms in, each sweep 1000ms, one every 4000ms. The band's centre
+   travels from -25% to 150% of the text, 20% ramps around a 10% peak. A half-width band translated by p of its width
+   sits where a 50%-sized background at position p did. */
+@keyframes shimmer-cadence {
+  0% {
+    translate: -100%;
+  }
+  25%,
+  100% {
+    translate: 250%;
+  }
+}
+/* Every chat's running line: the working mark, the step's shimmering words, then
+   the clock and tokens once the turn has run two seconds. */
+.claude-activity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 21px;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  color: var(--text-3);
+  text-align: left;
+}
+/* the status line under the task list is one control tall, 28px as Claude Desktop's working line (min-h-control on a
+   desktop), its words centred in it (#5342) */
+.turn-status-slot .claude-activity {
+  min-height: 28px;
+}
+/* a toggle keeps to one line: its min-content is what the head above measures */
+.claude-activity:not(.expandable) {
+  flex-wrap: wrap;
+  column-gap: 10px;
+  row-gap: 0;
+}
+.claude-activity.expandable {
+  cursor: pointer;
+}
+/* an expandable line's toggle, with what follows a running group's row (a live link) beside it rather than inside it */
+.claude-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  min-width: 0;
+}
+/* A full line gives way in order, at any zoom. The toggle claims only its mark, clock and chevron, then grows back to
+   its whole words into what is left, so the words go first. Only what no longer fits beside those moves to a new line:
+   a toggle narrower than them would spill its clock over what follows it. */
+.claude-step-head > .claude-activity {
+  flex: 1 1 min-content;
+  width: auto;
+  max-width: max-content;
+}
+.claude-activity.expandable:hover,
+.claude-step.open > .claude-step-head > .claude-activity {
+  color: var(--text-ui);
+}
+/* One clamped line, not white-space: nowrap: a nowrap line's min-content is its whole text, which would leave the toggle
+   nothing to give up. The same order holds in a line with no toggle. A few characters stay (in ch, so they scale with
+   the type), so what follows wraps before the words are down to "R…". The clamp stacks element children: words are text. */
+.claude-activity-label {
+  display: -webkit-box;
+  flex: 1 1 min-content;
+  max-width: max-content;
+  min-width: 6ch;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+.claude-activity-time {
+  flex: none;
+  margin-left: -2px;
+  font-variant-numeric: tabular-nums;
+}
+/* the running turn's tokens after its clock ("· 12.3k tokens"), as the reference's activity line */
+.claude-activity-tokens {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.claude-activity-chevron {
+  flex: none;
+  margin-left: -6px;
+  opacity: 0.8;
+  transition: transform 200ms var(--ease-enter), opacity var(--dur) ease;
+}
+.claude-step.open > .claude-step-head > .claude-activity .claude-activity-chevron {
+  transform: rotate(90deg);
+  opacity: 1;
+}
+/* The working mark (workingMark/WorkingMark.tsx): a 20px mark, 12px before the words. */
+.claude-activity-mark {
+  display: flex;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-right: 2px;
+}
+/* The mark's sheets are strips of frames (workingMark/markView.ts): one layer per sheet in the 20px window, each strip
+   stepped by a transform the compositor runs. */
+.working-mark {
+  position: relative;
+  display: block;
+  flex: none;
+  color: var(--brand-claude);
+}
+.working-mark-layer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+}
+.working-mark-strip {
+  display: block;
+  width: 100%;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+/* a fresh mark's dot (35%) under its first frames, until its strip has painted */
+.working-mark-dot {
+  position: absolute;
+  inset: 0;
+  width: 35%;
+  height: 35%;
+  margin: auto;
+  border-radius: 50%;
+  background: currentColor;
+}
+/* "Thinking…" in the words' place while the model thinks and the step has no words of its own */
+.claude-activity-thinking {
+  flex: none;
+  white-space: nowrap;
+}
+/* Running words shimmer: the words keep their ink, their own glyphs mask a highlight band, and only the band's
+   translate animates. The compositor runs that sweep, so a busy renderer cannot stall it the way it stalled a
+   background-position sweep, which the main thread repainted every frame. The band is ShimmerBand's empty child
+   (src/components/ui/ShimmerBand.tsx); --shimmer-delay puts every band on one shared phase. */
+.shimmer-text {
+  --shimmer-ink: var(--text-3);
+  --shimmer-peak: color-mix(in srgb, var(--shimmer-ink) 30%, white);
+  color: var(--shimmer-ink);
+}
+.claude-activity.expandable:hover .shimmer-text,
+.claude-step.open > .claude-step-head > .claude-activity .shimmer-text {
+  --shimmer-ink: var(--text-ui);
+}
+.shimmer-band {
+  display: none;
+}
+@supports (-webkit-mask-clip: text) {
+  :is(.shimmer-text, .shimmer) {
+    position: relative;
+    -webkit-mask-image: linear-gradient(black 0 0);
+    -webkit-mask-clip: text;
+  }
+  :is(.shimmer-text, .shimmer) > .shimmer-band {
+    display: block;
+    position: absolute;
+    inset: 0;
+    overflow: clip;
+    pointer-events: none;
+  }
+}
+/* a 120deg band 30% toward white crosses the words every 3s, held 15% at each end and eased between */
+.shimmer-band::after {
+  content: '';
+  position: absolute;
+  inset: 0 -300% 0 0;
+  background-image: linear-gradient(120deg, transparent 37.5%, var(--shimmer-peak) 50%, transparent 62.5%);
+  translate: -62.5%;
+  animation: shimmer-band 3s linear var(--shimmer-delay, 0s) infinite;
+}
+@keyframes shimmer-band {
+  0%,
+  15% {
+    translate: -62.5%;
+    animation-timing-function: ease-in-out;
+  }
+  85%,
+  100% {
+    translate: -12.5%;
+  }
+}
+/* A turn thinking with nothing concrete to report yet: three dots that hop in sequence over 1.9s, staggered by
+   .15s, in --accent. With
+   reduced motion the dots keep their shape and lose only their motion. */
+.thinking-dots {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+.thinking-dots > span {
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: 50%;
+  background: var(--accent);
+  animation: timeline-quiet-dot 1.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.thinking-dots > span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.thinking-dots > span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes timeline-quiet-dot {
+  0%,
+  8% {
+    opacity: 0.2;
+    transform: translateY(2px);
+  }
+  22% {
+    opacity: 1;
+    transform: translateY(-2.5px);
+  }
+  36%,
+  70% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-dots > span {
+    animation: none;
+    opacity: 1;
+  }
+}
+/* "Thinking", the running step label: a highlight sweeps across the text once every 4s */
+.shimmer {
+  --shimmer-ink: var(--text-step);
+  --shimmer-peak: var(--shimmer-contrast);
+  display: inline-block;
+  color: var(--shimmer-ink);
+}
+.shimmer > .shimmer-band::after {
+  inset: 0 50% 0 0;
+  background-image: linear-gradient(to right, transparent 0%, var(--shimmer-peak) 40%, var(--shimmer-peak) 60%, transparent 100%);
+  translate: -100%;
+  animation: shimmer-cadence 4000ms linear var(--shimmer-resume, 600ms) infinite;
+}
+/* tool rows and other disclosures open with height and opacity over .3s cubic-bezier(.19,1,.22,1) (--ease-enter).
+   They close faster, in .15s ease-out: what the person is done with gets out of the way. Presence.tsx's COLLAPSE_MS keeps closed content mounted for the
+   longer of the two. The transition on the state being entered is the one that plays. */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 150ms ease-out,
+    opacity 150ms ease-out;
+}
+.collapse.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--dur-sheet) var(--ease-enter),
+    opacity var(--dur-sheet) var(--ease-enter);
+}
+.collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+/* sidebar lists: the rows slide down out of the header as the height opens, and back up as it closes */
+.collapse.side-collapse {
+  transition: grid-template-rows 240ms var(--ease-enter), opacity 180ms ease;
+}
+.collapse.side-collapse > .collapse-inner > * {
+  transform: translateY(-6px);
+  transition: transform 240ms var(--ease-enter);
+}
+.collapse.side-collapse.open > .collapse-inner > * {
+  transform: none;
+}
+/* clip, not hidden: each holds its children at its full width (below), which its 0.5px hairline border leaves wider
+   than its content box by one device pixel at 100% scaling. A hidden box can still be scrolled, so a focus or a
+   scroll-into-view inside it moved its content a pixel sideways for good
+   (tests/e2e/browser-blank-tab-recovery.spec.ts on Windows); a clipped one never scrolls. */
+.sidebar,
+.side-pane:not(.full) {
+  overflow: clip;
+}
+/* width opens and closes with the content held at its full width, so nothing reflows mid-animation */
+.sidebar {
+  animation: fade-in 250ms var(--ease-enter) backwards;
+}
+.sidebar > *:not(.sidebar-resize) {
+  min-width: max(200px, var(--sidebar-w));
+}
+.sidebar.drag-hidden {
+  transition: width 100ms ease-out;
+  border-right: 0;
+}
+/* the side pane's width springs open and shut, with no fade; script drives it
+   (usePaneSpring.ts) so a reversal mid-way carries on from where the edge is */
+/* --pane-w changes on every frame of a drag: registered as not inherited, so only the pane's direct children take it
+   and the rows under them (a diff of thousands of lines) are not restyled each frame (#2049) */
+@property --pane-w {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+.side-pane:not(.full) > *:not(.pane-resize) {
+  --pane-w: inherit;
+  min-width: var(--pane-w);
+}
+.side-pane.full {
+  animation: fade-in 250ms var(--ease-enter) backwards;
+}
+.sidebar.leaving,
+.side-pane.leaving {
+  animation: panel-out 200ms var(--ease-exit) forwards;
+  pointer-events: none;
+}
+.side-pane.leaving:not(.full) {
+  animation: none;
+}
+.side-pane.full.leaving {
+  animation-name: panel-out-fade;
+}
+@keyframes panel-out {
+  to {
+    opacity: 0;
+    width: 0;
+  }
+}
+@keyframes panel-out-fade {
+  to {
+    opacity: 0;
+  }
+}
+/* A copy button's confirmation: the check holds, then fades out over the tail of the hold, so the button
+   settles back instead of snapping. The duration is COPY_CHECK_MS in src/lib/copyConfirm.ts, which is how
+   long the state behind it lasts; tests/copyConfirm.test.ts keeps the two the same length. */
+.copy-check {
+  animation: copy-check-decay 2500ms var(--ease) both;
+}
+@keyframes copy-check-decay {
+  0%,
+  75% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+/* hover/press feedback on anything clickable that doesn't set its own transition */
+:where(button, a, summary, [role='button'], [role='menuitem'], [class*='-row'], [class*='-item'], input, textarea, select) {
+  transition: background-color var(--dur) ease, color var(--dur) ease, border-color var(--dur) ease, opacity var(--dur) ease, box-shadow var(--dur) ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-band::after,
+  .shimmer > .shimmer-band::after {
+    animation: none;
+  }
+  /* the check still holds for as long, it just appears and goes rather than fading */
+  .copy-check {
+    animation: none;
+  }
+  .sidebar,
+  .sidebar.leaving,
+  .side-pane,
+  .side-pane.full,
+  .side-pane.leaving,
+  .popover-layer,
+  .modal,
+  .modal-backdrop,
+  .toast {
+    animation: none;
+  }
+  .collapse,
+  .collapse.side-collapse > .collapse-inner > * {
+    transition: none;
+  }
+}
+
+.settings-tabs {
+  margin-bottom: 18px;
+}
+

@@ -1,0 +1,5 @@
+# the folders prebuild generates, at the app's root only: a local module keeps its own ios/ folder (modules/*/ios)
+/ios/
+/android/
+store/screenshots/
+.expo/

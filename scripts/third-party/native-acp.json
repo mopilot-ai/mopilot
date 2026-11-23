@@ -1,0 +1,9 @@
+{
+  "direct": [],
+  "runtimeRoots": [],
+  "notices": [
+    { "title": "Orca: native ACP compatibility reference", "path": "docs/licenses/orca-LICENSE.txt" },
+    { "title": "oh-my-pi: its mark (the harness tile)", "path": "docs/licenses/oh-my-pi-LICENSE.txt" },
+    { "title": "Autohand code-cli: its mark (the harness tile)", "path": "docs/licenses/autohand-code-cli-LICENSE.txt" }
+  ]
+}

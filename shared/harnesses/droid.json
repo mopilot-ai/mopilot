@@ -1,0 +1,49 @@
+{
+  "id": "droid",
+  "label": "Droid",
+  "vendor": "Factory AI",
+  "bins": [
+    "droid"
+  ],
+  "docsUrl": "https://docs.factory.ai/cli/getting-started/quickstart",
+  "install": {
+    "docs": "https://docs.factory.ai/cli/getting-started/quickstart",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g droid",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "droid"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "exec",
+      "--output-format",
+      "acp-daemon"
+    ],
+    "env": {
+      "DROID_DISABLE_AUTO_UPDATE": "true",
+      "FACTORY_DROID_AUTO_UPDATE_ENABLED": "false"
+    },
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "contract": {
+    "npm": "droid",
+    "bin": "droid"
+  }
+}

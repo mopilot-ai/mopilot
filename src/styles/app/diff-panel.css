@@ -1,0 +1,14 @@
+/* Diff panel. */
+/* ================================================================== */
+/* Diff panel                                                          */
+/* ================================================================== */
+.diff-panel {
+  flex: none;
+  position: relative;
+  border-left: 0.5px solid var(--divider);
+  display: flex;
+  flex-direction: column;
+  background: var(--main);
+  min-width: 0;
+}
+

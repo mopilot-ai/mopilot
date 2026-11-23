@@ -1,0 +1,40 @@
+{
+  "id": "claude-acp",
+  "label": "Claude Code (ACP)",
+  "vendor": "Anthropic",
+  "bins": [
+    "claude-agent-acp"
+  ],
+  "docsUrl": "https://github.com/agentclientprotocol/registry",
+  "install": {
+    "docs": "https://github.com/agentclientprotocol/registry",
+    "methods": []
+  },
+  "enabled": false,
+  "developer": true,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "titleSessions": false,
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "anchors": {
+      "plan": "readOnly",
+      "default": "ask",
+      "acceptEdits": "auto",
+      "auto": "auto",
+      "bypassPermissions": "full"
+    },
+    "permissionModes": {
+      "plan": "read-only",
+      "default": "default",
+      "auto": "auto-review",
+      "bypassPermissions": "full-access"
+    },
+    "plan": {
+      "mode": "plan"
+    }
+  }
+}

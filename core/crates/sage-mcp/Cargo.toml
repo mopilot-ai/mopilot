@@ -1,0 +1,22 @@
+[package]
+name = "sage-mcp"
+version = "0.1.0"
+description = "sage-mcp where there is no Swift helper (Windows, and the Linux package): a harness's stdio MCP server, forwarded line for line to MoPilot's tool socket."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "sage-mcp"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+
+# the executable as a harness starts it; in src/ because the coverage report leaves out a tests/ folder
+[[test]]
+name = "exe"
+path = "src/exe.rs"

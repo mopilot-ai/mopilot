@@ -1,0 +1,241 @@
+{
+  "about": "Real vendor control stop and refusal wordings, each with the problem kind MoPilot shows (null: no problem). source: cua (a Codex cua_repl call: Sky or the Codex Browser plugin), claudeInChrome, or yourChrome (Playwright MCP behind Your Chrome). status: how the call ended. from: where the wording was read. Browser plugin refusals are composed as browser-client.mjs builds them: prefix, the reason's message, the detail, the model instruction.",
+  "cases": [
+    { "source": "cua", "status": "failed", "kind": "permissions", "from": "SkyComputerUseService", "text": "Computer Use permissions are not granted" },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "permissionsPending",
+      "from": "SkyComputerUseService",
+      "text": "Computer Use permissions are still pending. The user has not finished granting Accessibility and Screen Recording permissions in the ChatGPT Computer Use window. Call this tool again, as the user is almost done finishing granting permissions. Do not end your turn yet, just call this tool again."
+    },
+    { "source": "cua", "status": "failed", "kind": "appBlocked", "from": "computer-use-policy.js", "text": "Computer Use is blocked from using the app 'Mail' by your organization's policy." },
+    { "source": "cua", "status": "failed", "kind": "appRefused", "from": "computer-use-policy.js", "text": "Computer Use is not allowed to use the app 'Terminal' for safety reasons." },
+    { "source": "cua", "status": "failed", "kind": "appRefused", "from": "SkyComputerUseService", "text": "Computer use actions are not allowed for system security process: loginwindow" },
+    { "source": "cua", "status": "failed", "kind": "notApproved", "from": "computer-use-policy.js", "text": "Computer Use was not approved to use Notes" },
+    { "source": "cua", "status": "failed", "kind": "notApproved", "from": "computer-use-policy.js", "text": "Computer Use was not approved to record computer audio" },
+    { "source": "cua", "status": "failed", "kind": "notApproved", "from": "SkyComputerUseService", "text": "Computer Use approval denied via MCP elicitation for app 'Mail'" },
+    { "source": "cua", "status": "failed", "kind": "notApproved", "from": "SkyComputerUseService", "text": "Computer Use permission request canceled for app 'Mail'" },
+    { "source": "cua", "status": "failed", "kind": "blockedUrl", "from": "SkyComputerUseService", "text": "Computer Use stopped due to encountering a disallowed URL: https://www.wikiwand.com/" },
+    {
+      "source": "cua",
+      "status": "completed",
+      "kind": "blockedUrl",
+      "from": "SkyComputerUseService",
+      "text": "This session has been stopped because Computer Use is not allowed on the current browser URL. Stop your work and send a final message noting why the session has been ended. Note that Computer Use is not allowed on this URL even if the user navigates to it themselves."
+    },
+    { "source": "cua", "status": "failed", "kind": "versionMismatch", "from": "native-pipe.js", "text": "Sky Computer Use API version mismatch: client=CodexComputerUseIPC-5 server=CodexComputerUseIPC-6" },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "versionMismatch",
+      "from": "SkyComputerUseService",
+      "text": "The Computer Use server and client have a version mismatch. To use Computer Use, ask the user to relaunch their ChatGPT app so that the client will be updated to the latest version."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "screenLocked",
+      "from": "SkyComputerUseService",
+      "text": "The Mac is locked and this Computer Use request cannot be associated with a ChatGPT thread. Ask the user to unlock the Mac manually before continuing."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "screenLocked",
+      "from": "SkyComputerUseService",
+      "text": "The Mac is locked and automatic unlock could not unlock it. Ask the user to unlock the Mac manually before continuing."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "screenLocked",
+      "from": "SkyComputerUseService",
+      "text": "The Mac is locked and automatic unlock is paused because physical input was detected. Ask the user to unlock the Mac manually before continuing."
+    },
+    { "source": "cua", "status": "failed", "kind": "screenLocked", "from": "SkyComputerUseService", "text": "The Mac is locked. Unlock it before reading accessibility text." },
+    {
+      "source": "cua",
+      "status": "completed",
+      "kind": "userStopped",
+      "from": "SkyComputerUseService",
+      "text": "This application session has been explicitly stopped by the user for this turn. Stop your work and send a final message noting they stopped the session and you're ready to continue if they want you to. Computer Use can be used again in the next assistant turn."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "serviceMissing",
+      "from": "SkyComputerUseService",
+      "text": "Computer Use could not start because its runtime app is missing. Try again, and if it fails after 2 more tries, suggest that the user relaunch ChatGPT."
+    },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "native-pipe.js", "text": "Sky Computer Use native pipe is unavailable: ECONNREFUSED" },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "native-pipe.js", "text": "Sky Computer Use host service connection timed out" },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "native-pipe.js", "text": "Sky Computer Use service startup request failed" },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "Computer Use IPC server is unavailable." },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "Computer Use XPC session is unavailable." },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "Computer Use bootstrap failed." },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "Computer Use bootstrap response came from an unexpected process." },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "Computer Use bootstrap response has no XPC endpoint." },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "Could not receive the Computer Use bootstrap response." },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "Could not send the Computer Use bootstrap response." },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "Timed out establishing the Computer Use connection." },
+    { "source": "cua", "status": "failed", "kind": "serviceUnavailable", "from": "SkyComputerUseService", "text": "The protected Computer Use app-group container is unavailable." },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "turnEnded",
+      "from": "SkyComputerUseService",
+      "text": "Computer Use is unavailable because the current turn ended. It will work again after the next user message."
+    },
+    { "source": "cua", "status": "failed", "kind": "disabled", "from": "SkyComputerUseService", "text": "Computer Use is disabled by your configuration." },
+    { "source": "cua", "status": "failed", "kind": "unknown", "from": "SkyComputerUseService", "text": "Computer Use server error 7" },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": null,
+      "from": "SkyComputerUseService",
+      "text": "Computer Use is not active for 'Notes'. You first must call `get_app_state` to get the latest state before doing other Computer Use actions. If `get_app_state` is not available in your environment, use `tool_search` to surface it."
+    },
+    { "source": "cua", "status": "failed", "kind": null, "from": "SkyComputerUseService", "text": "The user is still interacting with 'Notes'. Wait 2 seconds and retry." },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": null,
+      "from": "SkyComputerUseService",
+      "text": "The user changed 'Notes'. Re-query the latest state with `get_app_state` before sending more actions."
+    },
+    { "source": "cua", "status": "completed", "kind": null, "from": "SkyComputerUseService", "text": "Computer Use could not persist the approval permanently for app 'Notes'" },
+
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "siteBlocked",
+      "from": "browser-client.mjs site_status_blocked, browser-service.mjs",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: The site-safety policy blocks this action; no user permission prompt or Auto-review was attempted. Browser Use is not permitted on https://www.wikiwand.com. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention. Proceed only with a materially safer alternative that does not require this blocked browser action; if none exists, stop and request user input."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "siteBlocked",
+      "from": "browser-client.mjs navigation_url_policy_blocked",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: The browser URL policy blocks this action. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention. Proceed only with a materially safer alternative that does not require this blocked browser action; if none exists, stop and request user input."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "codexAppBrowser",
+      "from": "Owl tabs_api.cc (chrome.windows.create), through the Browser plugin's createBrowserTab",
+      "text": "Error: Creating browser windows from extensions is not supported in Owl."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "siteBlocked",
+      "from": "browser-client.mjs browser_navigation_blocked, browser-service.mjs",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: The browser blocked this navigation; this was not a site-status decision or a user rejection. Browser Use is not permitted on chrome://settings. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention. Proceed only with a materially safer alternative that does not require this blocked browser action; if none exists, stop and request user input."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "browserPolicy",
+      "from": "browser-client.mjs enterprise_policy_blocked",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: The admin-enforced policy blocks this action. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "browserPolicy",
+      "from": "browser-client.mjs browser_capability_blocked",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: The browser capability policy blocks this action. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "browserPolicy",
+      "from": "browser-client.mjs persisted_user_denied",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: A saved user permission setting blocks this action. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "browserPolicy",
+      "from": "browser-client.mjs guardian_denied",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: Auto-review denied this action; this was not a manual user rejection. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "browserPolicy",
+      "from": "browser-client.mjs (a reason this table does not name)",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: Something new blocks this action. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "browserDeclined",
+      "from": "browser-client.mjs user_declined",
+      "text": "Browser Use rejected this action due to browser security policy. Reason: The user declined permission for this action. The agent must not attempt to achieve the same outcome via workaround, indirect execution, raw CDP or browser commands, alternate browser surfaces, or policy circumvention."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "browserCheckUnavailable",
+      "from": "browser-client.mjs site_status_unavailable",
+      "text": "Browser Use could not complete this action because a browser security check was unavailable. Reason: The site-safety check was unavailable. This failure may be temporary. The agent may retry after the issue is resolved, but must not bypass browser security controls or use an indirect workaround."
+    },
+    {
+      "source": "cua",
+      "status": "failed",
+      "kind": "browserCheckUnavailable",
+      "from": "browser-client.mjs guardian_timed_out",
+      "text": "Browser Use could not complete this action because a browser security check was unavailable. Reason: Auto-review timed out without an approval decision; this was not a determination that the action was unsafe. You may retry once. This failure may be temporary. The agent may retry after the issue is resolved, but must not bypass browser security controls or use an indirect workaround."
+    },
+
+    { "source": "claudeInChrome", "status": "failed", "kind": "siteBlocked", "from": "Claude in Chrome 1.0.100 navigate", "text": "This site is not allowed due to safety restrictions." },
+    { "source": "claudeInChrome", "status": "failed", "kind": "browserPolicy", "from": "Claude in Chrome 1.0.100 navigate", "text": "This site is blocked by your site permissions." },
+    { "source": "claudeInChrome", "status": "failed", "kind": "browserPolicy", "from": "Claude in Chrome 1.0.100 navigate", "text": "This site is blocked by a policy set by your browser’s administrator." },
+    { "source": "claudeInChrome", "status": "failed", "kind": "browserPolicy", "from": "Claude in Chrome 1.0.100 navigate", "text": "This site is blocked by your organization’s policy." },
+    { "source": "claudeInChrome", "status": "failed", "kind": "browserPolicy", "from": "Claude in Chrome 1.0.100 navigate", "text": "Claude in Chrome is turned off in your settings." },
+    { "source": "claudeInChrome", "status": "failed", "kind": "browserPolicy", "from": "Claude in Chrome 1.0.100 navigate", "text": "Claude in Chrome is turned off by your organization." },
+    { "source": "claudeInChrome", "status": "failed", "kind": "browserPolicy", "from": "Claude in Chrome 1.0.100 tool dispatch", "text": "A navigation was blocked by policy." },
+    { "source": "claudeInChrome", "status": "failed", "kind": "browserDeclined", "from": "Claude in Chrome 1.0.100 navigate", "text": "Navigation to this domain is not allowed" },
+    {
+      "source": "claudeInChrome",
+      "status": "failed",
+      "kind": "browserCheckUnavailable",
+      "from": "Claude in Chrome 1.0.100 navigate",
+      "text": "Could not verify this site's safety category. Blocking as a precaution — try again in a moment."
+    },
+    {
+      "source": "claudeInChrome",
+      "status": "failed",
+      "kind": "chromePromptTimedOut",
+      "from": "Claude in Chrome mcpPermissions permission_prompt_timed_out",
+      "text": "No response to the Claude in Chrome permission prompt before it timed out, so the action was not run. The prompt opens as a small Claude window in Chrome: ask the user to keep Chrome visible and click Allow, then try again."
+    },
+    {
+      "source": "claudeInChrome",
+      "status": "failed",
+      "kind": "chromePromptUnavailable",
+      "from": "Claude in Chrome mcpPermissions permission_prompt_unavailable",
+      "text": "The Claude in Chrome permission prompt window couldn't be opened, so the action was not run. Ask the user to check that Chrome is open and can show new windows, then try again."
+    },
+    {"source": "claudeInChrome", "status": "failed", "kind": "chromeDisconnected", "from": "Claude Code CLI (claude-agent-sdk-darwin-arm64 0.3.295) claude-in-chrome onToolCallDisconnected", "text": "Browser extension is not connected. Please ensure the Claude browser extension is installed and running (https://claude.ai/chrome), and that you are logged into claude.ai with the same account as Claude Code. If this is your first time connecting to Chrome, you may need to restart Chrome for the installation to take effect."},
+    {"source": "claudeInChrome", "status": "failed", "kind": "chromeDisconnected", "from": "Claude Code CLI (claude-agent-sdk-darwin-arm64 0.3.295) claude-in-chrome onToolCallDisconnected", "text": "Browser extension is not connected. Chrome on the user's computer could not be reached from this session: that computer may be closed or asleep, Chrome may not be running there, the Claude extension may not be installed there (https://claude.ai/chrome), or this session may not be able to connect to Chrome. Ask the user to make sure that computer is awake and Chrome is open there with the Claude extension, then retry."},
+    {"source": "claudeInChrome", "status": "failed", "kind": "chromeDisconnected", "from": "Claude Code CLI (claude-agent-sdk-darwin-arm64 0.3.295) claude-in-chrome onToolCallDisconnected", "text": "Browser extension is not connected: the OAuth token Claude Code is using belongs to a different claude.ai account than the one Claude Code is logged in as. Run /logout and /login in Claude Code and make sure the browser extension is signed into the same claude.ai account."},
+    {"source": "claudeInChrome", "status": "failed", "kind": "chromeConnectionLost", "from": "Claude Code CLI (claude-agent-sdk-darwin-arm64 0.3.295) claude-in-chrome tool error", "text": "The \"navigate\" tool call failed because the Chrome extension disconnected mid-operation. This is usually transient (Chrome service worker restart, tab closed, network blip) and the extension often reconnects automatically. Retry the same tool call in a few seconds. If it keeps failing, ask the user to switch to Chrome (which wakes the extension) or check that the extension is still logged in."},
+    {"source": "claudeInChrome", "status": "failed", "kind": "chromeConnectionLost", "from": "Claude Code CLI (claude-agent-sdk-darwin-arm64 0.3.295) claude-in-chrome tool error", "text": "The \"computer\" call was never delivered to the Chrome extension: the computer running that browser appears to be offline or asleep, or Chrome is not running there. This is a connection problem, not a permission or site-access issue. Ask the user to make sure that computer is awake and Chrome is open with the Claude extension, then retry."},
+    {"source": "claudeInChrome", "status": "failed", "kind": "chromeConnectionLost", "from": "Claude Desktop 2.31226.1 claude-in-chrome (.vite/build/index.chunk-Cyt2WTko.js) S1n", "text": "The \"computer\" tool call was sent, but the connection was lost before its result came back. The action may have happened, may still be in progress or waiting for the user in Chrome, or may not have happened. If the call only reads the page, call it again."},
+    {"source": "claudeInChrome", "status": "failed", "kind": null, "from": "Claude Code CLI (claude-agent-sdk-darwin-arm64 0.3.295) claude-in-chrome tool error", "text": "The \"find\" tool call failed unexpectedly. This is usually transient — retry the same call in a few seconds."},
+    {"source": "claudeInChrome", "status": "failed", "kind": "chromeNoResponse", "from": "Claude Code CLI (claude-agent-sdk-darwin-arm64 0.3.295) claude-in-chrome tool error", "text": "The \"computer\" tool did not respond in time. The page or Chrome may be unresponsive, or Chrome may be waiting for the user. Try a lighter operation (e.g., \"get_page_text\" instead of a screenshot), or ask the user to check Chrome."},
+    {"source": "claudeInChrome", "status": "failed", "kind": "chromeNoResponse", "from": "Claude Code CLI (claude-agent-sdk-darwin-arm64 0.3.295) claude-in-chrome tool error", "text": "The \"computer\" tool did not respond in time. If Chrome is on another computer, that computer may be closed or asleep. The page may also be loading or unresponsive, or Chrome may be waiting for the user. Try a lighter operation (e.g., \"get_page_text\" instead of a screenshot) once."},
+    {
+      "source": "claudeInChrome",
+      "status": "failed",
+      "kind": null,
+      "from": "Claude in Chrome 1.0.100 navigate",
+      "text": "Navigation was blocked by a \"Leave site?\" dialog — the page has unsaved changes. Retry with force: true to discard them and navigate anyway."
+    },
+    {"source": "yourChrome", "status": "failed", "kind": "chromeExtensionMissing", "from": "@playwright/mcp 0.0.83 (playwright-core coreBundle.js) browser_navigate error behind Your Chrome, MoPilot dev instance 2026-10-17", "text": "### Error\nError: Playwright Extension not found in \"/Users/de/Library/Application Support/Google/Chrome\". Install it from https://chromewebstore.google.com/detail/playwright-extension/mmlmfjhmonkocbjadbfplnigmagldckm, or set the PLAYWRIGHT_MCP_EXECUTABLE_PATH environment variable to use a browser at a custom location."}
+  ]
+}

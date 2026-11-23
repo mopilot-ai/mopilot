@@ -1,0 +1,103 @@
+/* Linked sidebar families: one rounded guide, compact rows and persistent caret geometry. */
+.side-children {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.side-children::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  top: 4px;
+  bottom: calc(max(28px, var(--fs-ui) * 1.5) / 2 + 2px);
+  inset-inline-start: 14px;
+  width: 10px;
+  border-inline-start: 1px solid var(--hairline-strong);
+  border-bottom: 1px solid var(--hairline-strong);
+  border-end-start-radius: 6px;
+}
+.side-children.indent::after {
+  inset-inline-start: 38px;
+}
+.side-row.linked-child {
+  padding-inline-start: 30px;
+}
+.side-row.indent.linked-child {
+  padding-inline-start: 54px;
+}
+.thread-row {
+  --row-location-width: 14px;
+  justify-content: flex-end;
+  height: max(28px, calc(var(--fs-ui) * 1.5));
+  margin-bottom: 2px;
+  padding-inline: 10px;
+  font-size: var(--fs-ui);
+}
+.thread-row.indent:not(.linked-child) {
+  padding-inline-start: 34px;
+}
+.row-menu {
+  display: contents;
+}
+.side-row-name {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+.side-row-name .side-row-label {
+  flex: 0 1 auto;
+  -webkit-mask-image: none;
+  text-overflow: ellipsis;
+}
+.nested-caret {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-3);
+  margin-inline: 1px 6px;
+}
+.nested-caret svg {
+  transition: transform 60ms cubic-bezier(.4, 0, .2, 1);
+}
+.nested-caret svg[data-expanded='true'] {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nested-caret svg { transition: none; }
+}
+/* Hidden nested sessions folded into one row under their parent (sidebar/ChildRows.tsx): the count,
+   then failed (danger), unread (accent, with its dot) and working, each after a middle dot. */
+.side-row.nested-summary {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  height: max(28px, calc(var(--fs-ui) * 1.5));
+  margin-bottom: 2px;
+}
+.side-row.nested-summary:hover {
+  color: var(--text-ui);
+}
+.nested-summary-part {
+  display: inline-flex;
+  align-items: center;
+}
+.nested-summary-sep {
+  padding: 0 6px;
+  color: var(--text-4);
+}
+.nested-summary-part.input { color: var(--status-waiting); }
+.nested-summary-part.failed { color: var(--red); }
+.nested-summary-part.unread { color: var(--status-unread); }
+.nested-summary-part .row-dot { width: 6px; height: 6px; margin-right: 5px; }
+/* A nested session waiting for its recipient (sidebar/ThreadRow.tsx, orchestration scheduler). */
+.side-row-queued {
+  flex: none;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+.show-more[aria-disabled='true'],
+.show-more[aria-disabled='true']:hover {
+  cursor: default;
+  color: var(--text-3);
+  background: transparent;
+}

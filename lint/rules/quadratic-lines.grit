@@ -1,0 +1,21 @@
+// A newline-delimited stream split by appending each chunk to one string and searching all of it for the next
+// newline: every chunk copies the whole buffer, so one 30 MB line read in 64 KB chunks costs seconds of the
+// thread and gigabytes of garbage (a Codex history answer did this to main once a minute). Read the pipe with JsonReader
+// (electron/transport/jsonReader.cjs): the Rust core frames it, and never rescans or recopies a prefix.
+// docs/bug-prevention/overlapping-operations.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: `$buf.indexOf($newline)`,
+  $newline <: r"['\"]\\n['\"]",
+  // the buffer grows by += in the same function that searches it
+  $hit <: within or {
+    JsArrowFunctionExpression(body = $body),
+    JsFunctionDeclaration(body = $body),
+    JsFunctionExpression(body = $body),
+    JsMethodClassMember(body = $body),
+    JsMethodObjectMember(body = $body)
+  },
+  $body <: contains JsAssignmentExpression(left = $buf) as $grow where { $grow <: r"(?s)^[^=]*\+=.*" },
+  register_diagnostic(span=$hit, message="[quadratic-lines] Appending each chunk to one buffer and searching all of it for a newline copies the whole buffer per chunk. Read the pipe with JsonReader (electron/transport/jsonReader.cjs), which the Rust core frames (docs/bug-prevention/overlapping-operations.md).", severity="warn")
+}

@@ -1,0 +1,266 @@
+// Codex's Remote Control in main (electron/harness/codexRemoteControl.cjs): always asked for ephemerally, read once per process and kept by
+// notifications, presses queued in order, a refusal said in words, and an older process's answers dropped.
+import { test, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { CodexRemoteControl, NEEDS_LOGIN, UNREACHABLE } = require('../electron/harness/codexRemoteControl.cjs');
+
+const state = (status: string, environmentId: string | null = null) => ({ status, serverName: 'mac', installationId: 'i', environmentId });
+const off = { status: 'disabled', environmentId: null, error: null };
+let sent: [string, any][];
+let answers: Array<(m: string) => any>;
+let noted: string[];
+const make = () =>
+  new CodexRemoteControl({
+    request: async (method: string, params?: any) => {
+      sent.push([method, params]);
+      return answers.shift()!(method);
+    },
+    note: (context: string) => void noted.push(context),
+  });
+beforeEach(() => {
+  sent = [];
+  answers = [];
+  noted = [];
+});
+
+test('it starts off, and reads the app-server once; its notifications keep the state after that', async () => {
+  const rc = make();
+  assert.deepEqual(rc.snapshot(), off);
+  answers.push(() => state('connected', 'env1'));
+  assert.deepEqual(await rc.read(), { status: 'connected', environmentId: 'env1', error: null });
+  assert.deepEqual(await rc.read(), { status: 'connected', environmentId: 'env1', error: null });
+  assert.deepEqual(sent, [['remoteControl/status/read', undefined]]);
+  rc.onStatus(state('disabled'));
+  assert.deepEqual(await rc.read(), off);
+  assert.equal(sent.length, 1);
+});
+
+test('a first read that is answered after a press or a notification does not overwrite it', async () => {
+  const rc = make();
+  let late: (v: any) => void = () => undefined;
+  answers.push(
+    () => new Promise((r) => (late = r)),
+    () => state('connected', 'env1'),
+  );
+  const read = rc.read();
+  await rc.set(true);
+  late(state('disabled'));
+  assert.deepEqual(await read, { status: 'connected', environmentId: 'env1', error: null });
+});
+
+test('a read that fails is noted, and the state stays off and is asked for again', async () => {
+  const rc = make();
+  answers.push(() => {
+    throw new Error("Codex isn't connected");
+  });
+  assert.deepEqual(await rc.read(), off);
+  assert.deepEqual(noted, ["read Codex's Remote Control state"]);
+  answers.push(() => state('connected', 'env1'));
+  assert.equal((await rc.read()).status, 'connected');
+});
+
+test('turning it on and off is asked for ephemerally, and answers the state after', async () => {
+  const rc = make();
+  answers.push(
+    () => state('connecting'),
+    () => state('disabled'),
+  );
+  assert.equal((await rc.set(true)).status, 'connecting');
+  assert.equal((await rc.set(false)).status, 'disabled');
+  assert.deepEqual(sent, [
+    ['remoteControl/enable', { ephemeral: true }],
+    ['remoteControl/disable', { ephemeral: true }],
+  ]);
+});
+
+test('a refusal says why: the signed-out login in plain words, anything else as the app-server said it', async () => {
+  const rc = make();
+  answers.push(() => {
+    throw new Error('remote control requires ChatGPT authentication');
+  });
+  assert.deepEqual(await rc.set(true), { status: 'errored', environmentId: null, error: NEEDS_LOGIN });
+  answers.push(() => {
+    throw new Error('device key unusable');
+  });
+  assert.equal((await rc.set(true)).error, 'device key unusable');
+  // a refusal that is not an Error is said as it came
+  answers.push(() => Promise.reject('plain words'));
+  assert.equal((await rc.set(true)).error, 'plain words');
+  // asking again clears the old words until the next answer
+  answers.push(() => state('connecting'));
+  assert.deepEqual(await rc.set(true), { status: 'connecting', environmentId: null, error: null });
+});
+
+test('a failure to turn it off keeps its state and says why; a later errored notification keeps the words, a healthy one drops them', async () => {
+  const rc = make();
+  answers.push(() => state('connected', 'env1'));
+  await rc.set(true);
+  answers.push(() => {
+    throw new Error('not reachable');
+  });
+  assert.deepEqual(await rc.set(false), { status: 'connected', environmentId: 'env1', error: 'not reachable' });
+  rc.onStatus(state('errored', 'env1'));
+  assert.equal(rc.snapshot().error, 'not reachable');
+  rc.onStatus(state('connected', 'env1'));
+  assert.equal(rc.snapshot().error, null);
+  rc.onStatus({ status: 'disabled', serverName: 'mac', installationId: 'i' });
+  assert.equal(rc.snapshot().environmentId, null);
+});
+
+test('presses run in order, one after the other, so the last press is the state', async () => {
+  const rc = make();
+  const order: string[] = [];
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((r) => (release = r));
+  answers.push(
+    async (m: string) => (order.push(`${m} start`), await gate, order.push(`${m} end`), state('connected')),
+    (m: string) => (order.push(`${m} start`), order.push(`${m} end`), state('disabled')),
+  );
+  const first = rc.set(true);
+  const second = rc.set(false);
+  await new Promise((r) => setTimeout(r, 5));
+  assert.deepEqual(order, ['remoteControl/enable start']);
+  release();
+  await Promise.all([first, second]);
+  assert.deepEqual(order, [
+    'remoteControl/enable start',
+    'remoteControl/enable end',
+    'remoteControl/disable start',
+    'remoteControl/disable end',
+  ]);
+  assert.equal(rc.snapshot().status, 'disabled');
+});
+
+test("a press that failed does not stop the next one, and the process's end takes the link and drops older answers", async () => {
+  const rc = make();
+  answers.push(() => {
+    throw new Error('boom');
+  });
+  await rc.set(true);
+  let release: (v: any) => void = () => undefined;
+  answers.push(() => new Promise((r) => (release = r)));
+  const late = rc.set(true);
+  await new Promise((r) => setTimeout(r, 5));
+  rc.reset();
+  assert.deepEqual(rc.snapshot(), off);
+  release(state('connected', 'env1'));
+  assert.deepEqual(await late, off);
+  // an older read and an older refusal are dropped too
+  let readAnswer: (v: any) => void = () => undefined;
+  answers.push(() => new Promise((r) => (readAnswer = r)));
+  const staleRead = rc.read();
+  await new Promise((r) => setTimeout(r, 5));
+  rc.reset();
+  readAnswer(state('connected'));
+  assert.deepEqual(await staleRead, off);
+  let refuse: (e: Error) => void = () => undefined;
+  answers.push(() => new Promise((_, r) => (refuse = r)));
+  const staleSet = rc.set(true);
+  await new Promise((r) => setTimeout(r, 5));
+  rc.reset();
+  refuse(new Error('late'));
+  assert.deepEqual(await staleSet, off);
+  // the new process is read afresh
+  answers.push(() => state('disabled'));
+  assert.equal((await rc.read()).status, 'disabled');
+});
+
+const connected = async (rc: any) => {
+  answers.push(() => state('connected', 'env1'));
+  await rc.set(true);
+  sent.length = 0;
+};
+
+test('pairing, devices and revoke need the link up, and say so otherwise', async () => {
+  const rc = make();
+  for (const call of [() => rc.pairing(), () => rc.clients(), () => rc.revoke('c1')])
+    await assert.rejects(call(), /Turn Remote Control on first/);
+  answers.push(() => state('connecting', 'env1'));
+  await rc.set(true);
+  await assert.rejects(rc.pairing(), /Turn Remote Control on first/);
+  // a link that is up but has no environment has nothing to pair with either
+  rc.onStatus(state('connected', null));
+  await assert.rejects(rc.clients(), /Turn Remote Control on first/);
+  assert.equal(sent.filter(([m]) => /pairing|client/.test(m)).length, 0);
+});
+
+test('a pairing code is the short one a device types, with when it ends', async () => {
+  const rc = make();
+  await connected(rc);
+  answers.push(() => ({ pairingCode: 'long', manualPairingCode: 'ABCD-1234', environmentId: 'env1', expiresAt: 1800000600 }));
+  assert.deepEqual(await rc.pairing(), { code: 'ABCD-1234', expiresAt: 1800000600 });
+  assert.deepEqual(sent, [['remoteControl/pairing/start', { manualCode: true }]]);
+  answers.push(() => ({ pairingCode: 'long', manualPairingCode: null, environmentId: 'env1', expiresAt: 5 }));
+  assert.equal((await rc.pairing()).code, null);
+});
+
+test('whether a code was used is asked by that code, and only a literal true counts', async () => {
+  const rc = make();
+  answers.push(
+    () => ({ claimed: true }),
+    () => ({ claimed: 'yes' }),
+    () => ({}),
+  );
+  assert.equal(await rc.claimed('ABCD-1234'), true);
+  assert.deepEqual(sent[0], ['remoteControl/pairing/status', { manualPairingCode: 'ABCD-1234' }]);
+  assert.equal(await rc.claimed('ABCD-1234'), false);
+  assert.equal(await rc.claimed('ABCD-1234'), false);
+  for (const bad of ['', null, 5]) await assert.rejects(rc.claimed(bad as any), /No pairing code/);
+});
+
+test('the devices are listed for the link’s own environment, newest first, with the fields the window shows', async () => {
+  const rc = make();
+  await connected(rc);
+  answers.push(() => ({
+    data: [
+      { clientId: 'a', displayName: 'Phone', deviceModel: 'x', platform: 'iOS', lastSeenAt: 5 },
+      { clientId: 'b', displayName: null, deviceModel: 'Pixel', platform: null, lastSeenAt: null },
+      { clientId: 'c', displayName: null, deviceModel: null, platform: 'Android', lastSeenAt: 7 },
+    ],
+    nextCursor: null,
+  }));
+  assert.deepEqual(await rc.clients(), [
+    { clientId: 'a', name: 'Phone', platform: 'iOS', lastSeenAt: 5 },
+    { clientId: 'b', name: 'Pixel', platform: null, lastSeenAt: null },
+    { clientId: 'c', name: null, platform: 'Android', lastSeenAt: 7 },
+  ]);
+  assert.deepEqual(sent[0], ['remoteControl/client/list', { environmentId: 'env1', limit: 50, order: 'desc' }]);
+  answers.push(() => ({ nextCursor: null }));
+  assert.deepEqual(await rc.clients(), []);
+});
+
+test('a device is revoked in the link’s own environment, and only a named one', async () => {
+  const rc = make();
+  await connected(rc);
+  answers.push(() => ({}));
+  await rc.revoke('a');
+  assert.deepEqual(sent[0], ['remoteControl/client/revoke', { environmentId: 'env1', clientId: 'a' }]);
+  for (const bad of ['', null, 5]) await assert.rejects(rc.revoke(bad as any), /No device to revoke/);
+});
+
+test('an errored notification without words still says something: the link never fails silently', async () => {
+  const rc = make();
+  answers.push(() => state('connecting'));
+  await rc.set(true);
+  rc.onStatus(state('errored'));
+  const view = rc.snapshot();
+  assert.equal(view.status, 'errored');
+  assert.equal(view.error, UNREACHABLE);
+  // a read of the same errored state keeps the words, and a later success clears them
+  assert.equal((await rc.read()).error, UNREACHABLE);
+  rc.onStatus(state('connected', 'env1'));
+  assert.equal(rc.snapshot().error, null);
+});
+
+test('an errored notification keeps the refusal words an earlier press recorded', async () => {
+  const rc = make();
+  answers.push(() => {
+    throw new Error('plan does not include it');
+  });
+  await rc.set(true);
+  rc.onStatus(state('errored'));
+  assert.equal(rc.snapshot().error, 'plan does not include it');
+});

@@ -1,0 +1,67 @@
+/* Codex Cloud task. */
+/* Codex Cloud task */
+.cloud-page {
+  overflow-y: auto;
+}
+.cloud-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 56px 26px 80px;
+}
+.cloud-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.cloud-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(var(--ink), 0.06);
+  color: var(--text-2);
+  flex: none;
+}
+.cloud-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.cloud-title {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text);
+}
+.cloud-meta {
+  display: flex;
+  gap: 10px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.cloud-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cloud-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cloud-status {
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  color: var(--text-2);
+  white-space: pre-wrap;
+  background: rgba(var(--ink), 0.03);
+  border: 0.5px solid rgba(var(--ink), 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 0 0 18px;
+}
+.cloud-file {
+  margin-bottom: 14px;
+}

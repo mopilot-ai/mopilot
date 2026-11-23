@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/main.cjs": {
+      "maxLines": 656,
+      "reason": "Composes startup services and Electron dependencies. Domain logic stays in the app factories; this entrypoint owns their process-wide initialization order."
+    }
+  }
+}

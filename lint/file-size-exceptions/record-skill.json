@@ -1,0 +1,12 @@
+{
+  "exceptions": {
+    "electron/capabilities/computer.cjs": {
+      "maxLines": 533,
+      "reason": "Owns the computer-helper connection and notification routing. Recording and control events share that transport lifecycle."
+    },
+    "native/helper/Sources/ComputerUseHelper/Helper.swift": {
+      "maxLines": 674,
+      "reason": "Dispatches helper requests and wires activity and recording services. Sampling, input policy and recording implementations live in their own Swift files."
+    }
+  }
+}

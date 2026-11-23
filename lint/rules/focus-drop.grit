@@ -1,0 +1,23 @@
+// A text field switched off while its own work runs (a send, a save, a rename): Chromium moves the focus of an editor
+// that turns contentEditable=false, or of an input or textarea that turns disabled, to <body>, and nothing gives it
+// back. The next key the user presses goes nowhere: Esc never stopped a running turn and the next message could not be
+// typed after a send (#1658). Keep the field focusable and block edits instead: busyField(busy) from src/lib/focus.ts
+// for an input or textarea (read-only, aria-disabled), a disabled prop that blocks input for an editor, as
+// ComposerInput does.
+language js
+
+JsxAttribute(name = $name, initializer = $value) as $attr where {
+  $value <: r"(?s).*\{.*",
+  not $value <: r"(?s)[=\s]*\{\s*(?:true|false)\s*\}\s*",
+  or {
+    $name <: r"contentEditable",
+    and {
+      $name <: r"disabled",
+      $attr <: within or { JsxSelfClosingElement(name = $element) as $field, JsxOpeningElement(name = $element) as $field } where {
+        $element <: r"input|textarea",
+        not $field <: r"(?s).*\btype=[\"'](?:checkbox|radio|button|submit|reset|file|range|color)[\"'].*"
+      }
+    }
+  },
+  register_diagnostic(span=$attr, message="[focus-drop] switching a text field off while its work runs drops the keyboard to <body> (Chromium blurs a disabled input or a non-editable editor), so the next key, Esc or the next message, goes nowhere. Use busyField(busy) from src/lib/focus.ts, which keeps the field focused and read-only, or block edits without dropping contentEditable as ComposerInput does (docs/bug-prevention/keyboard-and-focus.md).", severity="warn")
+}

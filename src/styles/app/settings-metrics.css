@@ -1,0 +1,294 @@
+/* Settings metrics, long menus and tab rows measured from the official app. */
+/* Settings: exact metrics measured from the official app (same window size) */
+.settings-title {
+  margin-bottom: 44px;
+  line-height: 1.214;
+  /* the page title in the system serif, as the reference app's settings */
+  font-family: var(--font-serif);
+  font-weight: 400;
+}
+.settings-group {
+  margin-bottom: 50px;
+}
+.settings-group:has(+ .settings-group > .settings-card:first-child) {
+  margin-bottom: 16px;
+}
+.settings-group-head {
+  margin-bottom: 15px;
+}
+.settings-group-title {
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  line-height: 1.5;
+}
+/* a section's rows are a list between hairlines, not a boxed card */
+.settings-card {
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+  border-top: 0.5px solid var(--card-border);
+  border-bottom: 0.5px solid var(--card-border);
+  background: none;
+}
+.settings-row,
+.settings-row:has(.settings-row-desc) {
+  position: relative;
+  min-height: 0;
+  padding: 14px 0;
+  gap: 24px;
+  border-bottom: 0;
+}
+.settings-row::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.5px;
+  background: var(--card-border);
+}
+.settings-row:last-child::after,
+.settings-card > :last-child .settings-row:last-child::after {
+  display: none;
+}
+.settings-row-title {
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  line-height: 1.43;
+}
+.settings-row-desc {
+  font-size: var(--fs-small);
+  line-height: 1.33;
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--text) 65%, transparent);
+}
+.select-btn {
+  height: 28px;
+  padding: 0 10px 0 12px;
+  border-radius: 12.5px;
+  border: 1px solid rgba(var(--ink), 0.082);
+  background: rgba(var(--ink), 0.03);
+}
+.btn-pill.soft {
+  background: rgba(var(--ink), 0.05);
+  border-color: transparent;
+}
+.settings-path {
+  direction: ltr;
+  font-size: var(--fs-small);
+}
+.settings-lead {
+  margin: -30px 0 34px;
+}
+.theme-select {
+  min-width: 176px;
+  padding-left: 4px;
+}
+.theme-select > span:nth-child(2) {
+  flex: 1;
+  text-align: left;
+}
+.theme-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(var(--ink), 0.08);
+  border: 0;
+}
+/* controls never grow a settings row (official rows are 44px single-line, 61px with description) */
+.settings-row-control {
+  margin: -4px 0;
+}
+.mode-thumbs {
+  gap: 12px;
+}
+.mode-thumb {
+  width: 80px;
+  height: 60px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ink), 0.1);
+}
+.mode-thumb.on {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-color: transparent;
+}
+.mt-lines i:first-child {
+  background: var(--accent);
+}
+.mode-thumb {
+  width: 75px;
+  height: 56px;
+}
+.settings-page {
+  scrollbar-gutter: stable;
+}
+.settings-links {
+  margin: -50px 0 40px;
+  padding-top: 50px;
+}
+.settings-links .link-muted {
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  padding: 0;
+}
+.settings-inner {
+  padding-top: 75px;
+}
+.mode-thumbs {
+  margin: 3px 0;
+}
+/* long menus (fonts, themes) scroll instead of running off screen */
+.menu {
+  max-height: min(520px, calc(100vh - 24px));
+  overflow-y: auto;
+}
+.hotkey-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-icon-16 {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.import-src {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.import-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--brand-claude);
+  flex: none;
+}
+.import-logo.cursor {
+  background: var(--brand-cursor);
+}
+.config-warning {
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(var(--ink), 0.082);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.config-warning svg {
+  color: var(--orange);
+}
+.config-warning code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(var(--ink), 0.08);
+}
+.settings-card > .pill-search,
+.shortcuts-search {
+  width: 100%;
+}
+.shortcuts-search {
+  height: 32px;
+  margin-bottom: 16px;
+  background: rgba(var(--ink), 0.05);
+  border-color: transparent;
+}
+/* settings tab rows (Connections, Worktrees, Usage): measured 28px pills, 34px under the title */
+.tabs-seg {
+  display: flex;
+  gap: 4px;
+  padding: 0;
+  margin: -10px 0 30px;
+}
+.tabs-seg button {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 12.5px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.tabs-seg button.on {
+  background: rgba(var(--ink), 0.1);
+  color: var(--text);
+}
+.connections-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 20px 22px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.conn-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+.btn-white {
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 0;
+  background: var(--text);
+  color: var(--main);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-white:disabled {
+  opacity: 0.5;
+}
+.settings-textarea {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--ink), 0.12);
+  background: rgba(var(--ink), 0.03);
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  resize: vertical;
+}
+section.settings-group > .settings-group-desc + .settings-textarea {
+  margin-top: 12px;
+}
+.env-lead {
+  margin: -6px 0 26px;
+}
+.env-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -10px 0 24px;
+}
+.env-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+}
+.env-action .text-input.wide {
+  flex: 1;
+  width: auto;
+}
+.mono,
+.settings-textarea.mono {
+  font-family: var(--font-mono);
+}

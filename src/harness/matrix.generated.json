@@ -1,0 +1,1262 @@
+{
+  "first": [
+    {
+      "kind": "codex",
+      "label": "Codex",
+      "vendor": "OpenAI",
+      "channel": "app-server",
+      "versions": {
+        "min": "0.162.0-alpha.17.2",
+        "knownBad": [],
+        "tested": [
+          "0.162.0-alpha.17.2"
+        ]
+      },
+      "result": {
+        "file": "conformance/results/codex@0.162.0-alpha.17.2.json",
+        "version": "0.162.0-alpha.17.2",
+        "date": "2026-10-10",
+        "counts": {
+          "pass": 14,
+          "partial": 3
+        }
+      }
+    },
+    {
+      "kind": "claude",
+      "label": "Claude Code",
+      "vendor": "Anthropic",
+      "channel": "agent-sdk",
+      "versions": {
+        "min": "2.1.295",
+        "knownBad": [],
+        "tested": [
+          "2.1.295",
+          "2.1.296"
+        ]
+      },
+      "result": {
+        "file": "conformance/results/claude@2.1.296.json",
+        "version": "2.1.296",
+        "date": "2026-10-17",
+        "counts": {
+          "pass": 26
+        }
+      }
+    }
+  ],
+  "semantics": [
+    {
+      "semantic": "goal",
+      "label": "goals",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/goal/set",
+        "source": "Codex",
+        "verified": "X2 partial"
+      },
+      "claude": {
+        "via": "passthrough",
+        "detail": "/goal {args}",
+        "source": "Claude Code",
+        "verified": "C4 pass, C17 pass, C18 pass"
+      }
+    },
+    {
+      "semantic": "plan",
+      "label": "plan mode",
+      "codex": {
+        "via": "config",
+        "detail": "collaborationMode = \"plan\"",
+        "source": "Codex",
+        "verified": "X3 pass"
+      },
+      "claude": {
+        "via": "config",
+        "detail": "permissionMode = \"plan\"",
+        "source": "Claude Code",
+        "verified": "C7 pass"
+      }
+    },
+    {
+      "semantic": "review",
+      "label": "code review",
+      "codex": {
+        "via": "rpc",
+        "detail": "review/start",
+        "source": "Codex",
+        "verified": "X4 pass"
+      },
+      "claude": {
+        "via": "passthrough",
+        "detail": "/code-review {args}",
+        "source": "Claude Code",
+        "verified": "C13 pass"
+      }
+    },
+    {
+      "semantic": "multiAgent",
+      "label": "multiple agents",
+      "codex": {
+        "via": "config",
+        "detail": "effort = \"ultra\"",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "config",
+        "detail": "ultracode",
+        "source": "Claude Code",
+        "verified": "C6 pass"
+      }
+    },
+    {
+      "semantic": "deepReasoning",
+      "label": "deeper thinking",
+      "codex": {
+        "via": "config",
+        "detail": "effort",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "passthrough",
+        "detail": "ultrathink {args}",
+        "source": "Claude Code",
+        "verified": "C5 pass"
+      }
+    },
+    {
+      "semantic": "compact",
+      "label": "compact",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/compact/start",
+        "source": "Codex",
+        "verified": "X5 pass"
+      },
+      "claude": {
+        "via": "passthrough",
+        "detail": "/compact {args}",
+        "source": "Claude Code",
+        "verified": "C12 pass"
+      }
+    },
+    {
+      "semantic": "init",
+      "label": "init",
+      "codex": {
+        "via": "polyfill",
+        "detail": "init",
+        "source": "MoPilot",
+        "verified": ""
+      },
+      "claude": {
+        "via": "passthrough",
+        "detail": "/init",
+        "source": "Claude Code",
+        "verified": "C13 pass"
+      }
+    },
+    {
+      "semantic": "skills",
+      "label": "skills",
+      "codex": {
+        "via": "rpc",
+        "detail": "skills/list",
+        "source": "Codex",
+        "verified": "X11 pass"
+      },
+      "claude": {
+        "via": "passthrough",
+        "detail": "/{name} {args}",
+        "source": "Claude Code",
+        "verified": "C3 pass"
+      }
+    },
+    {
+      "semantic": "memory",
+      "label": "memory",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/memoryMode/set",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "passthrough",
+        "detail": "/memory",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "tasks",
+      "label": "background tasks",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/backgroundTerminals/list",
+        "source": "Codex",
+        "verified": "X10 pass"
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "stopTask",
+        "source": "Claude Code",
+        "verified": "C8 pass"
+      }
+    },
+    {
+      "semantic": "workflows",
+      "label": "workflows",
+      "codex": {
+        "via": "none",
+        "detail": "harness.undeclared",
+        "source": "-",
+        "verified": "",
+        "why": "Codex doesn't support workflows"
+      },
+      "claude": {
+        "via": "passthrough",
+        "detail": "/{name} {args}",
+        "source": "Claude Code",
+        "verified": "C3 pass"
+      }
+    },
+    {
+      "semantic": "shell",
+      "label": "shell commands",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/shellCommand",
+        "source": "Codex",
+        "verified": "X6 pass"
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "shell",
+        "source": "MoPilot",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "rename",
+      "label": "rename",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/name/set",
+        "source": "Codex",
+        "verified": "X8 pass"
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "renameSession",
+        "source": "Claude Code",
+        "verified": "C14 pass"
+      }
+    },
+    {
+      "semantic": "fork",
+      "label": "fork",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/fork",
+        "source": "Codex",
+        "verified": "X8 pass"
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "forkSession",
+        "source": "Claude Code",
+        "verified": "C14 pass"
+      }
+    },
+    {
+      "semantic": "rewind",
+      "label": "editing messages",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/revert",
+        "source": "Codex",
+        "verified": "X8 pass"
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "rewindFiles",
+        "source": "Claude Code",
+        "verified": "C14 pass"
+      }
+    },
+    {
+      "semantic": "temporary",
+      "label": "temporary chats",
+      "codex": {
+        "via": "config",
+        "detail": "ephemeral",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "config",
+        "detail": "persistSession = false",
+        "source": "Claude Code",
+        "verified": "C10 pass"
+      }
+    },
+    {
+      "semantic": "archive",
+      "label": "archive",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/archive",
+        "source": "Codex",
+        "verified": "X8 pass"
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "archive",
+        "source": "MoPilot",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "search",
+      "label": "search",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/list",
+        "source": "Codex",
+        "verified": "X8 pass"
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "search",
+        "source": "MoPilot",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "clear",
+      "label": "clear",
+      "codex": {
+        "via": "config",
+        "detail": "ui.newChat",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "config",
+        "detail": "ui.newChat",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "model",
+      "label": "model choice",
+      "codex": {
+        "via": "config",
+        "detail": "model",
+        "source": "Codex",
+        "verified": "X1 pass"
+      },
+      "claude": {
+        "via": "config",
+        "detail": "model",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "effort",
+      "label": "reasoning effort",
+      "codex": {
+        "via": "config",
+        "detail": "effort",
+        "source": "Codex",
+        "verified": "X1 pass"
+      },
+      "claude": {
+        "via": "config",
+        "detail": "effortLevel",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "speed",
+      "label": "Fast",
+      "codex": {
+        "via": "config",
+        "detail": "serviceTier = \"priority\"",
+        "source": "Codex",
+        "verified": "X1 pass"
+      },
+      "claude": {
+        "via": "config",
+        "detail": "fastMode",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "permissions",
+      "label": "permissions",
+      "codex": {
+        "via": "config",
+        "detail": "approvalPolicy",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "config",
+        "detail": "permissionMode",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "mcp",
+      "label": "MCP",
+      "codex": {
+        "via": "rpc",
+        "detail": "mcpServerStatus/list",
+        "source": "Codex",
+        "verified": "X11 pass"
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "mcpServerStatus",
+        "source": "Claude Code",
+        "verified": "C14 pass"
+      }
+    },
+    {
+      "semantic": "status",
+      "label": "status",
+      "codex": {
+        "via": "rpc",
+        "detail": "account/rateLimits/read",
+        "source": "Codex",
+        "verified": "X11 pass"
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "getContextUsage",
+        "source": "Claude Code",
+        "verified": "C14 pass"
+      }
+    },
+    {
+      "semantic": "feedback",
+      "label": "feedback",
+      "codex": {
+        "via": "rpc",
+        "detail": "feedback/upload",
+        "source": "Codex",
+        "verified": "X11 pass"
+      },
+      "claude": {
+        "via": "none",
+        "detail": "harness.feedbackTerminalOnly",
+        "source": "-",
+        "verified": "",
+        "why": "Claude Code only takes feedback in its own terminal. Your message wasn't sent."
+      }
+    },
+    {
+      "semantic": "logout",
+      "label": "log out",
+      "codex": {
+        "via": "rpc",
+        "detail": "account/logout",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "none",
+        "detail": "harness.undeclared",
+        "source": "-",
+        "verified": "",
+        "why": "Claude Code doesn't support log out"
+      }
+    },
+    {
+      "semantic": "voiceChat",
+      "label": "voice chat",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/realtime/start",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "none",
+        "detail": "harness.noVoiceConversation",
+        "source": "-",
+        "verified": "",
+        "why": "Native voice conversation is not connected for this chat. Use Dictate to speak your message."
+      }
+    },
+    {
+      "semantic": "audioInput",
+      "label": "audio messages",
+      "codex": {
+        "via": "none",
+        "detail": "harness.undeclared",
+        "source": "-",
+        "verified": "",
+        "why": "Codex doesn't support audio messages"
+      },
+      "claude": {
+        "via": "none",
+        "detail": "harness.undeclared",
+        "source": "-",
+        "verified": "",
+        "why": "Claude Code doesn't support audio messages"
+      }
+    },
+    {
+      "semantic": "cloud",
+      "label": "Cloud",
+      "codex": {
+        "via": "passthrough",
+        "detail": "codex cloud",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "route",
+        "detail": "Codex",
+        "source": "Codex",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "textGen",
+      "label": "text generation",
+      "codex": {
+        "via": "rpc",
+        "detail": "thread/start",
+        "source": "Codex",
+        "verified": "X9 pass"
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "query",
+        "source": "Claude Code",
+        "verified": "C1 pass, C2 pass"
+      }
+    },
+    {
+      "semantic": "computerUse",
+      "label": "computer control",
+      "codex": {
+        "via": "polyfill",
+        "detail": "computerUse",
+        "source": "MoPilot",
+        "verified": "X7 partial, X12 pass, X14 pass"
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "computerUse",
+        "source": "MoPilot",
+        "verified": "C9 pass, C16 pass"
+      }
+    },
+    {
+      "semantic": "browser",
+      "label": "browser control",
+      "codex": {
+        "via": "polyfill",
+        "detail": "browser",
+        "source": "MoPilot",
+        "verified": "X7 partial, X14 pass"
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "browser",
+        "source": "MoPilot",
+        "verified": "C9 pass, C16 pass"
+      }
+    },
+    {
+      "semantic": "dictation",
+      "label": "dictation",
+      "codex": {
+        "via": "polyfill",
+        "detail": "dictation",
+        "source": "MoPilot",
+        "verified": ""
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "dictation",
+        "source": "MoPilot",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "nativeDictation",
+      "label": "dictation with its own account",
+      "codex": {
+        "via": "config",
+        "detail": "speechEngine = \"chatgpt\"",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "none",
+        "detail": "harness.noNativeDictation",
+        "source": "-",
+        "verified": "",
+        "why": "This chat's harness has no dictation of its own. Dictation uses another service."
+      }
+    },
+    {
+      "semantic": "plugins",
+      "label": "plugins",
+      "codex": {
+        "via": "config",
+        "detail": "plugins",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "config",
+        "detail": "plugins",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "computerHistory",
+      "label": "Computer History",
+      "codex": {
+        "via": "config",
+        "detail": "turnContext",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "computerHistory",
+        "source": "MoPilot",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "design",
+      "label": "design systems",
+      "codex": {
+        "via": "polyfill",
+        "detail": "design",
+        "source": "MoPilot",
+        "verified": ""
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "design",
+        "source": "MoPilot",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "momoContext",
+      "label": "MoMo's memory",
+      "codex": {
+        "via": "config",
+        "detail": "turnContext",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "polyfill",
+        "detail": "momoContext",
+        "source": "MoPilot",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "artifacts",
+      "label": "artifacts and designs",
+      "codex": {
+        "via": "none",
+        "detail": "harness.noArtifacts",
+        "source": "-",
+        "verified": "",
+        "why": "This chat's harness can't publish artifacts or designs."
+      },
+      "claude": {
+        "via": "config",
+        "detail": "CLAUDE_CODE_ARTIFACT",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    },
+    {
+      "semantic": "remoteControl",
+      "label": "Remote Control",
+      "codex": {
+        "via": "rpc",
+        "detail": "remoteControl/enable",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "enableRemoteControl",
+        "source": "Claude Code",
+        "verified": ""
+      }
+    }
+  ],
+  "contracts": [
+    {
+      "kind": "codex",
+      "label": "Codex",
+      "version": "0.162.1",
+      "verdict": "fail",
+      "date": "2026-10-18",
+      "regressions": 2,
+      "known": 1,
+      "failingRows": [
+        "CM-M15"
+      ],
+      "found": [
+        {
+          "key": "edge:switch:deep-link",
+          "says": "The agent said the in-app browser can't open the Zoom app, but the check missed it because of a curly apostrophe; the check now reads it.",
+          "fixedBy": 1427
+        },
+        {
+          "key": "mgb:switch:f2-onboarding",
+          "says": "In a chat that switched from Claude Code to Codex, the onboarding task did not file the signed copy under the folder's naming pattern with its confirmation number.",
+          "issue": 1426
+        },
+        {
+          "key": "conformance:X4",
+          "says": "Codex wrote a trust entry for the chat's folder into its config.toml.",
+          "issue": 1346,
+          "known": true
+        }
+      ],
+      "incomplete": []
+    },
+    {
+      "kind": "codex",
+      "label": "Codex",
+      "version": "0.162.0-alpha.17.2",
+      "verdict": "fail",
+      "date": "2026-10-18",
+      "regressions": 1,
+      "known": 0,
+      "failingRows": [],
+      "found": [
+        {
+          "key": "conformance:X4",
+          "says": "Codex wrote a trust entry for the chat's folder into its config.toml.",
+          "issue": 1346
+        }
+      ],
+      "incomplete": []
+    },
+    {
+      "kind": "claude",
+      "label": "Claude Code",
+      "version": "2.1.296",
+      "verdict": "pass",
+      "date": "2026-10-17",
+      "regressions": 0,
+      "known": 0,
+      "failingRows": [],
+      "found": [],
+      "incomplete": []
+    },
+    {
+      "kind": "claude",
+      "label": "Claude Code",
+      "version": "2.1.295",
+      "verdict": "pass",
+      "date": "2026-10-17",
+      "regressions": 0,
+      "known": 0,
+      "failingRows": [],
+      "found": [],
+      "incomplete": []
+    }
+  ],
+  "notes": [
+    "Browser and computer control work for every harness. Codex threads use Codex's own Browser and Computer use (the bundled unified-computer-use plugin), and Claude Code sessions on a claude.ai subscription start with --chrome (Claude in Chrome), each with its own approvals, but only where that vendor runtime is installed on this Mac; MoPilot then hides its own equivalent tools. Everywhere else (managed and helper Codex threads, other Claude logins with --no-chrome, a missing runtime, basic-tier harnesses) MoPilot's own browser_* and desktop_* tools are the fallback. The user is never asked to open the ChatGPT or Claude desktop apps.",
+    "A Codex user's own node_repl or connector tools can still appear in a Codex thread; the helper's event tap covers them.",
+    "Plugins are installed once, in MoPilot's store (~/.mopilot/plugins), and reach each harness in its own form: Claude Code loads each plugin folder through the Agent SDK (a CLI without --plugin-dir gets their skills over plugin_skills instead), Codex installs them from MoPilot's own marketplaces (also seen by its app and CLI), and basic-tier harnesses get their MCP servers and, from MoPilot, their skills and commands. A plugin a harness already turns on itself is left to it."
+  ],
+  "contract": {
+    "admission": [
+      "The harness is found on your PATH and its quirks file declares privacy defaults and an admission check.",
+      "The privacy check the quirks declare passes before the harness starts (dsh: --dump-config shows its session log is off).",
+      "initialize succeeds (ACP v1).",
+      "session/new with the MoPilot tool server succeeds and the server says hello within 10 seconds.",
+      "Anything else keeps the harness out of the picker, and Settings says \"Installed · Can't run in MoPilot\" with the reason."
+    ],
+    "guaranteed": [
+      "Sign-in through the harness's own methods, in a terminal inside Settings when it needs one.",
+      "New chats in a local folder or a worktree; text and image prompts (images when the harness accepts them); streamed messages, thinking, tool calls and diffs.",
+      "Approvals: the harness's own options on one common card; MoPilot's own tools are allowed once per action.",
+      "Stop, and Esc, send session/cancel.",
+      "Reopening a chat after a restart shows the full history and can carry on.",
+      "Computer use and browser control, with the same tools, approval card, no-go list, takeover rules and Esc stop as the first-class harnesses.",
+      "MoPilot's plugins: their MCP servers in session/new (local ones unless its quirks refuse them, remote ones when the harness advertises http or sse), and their skills and commands in the / menu and over plugin_skills. Their hooks, agents and app connectors don't run.",
+      "Title, rename, archive, pin, unread, project, search, export and copy session ID; terminal panel, @ files, Files panel, instruction file editor, notifications.",
+      "The harness's default uploads and telemetry are switched off at launch and checked first."
+    ],
+    "ifDeclared": [
+      "The harness's own slash commands pass through as typed (goal, review, init, compact, skills and so on) once it lists them.",
+      "Plan chip: only when its quirks mark which mode or option is plan.",
+      "Modes and permissions under the harness's own names; model and thinking-level options as generic controls.",
+      "Fork from a message when the harness can fork; the context ring when it reports usage; Copy resume command when its quirks provide it."
+    ],
+    "notProvided": [
+      "MoPilot does not fill in goal, plan, review, init, compact, ! shell, one-turn deeper thinking or speed tiers.",
+      "No goal bar, task panel, temporary chats, hand-over between harnesses (new chat with a summary only), rewind or message editing.",
+      "No managed providers, keys, MoPilot credits, multiple accounts, account switching or usage bars.",
+      "No Extensions, MCP or Skills pages of their own: plugins come from the shared Plugins page, and scheduled tasks run on it through MoPilot.",
+      "MoPilot does not ship or pin the harness: you install it, and its own terminal chats show in the sidebar."
+    ]
+  },
+  "basic": [
+    {
+      "id": "antigravity",
+      "label": "Antigravity",
+      "vendor": "Google",
+      "probedVersion": "1.4.3",
+      "agentVersion": "1.4.3",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "auth.type is set to 'gemini-api-key' in settings.json ($GEMINI_HOME/antigravity-acp/settings.json) but the GEMINI_API_KEY environment variable is not set. Set GEMINI_API_KEY in the environment the ACP server is launched from, then restart the editor.",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": [
+        "syslog_on_start=false"
+      ]
+    },
+    {
+      "id": "dsh",
+      "label": "dsh",
+      "vendor": "DeepSeek",
+      "probedVersion": "0.2.0-rc.2",
+      "agentVersion": "0.0.1",
+      "verified": "0.2.0-rc.2",
+      "admission": "admitted",
+      "reason": null,
+      "initialize": "ok",
+      "imagePrompts": false,
+      "privacyGate": "pass",
+      "sageTools": "hello received",
+      "privacyDefaults": [
+        "session-log-deepseek (session log upload with each request)",
+        "OTel session telemetry (DSH_TELEMETRY_DISABLED=1)"
+      ]
+    },
+    {
+      "id": "opencode",
+      "label": "opencode",
+      "vendor": "Anomaly",
+      "probedVersion": "1.18.35",
+      "agentVersion": "1.18.35",
+      "verified": "1.18.35",
+      "admission": "admitted",
+      "reason": null,
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "hello received",
+      "privacyDefaults": [
+        "session sharing (share: disabled)"
+      ]
+    },
+    {
+      "id": "kimi",
+      "label": "Kimi Code",
+      "vendor": "Moonshot AI",
+      "probedVersion": "2.1.1",
+      "agentVersion": "2.1.1",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Kimi Code first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "qwen",
+      "label": "Qwen Code",
+      "vendor": "Alibaba",
+      "probedVersion": "0.25.0",
+      "agentVersion": "0.25.0",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Qwen Code first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": [
+        "usage statistics (QWEN_USAGE_STATISTICS_ENABLED=false)"
+      ]
+    },
+    {
+      "id": "copilot",
+      "label": "Copilot",
+      "vendor": "GitHub",
+      "probedVersion": "1.0.95",
+      "agentVersion": "1.0.95",
+      "verified": "1.0.95",
+      "admission": "admitted",
+      "reason": null,
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "hello received",
+      "privacyDefaults": []
+    },
+    {
+      "id": "cursor",
+      "label": "Cursor",
+      "vendor": "Anysphere",
+      "probedVersion": "2026.10.01-e373342",
+      "agentVersion": null,
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Cursor CLI first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "gemini",
+      "label": "Gemini",
+      "vendor": "Google",
+      "probedVersion": "0.63.0",
+      "agentVersion": "0.63.0",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Gemini CLI first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "goose",
+      "label": "Goose",
+      "vendor": "AAIF",
+      "probedVersion": "1.54.0",
+      "agentVersion": "1.54.0",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Goose first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "auggie",
+      "label": "Auggie",
+      "vendor": "Augment Code",
+      "probedVersion": "0.36.0 (commit 7c61e5bb)",
+      "agentVersion": "0.36.0 (commit 7c61e5bb)",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Auggie first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "autohand",
+      "label": "Autohand",
+      "vendor": "Autohand AI",
+      "probedVersion": "0.9.9",
+      "agentVersion": "0.9.9",
+      "verified": "0.9.9",
+      "admission": "admitted",
+      "reason": null,
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "hello received",
+      "privacyDefaults": []
+    },
+    {
+      "id": "cline",
+      "label": "Cline",
+      "vendor": "Cline",
+      "probedVersion": "3.0.74",
+      "agentVersion": "3.0.74",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Cline first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "codebuddy",
+      "label": "CodeBuddy",
+      "vendor": "Tencent",
+      "probedVersion": null,
+      "agentVersion": null,
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to CodeBuddy first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "command-code",
+      "label": "Command Code",
+      "vendor": "Command Code",
+      "probedVersion": "1.88.2",
+      "agentVersion": "1.88.2",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Not authenticated. Run `cmd login` in a terminal first.",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "devin",
+      "label": "Devin",
+      "vendor": "Cognition",
+      "probedVersion": "3000.11.234",
+      "agentVersion": "0.0.0-dev",
+      "verified": "3000.11.234",
+      "admission": "admitted",
+      "reason": null,
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "hello received",
+      "privacyDefaults": []
+    },
+    {
+      "id": "droid",
+      "label": "Droid",
+      "vendor": "Factory AI",
+      "probedVersion": "1.2.0",
+      "agentVersion": "1.2.0",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Droid first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "grok",
+      "label": "Grok",
+      "vendor": "xAI",
+      "probedVersion": null,
+      "agentVersion": null,
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Grok first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "hermes",
+      "label": "Hermes Agent",
+      "vendor": "Nous Research",
+      "probedVersion": "0.22.7",
+      "agentVersion": "0.22.7",
+      "verified": "unverified",
+      "admission": "unsupported",
+      "reason": "MoPilot can't give Hermes Agent computer and browser control",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "no hello",
+      "privacyDefaults": []
+    },
+    {
+      "id": "kilo",
+      "label": "Kilo Code",
+      "vendor": "Kilo",
+      "probedVersion": "7.8.18",
+      "agentVersion": "7.8.18",
+      "verified": "7.8.18",
+      "admission": "admitted",
+      "reason": null,
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "hello received",
+      "privacyDefaults": [
+        "session sharing (share: disabled)"
+      ]
+    },
+    {
+      "id": "kiro",
+      "label": "Kiro",
+      "vendor": "AWS",
+      "probedVersion": "2.37.1",
+      "agentVersion": "2.37.1",
+      "verified": "unverified",
+      "admission": "unsupported",
+      "reason": "Kiro cannot reopen native sessions in this version",
+      "initialize": "ok",
+      "imagePrompts": false,
+      "privacyGate": "none declared",
+      "sageTools": "not probed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "mimo",
+      "label": "MiMo Code",
+      "vendor": "Xiaomi",
+      "probedVersion": null,
+      "agentVersion": null,
+      "verified": "unverified",
+      "admission": "unsupported",
+      "reason": "MiMo Code quit unexpectedly.",
+      "initialize": "ok",
+      "imagePrompts": false,
+      "privacyGate": "none declared",
+      "sageTools": "not probed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "mistral-vibe",
+      "label": "Mistral Vibe",
+      "vendor": "Mistral AI",
+      "probedVersion": "3.0.4",
+      "agentVersion": "3.0.4",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Missing API key for mistral provider.",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "muse",
+      "label": "Muse",
+      "vendor": "Meta",
+      "probedVersion": "1.4.14",
+      "agentVersion": "1.4.14",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "log in to Muse before opening a session",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "omp",
+      "label": "oh-my-pi",
+      "vendor": "oh-my-pi",
+      "probedVersion": "18.16.0",
+      "agentVersion": "18.16.0",
+      "verified": "18.16.0",
+      "admission": "admitted",
+      "reason": null,
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "hello received",
+      "privacyDefaults": []
+    },
+    {
+      "id": "prime-agent",
+      "label": "Prime Agent",
+      "vendor": "Prime Intellect",
+      "probedVersion": "0.10.2",
+      "agentVersion": "0.10.2",
+      "verified": "unverified",
+      "admission": "unsupported",
+      "reason": "Prime Agent cannot reopen native sessions in this version",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "not probed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "qoder",
+      "label": "Qoder",
+      "vendor": "Qoder",
+      "probedVersion": "1.1.82",
+      "agentVersion": "1.1.82",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Qoder first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "qoder-cn",
+      "label": "Qoder CN",
+      "vendor": "Qoder",
+      "probedVersion": "1.1.82",
+      "agentVersion": "1.1.82",
+      "verified": "unverified",
+      "admission": "signin",
+      "reason": "Sign in to Qoder CN first",
+      "initialize": "ok",
+      "imagePrompts": true,
+      "privacyGate": "none declared",
+      "sageTools": "session/new failed",
+      "privacyDefaults": []
+    },
+    {
+      "id": "trae",
+      "label": "TRAE",
+      "vendor": "ByteDance",
+      "probedVersion": null,
+      "agentVersion": null,
+      "verified": "unverified",
+      "admission": "not probed",
+      "reason": null,
+      "initialize": "not probed",
+      "imagePrompts": null,
+      "privacyGate": "none declared",
+      "sageTools": "not probed",
+      "privacyDefaults": []
+    }
+  ],
+  "admissionPlatform": "macOS arm64 (Darwin), Node v24.21.0; darwin arm64, Node v26.0.0; darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "admissionNote": "node tests/conformance/acp/probe.mjs with SAGE_ACP_BINS pointing at ~/.sage-harnesses installs; plus a raw initialize and session/new (one sage_<nonce> stdio MCP server) per harness. No prompt was sent and nothing was signed in. Copilot CLI was probed again on 2026-10-17 with the http tool channel the app gives a harness that takes no stdio MCP server. Antigravity ACP 1.4.3 was probed on 2026-10-26 with the production admission check and sage-mcp, in a scratch home using gemini-api-key auth without a key. initialize succeeded; session/new required sign-in. No authenticate or prompt call was sent. Auggie 0.36.0 (commit 7c61e5bb) was installed with npm install -g @augmentcode/auggie and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. Autohand 0.9.9 was installed with the vendor archive https://github.com/autohandai/code-cli/releases/download/v0.9.9/autohand-macos-arm64.tar.gz and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded, it offers native session recovery, and session/new returned a session in which sage-mcp said hello. No authenticate or prompt call was sent. Cline 3.0.74 was installed with npm install -g cline and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. CodeBuddy was installed with npm install -g @tencent-ai/codebuddy-code and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. Command Code 1.88.2 was installed with npm install -g command-code and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. Devin 3000.11.234 (which reports itself as 0.0.0-dev, so the app cannot match it to this record) was installed with the vendor archive https://static.devin.ai/cli/3000.11.234/devin-3000.11.234-aarch64-apple-darwin.tar.gz and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded, it offers native session recovery, and session/new returned a session in which sage-mcp said hello. No authenticate or prompt call was sent. Droid 1.2.0 was installed with npm install -g droid and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. Grok was installed with npm install -g @xai-official/grok and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. Hermes Agent 0.22.7 was installed with curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): it was not admitted (unsupported: MoPilot can't give Hermes Agent computer and browser control). No authenticate or prompt call was sent. Kilo Code 7.8.18 was installed with npm install -g @kilocode/cli and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded, it offers native session recovery, and session/new returned a session in which sage-mcp said hello. No authenticate or prompt call was sent. Kiro 2.37.1 was installed with the vendor archive https://prod.download.cli.kiro.dev/stable/2.37.1/kirocli-universal-darwin.tar.gz and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): it was not admitted (unsupported: Kiro cannot reopen native sessions in this version). No authenticate or prompt call was sent. MiMo Code was installed with npm install -g @mimo-ai/cli and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): it was not admitted (unsupported: MiMo Code quit unexpectedly.). No authenticate or prompt call was sent. Mistral Vibe 3.0.4 was installed with the vendor archive https://github.com/mistralai/mistral-vibe/releases/download/v3.0.4/vibe-acp-darwin-aarch64-3.0.4.tar.gz and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. Muse 1.4.14 was installed with curl -fsSL https://dev.meta.ai/install.sh | bash and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. oh-my-pi 18.16.0 was installed with curl -fsSL https://bun.sh/install | bash && $HOME/.bun/bin/bun install -g @oh-my-pi/pi-coding-agent and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded, it offers native session recovery, and session/new returned a session in which sage-mcp said hello. No authenticate or prompt call was sent. Prime Agent 0.10.2 was installed with curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): it was not admitted (unsupported: Prime Agent cannot reopen native sessions in this version). No authenticate or prompt call was sent. Qoder CN 1.1.82 was installed with npm install -g @qodercn-ai/qoderclicn and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent. Qoder 1.1.82 was installed with npm install -g @qoder-ai/qodercli and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent."
+}

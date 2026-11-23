@@ -1,0 +1,77 @@
+/* The composer usage popover: a context meter and the serving account's plan windows. */
+.ctx-summary {
+  gap: 10px;
+  padding: 16px;
+}
+.ctx-summary-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.ctx-summary-bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ctx-track);
+}
+.ctx-summary-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-2);
+}
+.ctx-summary-bar[data-level='warn'] > i {
+  background: var(--orange);
+}
+.ctx-summary-bar[data-level='full'] > i {
+  background: var(--red);
+}
+.ctx-summary-value[data-level='warn'] {
+  color: var(--orange);
+}
+.ctx-summary-value[data-level='full'] {
+  color: var(--red);
+}
+/* In a draft chat the plan section can be the whole popover. */
+.ctx-popover [role="dialog"] > .ctx-limits {
+  border-top: 0;
+}
+.ctx-limits-head,
+.ctx-limits-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ctx-limits-foot .btn-link {
+  margin-inline-start: auto;
+}
+
+.composer-plan-windows {
+  display: grid;
+  gap: 10px;
+}
+.composer-plan-windows > .limit-row {
+  grid-column: auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 8px;
+  row-gap: 4px;
+  overflow-wrap: anywhere;
+}
+.usage-limit-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.composer-plan-windows .limit-row-bar,
+.composer-plan-windows .limit-row-reset {
+  grid-column: 1 / -1;
+}
+.composer-plan-windows .limit-row-bar > i {
+  background: var(--accent);
+}
+.composer-plan-windows [data-level='warn'] .limit-row-bar > i {
+  background: var(--orange);
+}
+.composer-plan-windows [data-level='full'] .limit-row-bar > i {
+  background: var(--red);
+}

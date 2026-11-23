@@ -1,0 +1,226 @@
+/* Turn result cards: reviews, plans, todos, failures and file changes. */
+.review-result {
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin: 10px 0;
+  background: var(--surface);
+}
+.plan-card {
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 14px;
+  padding: 12px 16px 4px;
+  margin: 10px 0;
+  background: var(--surface);
+}
+.bg-terminal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: var(--fs-small);
+}
+.bg-terminal-cmd {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+.read-only-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  padding: 10px 0 14px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.plan-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0 10px;
+}
+.plan-card-head {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+/* with .text-input: controls.css's .text-input loads later, and its width and size would win over one class */
+.text-input.approval-note {
+  margin: 0 14px 8px;
+  width: calc(100% - 28px);
+  font-size: var(--fs-small);
+}
+.plan-card-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  cursor: pointer;
+}
+.plan-card-path:hover {
+  color: var(--text-2);
+  text-decoration: underline;
+}
+.todo-card {
+  border: 0.5px solid var(--card-border);
+  border-radius: var(--card-radius-lg);
+  background: var(--card-bg);
+  margin: 8px 0 14px;
+  overflow: hidden;
+}
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 2px 14px 12px;
+}
+/* the task list: a filled check for done, a ring while running, a dashed ring waiting; the text
+   of a finished task stays as it was written */
+.todo-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  padding: 4px 0;
+  color: var(--text-ui);
+}
+/* one line of the step's text tall, so the marker centres on its first line at any Chat font size; an svg marker
+   elsewhere (.turn-error > svg and the like) also keeps a min-height of its drawn size, or a line shorter than its
+   width would scale the glyph down */
+.todo-check {
+  width: 16px;
+  height: 1lh;
+  display: grid;
+  place-items: center;
+  color: var(--text-4);
+  flex: none;
+}
+.todo-step.completed .todo-check {
+  color: var(--main);
+}
+.todo-step.completed .todo-check svg {
+  background: var(--text-2);
+  border-radius: 50%;
+  padding: 2px;
+  width: 15px;
+  height: 15px;
+}
+.todo-step.inProgress .todo-check {
+  color: var(--text-2);
+}
+.todo-step.inProgress .todo-text {
+  color: var(--text);
+}
+/* an error that ends the latest turn rises 4px into place over --dur-base on --ease-out; it never shakes an
+   agent's error (a shake is for the person's own invalid input) */
+.reveal-in {
+  animation: reveal-in var(--dur-base) var(--ease-out) backwards;
+}
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-in {
+    animation: none;
+  }
+}
+.turn-error {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 0.5px solid color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  color: var(--red-text);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: var(--fs-ui);
+  margin: 8px 0;
+  user-select: text;
+}
+.turn-error > svg {
+  flex: none;
+  height: 1lh;
+  min-height: 15px;
+}
+.turn-error-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.turn-error-details {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+.error-banner,
+.retry-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+  padding: 8px 0;
+}
+/* a running turn that gets nowhere (#1534): what to do next, then Stop and Retry at the end of the row */
+.turn-stall {
+  align-items: flex-start;
+}
+.turn-stall > svg {
+  flex: none;
+  height: 1lh;
+  min-height: 13px;
+}
+.turn-stall-text {
+  flex: 1 1 min(16em, 50%);
+  min-width: 0;
+  color: var(--text-2);
+}
+.turn-stall-next {
+  color: var(--text-3);
+}
+.turn-stall-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+  margin-left: auto;
+  gap: 6px;
+}
+.error-banner {
+  color: var(--red-text);
+}
+/* a read error can carry a path: it breaks anywhere rather than push Retry out of the column */
+.error-banner-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.diff-stat {
+  font-size: var(--fs-ui);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.diff-stat.inline {
+  font-size: var(--fs-small);
+}
+.diff-stat .plus {
+  color: var(--green-text);
+}
+.diff-stat .minus {
+  color: var(--red-text);
+}

@@ -1,0 +1,59 @@
+{
+  "id": "dsh",
+  "label": "dsh",
+  "vendor": "DeepSeek",
+  "bins": [
+    "dsh"
+  ],
+  "docsUrl": "https://github.com/deepseek-ai/deepseek-harness",
+  "install": {
+    "docs": "https://www.npmjs.com/package/@deepseek-ai/dsh",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g @deepseek-ai/dsh",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@deepseek-ai/dsh"
+      }
+    ]
+  },
+  "enabled": true,
+  "order": 1,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "privacyDefaults": [
+      "session-log-deepseek (session log upload with each request)",
+      "OTel session telemetry (DSH_TELEMETRY_DISABLED=1)"
+    ],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "modalities": {
+      "deepseek-flash": [
+        "text",
+        "image"
+      ],
+      "deepseek-v4-pro": [
+        "text"
+      ]
+    }
+  },
+  "instructionsFiles": [
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "tested": [
+    "0.2.0-rc.2"
+  ],
+  "privacyGateCommand": "--dump-config",
+  "contract": {
+    "npm": "@deepseek-ai/dsh",
+    "bin": "dsh"
+  }
+}

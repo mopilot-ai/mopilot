@@ -1,0 +1,9 @@
+// A codex-asset: URL pasted together from a path: Windows drive letters land in its host, `#` and `?` cut it short.
+// docs/bug-prevention/strings-paths-and-keys.md
+language js
+
+JsTemplateExpression() as $t where {
+  $t <: r"(?s)^`codex-asset:.*",
+  $t <: contains JsTemplateElement(),
+  register_diagnostic(span=$t, message="[asset-url] A codex-asset: URL built from a path breaks on Windows drive letters, # and ?. Use assetUrl(path) from src/lib/paths (docs/bug-prevention/strings-paths-and-keys.md).", severity="warn")
+}

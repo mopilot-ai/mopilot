@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/momoEvals/notice/items.ts": {
+      "maxLines": 1300,
+      "reason": "The 156 labelled invented items of the notice evaluation set: one data table, one add() call per item, kept in one file so a labelled item is found by its id. The formatter puts each call on several lines."
+    }
+  }
+}

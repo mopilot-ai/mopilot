@@ -1,0 +1,19 @@
+[package]
+name = "caps"
+version = "0.1.0"
+description = "Who is at the other end of a capability socket: the kernel's peer pid, the process's ancestry and the file it runs, without lsof or ps."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+inventory = "0.3"
+proc = { path = "../proc" }
+serde_json = "1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

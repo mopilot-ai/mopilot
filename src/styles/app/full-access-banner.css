@@ -1,0 +1,201 @@
+/* The banners above the composer: "Full access is on", and the machine sign-in card (HostSigninCard.tsx), a compact card of its own. */
+/* "Full access is on" banner */
+.fa-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 10px;
+  padding: 14px 16px 14px 24px;
+  border-radius: 20px;
+  border: 0.5px solid rgba(var(--ink), 0.12);
+  background: var(--main);
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  color: var(--text);
+}
+.fa-icon {
+  flex: none;
+  align-self: center;
+  color: var(--text);
+}
+/* a narrow chat (a side pane beside it) wraps the buttons under the text instead of squeezing it to a word a line */
+.fa-banner {
+  flex-wrap: wrap;
+}
+.fa-text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.fa-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.fa-text a {
+  color: var(--text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.fa-sep {
+  width: 0.5px;
+  align-self: stretch;
+  margin: 18px 0;
+  background: rgba(var(--ink), 0.15);
+}
+.fa-dont {
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--text);
+  color: var(--main);
+  font: inherit;
+  font-size: var(--fs-chat);
+  cursor: pointer;
+}
+.fa-banner {
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  padding: 14px 14px 14px 18px;
+  gap: 12px;
+}
+.fa-dont {
+  font-size: var(--fs-ui);
+}
+.main-content[hidden] {
+  display: none;
+}
+.side-pane.full {
+  flex: 1;
+  width: auto;
+  border-left: 0;
+}
+.side-pane.full .pane-resize {
+  display: none;
+}
+.titlebar-right[hidden] {
+  display: none;
+}
+.side-pane.full {
+  position: relative;
+}
+.pane-float-composer {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  width: min(570px, calc(100% - 24px));
+  z-index: 5;
+}
+.pane-float-composer .composer-wrap {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* the machine sign-in card: a title, one plain line (with the code to type and Copy), Details for a vendor's own words, a field for a code typed back, and its actions at the end */
+.host-signin-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 14px;
+  border: 0.5px solid rgba(var(--ink), 0.12);
+  background: var(--main);
+  font-size: var(--fs-ui);
+  line-height: 1.45;
+  color: var(--text);
+}
+.host-signin-icon {
+  flex: none;
+  color: var(--text-2);
+}
+.host-signin-text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.host-signin-title {
+  font-weight: 500;
+}
+.host-signin-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin-left: auto;
+}
+.host-signin-card .btn-pill.primary {
+  background: var(--text);
+  color: var(--main);
+  border-color: transparent;
+}
+.host-signin-card .btn-pill.primary:hover {
+  opacity: 0.88;
+}
+.host-signin-link {
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.host-signin-line {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.host-signin-code {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(var(--ink), 0.06);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  user-select: all;
+}
+.host-signin-details {
+  margin-top: 4px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.host-signin-details summary {
+  cursor: pointer;
+}
+.host-signin-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.host-signin-form input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 0.5px solid rgba(var(--ink), 0.2);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+/* the offline strip (HostAwayStrip.tsx) is one line */
+.host-away-strip {
+  padding-block: 10px;
+}
+.host-away-strip .fa-title {
+  font-weight: 500;
+}
+/* the machine row's hint under the line (how to turn Remote Login on, what to unlock) */
+.host-away-strip .fa-hint {
+  font-size: var(--fs-micro);
+  color: rgba(var(--ink), 0.6);
+}
+/* the attention strip's one action (HostAttentionStrip.tsx) sits at the end of its line */
+.host-strip-action {
+  margin-left: auto;
+  flex: none;
+}

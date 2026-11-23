@@ -1,0 +1,8 @@
+# Workflow action updates only: npm versions and lockfiles are shared with the maintainers' repository and change there.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2

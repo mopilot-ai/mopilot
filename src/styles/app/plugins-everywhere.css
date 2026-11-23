@@ -1,0 +1,230 @@
+/* The shared Plugins page: cards, a plugin's page with its reach per harness, and the review before an install. */
+.plugin-reach {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 12px;
+  row-gap: 2px;
+  font-size: var(--fs-small);
+  line-height: 1.42;
+}
+.plugin-reach-row {
+  display: contents;
+}
+.plugin-reach-family {
+  color: var(--text-3);
+}
+.plugin-reach-text {
+  color: var(--text-2);
+}
+.plugin-reach-row.partial .plugin-reach-text,
+.plugin-reach-row.off .plugin-reach-text {
+  color: var(--text-3);
+}
+.plugin-reach-row.none .plugin-reach-text,
+.plugin-reach-row.failed .plugin-reach-text {
+  color: var(--red-text);
+}
+.plugin-trust .plugin-reach {
+  margin-top: 12px;
+}
+.plugin-trust-section {
+  margin-top: 12px;
+  font-size: var(--fs-ui);
+  line-height: 1.46;
+}
+.plugin-trust-runs {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 180px;
+  overflow: auto;
+}
+.plugin-trust-runs code {
+  font-size: var(--fs-small);
+  word-break: break-all;
+}
+.plugin-trust-config {
+  margin-top: 8px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.plugin-trust-config summary {
+  cursor: pointer;
+}
+.plugin-store-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.plugin-store-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.plugins-page .plugin-store-bar .segmented {
+  margin: 0;
+  flex-shrink: 0;
+}
+.plugins-page .plugin-store-bar .segmented button {
+  height: 32px;
+  border-radius: 8px;
+}
+.plugin-store-search {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--ink), 0.157);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-ui);
+}
+.plugin-store-add {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.plugin-store-section {
+  margin-top: 28px;
+}
+.plugin-store-note {
+  margin: 12px 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+/* Two columns of soft cards with a bordered icon tile */
+.plugin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.plugin-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(var(--ink), 0.03);
+}
+.plugin-card.clickable {
+  cursor: pointer;
+}
+.plugin-card.clickable:hover {
+  background: rgba(var(--ink), 0.055);
+}
+.plugin-tile {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-2);
+}
+.side-row-icon .plugin-tile {
+  border: 0;
+}
+.plugin-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.plugin-card-name {
+  color: var(--text);
+  font-size: var(--fs-ui);
+  font-weight: 500;
+}
+.plugin-card-desc {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.42;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.plugin-card-meta {
+  margin-top: 2px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.plugin-card-meta.failed {
+  color: var(--red-text);
+}
+.plugin-card-action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.plugin-card-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--text-2);
+  background: rgba(var(--ink), 0.06);
+}
+.plugin-card-add:hover {
+  color: var(--text);
+  background: rgba(var(--ink), 0.1);
+}
+.plugin-harness {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 8px;
+  border-top: 0.5px solid var(--hairline-strong);
+}
+.plugin-harness-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.plugin-harness-name {
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.plugin-harness-reach {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.plugin-harness.partial .plugin-harness-reach,
+.plugin-harness.off .plugin-harness-reach {
+  color: var(--text-3);
+}
+.plugin-harness.none .plugin-harness-reach,
+.plugin-harness.failed .plugin-harness-reach {
+  color: var(--red-text);
+}
+.plugin-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 0.5px solid var(--hairline-strong);
+}
+.plugin-source-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.plugin-source-title {
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.plugin-source-desc {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}

@@ -1,0 +1,13 @@
+# Written by MoPilot for `dsh --profile acp --patch`. Changes here are overwritten.
+# A row's config here replaces that row's whole config, so this patches only the two privacy rows: an
+# `acp` row with just a model once dropped dsh's provider, and every turn failed with "has no
+# provider/model" whatever key was set (#1201).
+# No session-log upload to the DeepSeek API.
+- id: session-log-deepseek
+  config:
+    enabled: false
+# No session telemetry: mode DISABLED builds no exporter. DSH_TELEMETRY_DISABLED=1 does the same at
+# launch, but --dump-config doesn't show that, so this keeps the privacy check able to see it.
+- id: session-telemetry-otel
+  config:
+    mode: DISABLED

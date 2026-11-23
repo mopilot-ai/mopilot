@@ -1,0 +1,91 @@
+{
+  "name": "mopilot-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "patch-package",
+    "start": "expo start --dev-client",
+    "typecheck": "tsc --noEmit",
+    "icons": "node scripts/make-icons.mjs ../build/icon.png assets store/graphics",
+    "export:ios": "expo export --platform ios",
+    "export:android": "expo export --platform android",
+    "release:show": "node scripts/release.mjs show",
+    "release:bump": "node scripts/release.mjs bump",
+    "release:check": "node scripts/release.mjs check",
+    "screenshots": "node scripts/store-screenshots.mjs"
+  },
+  "expo": {
+    "autolinking": {
+      "apple": {
+        "exclude": [
+          "expo-system-ui"
+        ]
+      }
+    }
+  },
+  "dependencies": {
+    "@expo/ui": "~58.0.26",
+    "@noble/curves": "1.9.7",
+    "@noble/hashes": "1.8.0",
+    "expo": "^58.0.21",
+    "expo-audio": "~58.0.10",
+    "expo-auth-session": "~58.0.16",
+    "expo-camera": "~58.0.14",
+    "expo-clipboard": "~58.0.4",
+    "expo-constants": "~58.0.14",
+    "expo-crypto": "~58.0.7",
+    "expo-dev-client": "~58.0.17",
+    "expo-device": "~58.0.5",
+    "expo-document-picker": "~58.0.4",
+    "expo-file-system": "~58.0.13",
+    "expo-haptics": "~58.0.7",
+    "expo-image": "~58.0.18",
+    "expo-image-manipulator": "~58.0.16",
+    "expo-image-picker": "~58.0.10",
+    "expo-media-library": "~58.0.13",
+    "expo-notifications": "~58.1.7",
+    "expo-secure-store": "~58.0.2",
+    "expo-sqlite": "~58.0.14",
+    "expo-status-bar": "~58.0.4",
+    "expo-symbols": "~58.0.4",
+    "expo-system-ui": "~58.0.7",
+    "expo-task-manager": "~58.0.12",
+    "expo-web-browser": "~58.0.7",
+    "i18next": "26.7.2",
+    "mdast-util-from-markdown": "2.1.0",
+    "mdast-util-gfm-autolink-literal": "2.0.1",
+    "mdast-util-gfm-strikethrough": "2.0.1",
+    "mdast-util-gfm-table": "2.0.0",
+    "micromark-extension-cjk-friendly": "2.0.2",
+    "micromark-extension-cjk-friendly-gfm-strikethrough": "2.0.1",
+    "micromark-extension-gfm-autolink-literal": "2.1.0",
+    "micromark-extension-gfm-table": "2.1.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-gesture-handler": "~3.3.0",
+    "react-native-libsodium": "1.7.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-screens": "~4.30.1",
+    "react-native-web": "^0.21.0",
+    "react-native-worklets": "0.13.0"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "^58.0.11",
+    "@expo/plist": "^0.10.1",
+    "@types/react": "~19.3.0",
+    "@types/react-dom": "~19.3.0",
+    "patch-package": "^8.0.1",
+    "typescript": "~5.9.0"
+  },
+  "allowScripts": {
+    "react-native-libsodium@1.7.0": true
+  },
+  "overrides": {
+    "@expo/fingerprint": {
+      "minimatch": "^11.0.1"
+    }
+  }
+}

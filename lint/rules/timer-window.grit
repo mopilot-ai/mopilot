@@ -1,0 +1,22 @@
+// A time window measured on a clock against the same duration a timer waits: timers run on the event loop's
+// monotonic clock and Date.now() (or an injected now()) on another, each floored to whole milliseconds, so the timer
+// can fire before the clock has moved that far, and the next attempt still falls inside the window (#1531, CM-Z30).
+// Order by the operation itself (whether the wait that acted is still waiting) instead of comparing the clocks.
+// docs/bug-prevention/time-and-order-assumptions.md
+language js
+
+or {
+  `$clock - $last < $window`,
+  `$clock - $last <= $window`,
+  `$clock - $last > $window`,
+  `$clock - $last >= $window`
+} as $hit where {
+  $clock <: or { `Date.now()`, `performance.now()`, `now()`, `$_.now()` },
+  // a named duration (WAIT_MS, this.connectMs): two equal literals elsewhere are a coincidence, not one duration
+  $window <: or { JsIdentifierExpression(), JsStaticMemberExpression() },
+  // a timer anywhere in the file waiting the same duration, called bare or through a member (injected timers)
+  $hit <: within or { JsModule(), JsScript() } as $file where {
+    $file <: contains or { `setTimeout($_, $window, $...)`, `$_.setTimeout($_, $window, $...)` }
+  },
+  register_diagnostic(span=$hit, message="[timer-window] A time window compared on a clock against the same duration a timer waits: the timer can fire before that clock moved as far, so the next attempt still falls in the window. Order by the operation (is the wait that acted still waiting?) instead of comparing clocks (docs/bug-prevention/time-and-order-assumptions.md).", severity="warn")
+}

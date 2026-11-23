@@ -1,0 +1,15 @@
+{
+  "layer": "L5",
+  "public": [
+    "updater.cjs",
+    "channel.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4"
+  ],
+  "allow": []
+}

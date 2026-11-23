@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "shared/host/schema.mjs": {
+      "maxLines": 505,
+      "reason": "The Host protocol composition registers each method's parser, feature gate and requirement. Read parsers live in readSchema.mjs and Git sign-in requirements live in gitLogin.mjs. This reviewed change authorizes the explicit Git sign-in feature registration at 501 lines within the existing 505-line cap; moving unrelated parsers would separate the protocol inventory. The `momo` features' hello rules (offered only to a client that may see MoMo) are declared beside the other features."
+    }
+  }
+}

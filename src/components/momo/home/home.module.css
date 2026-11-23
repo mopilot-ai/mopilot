@@ -1,0 +1,258 @@
+/* MoMo's home surfaces (src/components/momo/home): one frame, its header with the "Runs on" pill, and the cards, rows and forms the screens share. A CSS Module on the app's theme tokens. */
+.frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  font-size: var(--fs-ui);
+}
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid var(--surface-border);
+}
+.name {
+  font-weight: 600;
+  margin-right: 8px;
+}
+.tab {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.tab[aria-current='page'] {
+  background: rgba(var(--ink), 0.07);
+  color: var(--text);
+  font-weight: 500;
+}
+.pill {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 0.5px solid var(--surface-border);
+  border-radius: 999px;
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--fs-small);
+  color: var(--text);
+  cursor: pointer;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  flex: none;
+}
+.dot[data-tone='warn'] {
+  background: var(--orange);
+}
+.dot[data-tone='busy'] {
+  background: var(--accent);
+}
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 32px 48px;
+}
+.column {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.h1 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.h2 {
+  margin: 12px 0 0;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text-3);
+}
+.meta {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.text {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text);
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--card-radius);
+  background: var(--surface);
+  box-shadow: 0 0 0 0.5px var(--surface-border);
+}
+.card[data-tone='warn'] {
+  box-shadow: 0 0 0 0.5px var(--orange);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+}
+button.row {
+  cursor: pointer;
+}
+button.row:hover {
+  background: rgba(var(--ink), 0.05);
+}
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn,
+.primary {
+  height: 30px;
+  padding: 0 14px;
+  border: 0.5px solid var(--surface-border);
+  border-radius: 999px;
+  background: var(--surface);
+  font: inherit;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}
+.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-color);
+}
+.btn:disabled,
+.primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  background: rgba(var(--ink), 0.07);
+  color: var(--text-2);
+}
+.error {
+  color: var(--red-text);
+  font-size: var(--fs-small);
+}
+.field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 0.5px solid var(--surface-border);
+  background: var(--main);
+  font: inherit;
+  color: var(--text);
+}
+.bubble {
+  align-self: flex-end;
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(var(--ink), 0.07);
+}
+.steps {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.steps > li {
+  list-style: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  background: rgba(var(--ink), 0.05);
+  color: var(--text-3);
+}
+.steps > li[data-state='done'] {
+  color: var(--text);
+}
+.steps > li[data-state='now'] {
+  background: var(--accent);
+  color: var(--on-color);
+}
+.split {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.list [aria-current='true'] {
+  background: rgba(var(--ink), 0.08);
+}
+.quote {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--surface-border);
+  color: var(--text-2);
+}
+
+/* keyboard focus is always visible on every control of these surfaces */
+.tab:focus-visible,
+.pill:focus-visible,
+.btn:focus-visible,
+.primary:focus-visible,
+.row:focus-visible,
+.field:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.row[role='radio'][data-picked='true'] {
+  background: rgba(var(--ink), 0.08);
+}
+.row[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame,
+  .frame * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,5 @@
+{"t":"turn","id":"turn-1","text":"/code-review low"}
+{"t":"msg","m":{"type":"system","subtype":"task_started","uuid":"s1","session_id":"s","task_id":"task-r","description":"/code-review low","task_type":"local_workflow"}}
+{"t":"msg","m":{"type":"system","subtype":"task_notification","uuid":"s2","session_id":"s","task_id":"task-r","status":"completed","summary":"done"}}
+{"t":"msg","m":{"type":"assistant","uuid":"a1","parent_tool_use_id":null,"message":{"id":"m1","model":"<synthetic>","content":[{"type":"text","text":"[P1] add now subtracts: a + b became a - b"}]}}}
+{"t":"msg","m":{"type":"result","subtype":"success","is_error":false,"usage":{}}}

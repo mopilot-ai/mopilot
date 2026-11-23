@@ -1,0 +1,30 @@
+// A failure turned into a default value or dropped: the caller and the user see success, an empty list or a
+// spinner that never ends. docs/bug-prevention/swallowed-errors.md
+language js
+
+or {
+  `$p.catch(() => {})` where {
+    register_diagnostic(span=$p, message="[swallowed-error] This .catch drops the failure. Handle it, show it to the user, or log it with its context; a comment is not handling (docs/bug-prevention/swallowed-errors.md).", severity="warn")
+  },
+  `$p.catch(() => $v)` where {
+    $v <: or { `null`, `undefined`, `''`, `""`, `[]`, `false`, `true`, `({})`, `0` },
+    register_diagnostic(span=$v, message="[swallowed-error] This .catch turns the failure into an ordinary value, so callers cannot tell it from success. Return a typed failure, show it, or log it (docs/bug-prevention/swallowed-errors.md).", severity="warn")
+  },
+  // the same, through a setter or callback: `.catch(() => setChecks([]))` shows a failed read as an empty result
+  `$p.catch(($e) => $f($v))` where {
+    $v <: or { `null`, `undefined`, `''`, `""`, `[]`, `false`, `true`, `({})`, `{}`, `0` },
+    register_diagnostic(span=$v, message="[swallowed-error] This .catch hands an ordinary value on instead of the failure, so the user sees an empty or default result. Keep the error and show it, or log it (docs/bug-prevention/swallowed-errors.md).", severity="warn")
+  },
+  `$p.then($ok, ($e) => $f($v))` where {
+    $v <: or { `null`, `undefined`, `''`, `""`, `[]`, `false`, `true`, `({})`, `{}`, `0` },
+    register_diagnostic(span=$v, message="[swallowed-error] This rejection handler hands an ordinary value on instead of the failure, so the user sees an empty or default result. Keep the error and show it, or log it (docs/bug-prevention/swallowed-errors.md).", severity="warn")
+  },
+  `try { $body } catch { $handler }` where {
+    $handler <: .,
+    register_diagnostic(span=$body, message="[swallowed-error] This catch block drops the error. Handle it, show it to the user, or log it with its context; a comment is not handling (docs/bug-prevention/swallowed-errors.md).", severity="warn")
+  },
+  `try { $body } catch ($e) { $handler }` where {
+    $handler <: .,
+    register_diagnostic(span=$body, message="[swallowed-error] This catch block drops the error. Handle it, show it to the user, or log it with its context; a comment is not handling (docs/bug-prevention/swallowed-errors.md).", severity="warn")
+  }
+}

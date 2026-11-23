@@ -1,0 +1,13 @@
+{
+  "layer": "L2",
+  "public": [
+    "configs.cjs",
+    "providerKeys.cjs",
+    "router.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1"
+  ],
+  "allow": []
+}

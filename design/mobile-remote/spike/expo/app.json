@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "MoPilot Remote Spike",
+    "slug": "mopilot-remote-spike",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "newArchEnabled": true,
+    "ios": { "bundleIdentifier": "ai.mopilot.remotespike", "supportsTablet": false, "infoPlist": { "UIBackgroundModes": ["remote-notification"] } },
+    "android": { "package": "ai.mopilot.remotespike" },
+    "plugins": [["react-native-libsodium", {}], "expo-dev-client"]
+  }
+}

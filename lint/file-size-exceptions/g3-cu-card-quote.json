@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/capabilities/computerUse.cjs": {
+      "maxLines": 692,
+      "reason": "Coordinates computer-use permissions, helper lifecycle and agent control. Platform actions, permission rules and refusal parsing remain delegated to their owners. G3 (#3571): the desktop tools' broker is wrapped once (quotingBroker.cjs) so a tainted turn's card quotes the flagged text."
+    }
+  }
+}

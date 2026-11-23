@@ -1,0 +1,85 @@
+{
+  "id": "copilot",
+  "label": "Copilot",
+  "vendor": "GitHub",
+  "bins": [
+    "copilot"
+  ],
+  "docsUrl": "https://docs.github.com/copilot",
+  "install": {
+    "docs": "https://github.com/github/copilot-cli",
+    "methods": [
+      {
+        "via": "script",
+        "command": "curl -fsSL https://gh.io/copilot-install | bash",
+        "os": [
+          "darwin",
+          "linux"
+        ]
+      },
+      {
+        "via": "brew",
+        "command": "brew install --cask copilot-cli",
+        "os": [
+          "darwin",
+          "linux"
+        ],
+        "needs": "brew",
+        "brew": {
+          "name": "copilot-cli",
+          "cask": true
+        }
+      },
+      {
+        "via": "npm",
+        "command": "npm install -g @github/copilot",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@github/copilot"
+      },
+      {
+        "via": "winget",
+        "command": "winget install GitHub.Copilot",
+        "os": [
+          "win32"
+        ]
+      }
+    ]
+  },
+  "enabled": true,
+  "order": 5,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "args": [
+      "--acp"
+    ],
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "mcpStdio": false,
+    "anchors": {
+      "https://agentclientprotocol.com/protocol/session-modes#plan": "readOnly",
+      "https://agentclientprotocol.com/protocol/session-modes#agent": "ask",
+      "https://agentclientprotocol.com/protocol/session-modes#autopilot": "full"
+    },
+    "plan": {
+      "mode": "https://agentclientprotocol.com/protocol/session-modes#plan"
+    }
+  },
+  "skillRoots": [
+    ".github/skills"
+  ],
+  "tested": [
+    "1.0.95"
+  ],
+  "contract": {
+    "npm": "@github/copilot",
+    "bin": "copilot"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "layer": "R3",
+  "public": ["*"],
+  "mayImport": ["L0", "R0", "R1", "R2", "R3"],
+  "allow": []
+}

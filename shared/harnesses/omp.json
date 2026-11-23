@@ -1,0 +1,32 @@
+{
+  "id": "omp",
+  "label": "oh-my-pi",
+  "vendor": "oh-my-pi",
+  "bins": [
+    "omp"
+  ],
+  "docsUrl": "https://omp.sh",
+  "install": {
+    "docs": "https://omp.sh",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "runtimeQuirks": true,
+  "tested": [
+    "18.16.0"
+  ]
+}

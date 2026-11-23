@@ -1,0 +1,12 @@
+{
+  "exceptions": {
+    "tests/claudeChromeTabs.test.ts": {
+      "maxLines": 501,
+      "reason": "Gains one import line from replacing counted event-loop waits with the shared waitFor helper (tests/support/waitFor.ts); no new responsibility."
+    },
+    "tests/claudeCoverageAuth.test.ts": {
+      "maxLines": 708,
+      "reason": "Gains one import line from replacing counted event-loop waits with the shared waitFor helper (tests/support/waitFor.ts); no new responsibility."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "layer": "L1",
+  "public": [
+    "cpuProfileAction.cjs",
+    "stalls.cjs",
+    "startup.cjs",
+    "probe.cjs"
+  ],
+  "mayImport": [
+    "L0"
+  ],
+  "allow": []
+}

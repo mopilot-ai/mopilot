@@ -1,0 +1,48 @@
+/* "What works in MoPilot" on a harness's page: one line per item, a check or a dash, and why not under it */
+.works-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.works-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: var(--fs-ui);
+  line-height: 1.43;
+  color: var(--text);
+}
+.works-item + .works-item {
+  border-top: 0.5px solid var(--card-border);
+}
+.works-mark {
+  flex: none;
+  height: 1lh;
+  min-height: 15px;
+}
+.works-item.ok .works-mark {
+  color: var(--green-text);
+}
+.works-item.off {
+  color: var(--text-3);
+}
+.works-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.works-note {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+/* inside a basic harness's details */
+.works-inline {
+  padding: 12px 0 4px;
+  border-bottom: 0.5px solid var(--card-border);
+}
+.works-inline-title {
+  font-size: var(--fs-ui);
+  font-weight: 500;
+}

@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/app/browserTools.cjs": {
+      "maxLines": 688,
+      "reason": "Composes local and remote browser hosts, native-plugin backends and tool channels. Browser implementations and transports remain in their own modules; a <webview> guest gets the WebMCP page API from webmcp.cjs like views and popups, and the turn trace's wiring is turnTraces.cjs (G5), whose one instance both browsers' tools share. As the composition root it hands BrowserWindows the OS's languages, which electron/capabilities may not read from Electron itself (honestIdentity.cjs). The two preview-restoration callbacks inject the same main-owned service into BrowserTabs and PaneViews without moving either implementation into this root."
+    }
+  }
+}

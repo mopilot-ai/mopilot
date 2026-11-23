@@ -1,0 +1,58 @@
+diff --git a/node_modules/expo/node_modules/expo-modules-core/ios/Core/AppContext.swift b/node_modules/expo/node_modules/expo-modules-core/ios/Core/AppContext.swift
+index 8a8685b..09acba6 100644
+--- a/node_modules/expo/node_modules/expo-modules-core/ios/Core/AppContext.swift
++++ b/node_modules/expo/node_modules/expo-modules-core/ios/Core/AppContext.swift
+@@ -264,12 +264,51 @@ public class AppContext: NSObject, EXAppContextProtocol, @unchecked Sendable {
+    For instance, Expo Go uses sandboxed environment per project where the cache and document directories must be scoped.
+    It's an optional type for historical reasons, for now let's keep it like this for backwards compatibility.
+    */
+-  public lazy var fileSystem: FileSystemManager? = FileSystemManager(appGroupSharedDirectories: self.config.appGroupSharedDirectories)
++  public var fileSystem: FileSystemManager? {
++    // A Swift `lazy var` is not thread-safe: concurrent async functions (e.g. several expo-sqlite opens at launch)
++    // raced its first initialization and one of them read a released manager (EXC_BAD_ACCESS in ensureDirExists).
++    get {
++      lazyServicesLock.lock()
++      defer { lazyServicesLock.unlock() }
++      if !fileSystemResolved {
++        fileSystemStorage = FileSystemManager(appGroupSharedDirectories: self.config.appGroupSharedDirectories)
++        fileSystemResolved = true
++      }
++      return fileSystemStorage
++    }
++    set {
++      lazyServicesLock.lock()
++      defer { lazyServicesLock.unlock() }
++      fileSystemStorage = newValue
++      fileSystemResolved = true
++    }
++  }
++  private let lazyServicesLock = NSLock()
++  private var fileSystemStorage: FileSystemManager?
++  private var fileSystemResolved = false
+ 
+   /**
+    Provides access to the permissions manager.
+    */
+-  public lazy var permissions: EXPermissionsService? = EXPermissionsService()
++  public var permissions: EXPermissionsService? {
++    get {
++      lazyServicesLock.lock()
++      defer { lazyServicesLock.unlock() }
++      if !permissionsResolved {
++        permissionsStorage = EXPermissionsService()
++        permissionsResolved = true
++      }
++      return permissionsStorage
++    }
++    set {
++      lazyServicesLock.lock()
++      defer { lazyServicesLock.unlock() }
++      permissionsStorage = newValue
++      permissionsResolved = true
++    }
++  }
++  private var permissionsStorage: EXPermissionsService?
++  private var permissionsResolved = false
+ 
+   /**
+    Provides access to the image loader from legacy module registry.

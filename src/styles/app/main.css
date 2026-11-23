@@ -1,0 +1,60 @@
+/* Main column: the main area of the frame card and its header. */
+/* ---------- main ---------- */
+.main {
+  /* nothing in the chat column reads the sidebar's width: ending its inheritance here keeps a sidebar drag, which
+     changes it on every frame, from restyling every row of the chat and the side pane (#2049) */
+  --sidebar-w: initial;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* the title bar's band: the chat title, and the pane tabs over a side pane */
+  padding-top: var(--titlebar-h);
+}
+.main-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.main-content {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.center-fill {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.center-pad {
+  padding: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.conn-error {
+  max-width: 560px;
+  text-align: center;
+}
+.conn-error-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.conn-error pre {
+  text-align: left;
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow: auto;
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+  user-select: text;
+}
+

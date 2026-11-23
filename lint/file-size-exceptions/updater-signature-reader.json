@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/updates/updater.cjs": {
+      "maxLines": 529,
+      "reason": "Coordinates one update attempt and signature eligibility. Bundle-signature reading and retry policy are delegated to the signature reader."
+    }
+  }
+}

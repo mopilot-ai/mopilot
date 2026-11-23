@@ -1,0 +1,38 @@
+/* Computer History (#1363): the first-run explainer's lists and a day's memories in Settings. */
+.ch-explainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--fs-ui);
+  line-height: 1.46;
+  color: var(--text-2);
+}
+.ch-explainer-lead {
+  margin: 0 0 4px;
+}
+.ch-explainer h3 {
+  margin: 6px 0 0;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  color: var(--text);
+}
+.ch-explainer ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ch-explainer .sketch-foot {
+  margin-top: 8px;
+}
+.ch-day-text {
+  margin: 0;
+  padding: 10px 14px 12px;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-2);
+  border-top: 0.5px solid var(--card-border);
+}

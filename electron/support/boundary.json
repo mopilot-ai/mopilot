@@ -1,0 +1,19 @@
+{
+  "layer": "L5",
+  "public": [
+    "bugReport.cjs",
+    "notices.cjs",
+    "telemetry.cjs",
+    "installPing.cjs",
+    "diagnosticIdentity.cjs",
+    "usageConsent.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4"
+  ],
+  "allow": []
+}

@@ -1,0 +1,444 @@
+/* Settings Plugins: plugins, apps, MCP servers, skills, marketplaces and the MCP server editor. */
+/* ---------- Settings → Plugins (plugins / apps / MCPs / skills / marketplaces) ---------- */
+.ps-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ps-head .settings-title {
+  margin: 0;
+  line-height: 1.2;
+}
+.ps {
+  margin-top: -1px;
+}
+.ps-sub.settings-sub {
+  margin: 4px 0 0;
+  font-size: var(--fs-chat);
+  line-height: 1.714;
+}
+.ps-head-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+}
+.ps-btn {
+  height: 32px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12.5px;
+  font-size: var(--fs-ui);
+  color: var(--text);
+  background: rgba(var(--ink), 0.03);
+  border: 1px solid rgba(var(--ink), 0.082);
+  white-space: nowrap;
+}
+.ps-btn:hover:not(:disabled) {
+  background: rgba(var(--ink), 0.07);
+}
+.ps-btn.sm {
+  height: 28px;
+}
+.ps-btn.pad12 {
+  padding: 0 12px;
+}
+.ps-btn.primary {
+  background: var(--text);
+  color: var(--main);
+}
+.ps-head-actions .ps-btn.primary {
+  border-radius: 9999px;
+}
+.ps-btn.primary:hover:not(:disabled) {
+  opacity: 0.88;
+  background: var(--text);
+}
+.ps-btn:disabled {
+  opacity: 0.4;
+}
+.ps-tabbar {
+  margin-top: 33px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ps-tabs {
+  display: flex;
+  gap: 2px;
+}
+.ps-tab {
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12.5px;
+  border: 1px solid transparent;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.ps-tab:hover {
+  color: var(--text);
+}
+.ps-tab.on {
+  color: var(--text);
+  background: rgba(var(--ink), 0.05);
+}
+.ps-count {
+  color: var(--text-3);
+}
+.ps-search {
+  width: 224px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  background: var(--search-bg);
+  border: 1px solid rgba(var(--ink), 0.157);
+  color: var(--text-3);
+}
+.ps-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  font: inherit;
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.ps-search input::placeholder {
+  color: var(--text-3);
+}
+.ps-loading,
+.ps-empty {
+  margin-top: 40px;
+  padding: 24px 8px;
+  color: var(--text-3);
+  font-size: var(--fs-ui);
+}
+.ps-list {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ps-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 20px;
+}
+.ps-item:hover {
+  background: rgba(var(--ink), 0.033);
+}
+.ps-item.clickable {
+  cursor: pointer;
+}
+.ps-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12.5px;
+  border: 1px solid rgba(var(--ink), 0.082);
+  color: var(--icon);
+  overflow: hidden;
+}
+.ps-icon .plugin-logo {
+  border-radius: 2.5px;
+}
+.ps-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ps-title {
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ps-desc {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-prose);
+  color: var(--text-3);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ps-desc > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ps-path {
+  line-height: 1.538;
+}
+.ps-meta {
+  width: 84px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+  flex-shrink: 0;
+}
+.ps-item.has-more .ps-meta {
+  width: 108px;
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.ps-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ps-more {
+  width: 28px;
+  height: 28px;
+  border-radius: 12.5px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  opacity: 0;
+}
+.ps-item:hover .ps-more,
+.ps-more.open {
+  opacity: 1;
+}
+.ps-more:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.ps-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 12.5px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.ps-icon-btn.sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 10px;
+}
+.ps-icon-btn:hover:not(:disabled) {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.ps-icon-btn:disabled {
+  opacity: 0.4;
+}
+.ps-mcp {
+  margin-top: 49px;
+}
+.ps-mcp .settings-group {
+  margin-bottom: 32px;
+}
+.ps-mcp-row {
+  min-height: 52px;
+}
+.ps-mcp-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-ui);
+  font-weight: 500;
+}
+.ps-mcp-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* MCP server editor */
+.mcp-edit {
+  margin-top: 40px;
+}
+.ps-back {
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12.5px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.ps-back:hover {
+  color: var(--text);
+  background: var(--row-hover);
+}
+.mcp-edit-head {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mcp-edit-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.33;
+}
+.mcp-uninstall {
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12.5px;
+  font-size: var(--fs-ui);
+  color: var(--red-text);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+}
+.mcp-uninstall:hover {
+  background: color-mix(in srgb, var(--red) 20%, transparent);
+}
+.mcp-docs {
+  margin-top: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-ui);
+  line-height: 1.43;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.mcp-note {
+  margin: 19px 0 0;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.mcp-card {
+  margin-top: 20px;
+  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid rgba(var(--ink), 0.082);
+  overflow: hidden;
+}
+.mcp-docs + .mcp-card {
+  margin-top: 20px;
+}
+.mcp-note + .mcp-card {
+  margin-top: 6px;
+}
+.mcp-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mcp-card + .mcp-card {
+  margin-top: 6px;
+}
+.mcp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12.5px;
+  background: var(--surface);
+}
+.mcp-field.list {
+  gap: 12px;
+}
+.mcp-field > p {
+  margin: 0;
+  font-size: var(--fs-chat);
+  font-weight: 500;
+  line-height: 1.5;
+}
+.mcp-input {
+  height: 36px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ink), 0.157);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-ui);
+  outline: none;
+}
+.mcp-input:focus {
+  border-color: var(--accent);
+}
+.mcp-input::placeholder {
+  color: var(--text-3);
+}
+.mcp-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mcp-line .ps-icon-btn {
+  margin: 0 6px 0 4px;
+}
+.mcp-add {
+  height: 28px;
+  border-radius: 10px;
+  border: 1px dashed transparent;
+  background: rgba(var(--ink), 0.05);
+  color: rgba(var(--ink), 0.585);
+  font-size: var(--fs-ui);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.mcp-add:hover {
+  background: rgba(var(--ink), 0.08);
+  color: var(--text);
+}
+.mcp-type {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 13px;
+  font-size: var(--fs-ui);
+  font-weight: 500;
+}
+.mcp-type .ps-tab {
+  font-weight: 430;
+}
+.mcp-foot {
+  margin-top: 6px;
+  /* the Hooks header below pulls itself up by 30px; keep Save clear of it and on top */
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+.ps-icon.filled {
+  border: none;
+  background: var(--surface-2);
+}
+.ps-icon.round {
+  border-radius: 50%;
+}
+.ps-app-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 2.5px;
+  object-fit: contain;
+}
+/* Light composer panels (Add, slash, mentions) are white like the official app. */
+[data-theme='light'] .add-panel {
+  background: var(--composer-bg);
+  box-shadow: 0 0 0 1px rgba(var(--ink), 0.08);
+}
+

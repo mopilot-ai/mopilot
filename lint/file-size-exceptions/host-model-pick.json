@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/host/remoteSend.cjs": {
+      "maxLines": 513,
+      "reason": "The remote outbox owns first-message acknowledgement, including both live and reconnect receipts. It allows replacing a side chat's queued first draft until dispatch and protects it while acceptance is uncertain. Delivery and transcript projection remain in their own modules."
+    }
+  }
+}

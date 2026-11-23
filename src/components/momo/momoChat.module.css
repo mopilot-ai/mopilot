@@ -1,0 +1,301 @@
+/* MoMo's Chat (MomoChatTab.tsx), as Muse's chat: the chat fills the page and its own scroller scrolls, MoMo's identity
+   floats at the top center over the transcript (which fades under it), the transcript is a centered column and the
+   composer a round pill of the same width pinned at the bottom. A CSS Module: its classes are local; the chat inside keeps the
+   thread's global classes, retuned here only through the thread's own variables and the column's top room. */
+/* the chat and, when the window has room, the right panel beside it (momoPanel.module.css) */
+.frame {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+.chat {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  --composer-radius: 26px;
+  /* the identity's band above the transcript */
+  --momo-head-h: 84px;
+}
+/* the transcript's column and the composer share one width (--composer-w, as coding chats do), so the composer is one
+   long pill under the messages as ChatGPT's Dot draws it, never narrower or wider than them; the scroller starts under
+   the identity's band, so a message the chat scrolls to the top (a new turn's) is never behind it, and the transcript
+   fades out at that edge as Muse's does under its header */
+.extra {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 24px 150px;
+  pointer-events: none;
+}
+/* a channel's header at the top left, clear of the identity at the centre; its first row sits just above the composer, in the thread */
+.extra > * {
+  pointer-events: auto;
+}
+.extra > :first-child {
+  align-self: flex-start;
+}
+.chat :global(.thread-scroll-wrap) {
+  margin-top: var(--momo-head-h);
+}
+.chat :global(.thread-scroll) {
+  mask-image: linear-gradient(to bottom, transparent, var(--text) 20px);
+}
+.chat :global(.thread-column) {
+  padding-top: 16px;
+}
+/* bubbles (the approved Dot-style page, designs/momo-page-dot): MoMo's replies, its mid-turn notes and its nudges are
+   grey bubbles on the left, one bubble holding a reply's lists, bold, links and code; what the user sent is a pill on
+   the right in the accent's tint. The task list, tool lines, approval cards and the message actions stay as they are,
+   on the bubbles' left edge. Only MoMo's Chat (this module's .chat): coding chats keep their plain reply text. */
+.chat :global(.user-bubble) {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.chat :global(.assistant-message),
+.chat :global(.commentary),
+.chat :global(.momo-nudge) {
+  width: fit-content;
+  max-width: 88%;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: var(--bubble-radius);
+  background: var(--bubble);
+  overflow-wrap: anywhere;
+}
+/* a reply that has no text yet (the first token has not come) draws no empty bubble */
+.chat :global(.assistant-message):has(:global(.md):empty) {
+  display: none;
+}
+.chat :global(.momo-nudge) :global(.step-text) {
+  color: var(--text);
+}
+
+/* the composer as Muse's pill: + on the left, the message, then the brain chip, mic and send on the right, in one row
+   whose message grows to more lines in place (the controls stay at its foot); what sits above the message in the coding
+   composer (attachments, notes, the voice bar) spans the row above it. Only MoMo's composer: coding chats keep theirs. */
+.chat :global(.composer) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: 8px;
+  min-height: 0;
+  padding: 8px 8px 8px 12px;
+}
+.chat :global(.composer) > * {
+  grid-column: 1 / -1;
+}
+.chat :global(.composer-footer) {
+  display: contents;
+}
+.chat :global(.composer-left),
+.chat :global(.composer) > :global(.composer-editor),
+.chat :global(.composer-right) {
+  grid-row: 20;
+  align-self: end;
+}
+.chat :global(.composer-left) {
+  grid-column: 1;
+  margin-left: 0;
+}
+.chat :global(.composer) > :global(.composer-editor) {
+  grid-column: 2;
+  position: relative;
+  padding: 3px 0;
+}
+.chat :global(.composer-right) {
+  grid-column: 3;
+}
+/* no footer row to sit above: dictation's note takes a row of its own inside the controls */
+.chat :global(.composer-right):has(:global(.dictation-note)) {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.chat :global(.composer-right) > :global(.dictation-note) {
+  position: static;
+  flex: 0 0 100%;
+  height: auto;
+  white-space: normal;
+}
+.head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: var(--momo-head-h);
+  padding: 10px 56px 0;
+  pointer-events: none;
+}
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 0 0.5px var(--surface-border);
+}
+/* the name tag overlaps the avatar's foot, as Muse's does */
+.name {
+  margin-top: -8px;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-small, 12px);
+  font-weight: 500;
+  line-height: 1.5;
+}
+.status {
+  margin-top: 2px;
+  font-size: var(--fs-small, 12px);
+  line-height: 1.4;
+  color: var(--text-3);
+}
+.status[data-tone='needs'] {
+  color: var(--orange);
+}
+/* Active: a small green dot before it, as the design draws it */
+.status[data-tone='active']::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  vertical-align: 0.5px;
+}
+/* Resume, inline in the Paused line; the header lets only its controls take the pointer */
+.resume {
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  pointer-events: auto;
+}
+.resume:hover {
+  text-decoration: underline;
+}
+.resume:disabled {
+  opacity: 0.5;
+}
+.note {
+  margin: 0;
+  max-width: 480px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: var(--fs-small, 12px);
+  text-align: center;
+}
+/* the panel's toggle, at the header's trailing edge (only drawn where the panel has room) */
+.toggle {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-2);
+  pointer-events: auto;
+}
+.toggle:hover,
+.toggle[aria-pressed='true'] {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* a MoMo chat other than the main one: the way back, at the header's leading edge */
+.back {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-2);
+  pointer-events: auto;
+}
+.back:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  font-size: var(--fs-chat);
+}
+/* the shell (shell/MomoShell.tsx): a pill under the identity while a reply is on its way (replies arrive whole, never
+   token by token, so this is what shows meanwhile), the footer line under the composer, and the back arrow moved over
+   from where the shell's sidebar toggle sits */
+.thinking {
+  margin-top: 4px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: var(--fs-small, 12px);
+  line-height: 1.5;
+  animation: thinkingIn var(--momo-thread-dots, 140ms) var(--momo-ease-out, ease-out) backwards;
+}
+.footnote {
+  flex: none;
+  margin: 0;
+  padding: 0 16px 8px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: var(--fs-small, 12px);
+  line-height: 1.4;
+}
+/* a reply that arrived whole (the turn view marks it data-arrive only where the shell has replies come whole) rises into place: the arrival token's duration and curve */
+.chat :global([data-arrive]) {
+  animation: wholeIn var(--momo-thread-arrive, 210ms) var(--momo-ease-out, ease-out) backwards;
+}
+@keyframes wholeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes thinkingIn {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking,
+  .chat :global([data-arrive]) {
+    animation: none;
+  }
+}

@@ -1,0 +1,14 @@
+// A log appended one record at a time with appendFileSync on the main process: a harness streams hundreds of
+// records a second, and each synchronous append stalls every window. Append through the shared transcript writer
+// (electron/platform/transcriptWriter.cjs), which batches and writes in the background. docs/bug-prevention/overlapping-operations.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or {
+    `$fs.appendFileSync($file, $data)`, `$fs.appendFileSync($file, $data, $opts)`,
+    `appendFileSync($file, $data)`, `appendFileSync($file, $data, $opts)`
+  },
+  // a serialized record per call
+  $data <: contains or { `$_.stringify($_)`, `stringify($_)` },
+  register_diagnostic(span=$hit, message="[sync-log-append] Appending a record with appendFileSync blocks the main process for every window. Use the transcript writer in electron/platform/transcriptWriter.cjs (docs/bug-prevention/overlapping-operations.md).", severity="warn")
+}

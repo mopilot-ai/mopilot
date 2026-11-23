@@ -1,0 +1,359 @@
+/* Thread steps: step rows, shell boxes and browser or desktop control screenshots. */
+/* step rows */
+.step-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 21px;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  color: var(--text-step);
+  text-align: left;
+  border-radius: var(--row-radius);
+}
+/* as in the reference app, a settled step is its words alone ("Read 2 files ›"): the icon stays only while it
+   runs, or to mark a step that failed */
+.step:not(.failed) > .step-row:not(.active) > .step-icon,
+.step-group > .step-row:not(.active) > .step-icon {
+  display: none;
+}
+.step-row.expandable,
+.step-row.summary {
+  cursor: pointer;
+}
+/* an expandable step's toggle: a button over the whole row, under the links in its text */
+.step-row-hit {
+  z-index: 1;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  cursor: pointer;
+}
+.step-row-hit:focus-visible {
+  outline: 2px solid var(--text-3);
+  outline-offset: 1px;
+}
+.step-row.expandable:hover,
+.step-row.summary:hover,
+.step.open > .step-row {
+  color: var(--text);
+}
+.step-icon {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.step-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.step-text.hook-feedback {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* closed it points right and turns down as the row opens (a 90deg turn over .15s cubic-bezier(.4,0,.2,1)); the
+   icon is a down chevron, so closed is -90deg */
+.step-chevron {
+  flex: none;
+  opacity: 0.55;
+  transform: rotate(-90deg);
+  transition: opacity var(--dur), transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.step-row:hover .step-chevron,
+.step.open > .step-row .step-chevron,
+.step-group.open > .step-row .step-chevron {
+  opacity: 1;
+}
+.step.open > .step-row .step-chevron,
+.step-group.open > .step-row .step-chevron {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-chevron {
+    transition: opacity var(--dur);
+  }
+}
+.step-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.step-list > .step {
+  padding-top: 4px;
+}
+.step-body {
+  margin: 6px 0 4px;
+}
+.step-file-link {
+  position: relative;
+  z-index: 1;
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 2px;
+  color: var(--text-4);
+  cursor: pointer;
+}
+/* a file link is a button (inline-block): it cuts its own long name, as the row's text did */
+button.step-file-link {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.step-file-link:focus-visible {
+  outline: 2px solid var(--text-3);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+.step-row:hover .step-file-link {
+  color: var(--text-3);
+}
+.step-em {
+  color: inherit;
+}
+.step-stat,
+.step-exit {
+  color: inherit;
+}
+.step-row.active {
+  color: var(--text-step);
+}
+/* the running-tasks count moves under the row's words when they no longer fit side by side */
+.step-row:has(> .tasks-count-inline) {
+  flex-wrap: wrap;
+}
+.activity-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  flex: none;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.activity-time::before {
+  content: '·';
+}
+
+/* what Codex's computer use (Sky) reported for a failed step (Items.tsx SkyProblemNote) */
+.sky-problem {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.sky-problem-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.sky-problem-message {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.sky-problem-hint {
+  margin-top: 4px;
+  color: var(--text-3);
+}
+.sky-problem-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* shell box */
+.shell-box {
+  border-radius: var(--card-radius);
+  background: var(--code-bg);
+  border: 0.5px solid var(--card-border);
+  overflow: hidden;
+}
+.shell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font-size: var(--fs-ui);
+  line-height: 1.43;
+  color: var(--text-2);
+}
+.shell-copy {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  opacity: 0;
+}
+.shell-box:hover .shell-copy {
+  opacity: 1;
+}
+.shell-scroll {
+  max-height: 260px;
+  overflow: auto;
+  padding-bottom: 10px;
+}
+.shell-scroll.tool {
+  padding: 4px 8px 12px;
+}
+.shell-scroll.tool .code-block {
+  margin-bottom: 8px;
+}
+.tool-previews {
+  padding: 0 8px;
+}
+/* a browser or desktop control step's screenshots at the row's end, in a small strip (24 px tall, at most 44 px
+   wide, a hairline border; the last three, one when narrow, after a "+N" count) */
+.step-thumbs {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 8px;
+}
+.step-thumb {
+  display: block;
+  width: auto;
+  height: 24px;
+  max-width: 44px;
+  border-radius: 4px;
+  object-fit: cover;
+  box-shadow:
+    0 1px 3px rgba(var(--ink), 0.14),
+    inset 0 0 0 0.5px rgba(var(--ink), 0.15);
+}
+.step-thumbs-more {
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.step-thumbs-more.narrow {
+  display: none;
+}
+@media (max-width: 640px) {
+  .step-thumbs-more.wide,
+  .step-thumb-wide {
+    display: none;
+  }
+  .step-thumbs-more.narrow {
+    display: inline;
+  }
+}
+/* a lone control call's screenshots below its row: one up to 320 px tall, several up to
+   240 px, wrapping */
+.step-shots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0 4px 24px;
+}
+.step-shot {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  cursor: zoom-in;
+  box-shadow:
+    0 4px 12px rgba(var(--ink), 0.12),
+    inset 0 0 0 0.5px rgba(var(--ink), 0.15);
+}
+.step-shots.several .step-shot {
+  max-height: 240px;
+}
+/* a run of control steps, opened: every screenshot in order, a replayable strip */
+.control-filmstrip {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 2px 24px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.control-frame {
+  flex: none;
+  width: 96px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: top;
+  cursor: zoom-in;
+  box-shadow: inset 0 0 0 0.5px rgba(var(--ink), 0.15);
+}
+/* a run inside a larger group sits one level in */
+.step-list .control-run .step-list {
+  padding-left: 12px;
+}
+/* a folded poll's checks sit one level in: each check's group, then the status message the agent wrote after it */
+.poll-checks {
+  gap: 8px;
+  padding-left: 12px;
+}
+.poll-checks .commentary {
+  color: var(--text-2);
+}
+/* a run of turns no one typed folded into one row where they would be, opening to them one level in */
+.woken-turns {
+  margin: 4px 0 12px;
+}
+.woken-turns-list {
+  padding-left: 12px;
+}
+.tool-screenshot {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  margin: 8px 0;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.shell-cmd {
+  padding: 8px 32px 0 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.shell-prompt {
+  color: var(--text-3);
+  margin-right: 8px;
+  user-select: none;
+}
+.shell-out {
+  margin: 0;
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.shell-exit {
+  padding: 0 8px;
+  font-size: var(--fs-small);
+  color: var(--red-text);
+}
+
+/* a run in one desktop app leads with that app's icon (StepGroups.tsx ControlRun) */
+.step-app-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: -3px;
+}

@@ -1,0 +1,8 @@
+{
+  "layer": "R0",
+  "public": [
+    "*"
+  ],
+  "mayImport": [],
+  "allow": []
+}

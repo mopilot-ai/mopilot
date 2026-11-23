@@ -1,0 +1,7 @@
+{
+  "direct": [],
+  "runtimeRoots": [],
+  "notices": [
+    { "title": "Nasiko llm-router (https://github.com/Nasiko-Labs/nasiko, commit 0ed4b3d, Copyright 2026 Nasiko Labs): its translation core, ported and modified in core/crates/llmroute", "path": "docs/licenses/nasiko-LICENSE.txt" }
+  ]
+}

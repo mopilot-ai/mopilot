@@ -1,0 +1,40 @@
+{
+  "id": "kiro",
+  "version": "2.37.1",
+  "checkedAt": "2026-11-04T00:38:09.792Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Kiro 2.37.1 was installed with the vendor archive https://prod.download.cli.kiro.dev/stable/2.37.1/kirocli-universal-darwin.tar.gz and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): it was not admitted (unsupported: Kiro cannot reopen native sessions in this version). No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "Kiro CLI Agent",
+      "title": "Kiro CLI Agent",
+      "version": "2.37.1"
+    },
+    "agentCapabilities": {
+      "loadSession": false,
+      "promptCapabilities": {
+        "image": false,
+        "audio": false,
+        "embeddedContext": false
+      },
+      "mcpCapabilities": {
+        "http": false,
+        "sse": false
+      },
+      "sessionCapabilities": {}
+    },
+    "authMethods": [
+      {
+        "id": "kiro-login",
+        "name": "Kiro Login",
+        "description": "Run 'kiro-cli login' in a terminal, then reconnect to this agent. See https://kiro.dev/docs/cli/authentication/"
+      }
+    ]
+  },
+  "probeWithQuirksFixes": {
+    "state": "unsupported",
+    "version": "2.37.1",
+    "reason": "Kiro cannot reopen native sessions in this version"
+  }
+}

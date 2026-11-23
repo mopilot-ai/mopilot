@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/hostMachines.test.ts": {
+      "maxLines": 510,
+      "reason": "Machine-registry scenarios share one registry and fake connections. Change-listener ownership is exercised beside connection lookup, and the machine list's exact row shape (installable agents, last seen, local network and waiting-for-login state) is asserted in one deepEqual."
+    }
+  }
+}

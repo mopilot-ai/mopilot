@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- Sparse-AX fixture page (CM-D23): everything is drawn on one canvas, hidden from accessibility, except the text
+     field the drawn Compose button opens. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Sparse AX Fixture</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #f4f4f6; font-family: -apple-system, Helvetica, sans-serif; }
+      canvas { display: block; }
+      #field { position: absolute; left: 220px; top: 140px; width: 360px; font-size: 18px; padding: 6px; display: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" width="720" height="480" aria-hidden="true"></canvas>
+    <input id="field" aria-label="Message" placeholder="Type a message, then press Return" />
+    <script>
+      const fs = require('node:fs');
+      const OUT = process.env.SPARSE_AX_OUT || '/tmp/sparse-ax.txt';
+      const c = document.getElementById('c');
+      const g = c.getContext('2d');
+      const field = document.getElementById('field');
+      // drawn controls: [label, x, y, w, h]; only Compose does something
+      const buttons = [
+        ['Inbox', 24, 80, 150, 40],
+        ['Drafts', 24, 130, 150, 40],
+        ['Archive', 24, 180, 150, 40],
+        ['Compose', 220, 80, 140, 40],
+      ];
+      function draw(status) {
+        g.fillStyle = '#f4f4f6';
+        g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#222';
+        g.font = 'bold 24px -apple-system, Helvetica';
+        g.fillText('Sparse AX Fixture', 24, 48);
+        g.font = '18px -apple-system, Helvetica';
+        for (const [label, x, y, w, h] of buttons) {
+          g.fillStyle = label === 'Compose' ? '#2563eb' : '#e2e2e8';
+          g.fillRect(x, y, w, h);
+          g.fillStyle = label === 'Compose' ? '#fff' : '#222';
+          g.fillText(label, x + 16, y + 26);
+        }
+        if (status) {
+          g.fillStyle = '#16a34a';
+          g.fillText(status, 220, 220);
+        }
+      }
+      c.addEventListener('click', (e) => {
+        const hit = buttons.find(([, x, y, w, h]) => e.offsetX >= x && e.offsetX <= x + w && e.offsetY >= y && e.offsetY <= y + h);
+        if (hit?.[0] === 'Compose') {
+          field.style.display = 'block';
+          field.focus();
+        }
+      });
+      field.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        fs.writeFileSync(OUT, field.value);
+        draw(`Saved: ${field.value}`);
+      });
+      // a fresh run starts with nothing saved
+      fs.rmSync(OUT, { force: true });
+      draw('');
+    </script>
+  </body>
+</html>

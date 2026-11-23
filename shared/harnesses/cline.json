@@ -1,0 +1,44 @@
+{
+  "id": "cline",
+  "label": "Cline",
+  "vendor": "Cline",
+  "bins": [
+    "cline"
+  ],
+  "docsUrl": "https://docs.cline.bot/cline-cli/overview",
+  "install": {
+    "docs": "https://docs.cline.bot/cline-cli/overview",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g cline",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "cline"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "--acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "contract": {
+    "npm": "cline",
+    "bin": "cline"
+  }
+}

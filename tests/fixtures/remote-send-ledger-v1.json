@@ -1,0 +1,49 @@
+{
+  "producerCommit": "5c459c408e8d4605dbad7d84b8ef0b5399349898",
+  "sourceBlobs": {
+    "electron/remote/methods/chat.cjs": "54b041935f831f76d115252816c737d8644001de",
+    "electron/remote/sendLedger.cjs": "b45761c0f12b6fbed1e6a4c6e11a1c0bed856923",
+    "shared/remote/schema.mjs": "40eabc122e00b2ef6f0888b1a26c344e1473857e"
+  },
+  "completed": {
+    "chatId": "c1",
+    "sendId": "send-0001",
+    "text": "hello"
+  },
+  "pending": {
+    "chatId": "c1",
+    "sendId": "send-0002",
+    "text": "hello"
+  },
+  "receipt": {
+    "sent": true,
+    "tookMs": 0,
+    "warning": "Queued."
+  },
+  "record": {
+    "v": 1,
+    "entries": [
+      [
+        "p1:c1:send-0001",
+        {
+          "print": "cd516deb3b919f97f625f64f7d7636f9b21a0450ee8829e3464d9b2096d2c01f",
+          "state": "done",
+          "result": {
+            "sent": true,
+            "tookMs": 0,
+            "warning": "Queued."
+          },
+          "at": 1700000000000
+        }
+      ],
+      [
+        "p1:c1:send-0002",
+        {
+          "print": "cd516deb3b919f97f625f64f7d7636f9b21a0450ee8829e3464d9b2096d2c01f",
+          "state": "pending",
+          "at": 1700000000000
+        }
+      ]
+    ]
+  }
+}

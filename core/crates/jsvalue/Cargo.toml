@@ -1,0 +1,13 @@
+[package]
+name = "jsvalue"
+version = "0.1.0"
+description = "JS values in Rust, for ports that must do what the JS did with whatever a line held: JSON.parse and JSON.stringify, UTF-16 strings kept as WTF-8, key order, and the language's coercions."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json = "1"

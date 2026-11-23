@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/chatDeletionAuthority.test.ts": {
+      "maxLines": 502,
+      "reason": "Stubs every module electron/harness/claude/index.cjs requires; the CLI login read (#3157) and the extracted identity API add two entries."
+    }
+  }
+}

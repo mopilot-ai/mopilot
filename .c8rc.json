@@ -1,0 +1,33 @@
+{
+  "all": true,
+  "extension": [".js", ".cjs", ".mjs", ".ts", ".tsx"],
+  "include": [
+    "electron/**",
+    "src/**",
+    "shared/**",
+    "relay/**",
+    "mobile/src/**",
+    "mobile/App.tsx",
+    "mobile/index.js",
+    "mobile/metro.config.js",
+    "host/**",
+    "scripts/**",
+    "bench/lib/**",
+    "bench/bench-chrome.mjs",
+    "bench/drivers/mgb.mjs",
+    "bench/mgb-run.mjs",
+    "web/app/**",
+    "web/components/**",
+    "web/lib/**",
+    "web/db/**",
+    "web/proxy.ts"
+  ],
+  "exclude": ["**/*.d.ts", "src/protocol/**"],
+  "reporter": ["text-summary", "html", "json", "json-summary"],
+  "reports-dir": "coverage/unit",
+  "check-coverage": true,
+  "lines": 100,
+  "branches": 100,
+  "functions": 100,
+  "statements": 100
+}

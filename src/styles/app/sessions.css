@@ -1,0 +1,338 @@
+/* Sessions a chat started (thread/SessionCard.tsx); the suggestion card is suggestCard.css. */
+/* A live session card at its call (min 440px wide, up to 75% of the column). No enter animation; in-progress titles
+   shimmer. */
+
+/* -- the live session card --------------------------------------------- */
+.session-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 560px);
+  min-height: 52px;
+  margin: 6px 0 10px;
+  padding: 9px 12px 9px 14px;
+  border: none;
+  box-shadow: inset 0 0 0 1px rgba(var(--ink), 0.1);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+.session-card:hover {
+  background: rgba(var(--ink), 0.06);
+}
+.session-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.session-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.session-card-title {
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-card-title.shimmer-text {
+  --shimmer-ink: var(--text);
+}
+.session-card-caption {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* its working time and tokens (thread/SessionUsage.tsx), and edits outside its declared paths */
+.session-card-usage,
+.session-card-outside {
+  font-size: var(--fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-card-usage {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.session-card-outside {
+  color: var(--yellow);
+}
+.session-card-end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-3);
+}
+.session-card-word {
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+.session-card-word.warn {
+  color: var(--yellow);
+}
+.session-card-word.danger {
+  color: var(--red-text);
+}
+.session-card-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.session-card-dot[data-dot='working'] { background: rgba(var(--ink), 0.45); animation: session-card-pulse 1.5s ease-in-out infinite; }
+.session-card-dot[data-dot='queued'] { box-shadow: inset 0 0 0 1.5px rgba(var(--ink), 0.45); }
+.session-card-dot[data-dot='idle'] { box-shadow: inset 0 0 0 1.5px rgba(var(--ink), 0.25); }
+.session-card-dot[data-dot='needs'] { background: var(--status-waiting); }
+.session-card-dot[data-dot='failed'] { background: var(--red); }
+.session-card-dot[data-dot='done'] { background: var(--green); }
+@keyframes session-card-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) {
+  .session-card-dot[data-dot='working'] {
+    animation: none;
+  }
+}
+
+/* -- sessions started back to back: one stack (thread/SessionStack.tsx) --- */
+.session-stack {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 560px);
+  margin: 6px 0 10px;
+  border: 1px solid rgba(var(--ink), 0.1);
+  border-radius: 10px;
+  overflow: clip;
+}
+.session-stack > * + * {
+  border-top: 1px solid rgba(var(--ink), 0.08);
+}
+.session-stack .session-card,
+.session-stack .session-card-group,
+.session-stack .session-not-started {
+  width: 100%;
+  margin: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+.session-stack .session-not-started {
+  box-sizing: border-box;
+  padding: 9px 12px 9px 14px;
+}
+.session-stack-more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  text-align: left;
+  cursor: pointer;
+}
+.session-stack-more:hover {
+  background: rgba(var(--ink), 0.06);
+}
+.session-stack-more:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* -- the report-back event and a family message (components/thread/SideSessionCard.tsx wake, message) ---- */
+.side-session-wake {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.side-session-wake-head {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.side-session-note-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.side-session-toggle {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  cursor: pointer;
+}
+.side-session-toggle:hover {
+  color: var(--text);
+}
+.side-session-wake .side-session-text {
+  margin-top: 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--hairline-strong);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-2);
+}
+
+/* -- what a session did in its worktree, under its card (thread/SessionWork.tsx) -- */
+.session-card-group {
+  display: flex;
+  flex-direction: column;
+  margin: 6px 0 10px;
+}
+.session-card-group > .session-card {
+  margin: 0;
+}
+.session-work {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  max-width: max(75%, min(100%, 440px));
+  padding: 6px 12px 0;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.session-work-facts {
+  font-variant-numeric: tabular-nums;
+}
+.session-work-merged {
+  color: var(--green-text);
+}
+.session-work-link {
+  color: var(--text-2);
+  cursor: pointer;
+}
+.session-work-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.session-work-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.session-work-note,
+.session-work-wait {
+  flex-basis: 100%;
+}
+.session-work-note {
+  color: var(--red-text);
+}
+
+/* -- child requests mirrored in the parent's transcript (thread/NeedsYouStrip.tsx) -- */
+.needs-you {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.needs-you:empty {
+  display: none;
+}
+.needs-you-row {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+}
+.needs-you-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-ui);
+}
+.needs-you-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+.needs-you-name {
+  font-weight: 500;
+  color: var(--text);
+}
+.needs-you-answer {
+  margin-top: 8px;
+}
+
+/* -- a proposal's start options (thread/StartOptions.tsx) -- */
+.start-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.start-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+.start-option select {
+  min-width: 0;
+  max-width: min(260px, 100%);
+  min-height: 28px;
+  height: auto;
+  padding: 4px 28px 4px 10px;
+  border: 0.5px solid var(--surface-border);
+  border-radius: var(--row-radius);
+  font: inherit;
+  color: var(--text);
+  background-color: var(--surface-2);
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-3) 50%), linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  text-overflow: ellipsis;
+}
+.start-option select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.start-options-note { flex-basis: 100%; color: var(--text-3); }
+.session-start-options-popover {
+  width: min(456px, calc(100vw - 24px));
+  max-height: min(70vh, 460px);
+  overflow: auto;
+  padding: 12px;
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border);
+  border-radius: var(--menu-radius);
+  box-shadow: var(--menu-shadow);
+  color: var(--text);
+}
+
+.session-card-pr { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-small); }
+.session-card-pr[data-state='merged'] { color: var(--linked-pr-merged); }
+.session-card-pr[data-state='open'] { color: var(--linked-pr-open); }
+.session-card-pr[data-state='closed'] { color: var(--linked-pr-closed); }
+.session-card-pr[data-state='draft'] { color: var(--linked-pr-draft); }
+.session-not-started { display: flex; align-items: baseline; gap: 6px; margin: 6px 0; font-size: var(--fs-ui); color: var(--text-3); }
+.session-not-started-title { min-width: 6ch; color: var(--text); }
+.session-not-started-reason { min-width: 8ch; color: var(--red-text); }
+.session-not-started-title, .session-not-started-reason { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-session-brief-head { display: flex; align-items: center; gap: 6px; font-size: var(--fs-ui); color: var(--text-2); }
+.side-session-brief-head button { cursor: pointer; }
+.side-session-brief-steps { margin: 6px 0 6px 8px; padding-left: 14px; border-left: 1px solid var(--hairline-strong); }
+.side-session-brief-step { margin: 6px 0; }
+.side-session-brief-label { display: flex; align-items: center; gap: 8px; font-size: var(--fs-ui); }
+.side-session-brief-title { color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-session-brief-step .side-session-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--fs-ui); color: var(--text-2); }
+.side-session-brief-step .side-session-text.folded { max-height: 9em; overflow: hidden; mask-image: linear-gradient(to bottom, black 65%, transparent); }
+.needs-you-status { color: var(--yellow); font-size: var(--fs-small); }
+@container (max-width: 460px) { .session-card-pr > span { display: none; } }

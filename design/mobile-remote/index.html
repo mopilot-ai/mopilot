@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MoPilot Mobile Remote</title>
+<meta name="description" content="Architecture and milestone design for the MoPilot phone app: drive every chat, approval, harness and MoMo on your Mac from a phone over a zero-knowledge relay.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+
+<header class="top">
+  <div>
+    <div class="eyebrow">Design · Mobile Remote · draft for review · 2026-10-26</div>
+    <h1>MoPilot on the phone: a remote for everything the Mac runs</h1>
+    <p class="thesis">The agents, the browser, the computer and MoMo keep running on the user's Mac. <b>The phone is a second client of main</b>, like the Chrome side panel already is, reached through a relay that only ever sees ciphertext. One app, every harness, every account, MoMo included.</p>
+  </div>
+  <nav class="pages" aria-label="Design pages">
+    <a href="index.html" aria-current="page">1 · Overview &amp; architecture</a>
+    <a href="protocol.html">2 · Pairing, protocol, approvals, MoMo</a>
+    <a href="milestones.html">3 · Milestones, testing, risks</a>
+  </nav>
+</header>
+
+<section class="panel">
+  <h2>Decisions already taken <small>confirmed by the product owner on 2026-10-26; the rest of this document builds on them</small></h2>
+  <dl class="decision">
+    <dt>Zero-knowledge relay</dt><dd>Every message between the Mac and the phone is end-to-end encrypted. The relay stores and forwards opaque blobs, holds push tokens and presence, and can never read a chat, an approval or MoMo's memory. This is the privacy difference from Claude Remote Control and vicoa, whose servers keep the transcript.</dd>
+    <dt>A standalone app</dt><dd>A native iOS and Android app (not a PWA). Recommended stack: Expo / React Native, so the phone shares <code>shared/</code> TypeScript with the desktop (approval normalization, notice titles, item shapes) instead of re-implementing them, as a Flutter app would have to.</dd>
+    <dt>Self-hostable relay</dt><dd>The relay is one container with no secrets of its own. MoPilot hosts <code>relay.mopilot.ai</code>; a team can run the same image behind their own domain, and the QR code names the relay, so the apps need no setting.</dd>
+    <dt>MoMo is in scope</dt><dd>The personal agent is the strongest reason to have a phone app at all. MoMo's chat, its "needs you" cards, its memory and its routines are first-class on the phone, under the same trust layer, which stays on the Mac. See <a href="protocol.html#momo">MoMo on the phone</a>.</dd>
+  </dl>
+</section>
+
+<section class="panel">
+  <h2>What the field does <small>surveyed 2026-10-26; the shape is the same everywhere, the privacy and the breadth differ</small></h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Product</th><th>Client</th><th>Connection</th><th>Notable</th><th>Server sees</th></tr></thead>
+    <tbody>
+      <tr><td><b>Claude Code Remote Control</b></td><td>Claude app · claude.ai/code</td><td>Outbound HTTPS only; the CLI registers with Anthropic's API and polls; QR to connect</td><td>Server mode spawns sessions on demand (same dir or worktree, capacity 32); trusted-device enrolment; Claude decides when to push; no Bypass permissions remotely</td><td class="k">transcript</td></tr>
+      <tr><td><b>Codex in ChatGPT</b></td><td>ChatGPT app</td><td>QR shown by the Codex Mac app; a persistent one-to-one pairing</td><td>Screenshots, terminal output, diffs and approvals stream to the phone; host must stay awake</td><td class="k">transcript</td></tr>
+      <tr><td><b>vicoa</b> <span class="chip vendor">AGPLv3</span></td><td>Flutter · Next.js web · Electron</td><td>Local daemon → FastAPI over WebSocket; Postgres; one account syncs devices</td><td>11 built-in agents + 30 ACP agents; task board, cron automations, terminal, file browser; docker self-host</td><td class="k">transcript</td></tr>
+      <tr><td><b>Happy</b> <span class="chip vendor">MIT</span></td><td>Expo (iOS, Android, web)</td><td><code>happy claude</code> wraps the CLI; happy-server relays</td><td>End-to-end encrypted; voice; CLI in maintenance, features moved to its desktop app</td><td class="k">ciphertext</td></tr>
+      <tr><td><b>Omnara</b></td><td>iOS · web</td><td>Agent decoupled from the terminal; cloud fallback resumes a session when the Mac goes offline</td><td>"PagerDuty for agents": pause, ask, notify, answer</td><td class="k">transcript</td></tr>
+      <tr><td>CC Pocket, Tactic Remote, Forge Remote, Orca</td><td>iOS</td><td>A bridge process on the Mac</td><td>Remote only; thin feature set</td><td class="k">varies</td></tr>
+    </tbody>
+  </table></div>
+  <p>Three things follow. <b>Outbound only</b>: nobody opens a port on the Mac. <b>Approvals are the killer feature</b>: every product pushes "needs you" and lets the phone answer. <b>Breadth is open</b>: each vendor remotes its own harness; a client that remotes Codex, Claude Code and ACP agents under one account, plus a browser, a computer and a personal agent, has no equivalent.</p>
+</section>
+
+<section class="panel">
+  <h2>System architecture</h2>
+  <div class="diagram">
+  <svg viewBox="0 0 980 420" role="img" aria-label="Phone, relay, MoPilot account server and the Mac running MoPilot main">
+    <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor" style="color: var(--ink-3)"/></marker></defs>
+    <!-- Phone -->
+    <rect class="box phone" x="20" y="60" width="200" height="300" rx="14"/>
+    <text x="34" y="86" font-weight="600">Phone app</text>
+    <text class="small" x="34" y="102">Expo / React Native · iOS first</text>
+    <rect class="box" x="34" y="118" width="172" height="40" rx="8"/><text x="44" y="134">Chats · follow live</text><text class="small" x="44" y="149">snapshot + patches by rev</text>
+    <rect class="box" x="34" y="166" width="172" height="40" rx="8"/><text x="44" y="182">Cards · approve · answer</text><text class="small" x="44" y="197">keys only, mapped on the Mac</text>
+    <rect class="box" x="34" y="214" width="172" height="40" rx="8"/><text x="44" y="230">MoMo · chat, memory</text><text class="small" x="44" y="245">routines; trust gate on the Mac</text>
+    <rect class="box" x="34" y="262" width="172" height="40" rx="8"/><text x="44" y="278">Diff · terminal · frames</text><text class="small" x="44" y="293">later milestones</text>
+    <rect class="box" x="34" y="310" width="172" height="36" rx="8"/><text class="mono" x="44" y="332">Keychain: device + pair keys</text>
+    <text class="mono" x="24" y="386">push: fixed title, kind, chat ref</text>
+
+    <!-- Relay -->
+    <rect class="box relay" x="350" y="110" width="200" height="200" rx="14"/>
+    <text x="364" y="136" font-weight="600">Relay</text>
+    <text class="small" x="364" y="152">relay.mopilot.ai or self-hosted</text>
+    <text class="small" x="364" y="176">• forwards opaque blobs</text>
+    <text class="small" x="364" y="194">• mailbox while a peer is offline</text>
+    <text class="small" x="364" y="212">• presence of each machine</text>
+    <text class="small" x="364" y="230">• push tokens → APNs / FCM</text>
+    <text class="small" x="364" y="248">• verifies account JWT (ES256)</text>
+    <text class="mono" x="364" y="290">sees ciphertext, sizes, timing</text>
+
+    <!-- Account server -->
+    <rect class="box cloud" x="350" y="330" width="200" height="70" rx="14"/>
+    <text x="364" y="354" font-weight="600">mopilot.ai (web/)</text>
+    <text class="small" x="364" y="370">account, devices, refresh tokens,</text>
+    <text class="small" x="364" y="386">feature flags (MoMo invite)</text>
+
+    <!-- Mac -->
+    <rect class="box host" x="670" y="20" width="290" height="380" rx="14"/>
+    <text x="684" y="46" font-weight="600">Mac · MoPilot main process</text>
+    <text class="small" x="684" y="62">everything runs here, as it does today</text>
+    <rect class="box" x="684" y="78" width="262" height="54" rx="8"/>
+    <text x="694" y="96" font-weight="500">Remote client service</text>
+    <text class="small" x="694" y="111">generalizes the Chrome panel: auth,</text>
+    <text class="small" x="694" y="124">replay guard, follow, send, answer, momo.*</text>
+    <rect class="box" x="684" y="140" width="126" height="60" rx="8"/><text x="694" y="158" font-weight="500">SessionStore</text><text class="small" x="694" y="173">turn, queue, cards,</text><text class="small" x="694" y="186">plan · rev + patches</text>
+    <rect class="box" x="820" y="140" width="126" height="60" rx="8"/><text x="830" y="158" font-weight="500">ChatController</text><text class="small" x="830" y="173">the one sender of</text><text class="small" x="830" y="186">messages, answers</text>
+    <rect class="box" x="684" y="208" width="262" height="40" rx="8"/><text x="694" y="226" font-weight="500">Harness adapters</text><text class="small" x="694" y="241">Codex · Claude Code · ACP agents · N accounts each</text>
+    <rect class="box" x="684" y="256" width="126" height="56" rx="8"/><text x="694" y="274" font-weight="500">MoMo</text><text class="small" x="694" y="289">trust gate, audit,</text><text class="small" x="694" y="302">memory, routines</text>
+    <rect class="box" x="820" y="256" width="126" height="56" rx="8"/><text x="830" y="274" font-weight="500">Desktop surfaces</text><text class="small" x="830" y="289">browser, computer use,</text><text class="small" x="830" y="302">Chrome, pty, previews</text>
+    <rect class="box" x="684" y="320" width="262" height="36" rx="8"/><text class="mono" x="694" y="342">safeStorage: identity + pair keys</text>
+    <text class="small" x="684" y="384">windows optional: turns, cards, routines run with none</text>
+
+    <!-- Flows -->
+    <path class="flow enc" d="M220 180 H350"/><text class="mono" x="240" y="172">sealed frames</text>
+    <path class="flow enc" d="M550 180 H670"/><text class="mono" x="566" y="172">outbound WSS</text>
+    <path class="flow push" d="M350 250 C 300 250, 260 320, 222 345"/>
+    <path class="flow" d="M450 330 V310"/><text class="mono" x="460" y="324">JWT</text>
+    <path class="flow" d="M550 365 C 610 365, 640 250, 670 232"/><text class="mono" x="556" y="396">device token</text><text class="mono" x="556" y="409">MoMo invited</text>
+  </svg>
+  </div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="card"><h3>What the Mac keeps</h3><p>Code, credentials, harness homes, MoMo's memory and audit log, the keys. Execution never leaves. The phone is a window, as in every product surveyed, so the Mac must stay on until <a href="milestones.html#m6">M6</a> gives main a life of its own.</p></div>
+    <div class="card"><h3>What the relay keeps</h3><p>Ciphertext in a short-lived mailbox per device pair, presence, push tokens, account id. No plaintext, no keys, no chat titles. It is replaceable: a self-hosted relay is the same image behind another domain.</p></div>
+    <div class="card"><h3>What the phone keeps</h3><p>Its device key and the pair key of each Mac in the Keychain; a cache of followed chats, encrypted at rest by the OS. It never holds a harness credential or an API key.</p></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>What exists today and what is reused <small>from the code, file paths as of main 9487e3621</small></h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Piece</th><th>Where</th><th>Status</th><th>How the phone uses it</th></tr></thead>
+    <tbody>
+      <tr><td>Live chat state in main</td><td class="k">electron/session/state.cjs · controller.cjs</td><td><span class="chip ok">reuse</span></td><td>Phone takes a snapshot, then <code>session:patch</code> by <code>rev</code>; a gap re-snapshots, exactly as windows do (<code>src/session/sessionState.ts</code>). A turn and a card live with no window open.</td></tr>
+      <tr><td>Chrome side panel as a second client</td><td class="k">electron/app/chromePanel*.cjs · capabilities/browser/chromePanel.cjs</td><td><span class="chip ok">generalize</span></td><td>Its request set (<code>recent read send start stop answer choose permit options harnesses projects scheduled attach pin open switch</code>) becomes the remote client protocol; the input checks in <code>capabilities/browser/chromePanel.cjs</code> are the first version of the schema.</td></tr>
+      <tr><td>Cards answered by key</td><td class="k">electron/app/chromePanelCards.cjs · shared/approvalRequest.mjs</td><td><span class="chip ok">reuse</span></td><td>A card leaves main as title, detail and choice keys; main maps the key back to the real answer. The phone never sees tool arguments it doesn't need, and can't forge an answer the card didn't offer.</td></tr>
+      <tr><td>Pairing and socket handshake</td><td class="k">capabilities/browser/chromePairing.cjs · wsServer.cjs · chromeExtensionTransport.cjs</td><td><span class="chip warn">precedent</span></td><td>Shared-secret HMAC on loopback. The phone needs public-key pairing over an untrusted relay instead (<a href="protocol.html#pairing">pairing</a>), but the one-time claim code flow and safeStorage secret are the pattern.</td></tr>
+      <tr><td>Account, devices, tokens</td><td class="k">web/db/schema.ts · web/app/api/desktop/token · /revoke</td><td><span class="chip ok">reuse</span></td><td><code>devices</code>, <code>refreshTokens</code>, <code>desktopAuthCodes</code> and the ES256 desktop JWT already exist. A phone is one more device kind; the relay verifies the same JWT.</td></tr>
+      <tr><td>Sign-in on the desktop</td><td class="k">electron/mopilot.cjs</td><td><span class="chip ok">reuse</span></td><td>OAuth native-app flow with PKCE, tokens in safeStorage. The phone signs in to the same account with the same server.</td></tr>
+      <tr><td>Approval broker</td><td class="k">electron/capabilities/approvals.cjs · claudeSessions.cjs canUseTool · capabilities/serverRequests.cjs · acp/permission</td><td><span class="chip ok">reuse</span></td><td>Every harness's permission and Sage's own cards (<code>computerAccess</code>, <code>browserOrigin</code>, <code>momoAction</code>…) join <code>SessionState.approvals</code>; first answer wins. The phone is one more answerer.</td></tr>
+      <tr><td>Answer ownership</td><td class="k">electron/session/questionIpc.cjs · app/viewing.cjs</td><td><span class="chip warn">extend</span></td><td>Today an answer is trusted when the window shows the chat. A remote answer needs an equivalent: the device follows the chat and the card's <code>rev</code> is current.</td></tr>
+      <tr><td>Event translation</td><td class="k">src/harness/claudeTranslate.ts · shared/claudeTranslate/</td><td><span class="chip warn">move</span></td><td>Turning harness events into thread items happens in the renderer. For remote clients main runs the translation and sends items, so the phone is thin and harness-neutral (<a href="protocol.html#events">events</a>).</td></tr>
+      <tr><td>Notifications</td><td class="k">electron/platform/notify.cjs · shared/momoNotices.mjs</td><td><span class="chip ok">reuse</span></td><td>One notifier, "needs you" outranks "done", MoMo notices are a fixed title with no body. Push mirrors these exactly: same kinds, same merging, title only.</td></tr>
+      <tr><td>Screens and frames</td><td class="k">capabilities/browser/capture.cjs · hostCapture.cjs · computer.cjs</td><td><span class="chip warn">later</span></td><td>On-demand JPEG frames exist for the model; mirroring them to the phone is <a href="milestones.html#m5">M5</a>.</td></tr>
+      <tr><td>Terminals</td><td class="k">electron/platform/pty.cjs · bridge/pty.cjs</td><td><span class="chip warn">later</span></td><td>A pty is a byte stream; a remote terminal is a framed, encrypted copy of it (M5).</td></tr>
+      <tr><td>Core out of process</td><td class="k">docs/architecture/rust-core.md</td><td><span class="chip new">decision</span></td><td>The plan says a daemon "only pays off if MoPilot ever quits Electron while automations, MoMo and the scheduler keep running". The phone is that case; <a href="milestones.html#m6">M6</a> takes the decision.</td></tr>
+      <tr><td>Phone, relay, push, E2E keys, QR pairing</td><td class="k">—</td><td><span class="chip new">new</span></td><td>None exist. They are the bulk of M1–M2.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="panel">
+  <h2>Principles <small>what every milestone is checked against</small></h2>
+  <ol>
+    <li><b>Main owns the truth; the phone is a client.</b> No state lives only on the phone or the relay. The phone sends intents, never runs a turn, exactly like a window (docs/multi-harness/ARCHITECTURE.md §1).</li>
+    <li><b>One behavior on every harness.</b> The remote protocol speaks MoPilot chat ids and translated items. No harness name or id prefix reaches the phone as a feature gate; Codex, Claude Code and ACP chats look and act the same, including cards and Stop.</li>
+    <li><b>Zero knowledge, measured.</b> The relay's schema has no column that could hold plaintext. A test runs the relay against a captured session and asserts that nothing but ciphertext, sizes and timestamps is stored.</li>
+    <li><b>Same authority as a window, never more.</b> A remote answer passes the checks a window answer passes (ownership, current <code>rev</code>, offered choice). A remote device can't raise a chat's permission mode above what the Mac allows, and Bypass permissions can't be chosen from the phone.</li>
+    <li><b>Degrade honestly.</b> Mac asleep, relay down, phone offline: the UI says queued, offline or failed and never pretends. A message typed offline is queued on the phone and marked so; it goes when the pair reconnects, through the same <code>ChatController</code> queue as any follow-up.</li>
+    <li><b>Minimal push.</b> A notification carries a fixed title, a kind and an opaque chat reference, in line with <code>shared/momoNotices.mjs</code>. Chat titles in push are a per-user opt-in.</li>
+    <li><b>MoMo's trust layer never moves.</b> Sentinel, trust gate and audit log run on the Mac; the phone only answers the cards they raise and reads what memory IPC already exposes.</li>
+  </ol>
+</section>
+
+<footer class="foot">Pages: <a href="protocol.html">pairing, protocol, approvals and MoMo</a> · <a href="milestones.html">milestones, testing and risks</a>. Survey sources are listed at the end of the milestones page. Related: <code>docs/multi-harness/ARCHITECTURE.md</code>, <code>docs/control-plane/design.md</code>, <code>docs/architecture/rust-core.md</code>, <code>design/native-control/</code>.</footer>
+
+</div>
+</body>
+</html>

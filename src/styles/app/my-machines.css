@@ -1,0 +1,366 @@
+/* Settings › Connections › Machines: the list card (one row per machine: glyph, name, one status line with a dot, at most one button and ⋯), the Sign-in row, and the Add machine and How machines sign in sheets. */
+.machines-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+:is(.machines-page, .machine-sheet) .btn-pill.primary {
+  color: var(--main);
+  background: var(--text);
+  border-color: transparent;
+}
+:is(.machines-page, .machine-sheet) .btn-pill.primary:hover:not(:disabled) {
+  background: var(--text-2);
+}
+:is(.machines-page, .machine-sheet) .btn-pill.primary:disabled {
+  opacity: 0.5;
+}
+:is(.machines-page, .machine-sheet) .btn-pill.small {
+  min-height: 24px;
+  padding: 0 10px;
+  font-size: var(--fs-small);
+}
+.machine-list {
+  background: var(--card-bg);
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 12px;
+}
+.machine-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--text);
+}
+.machine-item + .machine-item {
+  border-top: 0.5px solid var(--hairline-strong);
+}
+.machine-link {
+  cursor: pointer;
+  border-radius: 12px;
+}
+.machine-link:hover {
+  background: var(--row-hover);
+}
+.machine-glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+.machine-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.machine-name {
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.machine-main > .tooltip-anchor {
+  min-width: 0;
+}
+.machine-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  min-width: 0;
+}
+.machine-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.machine-dot {
+  flex: none;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-4);
+}
+.machine-dot.ok {
+  background: var(--green);
+}
+.machine-dot.warn {
+  background: var(--orange);
+}
+.machine-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.machine-controls .text-input {
+  width: 140px;
+}
+.machine-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.machine-empty {
+  padding: 14px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.machines-section {
+  margin: 26px 2px 8px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text-3);
+}
+.machines-foot {
+  margin: 12px 2px 0;
+  font-size: var(--fs-small);
+}
+.link-danger {
+  font-size: var(--fs-small);
+  color: var(--red-text);
+  cursor: pointer;
+}
+.link-danger:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.link-subtle {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.link-subtle:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.signout-ask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+}
+.host-signout-results {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--text-2);
+}
+.host-signout.partial,
+.host-signout.failed,
+.host-signout.offline {
+  color: var(--text-3);
+}
+
+/* the sheets: Add machine, How machines sign in, Rename, Install */
+.machine-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.machine-sheet-lede {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+/* the sheet's quiet links (Any network, New cloud machine…) sit apart on one line */
+.machine-sheet-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 8px;
+}
+.machine-sheet-field {
+  display: flex;
+  gap: 8px;
+}
+.machine-sheet-field .text-input {
+  flex: 1;
+}
+.machine-sheet-error {
+  font-size: var(--fs-small);
+  color: var(--red-text);
+}
+.machine-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.machine-tabs {
+  display: flex;
+  gap: 4px;
+  width: fit-content;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.machine-tabs button {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.machine-tabs button.on {
+  color: var(--text);
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgba(var(--ink), 0.08);
+}
+.add-machine-sheet .host-install,
+.add-machine-sheet .add-machine-picker {
+  padding: 0;
+}
+
+/* How machines sign in: three choices, the chosen one with its fields */
+.signin-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.signin-choice {
+  padding: 12px;
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 10px;
+}
+.signin-choice.on {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 0.5px var(--text);
+}
+.signin-choice-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+}
+.signin-choice-head > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+.signin-radio {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-4);
+}
+.signin-choice.on .signin-radio {
+  border: 5px solid var(--text);
+}
+.signin-choice-title {
+  font-size: var(--fs-ui);
+  font-weight: 500;
+}
+.signin-choice-desc {
+  margin-top: 2px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.signin-tag {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  color: var(--text-3);
+  background: var(--surface-2);
+}
+.signin-managed {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.signin-fields {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0 28px;
+}
+.signin-saved {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 0 28px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.signin-fields .signin-saved {
+  margin: 0;
+}
+.signin-more {
+  text-align: left;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  cursor: pointer;
+}
+.signin-more:hover {
+  color: var(--text-2);
+}
+.signin-hours {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.signin-hours .text-input {
+  width: 64px;
+}
+
+/* New cloud machine (host.cloud): the size and network choices, the private key field, the Cloud section's facts */
+.cloud-options,
+.cloud-chats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cloud-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-ui);
+}
+.cloud-price {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.cloud-pem {
+  font-family: var(--font-mono, monospace);
+  resize: vertical;
+}
+.cloud-facts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.cloud-fact {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-ui);
+}
+.cloud-fact dt {
+  color: var(--text-3);
+}
+.cloud-fact dd {
+  margin: 0;
+}
+.cloud-chat-title {
+  font-size: var(--fs-ui);
+}

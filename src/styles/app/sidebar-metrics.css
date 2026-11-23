@@ -1,0 +1,80 @@
+/* Thread sidebar metrics matched to Codex. */
+/* thread sidebar: Codex's metrics (30px rows, 14px text); a project's chat titles line up with its name */
+/* the optional harness icon takes the folder icon's 16px slot, so the title still lines up */
+.thread-sidebar .thread-harness {
+  width: 16px;
+  justify-content: center;
+  margin-right: 0;
+}
+.thread-sidebar .side-row.indent:has(.thread-harness) {
+  padding-left: 8px;
+}
+.project-hint {
+  color: var(--text-4);
+}
+.project-group.with-location > .project-row,
+.project-group.with-location > .side-collapse :is(.empty-note, .show-more) {
+  padding-inline-start: 10px;
+}
+.project-group.with-location > .project-row > .rename-input {
+  margin-inline-start: 0;
+}
+/* Keep session titles aligned when the optional harness icon is shown. */
+.project-group.with-location > .side-collapse .thread-row-content > .side-row-name {
+  order: -1;
+}
+.project-row-name {
+  gap: 6px;
+}
+.project-row-name > :is(.host-mark, .project-disclosure) {
+  flex: none;
+  color: var(--text-3);
+}
+.project-row[aria-expanded='true'] .project-disclosure {
+  transform: rotate(90deg);
+}
+/* Codex spaces a project only after one whose chats are open; closed projects stack row on row */
+.thread-sidebar .project-group + .project-group {
+  margin-top: 0;
+}
+.thread-sidebar .project-group:has(> .collapse.open) + .project-group {
+  margin-top: 8px;
+}
+
+.home-project.plain {
+  text-decoration: none;
+}
+.menu-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  color: var(--text-3);
+}
+.menu-search input {
+  flex: 1;
+  background: none;
+  border: 0;
+  outline: none;
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.menu-search input::placeholder {
+  color: var(--text-3);
+}
+.menu-inline-desc {
+  color: var(--text-3);
+}
+.menu-empty {
+  padding: 8px 10px;
+  color: var(--text-3);
+}
+.project-menu .menu-item {
+  font-size: var(--fs-chat);
+  min-height: 29px;
+}
+.side-row.drag-over {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+

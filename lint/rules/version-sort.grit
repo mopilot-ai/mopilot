@@ -1,0 +1,16 @@
+// Versions compared by hand. Sorting names as text and reversing puts "1.10" before "1.9", and a `latest` link or a
+// staging folder sorts in among them. Splitting a version on both "." and "-" reads a prerelease's parts as more
+// numbers, so 0.163.0-alpha.10.2 sorts above the 0.163.0 release (#2039's Codex that kept quitting). Compare with
+// the shared helpers and skip what isn't a version.
+// docs/bug-prevention/strings-paths-and-keys.md
+language js
+
+or {
+  `$list.sort().reverse()` as $s where {
+    register_diagnostic(span=$s, message="[version-sort] Sorting names as text and reversing puts 1.10 before 1.9 and lets a non-version folder win. For version folders use versionsNewestFirst (shared/skyComputerUse.mjs); otherwise sort with a comparator (docs/bug-prevention/strings-paths-and-keys.md).", severity="warn")
+  },
+  `$v.split($re)` as $s where {
+    $re <: r"/\[(?:\\?\.\\?-|\\?-\\?\.)\]/[a-z]*",
+    register_diagnostic(span=$s, message="[version-sort] Splitting a version on both . and - reads a prerelease's parts as more numbers, so 0.163.0-alpha.10.2 sorts above 0.163.0. Use compareVersions or preferredInstalls (electron/harness/versions.cjs, src/harness/compat.ts), where a prerelease sorts below its release (docs/bug-prevention/strings-paths-and-keys.md).", severity="warn")
+  }
+}

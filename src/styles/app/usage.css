@@ -1,0 +1,86 @@
+/* Accounts & billing pieces (reset tabs, limit text, the key form) and tabbed settings pages. */
+/* One toolbar for the wallet's tabs, refresh status and provider link, aligned with the offer rows. */
+.usage-resets-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+.usage-resets-toolbar .segmented {
+  margin-left: -8px;
+}
+.usage-resets-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
+.usage-resets-status {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.usage-resets .settings-row {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+.usage-resets .settings-row-text {
+  flex-basis: 260px;
+  overflow-wrap: anywhere;
+}
+.usage-resets .settings-row-control {
+  flex-wrap: wrap;
+  margin: 0;
+}
+.usage-resets .btn-pill {
+  white-space: nowrap;
+}
+.usage-reset-description,
+.usage-reset-expiry {
+  display: block;
+}
+.usage-reset-expiry {
+  margin-top: 6px;
+  font-size: var(--fs-micro);
+  color: var(--text-2);
+}
+.limit-reset {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.limit-fill.low {
+  background: var(--red);
+}
+
+.hs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+}
+.hs-field-label {
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+.hs-field-opt {
+  margin-left: 4px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+.hs-field-hint {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.hs-key-form {
+  gap: 12px;
+}
+
+/* Inside a tabbed page the lead sits below the tabs, so it must not pull up into the header. */
+.settings-tabs ~ .settings-lead {
+  margin: 0 0 28px;
+}
+

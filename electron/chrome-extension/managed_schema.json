@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "blockedUrlPatterns": {
+      "title": "Sites MoPilot's agents may not use",
+      "description": "URL patterns (host and path, * as a wildcard; a bare domain means every page of it) that MoPilot's agents may neither open nor act on in this Chrome.",
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

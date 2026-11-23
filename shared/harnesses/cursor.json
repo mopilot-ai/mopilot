@@ -1,0 +1,59 @@
+{
+  "id": "cursor",
+  "label": "Cursor",
+  "vendor": "Anysphere",
+  "bins": [
+    "cursor-agent",
+    "agent"
+  ],
+  "docsUrl": "https://docs.cursor.com/cli/overview",
+  "install": {
+    "docs": "https://cursor.com/docs/cli/installation",
+    "methods": [
+      {
+        "via": "script",
+        "command": "curl https://cursor.com/install -fsS | bash",
+        "os": [
+          "darwin",
+          "linux"
+        ]
+      },
+      {
+        "via": "powershell",
+        "command": "irm 'https://cursor.com/install?win32=true' | iex",
+        "os": [
+          "win32"
+        ]
+      }
+    ]
+  },
+  "enabled": true,
+  "order": 6,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "args": [
+      "acp"
+    ],
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "anchors": {
+      "ask": "readOnly",
+      "plan": "readOnly",
+      "agent": "ask"
+    },
+    "plan": {
+      "mode": "plan"
+    },
+    "agentModes": [
+      "agent",
+      "ask",
+      "plan"
+    ]
+  },
+  "instructionsFiles": [
+    "AGENTS.md"
+  ]
+}

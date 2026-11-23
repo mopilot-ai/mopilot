@@ -1,0 +1,17 @@
+// A JSON or TOML state file written in place: a crash or an overlapping write leaves half a file that the
+// next launch cannot read. It applies to the app (biome.json), not to build scripts, whose outputs are
+// regenerated rather than read back as state. docs/bug-prevention/overlapping-operations.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or {
+    `$fs.writeFileSync($file, $data)`, `$fs.writeFileSync($file, $data, $opts)`,
+    `writeFileSync($file, $data)`, `writeFileSync($file, $data, $opts)`,
+    `$fs.writeFile($file, $data)`, `$fs.writeFile($file, $data, $opts)`,
+    `writeFile($file, $data)`, `writeFile($file, $data, $opts)`
+  },
+  // serialized state: JSON.stringify, or another serializer's stringify such as smol-toml's
+  $data <: contains or { `$_.stringify($_)`, `stringify($_)` },
+  $file <: not r"(?i).*(?:tmp|temp).*",
+  register_diagnostic(span=$hit, message="[non-atomic-write] Writing a state file in place can leave half a file after a crash or an overlapping write. Use writeAtomic or writePrivate from electron/fsutil.cjs (docs/bug-prevention/overlapping-operations.md).", severity="warn")
+}

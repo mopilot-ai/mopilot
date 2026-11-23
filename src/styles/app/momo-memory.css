@@ -1,0 +1,84 @@
+/* MoMo's Memory tab (#2139, src/components/momo/MemoryTab.tsx): the two documents, and each fact's source chips and editor, the recent changes (MemoryChanges.tsx), the open loops (OpenLoops.tsx) and a nudge's card in MoMo's chat (NudgeCard.tsx). */
+/* The documents sit in a flat section (no card box), so the field draws its own edge: a hairline that shows in dark too
+   (--surface-border equals --surface-2 there, so the plain .text-area edge is invisible). */
+.momo-doc {
+  border: 1px solid var(--hairline-strong);
+  border-radius: 8px;
+  background: rgba(var(--ink), 0.03);
+  margin: 12px 0 0;
+  min-height: 96px;
+}
+.momo-doc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px 10px;
+}
+.momo-doc-foot .config-warning {
+  margin-right: auto;
+}
+.momo-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.momo-chips .momo-chip {
+  margin-left: 0;
+}
+.momo-chip.expired {
+  color: var(--text-3);
+}
+.momo-fact + .momo-fact {
+  border-top: 0.5px solid var(--card-border);
+}
+.momo-fact-edit {
+  padding: 10px 12px 0;
+}
+.momo-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.momo-add .text-input.wide {
+  flex: 1;
+  width: auto;
+}
+/* A change's facts (MemoryChanges.tsx): one line each, under its verb. */
+.momo-change-item {
+  color: var(--text-2);
+  font-weight: normal;
+  overflow-wrap: anywhere;
+}
+/* An open loop: the user's words, then its chips; its buttons in one row (OpenLoops.tsx, NudgeCard.tsx). */
+.momo-loop-quote {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.momo-loop-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.momo-loops-closed > summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  color: var(--text-2);
+}
+/* A nudge in MoMo's chat: its why under the line, one fact a line, and the loop's buttons. */
+.momo-nudge-why {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.momo-nudge-actions {
+  display: flex;
+  margin-top: 6px;
+}

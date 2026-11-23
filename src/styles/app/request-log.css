@@ -1,0 +1,44 @@
+/* Settings → About → Diagnostics → Request log (src/components/pages/settings/RequestLog.tsx) and its link on a failed turn. */
+.request-log {
+  padding: 10px 16px 12px;
+  font-size: var(--fs-ui);
+  overflow-x: auto;
+}
+.request-log-actions {
+  display: flex;
+  gap: 8px;
+}
+.request-log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.request-log-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.request-log-table td {
+  overflow-wrap: break-word;
+}
+.request-log-table td.request-log-fixed {
+  white-space: nowrap;
+}
+.request-log-table tr.marked td {
+  background: var(--accent-soft);
+}
+.request-log-table tr.outcome-error td,
+.request-log-table tr.outcome-retry td {
+  color: var(--red-text);
+}
+.request-log-table tr.request-log-error td {
+  color: var(--text-3);
+  padding-top: 0;
+}
+.turn-error-log {
+  margin-top: 4px;
+  padding: 0;
+}

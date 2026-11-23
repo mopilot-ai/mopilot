@@ -1,0 +1,330 @@
+/* Popovers, menus, tooltips and the selection toolbar. */
+/* ================================================================== */
+/* Popovers, menus, tooltips                                           */
+/* ================================================================== */
+.selection-toolbar {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  pointer-events: none;
+  font-family: var(--font-sans);
+  font-weight: 430;
+  overflow-y: auto;
+}
+.selection-toolbar-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px;
+  pointer-events: auto;
+  border: 1px solid color-mix(in oklab, var(--hairline) 70%, transparent);
+  border-radius: 10px;
+  background: var(--composer-bg);
+  box-shadow: var(--shadow-card);
+  user-select: none;
+}
+.selection-toolbar-bar button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 0 auto;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 7px;
+  font-size: var(--fs-ui);
+  line-height: 1.385;
+  color: var(--text);
+  white-space: nowrap;
+}
+.selection-toolbar-bar button + button::before {
+  content: '';
+  position: absolute;
+  inset: 6px auto 6px 0;
+  width: 1px;
+  background: var(--hairline);
+}
+.selection-toolbar-bar button:hover {
+  background: var(--menu-hover);
+}
+.selection-toolbar-bar button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+.annotation-comment-toolbar {
+  width: min(340px, calc(100vw - 16px));
+  pointer-events: auto;
+}
+.annotation-comment-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px 8px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--composer-bg);
+  box-shadow: var(--shadow-card);
+}
+.annotation-comment-input input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  user-select: text;
+}
+.annotation-comment-input input::placeholder {
+  color: var(--text-3);
+}
+.selection-pop-content .annotation-comment-input {
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.annotation-marker {
+  position: fixed;
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 4px;
+  background: var(--annotation);
+  color: var(--on-color);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  user-select: none;
+}
+.annotation-selection-highlight {
+  position: fixed;
+  z-index: 998;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  pointer-events: none;
+}
+.popover-layer {
+  position: fixed;
+  z-index: 1000;
+  animation: pop-in 150ms var(--ease-enter);
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+/* The model and harness picker and its switch sheets open over .32s cubic-bezier(.23,1,.32,1) after 30ms, from opacity 0 and
+   scale .98, grown from the trigger. They open above it, right-aligned (top-end), so from its bottom right. */
+.popover-layer.picker {
+  transform-origin: bottom right;
+  animation: picker-open 0.32s cubic-bezier(0.23, 1, 0.32, 1) 30ms both;
+}
+@keyframes picker-open {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+/* Changing view inside the open picker (the effort panel and the harness list) moves its sections as Codex's
+   picker moves its views (@11956-14400): opacity .2s cubic-bezier(.23,1,.32,1) and translate .32s
+   cubic-bezier(.19,1,.22,1) from 10px away. Opening upward ([data-side=top]) the top row comes from above after
+   56ms and the slider after 40ms. The harness list's rows fade in after 40ms without moving: the Models flyout
+   opens beside the current row as the list appears and is placed once, so a row still sliding would leave it
+   10px off. */
+.popover-layer.picker.picker-view {
+  animation: none;
+}
+.popover-layer.picker-view .hp-pop > * {
+  --picker-view-delay: 40ms;
+  animation:
+    picker-view-fade 0.2s cubic-bezier(0.23, 1, 0.32, 1) var(--picker-view-delay) both,
+    picker-view-move 0.32s cubic-bezier(0.19, 1, 0.22, 1) var(--picker-view-delay) both;
+}
+.popover-layer.picker-view .hp-pop > .effort-head {
+  --picker-view-delay: 56ms;
+}
+.popover-layer.picker-view .hp-harnesses > * {
+  animation: picker-view-fade 0.2s cubic-bezier(0.23, 1, 0.32, 1) 40ms both;
+}
+@keyframes picker-view-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes picker-view-move {
+  from {
+    translate: 0 -10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .popover-layer.picker,
+  .popover-layer.picker-view .hp-pop > *,
+  .popover-layer.picker-view .hp-harnesses > * {
+    animation: none;
+  }
+}
+.menu {
+  background: var(--menu-bg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-radius: var(--menu-radius);
+  box-shadow: var(--menu-shadow);
+  padding: 4px;
+  min-width: 180px;
+  font-size: var(--fs-ui);
+  line-height: 1.43;
+  color: var(--text);
+  user-select: none;
+}
+.menu-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 29px;
+  padding: 5px 8px;
+  border-radius: var(--menu-item-radius);
+  cursor: default;
+  position: relative;
+}
+/* rows are buttons (MenuRow); the list keeps focus and shows its active row (kbd-active) instead of a focus ring */
+button.menu-item {
+  width: 100%;
+  text-align: left;
+}
+[data-menu-keyboard]:focus {
+  outline: none;
+}
+.menu-item.has-desc {
+  align-items: flex-start;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.menu-item:hover,
+.menu-item.kbd-active,
+.menu-item.open {
+  background: var(--menu-hover);
+  color: var(--text);
+}
+.menu-item[aria-disabled='true'],
+.menu-item.dim {
+  opacity: 0.45;
+}
+.menu-item[aria-disabled='true']:hover {
+  background: none;
+}
+.menu-item.danger {
+  color: var(--red-text);
+}
+.menu-icon {
+  width: 16px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--text);
+}
+.menu-item.has-desc .menu-icon {
+  height: 1lh;
+}
+.menu-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.menu-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu-desc {
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+  line-height: 1.35;
+  margin-top: 1px;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.menu-hint,
+.menu-shortcut {
+  color: var(--text-4);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.menu-check {
+  width: 16px;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.menu-chevron {
+  color: var(--text-3);
+}
+.menu-sep {
+  height: 0.5px;
+  background: rgba(var(--ink), 0.12);
+  margin: 4px 12px;
+}
+.menu-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 4px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tooltip-anchor {
+  display: inline-flex;
+}
+.tooltip {
+  position: fixed;
+  z-index: 2000;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  border: 0.5px solid rgba(var(--ink), 0.12);
+  font-size: var(--fs-small);
+  padding: 4px 8px;
+  border-radius: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  animation: pop-in 90ms var(--ease);
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='light'] ~ .tooltip,
+.tooltip {
+  box-shadow: var(--tooltip-shadow);
+}
+.tooltip.interactive {
+  pointer-events: auto;
+}
+.tooltip-kbd {
+  color: var(--tooltip-muted);
+}
+
+/* A menu button's down chevron points up while its menu is open (Popover marks the anchor). */
+[data-popover-open] > .lucide-chevron-down {
+  transform: rotate(180deg);
+}

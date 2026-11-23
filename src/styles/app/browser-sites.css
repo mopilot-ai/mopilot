@@ -1,0 +1,73 @@
+/* Hidden agent browser tabs and Settings Browser Sites. */
+/* an agent's browser tab the pane doesn't show (another chat's, or behind the front tab) while the
+   agent drives it: laid out and painted, so its input and screenshots work, but never visible or interactive */
+.pane-tab-body.pane-tab-back {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Settings → Browser → Sites (settings/BrowserUse.tsx): one row per site, a column per route */
+.sites-table {
+  overflow-x: auto;
+}
+.sites-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.6fr) repeat(4, minmax(78px, 1fr)) repeat(2, minmax(118px, 1.2fr)) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid rgba(var(--ink), 0.06);
+  font-size: var(--fs-small);
+  min-width: 850px;
+}
+.sites-head {
+  border-top: 0;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+}
+.sites-origin {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.sites-select {
+  width: 100%;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid rgba(var(--ink), 0.12);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-small);
+}
+.sites-select:disabled {
+  opacity: 0.55;
+}
+.sites-fixed {
+  color: var(--text-2);
+}
+.sites-empty,
+.sites-note {
+  padding: 10px 14px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.sites-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(var(--ink), 0.06);
+}
+.btn-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+

@@ -1,0 +1,11 @@
+// An E2E spec that opens a Settings select by its `.select-btn` itself: a Settings page fills in rows after it opens,
+// so the row can move under Playwright's click, which then lands beside the button and opens nothing
+// (cuj-use-my-chrome on Codex, #1822). Open it with openSettingsSelect, or pick with chooseSetting, from
+// tests/e2e/fixtures/settings.ts, which opens it again until its option shows. Applied to tests/e2e but that fixture
+// (biome.json overrides). docs/bug-prevention/load-dependent-tests.md
+language js
+
+JsStringLiteralExpression() as $hit where {
+  $hit <: r"^['\"].*\.select-btn(?:[^\w-].*)?['\"]$",
+  register_diagnostic(span=$hit, message="[settings-select] A Settings select opened by its .select-btn in a spec: a row filled in after the page opens can move it under the click, which then opens nothing. Use openSettingsSelect or chooseSetting from tests/e2e/fixtures/settings.ts (docs/bug-prevention/load-dependent-tests.md).", severity="warn")
+}

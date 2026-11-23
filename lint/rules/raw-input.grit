@@ -1,0 +1,12 @@
+// CDP input sent straight to a built-in browser page's debugger: a view no window shows (parked, views.cjs) is hidden
+// to Chromium, which drops its mouse and key events (the first click on a form's submit button did nothing, #1509)
+// until its CDP session emulates focus. Send input through the tab (tab.send after Tab.attach) or PanelBrowser.send,
+// which emulate it first (focusForInput in electron/capabilities/browser/views.cjs).
+// docs/bug-prevention/external-contracts.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: `$_.sendCommand($method, $...)`,
+  $method <: r"^['\"`]Input\..*",
+  register_diagnostic(span=$hit, message="[raw-input] CDP input sent straight to a page's debugger skips the focus a view no window shows needs, so Chromium drops it (#1509). Send it through the tab (tab.send after Tab.attach) or PanelBrowser.send (docs/bug-prevention/external-contracts.md).", severity="warn")
+}

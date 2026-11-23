@@ -1,0 +1,11 @@
+{
+  "name": "mopilot-ab-compare",
+  "private": true,
+  "description": "Head-to-head of MoPilot's page representation against Vercel agent-browser (pinned here; run.mjs --latest tries the newest).",
+  "type": "module",
+  "dependencies": {
+    "agent-browser": "0.41.2",
+    "js-tiktoken": "1.0.21",
+    "playwright-core": "1.56.1"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "kiro",
+  "label": "Kiro",
+  "vendor": "AWS",
+  "bins": [
+    "kiro-cli"
+  ],
+  "docsUrl": "https://kiro.dev/docs/acp/",
+  "install": {
+    "docs": "https://kiro.dev/docs/acp/",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "exceptions": {
+    "mobile/src/MobileApp.tsx": {
+      "maxLines": 523,
+      "reason": "Owns the phone navigation state machine. The startId-bound starting route and account/pair-scoped first-message handoff must transition together with the existing New chat draft and chat trail. Reconciliation, transcript projection, animation and starting-screen rendering live in separate modules."
+    },
+    "mobile/src/screens/Thread.tsx": {
+      "maxLines": 560,
+      "reason": "Owns one chat screen lifecycle, including follow snapshots, drafts and the transfer between phone queue, Mac queue and transcript. The pending-send reconciliation algorithm is extracted into sentMessages; row insertion, bubble motion and queue rendering are separate modules. These remaining hooks share the current follow, draft and queue owners and are reviewed together; the composer keyboard dismissal adds two scroll props."
+    }
+  }
+}

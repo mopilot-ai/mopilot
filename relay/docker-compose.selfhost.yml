@@ -1,0 +1,49 @@
+# Self-hosted MoPilot relay + Postgres. Put a TLS-terminating proxy (Caddy, nginx, a cloud load balancer) in front of
+# port 8787: phones connect with wss://, and Apple and Google require it. See relay/README.md and docs/mobile-remote/self-hosting.md.
+#
+#   cp relay/selfhost.env.example relay/selfhost.env   # then edit it
+#   docker compose -f relay/docker-compose.selfhost.yml --env-file relay/selfhost.env up -d --build
+#
+# Every variable in selfhost.env reaches the relay (env_file), so the settings in relay/README.md need no change here. The
+# database lives in the `relay-db` volume and holds only sealed frames waiting for an offline device.
+# The Compose project is named after this folder (relay), as before: the database volume is relay_relay-db, kept across upgrades.
+services:
+  relay:
+    build:
+      context: .
+    restart: unless-stopped
+    # the relay finishes what each connection is doing on SIGTERM (SHUTDOWN_SECONDS, 8 by default): keep this above it
+    stop_grace_period: 12s
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: selfhost.env
+    environment:
+      DATABASE_URL: postgres://relay:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in selfhost.env}@db:5432/relay
+    ports:
+      # the proxy on this host reaches the relay here; nothing outside the host does
+      - "127.0.0.1:8787:8787"
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: relay
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in selfhost.env}
+      POSTGRES_DB: relay
+    volumes:
+      - relay-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relay -d relay"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  relay-db:

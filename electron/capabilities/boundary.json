@@ -1,0 +1,83 @@
+{
+  "layer": "L5",
+  "public": [
+    "tools/agentUiWiring.cjs",
+    "tools/sessionRead.cjs",
+    "tools/sessionControl.cjs",
+    "tools/sessionText.cjs",
+    "tools/simulatorTools.cjs",
+    "browser/downloadName.cjs",
+    "browser/browserShortcuts.cjs",
+    "browser/handoffPages.cjs",
+    "browser/tabsByHost.cjs",
+    "browser/remoteHost.cjs",
+    "browser/siteRisk.cjs",
+    "browser/userChrome.cjs",
+    "computerContract.cjs",
+    "httpMcp.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4"
+  ],
+  "allow": [
+    {
+      "path": "electron/capabilities/tools/directoryTools.cjs",
+      "to": "node:fs",
+      "reason": "The directory and host tools read the file system themselves (folders, files, worktree sizes); a domain-neutral file helper would only wrap node:fs."
+    },
+    {
+      "path": "electron/capabilities/tools/directoryTools.cjs",
+      "to": "electron/platform/pathInside.cjs",
+      "reason": "The directory and host tools use the platform and session services they front (electron/app/hostToolsWiring.cjs composes them); the services are not a public entry of their domain."
+    },
+    {
+      "path": "electron/capabilities/tools/hostActionTools.cjs",
+      "to": "electron/platform/editorLauncher.cjs",
+      "reason": "The directory and host tools use the platform and session services they front (electron/app/hostToolsWiring.cjs composes them); the services are not a public entry of their domain."
+    },
+    {
+      "path": "electron/capabilities/tools/hostActionTools.cjs",
+      "to": "electron/platform/keepAwake.cjs",
+      "reason": "The directory and host tools use the platform and session services they front (electron/app/hostToolsWiring.cjs composes them); the services are not a public entry of their domain."
+    },
+    {
+      "path": "electron/capabilities/tools/sessionFolders.cjs",
+      "to": "node:fs",
+      "reason": "The directory and host tools read the file system themselves (folders, files, worktree sizes); a domain-neutral file helper would only wrap node:fs."
+    },
+    {
+      "path": "electron/capabilities/tools/sessionFolders.cjs",
+      "to": "electron/platform/pathInside.cjs",
+      "reason": "The directory and host tools use the platform and session services they front (electron/app/hostToolsWiring.cjs composes them); the services are not a public entry of their domain."
+    },
+    {
+      "path": "electron/capabilities/tools/worktreeTools.cjs",
+      "to": "node:fs",
+      "reason": "The directory and host tools read the file system themselves (folders, files, worktree sizes); a domain-neutral file helper would only wrap node:fs."
+    },
+    {
+      "path": "electron/capabilities/tools/worktreeTools.cjs",
+      "to": "electron/platform/worktreeStorage.cjs",
+      "reason": "The directory and host tools use the platform and session services they front (electron/app/hostToolsWiring.cjs composes them); the services are not a public entry of their domain."
+    },
+    {
+      "path": "electron/capabilities/browser/memoryGuard.cjs",
+      "to": "node:child_process",
+      "reason": "The memory guard's worker source, a string run in a thread of its own (modularization.md status), requires child_process there; this process never loads it."
+    },
+    {
+      "path": "electron/capabilities/browser/browserShim.cjs",
+      "to": "node:child_process",
+      "reason": "The BROWSER shim's script text, which a dev server's own node runs, names child_process; this process only writes the file."
+    },
+    {
+      "path": "electron/capabilities/browser/pagePreload.cjs",
+      "to": "electron",
+      "reason": "A sandboxed page preload may require only electron (contextBridge, ipcRenderer); the built-in browser is Electron by nature (modularization.md §2)."
+    }
+  ]
+}

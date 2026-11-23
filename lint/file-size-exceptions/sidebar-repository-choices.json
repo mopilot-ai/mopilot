@@ -1,0 +1,12 @@
+{
+  "exceptions": {
+    "src/lib/native/host.ts": {
+      "maxLines": 502,
+      "reason": "Keeps the lookup and start expectations in the typed Host interface. Adds one typed Host method beside the existing remote folder contracts so both cached and fresh reads use the same bridge."
+    },
+    "src/store/chats.ts": {
+      "maxLines": 501,
+      "reason": "A new chat clears its repository draft alongside other execution defaults in the existing atomic state update."
+    }
+  }
+}

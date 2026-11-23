@@ -1,0 +1,51 @@
+{
+  "id": "cline",
+  "version": "3.0.74",
+  "checkedAt": "2026-11-04T00:37:29.560Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Cline 3.0.74 was installed with npm install -g cline and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "cline",
+      "version": "3.0.74"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": false
+      },
+      "mcpCapabilities": {
+        "http": false,
+        "sse": false
+      },
+      "sessionCapabilities": {}
+    },
+    "authMethods": [
+      {
+        "id": "cline",
+        "name": "Sign in with Cline"
+      },
+      {
+        "id": "cline-pass",
+        "name": "Sign in with ClinePass"
+      },
+      {
+        "id": "openai-codex",
+        "name": "Sign in with ChatGPT Subscription"
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": false,
+    "sageMcpHello": false,
+    "error": "Sign in to Cline first"
+  },
+  "probeWithQuirksFixes": {
+    "state": "signin",
+    "version": "3.0.74",
+    "reason": "Sign in to Cline first"
+  }
+}

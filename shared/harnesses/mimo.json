@@ -1,0 +1,44 @@
+{
+  "id": "mimo",
+  "label": "MiMo Code",
+  "vendor": "Xiaomi",
+  "bins": [
+    "mimo"
+  ],
+  "docsUrl": "https://github.com/XiaomiMiMo/MiMo-Code",
+  "install": {
+    "docs": "https://github.com/XiaomiMiMo/MiMo-Code",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g @mimo-ai/cli",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@mimo-ai/cli"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "contract": {
+    "npm": "@mimo-ai/cli",
+    "bin": "mimo"
+  }
+}

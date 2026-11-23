@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/peerMessages.test.ts": {
+      "maxLines": 960,
+      "reason": "Journal, delivery and reply scenarios share one PeerMessageService/ChatController setup(); the steer-before-acknowledgement ordering case (#3775) belongs with them rather than in a copy of that setup."
+    }
+  }
+}

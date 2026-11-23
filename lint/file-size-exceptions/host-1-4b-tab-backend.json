@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/browserCredentials.test.ts": {
+      "maxLines": 668,
+      "reason": "Credential handoff scenarios share the fake page backend, browser host and user-consent fixture. Keep their pending-action transitions together."
+    }
+  }
+}

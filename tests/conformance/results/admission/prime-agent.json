@@ -1,0 +1,36 @@
+{
+  "id": "prime-agent",
+  "version": "0.10.2",
+  "checkedAt": "2026-11-04T00:38:26.355Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Prime Agent 0.10.2 was installed with curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): it was not admitted (unsupported: Prime Agent cannot reopen native sessions in this version). No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "prime-agent",
+      "title": "Prime Agent",
+      "version": "0.10.2"
+    },
+    "agentCapabilities": {
+      "loadSession": false,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": false
+      },
+      "sessionCapabilities": {
+        "close": {}
+      }
+    },
+    "authMethods": []
+  },
+  "probeWithQuirksFixes": {
+    "state": "unsupported",
+    "version": "0.10.2",
+    "reason": "Prime Agent cannot reopen native sessions in this version"
+  }
+}

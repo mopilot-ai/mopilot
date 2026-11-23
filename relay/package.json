@@ -1,0 +1,10 @@
+{
+  "name": "mopilot-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zero-knowledge relay for MoPilot Mobile Remote: forwards sealed frames between a Mac and a phone.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node src/main.mjs" },
+  "dependencies": { "jose": "^6.2.12", "pg": "^8.23.1", "ws": "^8.18.0" }
+}

@@ -1,0 +1,8 @@
+{"dir":"s2c","msg":{"method":"turn/started","params":{"threadId":"t1","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"enteredReviewMode","id":"e1","review":"current changes"}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"userMessage","id":"u1","content":[{"type":"text","text":"current changes","text_elements":[]}]}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"commandExecution","id":"c1","command":"git diff","cwd":"/repo","status":"completed","aggregatedOutput":"-return a + b;\n+return a - b;","exitCode":0}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"agentMessage","id":"m1","text":"Checking the diff.","phase":null}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"exitedReviewMode","id":"x1","review":"[P1] add now subtracts: a + b became a - b"}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"agentMessage","id":"m2","text":"[P1] add now subtracts: a + b became a - b\n","phase":null}}}}
+{"dir":"s2c","msg":{"method":"turn/completed","params":{"threadId":"t1","turn":{"id":"turn-1","status":"completed","items":[],"error":null}}}}

@@ -1,0 +1,19 @@
+[package]
+name = "translate"
+version = "0.1.0"
+description = "ACP session updates and Claude Code's SDK messages translated into a thread's turns and items, live and when replaying a transcript: one stateful translator per native session, held by id."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+inventory = "0.3"
+jsvalue = { path = "../jsvalue" }
+memchr = "2"
+
+[dev-dependencies]
+serde_json = "1"

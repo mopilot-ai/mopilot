@@ -1,0 +1,499 @@
+/* The context panel (src/components/context): the ring's popover and the summary card's body, and the palette the details dialog shares. */
+/* one palette, in this order, for the bar, the legend and the dialog's grid */
+:root {
+  --ctx-instructions: var(--purple);
+  --ctx-tools: var(--status-unread);
+  --ctx-memory: var(--yellow);
+  --ctx-skills: var(--green);
+  --ctx-conversation: var(--accent);
+  --ctx-other: rgba(var(--ink), 0.62);
+  --ctx-track: rgba(var(--ink), 0.08);
+  --ctx-hatch: rgba(var(--ink), 0.28);
+}
+:is(.ctx-seg, .ctx-swatch, .ctx-cell)[data-series='instructions'] {
+  background: var(--ctx-instructions);
+}
+:is(.ctx-seg, .ctx-swatch, .ctx-cell)[data-series='tools'] {
+  background: var(--ctx-tools);
+}
+:is(.ctx-seg, .ctx-swatch, .ctx-cell)[data-series='memory'] {
+  background: var(--ctx-memory);
+}
+:is(.ctx-seg, .ctx-swatch, .ctx-cell)[data-series='skills'] {
+  background: var(--ctx-skills);
+}
+:is(.ctx-seg, .ctx-swatch, .ctx-cell)[data-series='conversation'] {
+  background: var(--ctx-conversation);
+}
+:is(.ctx-seg, .ctx-swatch, .ctx-cell)[data-series='other'] {
+  background: var(--ctx-other);
+}
+:is(.ctx-seg, .ctx-swatch, .ctx-cell)[data-series='free'] {
+  background: var(--ctx-track);
+}
+/* the compaction reserve: room the chat never fills before it compacts */
+:is(.ctx-seg, .ctx-swatch, .ctx-cell)[data-series='buffer'] {
+  background: repeating-linear-gradient(135deg, var(--ctx-hatch) 0 1.5px, transparent 1.5px 4px), var(--ctx-track);
+}
+:is(.ctx-swatch, .ctx-cell)[data-series='deferred'] {
+  background: none;
+  border: 1px dashed rgba(var(--ink), 0.4);
+}
+.ctx-seg[data-series='over'] {
+  background: var(--red);
+}
+
+.ctx-popover {
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(640px, calc(100vh - 80px));
+  overflow-y: auto;
+  padding: 0;
+  background: var(--menu-bg);
+  border-radius: 14px;
+  box-shadow: var(--menu-shadow);
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.ctx-popover > .ctx-note {
+  padding: 16px;
+}
+/* the summary card's body is the panel, edge to edge */
+.summary-card.summary-context > .summary-group {
+  padding: 0;
+}
+.ctx-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  container-type: inline-size;
+  font-size: var(--fs-ui);
+}
+.ctx-top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 16px 12px;
+}
+.ctx-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ctx-title {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.ctx-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.ctx-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--yellow);
+}
+.ctx-spin {
+  width: 11px;
+  height: 11px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid rgba(var(--ink), 0.25);
+  border-top-color: var(--text);
+  animation: spin 0.9s linear infinite;
+}
+.ctx-over {
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  color: var(--red);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+.ctx-figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+.ctx-big {
+  font-size: var(--fs-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ctx-big[data-level='warn'] {
+  color: var(--orange);
+}
+.ctx-big[data-level='full'] {
+  color: var(--red);
+}
+.ctx-big[data-fresh='stale'] {
+  color: var(--text-2);
+}
+.ctx-ghost {
+  color: rgba(var(--ink), 0.32);
+}
+.ctx-unit {
+  color: var(--text-3);
+}
+.ctx-of {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.ctx-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ctx-bar-wrap {
+  position: relative;
+  padding-bottom: 2px;
+}
+.ctx-bar {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 2px;
+}
+.ctx-seg {
+  display: block;
+  flex: 0 1 0px;
+  min-width: 2px;
+  height: 8px;
+  border-radius: 2px;
+}
+/* where auto-compact starts */
+.ctx-mark {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--text);
+}
+.ctx-bar-wrap[data-fresh='stale'] .ctx-bar {
+  opacity: 0.6;
+}
+/* newer tokens than the breakdown: it is read again when the turn ends */
+.ctx-bar-wrap[data-fresh='updating'] .ctx-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(var(--ink), 0.3), transparent);
+  animation: ctx-shimmer 1.6s ease-in-out infinite;
+}
+/* compacting: the stripes slide one 16px tile per 0.8s on a layer of their own, as a translate the compositor runs */
+.ctx-bar-wrap[data-fresh='compacting'] .ctx-seg[data-series='conversation'] {
+  position: relative;
+  overflow: hidden;
+  background: none;
+}
+.ctx-bar-wrap[data-fresh='compacting'] .ctx-seg[data-series='conversation']::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 -16px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--ctx-conversation) 0 4px,
+    color-mix(in srgb, var(--ctx-conversation) 55%, transparent) 4px 8px
+  );
+  background-size: 16px 8px;
+  animation: ctx-stripes 0.8s linear infinite;
+}
+@keyframes ctx-shimmer {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+@keyframes ctx-stripes {
+  to {
+    translate: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ctx-bar-wrap[data-fresh='updating'] .ctx-bar::after,
+  .ctx-bar-wrap[data-fresh='compacting'] .ctx-seg[data-series='conversation']::before,
+  .ctx-spin {
+    animation: none;
+  }
+}
+.ctx-bar-ghost {
+  height: 8px;
+  box-sizing: border-box;
+  border-radius: 3px;
+  border: 1px dashed rgba(var(--ink), 0.16);
+}
+.ctx-legend {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2px;
+}
+.ctx-legend-row,
+.ctx-cost {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+}
+.ctx-cost {
+  border-top: 1px dashed var(--hairline);
+  color: var(--text-2);
+}
+.ctx-cost > .ctx-num {
+  margin-left: auto;
+  color: var(--text);
+}
+.ctx-swatch {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border-radius: 2px;
+}
+.ctx-legend-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+}
+:is(.ctx-legend-row, .ctx-cat)[data-series='buffer'] :is(.ctx-legend-label, .ctx-num),
+:is(.ctx-legend-row, .ctx-cat)[data-series='free'] :is(.ctx-legend-label, .ctx-num),
+:is(.ctx-legend-row, .ctx-cat)[data-series='deferred'] :is(.ctx-legend-label, .ctx-num) {
+  color: var(--text-3);
+}
+.ctx-est {
+  font-size: var(--fs-micro);
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(var(--ink), 0.14);
+  color: var(--text-3);
+}
+.ctx-share {
+  flex: none;
+  min-width: 44px;
+  width: 3.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+.ctx-note {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.ctx-retry {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ctx-retry:hover {
+  text-decoration: underline;
+}
+.ctx-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--hairline);
+}
+.ctx-compact-text {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ctx-compact[data-blocked] .ctx-compact-text,
+.ctx-sub {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.ctx-compact[data-blocked] .ctx-compact-text {
+  font-size: var(--fs-ui);
+}
+.ctx-compact-btn {
+  flex: none;
+  margin-left: auto;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--ink), 0.12);
+  background: rgba(var(--ink), 0.06);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ctx-compact-btn:hover:not(:disabled) {
+  background: rgba(var(--ink), 0.1);
+}
+.ctx-compact-btn:disabled {
+  border-color: rgba(var(--ink), 0.08);
+  background: transparent;
+  color: var(--text-4);
+  cursor: default;
+}
+.ctx-limits {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--hairline);
+}
+/* one set of columns for every row: each row is a subgrid, so the bars start and end at the same x whatever the labels say */
+.limit-rows {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) 64px;
+  column-gap: 12px;
+  row-gap: 12px;
+}
+.limit-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+.limit-row-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.limit-row-reset {
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+.limit-row-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ctx-track);
+  overflow: hidden;
+}
+.limit-row-bar > i {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--text-2);
+}
+.limit-row-bar > i.low {
+  background: var(--orange);
+}
+.limit-row-bar > i.out {
+  background: var(--red);
+}
+.limit-row-left {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.ctx-foot {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--hairline);
+}
+.ctx-foot-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+}
+.ctx-foot-link + .ctx-foot-link {
+  border-left: 1px solid var(--hairline);
+}
+@container (max-width: 320px) {
+  .ctx-foot {
+    flex-direction: column;
+  }
+  .ctx-foot-link + .ctx-foot-link {
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+  }
+}
+.ctx-foot-link:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.ctx-foot-link:focus-visible,
+.ctx-compact-btn:focus-visible,
+.ctx-retry:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* A neutral outline reserves the bar and rows while the first breakdown is read. */
+.ctx-loading-shapes {
+  position: relative;
+  overflow: hidden;
+}
+.ctx-loading-bar,
+.ctx-loading-row > i {
+  background: var(--ctx-track);
+  border-radius: 3px;
+}
+.ctx-loading-bar {
+  height: 8px;
+  margin-bottom: 12px;
+}
+.ctx-loading-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 28px;
+}
+.ctx-loading-label {
+  width: 44%;
+  height: 9px;
+}
+.ctx-loading-row:nth-child(even) .ctx-loading-label {
+  width: 32%;
+}
+.ctx-loading-value {
+  width: 48px;
+  height: 9px;
+  margin-left: auto;
+}
+.ctx-loading-shapes::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(var(--ink), 0.06), transparent);
+  animation: ctx-shimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ctx-loading-shapes::after {
+    animation: none;
+    display: none;
+  }
+}

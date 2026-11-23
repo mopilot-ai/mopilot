@@ -1,0 +1,17 @@
+{"t":"session","harness":"dsh","sessionId":"019a-dsh-golden","cwd":"/repo","at":1760090000000}
+{"t":"user","turnId":"at-1","user":{"id":"u-1","clientId":"1","content":[{"type":"text","text":"Run the tests and fix what fails","text_elements":[]}]},"at":1760090001000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"agent_thought_chunk","content":{"type":"text","text":"I'll run the test suite first to see what fails."}},"at":1760090002000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call","toolCallId":"call_1","title":"npm test","kind":"execute","status":"pending","rawInput":{"command":"npm test"}},"at":1760090003000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call_update","toolCallId":"call_1","status":"in_progress"},"at":1760090004000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call_update","toolCallId":"call_1","status":"completed","content":[{"type":"content","content":{"type":"text","text":"1 failing: adds numbers"}}]},"at":1760090006000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call","toolCallId":"call_2","title":"Edit src/add.ts","kind":"edit","status":"pending","locations":[{"path":"/repo/src/add.ts"}]},"at":1760090007000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"tool_call_update","toolCallId":"call_2","status":"completed","content":[{"type":"diff","path":"/repo/src/add.ts","oldText":"return a - b;","newText":"return a + b;"}]},"at":1760090009000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"usage_update","used":18234,"size":1000000},"at":1760090009500}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Fixed `add`: it subtracted. "}},"at":1760090010000}
+{"t":"update","turnId":"at-1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Tests pass now."}},"at":1760090010100}
+{"t":"end","turnId":"at-1","stopReason":"end_turn","error":null,"at":1760090011000}
+{"t":"user","turnId":"at-2","user":{"id":"u-2","clientId":"2","content":[{"type":"text","text":"Also delete the build folder","text_elements":[]}]},"at":1760090020000}
+{"t":"update","turnId":"at-2","update":{"sessionUpdate":"tool_call","toolCallId":"call_3","title":"rm -rf build","kind":"execute","status":"pending","rawInput":{"command":"rm -rf build"}},"at":1760090021000}
+{"t":"end","turnId":"at-2","stopReason":"cancelled","error":null,"at":1760090025000}
+{"t":"update","turnId":null,"update":{"sessionUpdate":"tool_call","toolCallId":"call_4","title":"rm -rf build","kind":"execute","status":"pending","rawInput":{"command":"rm -rf build"}},"at":1760090026000}
+{"t":"title","name":"Fix the failing test","at":1760090027000}

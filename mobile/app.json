@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "name": "MoPilot",
+    "slug": "mopilot-remote",
+    "scheme": "mopilot",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1f1f1f"
+    },
+    "ios": {
+      "bundleIdentifier": "ai.mopilot.phone",
+      "supportsTablet": false,
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": [
+          "googlegmail"
+        ]
+      }
+    },
+    "android": {
+      "package": "ai.mopilot.remote",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#1f1f1f"
+      },
+      "allowBackup": false
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow MoPilot to scan a pairing code and to take photos you attach to a chat.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow MoPilot to show your recent photos and attach the ones you choose to a chat.",
+          "cameraPermission": "Allow MoPilot to take photos you attach to a chat."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow MoPilot to show your recent photos and attach the ones you choose to a chat.",
+          "savePhotosPermission": false,
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": [
+            "photo"
+          ]
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow MoPilot to record voice notes that your computer turns into text.",
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
+      "expo-sqlite",
+      "expo-web-browser",
+      [
+        "react-native-libsodium",
+        {}
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

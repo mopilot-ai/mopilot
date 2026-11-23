@@ -1,0 +1,13 @@
+// An API key handed to a Codex app-server login: Codex saves an `account/login/start` of type apiKey to
+// $CODEX_HOME/auth.json in plain text (~/.codex/auth.json, the CLI's own sign-in, for the main app-server). Send an
+// added key through the thread's own model provider instead (identity/contract/codexProvider.cjs, auth.command reads it from
+// the keychain); the one fallback, for a Mac-less helper, is identity/accounts/providers.cjs applyKey (#2201).
+// docs/bug-prevention/data-at-rest.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or { `$_($method, $params, $...)`, `$_.$_($method, $params, $...)` },
+  $method <: or { `'account/login/start'`, `"account/login/start"` },
+  $params <: contains `type: 'apiKey'`,
+  register_diagnostic(span=$hit, message="[apikey-login] Codex saves an API-key login to its auth.json in plain text. Send the key through the thread's own provider (identity/contract/codexProvider.cjs) instead (docs/bug-prevention/data-at-rest.md).", severity="warn")
+}

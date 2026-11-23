@@ -1,0 +1,13 @@
+{
+  "layer": "L2",
+  "public": [
+    "index.cjs",
+    "accounts.cjs",
+    "store.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1"
+  ],
+  "allow": []
+}

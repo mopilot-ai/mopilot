@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/terminalPanelUI.test.ts": {
+      "maxLines": 502,
+      "reason": "Terminal-panel scenarios share the mounted panel, store and installed native fake. Keep process and focus outcomes with that fixture."
+    }
+  }
+}

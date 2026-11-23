@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/phoneRuntime.test.ts": {
+      "maxLines": 682,
+      "reason": "Runtime lifecycle scenarios share mutable relay, storage, clock and authentication fakes. The scenario matrix remains with that fixture until it is extracted."
+    }
+  }
+}

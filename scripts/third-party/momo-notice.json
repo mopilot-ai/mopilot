@@ -1,0 +1,10 @@
+{
+  "direct": [],
+  "runtimeRoots": [],
+  "notices": [
+    { "title": "OpenDuet (https://github.com/CopilotKit/openduet, MIT, Copyright (c) 2026 CopilotKit): MoMo's mail pre-check rules, reading-turn prompt wording, brief structure and the 62 invented triage mails, in shared/momoNotice", "path": "docs/licenses/openduet-LICENSE.txt" },
+    { "title": "OpenClaw (https://github.com/openclaw/openclaw, MIT, Copyright (c) 2026 OpenClaw Foundation): the untrusted-content envelope and the sender-check parser, in shared/momoNotice", "path": "docs/licenses/openclaw-LICENSE.txt" },
+    { "title": "Nod (n8n, Apache-2.0): the Gmail thread version and Calendar etag logic ported, and the access-secret definition, in shared/momoNotice; changed to use an injected Google client instead of Composio", "path": "docs/licenses/nod-LICENSE.txt" },
+    { "title": "Nod NOTICE", "path": "docs/licenses/nod-NOTICE.txt" }
+  ]
+}

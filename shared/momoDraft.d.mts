@@ -1,0 +1,14 @@
+export const MAX_BODY: number;
+export const MAX_SUBJECT: number;
+export const MAX_TO: number;
+export const MAX_ADDRESS: number;
+export const MAX_MAILTO: number;
+export const CODES: Readonly<{ BAD_TO: 'bad_to'; BAD_SUBJECT: 'bad_subject'; BAD_BODY: 'bad_body'; TOO_LONG: 'too_long' }>;
+export type Draft = { to: string[]; subject: string; body: string };
+export type Read = { ok: true; draft: Draft } | { ok: false; reason: string; why: string };
+export function readDraft(input: unknown): Read;
+export function draftOf(v: unknown): Draft | null;
+export function mailtoOf(draft: Draft): { ok: true; url: string } | { ok: false; reason: string; why: string };
+export function isMailto(url: unknown): boolean;
+export function draftLine(d: Draft): string;
+export function recipientsOf(d: Draft): { items: { kind: 'email'; label: string }[]; count: number };

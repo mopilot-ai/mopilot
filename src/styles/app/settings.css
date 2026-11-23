@@ -1,0 +1,314 @@
+/* Settings: navigation, sections and rows. */
+/* ================================================================== */
+/* Settings                                                            */
+/* ================================================================== */
+.settings-nav .sidebar-header {
+  padding-left: 10px;
+}
+/* Back to app is the header itself: a full-width row, never a title that only looks static */
+.settings-nav .sidebar-header.settings-back {
+  padding: 0 8px;
+}
+.settings-back .side-row {
+  color: var(--text);
+  font-weight: 500;
+}
+.settings-back-key {
+  margin-left: auto;
+  padding: 0 5px;
+  border: 1px solid var(--surface-border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  color: var(--text-3);
+}
+.settings-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 8px 10px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--row-radius);
+  background: var(--search-bg);
+  color: var(--text-3);
+}
+.settings-search input {
+  flex: 1;
+  /* without it the field keeps its default width and pushes the box past the sidebar */
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.settings-search input::placeholder {
+  color: var(--text-3);
+}
+.settings-page {
+  flex: 1;
+  overflow-y: auto;
+  user-select: text;
+}
+.settings-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  /* 5px right of centre: moved by padding, since a shifted box (left: 5px) is wider than the page at narrow widths and made it scroll sideways */
+  padding: 72px 21px 80px 31px;
+}
+.settings-title {
+  font-size: var(--fs-display);
+  font-weight: 500;
+  color: var(--text);
+  margin: 0 0 38px;
+  letter-spacing: -0.01em;
+}
+.settings-group {
+  margin-bottom: 55px;
+}
+.settings-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.settings-group-title {
+  font-size: var(--fs-chat);
+  font-weight: 500;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+.settings-group-head .settings-group-title {
+  margin: 0;
+}
+/* a group's action button (e.g. "Remove all") keeps its label on one line next to a long description */
+.settings-group-head > button {
+  flex-shrink: 0;
+  margin-left: 16px;
+  white-space: nowrap;
+}
+.settings-card {
+  background: var(--card-bg);
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 12px;
+  padding: 0 16.5px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 70px;
+  padding: 11px 0;
+  border-bottom: 0.5px solid var(--hairline-strong);
+  width: 100%;
+  text-align: left;
+}
+.settings-row:last-child {
+  border-bottom: 0;
+}
+.settings-row.clickable:hover .settings-row-title {
+  text-decoration: underline;
+}
+/* the row a Settings search hit landed on */
+.settings-row.settings-row-found {
+  animation: settings-row-found 1.8s ease-out;
+}
+@keyframes settings-row-found {
+  0%,
+  60% {
+    background: var(--accent-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-row.settings-row-found {
+    animation: none;
+    background: var(--accent-soft);
+  }
+}
+.settings-row-text {
+  flex: 1;
+  min-width: 0;
+}
+.settings-row-title {
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  color: var(--text);
+}
+.settings-row-title.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+}
+.settings-row-desc {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  line-height: 1.375;
+  margin-top: 2px;
+  max-width: 490px;
+}
+.settings-row-control {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-value {
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.settings-pad {
+  padding: 16px 0;
+}
+.settings-pad .text-area {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+}
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.settings-actions .settings-path {
+  margin-right: auto;
+  align-self: center;
+  max-width: none;
+}
+
+/* the Settings sidebar draws every harness mark in the line style of its other icons */
+.settings-nav .side-row-icon .harness-icon.claude rect {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.settings-nav .side-row-icon .harness-icon.claude g {
+  stroke: currentColor;
+}
+.settings-search-clear {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text-4);
+  color: var(--main);
+  cursor: pointer;
+}
+.settings-search-empty {
+  padding: 14px 18px;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-3);
+}
+.settings-nav .side-row.has-hint {
+  height: auto;
+  padding-block: 5px;
+  align-items: flex-start;
+}
+.settings-nav .side-row.has-hint .side-row-label {
+  display: flex;
+  flex-direction: column;
+}
+.side-row-hint {
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-nav mark {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+/* every sidebar child is held at the sidebar's full width (motion.css); the search box has side margins, so it is
+   held at that width less its margins and lines up with the rows below it */
+.sidebar.settings-nav > .settings-search {
+  min-width: calc(max(200px, var(--sidebar-w)) - 16px);
+}
+
+/* Mobile Remote's pairing QR: centred in its group, one short line under it */
+.mobile-remote-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+.connect-phone {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+/* a machine's page (MachinePage.tsx): its sections stack inside the dialog, scrolling together */
+.machine-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+.machine-main[role='button'] {
+  cursor: pointer;
+}
+/* the day's spend against its limit (MachineSpendingSection.tsx) */
+.spend-bar {
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(var(--ink), 0.08);
+  overflow: hidden;
+}
+.spend-bar-fill {
+  height: 100%;
+  background: var(--text-2);
+}
+/* Accounts & billing → Estimated cost (src/components/pages/settings/EstimatedCost.tsx): the range's total, a bar per day, two tables. */
+.estimated-cost {
+  padding: 10px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.estimated-cost-total,
+.estimated-cost-note {
+  margin: 0;
+}
+.estimated-cost-note {
+  color: var(--text-2);
+}
+.estimated-cost-days {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 48px;
+}
+.estimated-cost-day {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(var(--ink), 0.04);
+  border-radius: 2px;
+}
+.estimated-cost-day-fill {
+  width: 100%;
+  background: var(--text-2);
+  border-radius: 2px;
+}
+.estimated-cost-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 4px;
+}

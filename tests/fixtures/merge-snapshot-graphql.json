@@ -1,0 +1,131 @@
+{
+  "data": {
+    "repository": {
+      "defaultBranchRef": {
+        "name": "main",
+        "target": {
+          "oid": "c13e31f32923a215066c0e7571d2e65c48d7b141"
+        }
+      },
+      "pullRequests": {
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0xMC0yM1QwNzo1MTo0OFrPAAAAASjPAIM="
+        },
+        "nodes": [
+          {
+            "number": 2238,
+            "updatedAt": "2026-10-23T16:25:35Z",
+            "title": "(title of #2238 removed)",
+            "body": "(description removed)",
+            "headRefName": "fix/codex-key-off-disk",
+            "headRefOid": "cf0dede2e540840b9043bae853798be710ac14ab",
+            "baseRefName": "main",
+            "baseRefOid": "94cde385dc0fefcc6a13426881cd725badb09220",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "bug"
+                },
+                {
+                  "name": "merge-on-green"
+                }
+              ]
+            },
+            "commits": {
+              "nodes": [
+                {
+                  "commit": {
+                    "oid": "cf0dede2e540840b9043bae853798be710ac14ab",
+                    "status": {
+                      "contexts": [
+                        {
+                          "context": "merge-on-green",
+                          "state": "PENDING",
+                          "description": "Held: its base is fix/relay-secret-off-argv, not main: retarget it to main (gh pr edit 2238 --base main)",
+                          "createdAt": "2026-10-23T15:46:00Z",
+                          "targetUrl": "https://github.com/mopilot-ai/mopilot-code-release/actions/runs/39980854483"
+                        },
+                        {
+                          "context": "unit-tests",
+                          "state": "PENDING",
+                          "description": "Running the unit tests that reach this change",
+                          "createdAt": "2026-10-23T17:27:25Z",
+                          "targetUrl": "https://github.com/mopilot-ai/mopilot-code-release/actions/runs/39995192490"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "number": 2194,
+            "updatedAt": "2026-10-23T13:28:54Z",
+            "title": "(title of #2194 removed)",
+            "body": "(description removed)",
+            "headRefName": "fix/encrypt-browser-history",
+            "headRefOid": "e43ea4864f921ef4f07d1f57909f4bc863db3ec6",
+            "baseRefName": "fix/owner-only-files",
+            "baseRefOid": "587024c53456acc22351e8008cceb4129c36d67d",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "bug"
+                }
+              ]
+            },
+            "commits": {
+              "nodes": [
+                {
+                  "commit": {
+                    "oid": "e43ea4864f921ef4f07d1f57909f4bc863db3ec6",
+                    "status": null
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "number": 2190,
+            "updatedAt": "2026-10-23T16:17:34Z",
+            "title": "(title of #2190 removed)",
+            "body": "(description removed)",
+            "headRefName": "fix/owner-only-files",
+            "headRefOid": "587024c53456acc22351e8008cceb4129c36d67d",
+            "baseRefName": "main",
+            "baseRefOid": "9d81df11a12255eff6aaec01fea0da023a4ee29e",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "bug"
+                }
+              ]
+            },
+            "commits": {
+              "nodes": [
+                {
+                  "commit": {
+                    "oid": "587024c53456acc22351e8008cceb4129c36d67d",
+                    "status": {
+                      "contexts": [
+                        {
+                          "context": "unit-tests",
+                          "state": "SUCCESS",
+                          "description": "Passed merged with main 94cde385dc0fefcc6a13426881cd725badb09220: static checks, ratchet, related unit and E2E tests, coverage",
+                          "createdAt": "2026-10-23T16:58:14Z",
+                          "targetUrl": "https://github.com/mopilot-ai/mopilot-code-release/actions/runs/39983987462"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

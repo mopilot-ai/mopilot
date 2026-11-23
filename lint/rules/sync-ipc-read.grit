@@ -1,0 +1,15 @@
+// A whole file read, a folder listed or a process run synchronously inside an IPC handler: the main process serves
+// every window's IPC (streaming chats included) on one thread, so the handler stalls them all for as long as the
+// disk or the process takes. Read with fs.promises (a file handle for a tail) and run with execFile.
+// docs/bug-prevention/overlapping-operations.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or {
+    `$fs.readFileSync($...)`, `readFileSync($...)`,
+    `$fs.readdirSync($...)`, `readdirSync($...)`,
+    `$cp.execFileSync($...)`, `execFileSync($...)`
+  },
+  $hit <: within `$ipc.handle($channel, $handler)` where { $ipc <: `ipcMain`, $handler <: contains $hit },
+  register_diagnostic(span=$hit, message="[sync-ipc-read] A synchronous read or process run in an IPC handler stalls every window's IPC, streaming chats included. Use fs.promises or execFile (docs/bug-prevention/overlapping-operations.md).", severity="warn")
+}

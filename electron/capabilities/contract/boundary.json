@@ -1,0 +1,30 @@
+{
+  "layer": "L2",
+  "public": [
+    "actionGuard.cjs",
+    "callPhases.cjs",
+    "chromePanelStep.cjs",
+    "codexLifecycle.cjs",
+    "codexParents.cjs",
+    "controlRefusals.cjs",
+    "desktopPolicy.cjs",
+    "hostServers.cjs",
+    "localBrowserData.cjs",
+    "peerMessages.cjs",
+    "registry.cjs",
+    "serverRequests.cjs",
+    "session.cjs",
+    "sessionsNote.cjs",
+    "surfaceNote.cjs",
+    "toolRefusal.cjs",
+    "turnTokens.cjs",
+    "codexSkyDown.cjs",
+    "approvals.cjs",
+    "policy.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1"
+  ],
+  "allow": []
+}

@@ -1,0 +1,13 @@
+{
+  "desktop": {
+    "appId": "ai.mopilot.code.source",
+    "name": "MoPilot Source",
+    "profile": "MoPilot Source",
+    "legacyProfiles": [],
+    "chromeWebStoreId": null,
+    "scheme": "mopilot-source",
+    "linuxExecutable": "mopilot-source",
+    "debianPackage": "mopilot-source",
+    "artifactPrefix": "MoPilot-Source"
+  }
+}

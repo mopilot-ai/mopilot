@@ -1,0 +1,23 @@
+// A toast's action that acts on the chat, account or pin it captured when the toast showed: by the click (a toast
+// stays for seconds) the chat may have switched harness, the account been removed or the chat pinned elsewhere, so
+// the action switches with a stale model, adds a new account or overrides the newer pin. Run a helper that reads that
+// state again at the click and says what changed (liveAction's lines, src/store/liveAction.ts). An action worked out
+// before the toast and handed to it whole (`{ action: way.action }`, #1988's "Continue on") is the same capture.
+// Applied to the renderer (biome.json overrides). docs/bug-prevention/stale-async-results.md
+language js
+
+or {
+  or { JsPropertyObjectMember(name=$key, value=$run), JsMethodObjectMember(name=$key, body=$run) } as $hit where {
+    $key <: r"^run$",
+    $run <: contains JsCallExpression(callee=$callee) where {
+      $callee <: or { `addAccount`, `switchAccount`, `setChatAccount`, `setSession`, `forkThread`, `newChatWithSummary` }
+    }
+  },
+  JsPropertyObjectMember(name=$key, value=$value) as $hit where {
+    $key <: r"^action$",
+    $value <: not JsObjectExpression()
+  }
+} where {
+  $hit <: within JsCallExpression(callee=$toast) where { $toast <: or { `toast`, `$_.toast` } },
+  register_diagnostic(span=$hit, message="[stale-toast-action] This toast action acts on the chat, account or pin it captured when the toast showed (or was worked out before it); by the click that one may have switched, been removed or been pinned elsewhere. Run a helper that reads it again at the click and says what changed (src/store/liveAction.ts, docs/bug-prevention/stale-async-results.md).", severity="warn")
+}

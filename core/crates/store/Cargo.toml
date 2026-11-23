@@ -1,0 +1,21 @@
+[package]
+name = "store"
+version = "0.1.0"
+description = "The app's record files (threads/*.v2): read at startup in parallel for the chat store to parse at once, and each written whole when the store commits it."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+inventory = "0.3"
+# validation only (IgnoredAny): what passes is embedded as written, what doesn't goes back to JS as text
+serde = "1"
+serde_json = "1"
+
+[target.'cfg(unix)'.dependencies]
+# errno values, to name an OS error as Node does
+libc = "0.2"

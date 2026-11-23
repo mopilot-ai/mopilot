@@ -1,0 +1,11 @@
+// A literal color in a stylesheet: a hex, rgb() or hsl() value written outright keeps its color under every theme
+// preset, accent and light/dark mode, so a page painted that way stays in the old look when the palette changes.
+// Read a token from src/styles/tokens.css instead (the surfaces, --accent, --text-*, --diff-*), or tint one:
+// rgba(var(--ink), 0.08), color-mix(in srgb, var(--accent) 16%, transparent). docs/code-quality.md#colors
+language css
+
+CssGenericProperty(value = $value) as $declaration where {
+  // a hex at the start, after a space or comma, or opening a function other than url() (whose #id is a fragment)
+  $value <: r"(?s).*(?:(?:^|[\s,]|[^l]\()#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(\s*[0-9.]).*",
+  register_diagnostic(span=$declaration, message="[literal-color] A literal color ignores the theme preset, the accent and light/dark mode. Read a token from src/styles/tokens.css, or tint one with rgba(var(--ink), a) or color-mix() (docs/code-quality.md#colors).", severity="warn")
+}

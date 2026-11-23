@@ -1,0 +1,330 @@
+/* Files pane tree, previews and the shared pane body. */
+.pane-tab-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pane-tab-body[hidden] {
+  display: none;
+}
+.tb-tab:not(.active):hover {
+  background: rgba(var(--ink), 0.05);
+}
+.files-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 8px 0;
+}
+.files-filter {
+  margin: 0 4px 6px;
+}
+.files-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 20px;
+}
+.file-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 28px;
+  padding-right: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-ui);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.file-node:hover {
+  background: rgba(var(--ink), 0.06);
+}
+.file-node.dir {
+  color: var(--text);
+}
+.file-node.dir svg {
+  color: var(--text-2);
+  flex: none;
+}
+.file-node.muted {
+  color: var(--text-3);
+  cursor: default;
+}
+.file-node-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-preview-head {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 4px 8px;
+  border-bottom: 0.5px solid var(--hairline-strong);
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.file-preview {
+  flex: 1;
+  overflow: auto;
+  font-size: var(--fs-code, 12px);
+}
+.file-preview-toggle {
+  flex-shrink: 0;
+}
+.file-image-preview {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 16px;
+}
+.file-image-preview > img {
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.file-markdown-preview {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 16px;
+  font-size: var(--fs-chat);
+  line-height: 1.65;
+  color: var(--text);
+}
+.file-markdown-preview > .md {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.file-preview pre {
+  margin: 0;
+  padding: 12px 8px;
+  background: transparent !important;
+  font-family: var(--font-mono);
+  line-height: 1.55;
+}
+.file-preview-target {
+  background: var(--row-hover);
+  outline: 1px solid var(--hairline-strong);
+}
+
+/* The Files pane's workspace: the tree beside the open files' tabs (src/components/panels/FilesPanel.tsx). */
+.files-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.files-workspace.tree-right {
+  flex-direction: row-reverse;
+}
+.files-tree-col {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 8px 0;
+}
+.files-tree-col:has(~ .files-main) {
+  flex: 0 0 clamp(200px, 32%, 320px);
+  border-inline-end: 0.5px solid var(--hairline-strong);
+}
+.files-workspace.tree-right .files-tree-col:has(~ .files-main) {
+  border-inline-end: 0;
+  border-inline-start: 0.5px solid var(--hairline-strong);
+}
+.files-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.files-tabs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 0 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 0.5px solid var(--hairline-strong);
+}
+.files-tree-side {
+  margin-inline-start: auto;
+}
+.files-tab {
+  flex: none;
+  display: flex;
+  align-items: center;
+  max-width: 200px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--text-2);
+}
+.files-tab.active {
+  background: rgba(var(--ink), 0.07);
+  color: var(--text);
+}
+.files-tab:not(.active):hover {
+  background: rgba(var(--ink), 0.04);
+}
+.files-tab-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 2px 0 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.files-tab-name > span:not(.files-tab-dirty) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.files-tab-dirty {
+  font-size: var(--fs-micro);
+  color: var(--text-2);
+}
+.files-tab-close {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-inline-end: 3px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.files-tab-close:hover {
+  background: rgba(var(--ink), 0.08);
+  color: var(--text);
+}
+.files-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  font-size: var(--fs-ui);
+}
+.file-node.active {
+  background: rgba(var(--ink), 0.08);
+}
+.files-text-file {
+  cursor: default;
+  font-weight: 500;
+}
+.files-text-file:hover {
+  background: none;
+}
+.files-text-count,
+.files-text-no {
+  flex: none;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.files-text-line {
+  padding-left: 22px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code, 12px);
+}
+.files-text-no {
+  min-width: 3ch;
+  text-align: right;
+}
+
+/* A file's view: head, find and go-to-line bars, a notice, and its code with the editor over it (files/FileCode.tsx). */
+.file-view {
+  position: relative;
+}
+.file-view .chat-find {
+  top: 48px;
+}
+.file-dirty {
+  flex: none;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.file-stale {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 0.5px solid var(--hairline-strong);
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.file-stale > span {
+  flex: 1;
+}
+.file-editor-stack {
+  display: grid;
+  min-width: 100%;
+  width: max-content;
+}
+.file-editor.wrap .file-editor-stack {
+  width: 100%;
+}
+.file-editor-stack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.file-editor.wrap pre,
+.file-editor.wrap .file-editor-input {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.file-editor-input {
+  margin: 0;
+  padding: 12px 8px;
+  border: 0;
+  outline: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
+  font-family: var(--font-mono);
+  font-size: inherit;
+  line-height: 1.55;
+  white-space: pre;
+  tab-size: 4;
+}
+.file-editor-input::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.file-editor-code pre {
+  tab-size: 4;
+}
+/* a file ending in a newline has an empty last line the editor field draws: the code under it gets one too */
+.file-editor-code code::after {
+  content: '\200b';
+}

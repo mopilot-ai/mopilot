@@ -1,0 +1,12 @@
+{
+  "exceptions": {
+    "electron/capabilities/contract/registry.cjs": {
+      "maxLines": 521,
+      "reason": "The registry owns call deduplication and result publication. In addition to phase collection, five lines bind cached/pending browser-data results to the current Host and original tool before replay; the pure policy/refusal logic lives in localBrowserData.cjs. This exact cap preserves the single call lifecycle owner. Adds the neutral observation import and one call at the existing deduplicated execution finish boundary. Tool categories and product event definitions remain outside the Registry."
+    },
+    "electron/capabilities/tools/appScopedActions.cjs": {
+      "maxLines": 524,
+      "reason": "Notes the helper's settle time as a call phase where the helper's verify result is read."
+    }
+  }
+}

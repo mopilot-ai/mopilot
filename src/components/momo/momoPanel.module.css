@@ -1,0 +1,193 @@
+/* MoMo's right panel (MomoPanel.tsx): a bordered card beside the chat, as Dot's, in MoPilot's tokens. A CSS Module: its classes are local. */
+.panel {
+  flex: none;
+  width: 360px;
+  margin: 12px 12px 12px 0;
+  padding: 20px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  border-radius: var(--card-radius-lg);
+  background: var(--main);
+  box-shadow: 0 0 0 0.5px var(--surface-border);
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 0 0.5px var(--surface-border);
+}
+.name {
+  margin-top: 6px;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.status {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.status[data-tone='needs'] {
+  color: var(--orange);
+}
+.status[data-tone='active']::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  vertical-align: 0.5px;
+}
+.pause {
+  align-self: center;
+  padding: 6px 20px;
+  border-radius: 9999px;
+  background: var(--surface);
+  color: var(--text);
+}
+.pause:hover {
+  background: var(--surface-2);
+}
+.pause:disabled {
+  opacity: 0.5;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--card-radius);
+  box-shadow: 0 0 0 0.5px var(--surface-border);
+}
+.cardTitle {
+  font-weight: 500;
+}
+.h {
+  margin: 12px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.device {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deviceName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.dot[data-tone='off'] {
+  background: var(--text-3);
+}
+.dot[data-tone='warn'] {
+  background: var(--orange);
+}
+.meta {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.more {
+  align-self: flex-start;
+  padding: 0;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.more:hover {
+  color: var(--text);
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: var(--row-radius);
+  text-align: left;
+}
+.item:hover {
+  background: var(--row-hover);
+}
+.itemTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.links {
+  display: flex;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--surface-border);
+}
+.links button {
+  padding: 0;
+  color: var(--text-2);
+}
+.links button:hover {
+  color: var(--text);
+}
+
+.output {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.output .item {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+.output[data-gone] .item {
+  opacity: 0.55;
+}
+.outputMenu {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 0 4px;
+}
+.outputMenu button {
+  padding: 0;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.outputMenu button:hover {
+  color: var(--text);
+}

@@ -1,0 +1,124 @@
+{
+  "$comment": "The critical user journey (CUJ) matrix that docs/multi-harness/JOURNEY-COVERAGE.md reads from. source: matrix (the original 22), newJourneys (design-v2.json), gap (added by the 2026-10-19 audit against Claude Desktop, the ChatGPT desktop app and MoPilot's own features). tier marks a journey in the gap list: A MoPilot's own features, B parity with the reference products, C lifecycle and robustness. specs are tests/e2e/<name>.spec.ts. Status per harness: Covered, Partial, None or N/A; acp is tracked for gap journeys only. tests/journeyMatrix.test.ts keeps this file, the specs and the coverage doc in step.",
+  "tiers": {
+    "A": "MoPilot's own features (the product moat): no reference product has them, so nothing else will catch a regression",
+    "B": "Parity with Claude Desktop (Code tab) and the ChatGPT desktop app (Codex): journeys a user of either expects",
+    "C": "Lifecycle and robustness: install, update, quit, crash, errors and running with no window"
+  },
+  "journeys": [
+    { "id": "first-launch-harness-detect", "priority": "P0", "source": "matrix", "specs": ["cuj-first-launch-harness-detect", "cuj-codex", "cuj-claude", "welcome", "versions"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "model-effort-fast", "priority": "P0", "source": "matrix", "specs": ["cuj-model-effort-fast", "codex-session-settings", "composer-menus"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "sign-in-auth", "priority": "P0", "source": "matrix", "specs": ["cuj-sign-in-auth", "welcome", "accounts"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "daily-chat-loop", "priority": "P0", "source": "matrix", "specs": ["cuj-daily-chat-loop", "cuj-codex", "cuj-claude"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "review-diff-and-commit", "priority": "P0", "source": "matrix", "specs": ["cuj-review-diff-and-commit"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "new-chat-default-harness", "priority": "P0", "source": "matrix", "specs": ["cuj-new-chat-default-harness", "mini", "projects"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "permissions-approvals", "priority": "P0", "source": "matrix", "specs": ["cuj-permissions-approvals", "composer-menus"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "goal-and-away", "priority": "P0", "source": "newJourneys", "specs": ["cuj-goal-and-away", "cuj-codex-goal", "codex-goal-quit", "exit-gate"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "plan-then-execute", "priority": "P0", "source": "newJourneys", "specs": ["cuj-plan-then-execute", "claude-plan"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "control-a-mac-app", "priority": "P0", "source": "newJourneys", "specs": ["cuj-control-a-mac-app", "cuj-background-app-control", "computer-use"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "use-my-chrome", "priority": "P0", "source": "newJourneys", "specs": ["cuj-use-my-chrome", "browser"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "unattended-scheduled-task", "priority": "P0", "source": "newJourneys", "specs": ["cuj-unattended-scheduled-task", "scheduled-run"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "switch-harness-handoff", "priority": "P1", "source": "matrix", "specs": ["cuj-claude", "entries-routing"], "status": { "codex": "Covered", "claude": "Covered" } },
+    {
+      "id": "multi-account-relay", "priority": "P1", "source": "matrix", "tier": "A", "specs": ["cuj-multi-account-relay", "accounts", "account-switching", "cuj-goal-and-away"], "status": { "codex": "Covered", "claude": "Covered" },
+      "gap": "Add a second account from the app (a new sign-in that lands as a new account), and the API key fallback once every subscription is out, on both harnesses."
+    },
+    { "id": "plugins-and-skills", "priority": "P1", "source": "matrix", "specs": ["cuj-plugins-and-skills", "extensions"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "worktree-environments", "priority": "P1", "source": "matrix", "specs": ["cuj-worktree-environments", "worktrees"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "scheduled-tasks", "priority": "P1", "source": "matrix", "specs": ["cuj-scheduled-tasks", "scheduled-run"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "side-chat-fork-selection", "priority": "P1", "source": "matrix", "specs": ["cuj-side-chat-fork-selection"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "usage-billing", "priority": "P1", "source": "matrix", "specs": ["cuj-usage-billing", "accounts"], "status": { "codex": "Partial", "claude": "Covered" } },
+    { "id": "instructions-and-import", "priority": "P1", "source": "matrix", "specs": ["cuj-instructions-and-import", "instructions"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "manage-search-archive", "priority": "P1", "source": "matrix", "specs": ["cuj-manage-search-archive", "chat-search"], "status": { "codex": "Covered", "claude": "Covered" } },
+    { "id": "configure-mcp", "priority": "P1", "source": "matrix", "specs": ["cuj-configure-mcp", "extensions"], "status": { "codex": "Covered", "claude": "Covered" } },
+    {
+      "id": "code-review", "priority": "P1", "source": "matrix", "tier": "B", "specs": ["cuj-pr-and-ci", "codex-plan-review-compact", "claude-review"], "status": { "codex": "Covered", "claude": "Covered" },
+      "gap": "The Code Review page is covered against a fake gh (cuj-pr-and-ci): my pull request listed, its diff and checks, Review in a new chat. Left: the team review lists, reviewing on Claude Code from the page (the default harness runs it)."
+    },
+    { "id": "personalize", "priority": "P2", "source": "matrix", "specs": ["keybindings", "notifications", "settings-reasoning", "update-channel"], "status": { "codex": "Partial", "claude": "Partial" } },
+    {
+      "id": "cloud-and-remote", "priority": "P2", "source": "matrix", "tier": "B", "specs": ["extensions"], "status": { "codex": "Partial", "claude": "None" },
+      "gap": "Both reference products run work away from the desk (cloud tasks, remote control from another device). Needs a product decision on scope before a spec; until then it stays P2."
+    },
+    { "id": "advanced-config-hooks", "priority": "P2", "source": "matrix", "specs": ["extensions"], "status": { "codex": "None", "claude": "Partial" } },
+    { "id": "voice-and-dictation", "priority": "P2", "source": "matrix", "specs": ["dictation-engine", "entries-routing"], "status": { "codex": "Partial", "claude": "Partial" } },
+
+    {
+      "id": "built-in-browser", "priority": "P0", "source": "gap", "tier": "A", "reference": ["MoPilot"], "specs": ["cuj-built-in-browser", "browser"], "status": { "codex": "Covered", "claude": "Covered", "acp": "None" },
+      "gap": "Covered on Codex and Claude Code (cuj-built-in-browser): the sign-in hand-off with Done, continue, the sign-in kept for a chat on the other harness, Take over keeping the tab. Left: ACP, a page that blocks the agent (bot check), Hand back."
+    },
+    {
+      "id": "cross-session-messaging", "priority": "P0", "source": "gap", "tier": "A", "reference": ["MoPilot"], "specs": ["cuj-cross-session-messaging"], "status": { "codex": "Covered", "claude": "Covered", "acp": "Partial" },
+      "gap": "Walked: Codex asks Claude Code, Claude Code asks an ACP chat, a chat switched from Claude Code to Codex receives a queued request and replies with every window closed, and an archived recipient shows Blocked with its reason. Missing: an ACP chat as the sender, the @ picker and the Message another chat dialog as entry points, and restart with a request in flight."
+    },
+    {
+      "id": "orchestrator-chat", "priority": "P0", "source": "gap", "tier": "A", "reference": ["MoPilot"], "specs": ["cuj-orchestrator-chat"], "status": { "codex": "Partial", "claude": "Covered", "acp": "None" },
+      "gap": "Walked: a Claude Code orchestrator keeps a task list, starts a Codex and a Claude Code session, a start on a missing harness fails with nothing left behind, the Codex session finishes with every window closed, and the woken parent wraps up by itself. Missing: Codex and ACP as the orchestrator, ACP children, the cap on sessions working at once, and offer / own_initiative cards."
+    },
+    {
+      "id": "acp-harness-daily-loop", "priority": "P0", "source": "gap", "tier": "A", "reference": ["MoPilot"], "specs": ["cuj-acp-harness-daily-loop", "acp", "acp-admission", "acp-switch", "acp-commands"], "status": { "codex": "Partial", "claude": "Partial", "acp": "Covered" },
+      "gap": "MoPilot's built-in browser and computer-use tools from an ACP chat (only sage-mcp's debug echo is walked), and a switch back from the ACP chat to Claude Code or Codex."
+    },
+    {
+      "id": "control-across-switch", "priority": "P0", "source": "gap", "tier": "A", "reference": ["MoPilot"], "specs": ["cuj-control-across-switch"], "status": { "codex": "Covered", "claude": "Covered", "acp": "None" },
+      "gap": "Covered both ways between Codex and Claude Code (cuj-control-across-switch): the app grant and the site grant carry over the switch with no second card, and Stop lets go of the app. Left: a switch to an ACP harness, Your Chrome tabs."
+    },
+
+    {
+      "id": "pr-and-ci", "priority": "P1", "source": "gap", "tier": "B", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": ["cuj-pr-and-ci"], "status": { "codex": "Covered", "claude": "Covered", "acp": "None" },
+      "gap": "Covered on both harnesses against a fake gh (cuj-pr-and-ci): Create (the in-app form, electron/platform/prCreate.cjs), Track pull request, the failing check in the Changes card, Auto-fix (from the PR's menu) sending it to the chat once. Left: pushing (the agent runs git push itself), review comments, merge conflicts."
+    },
+    {
+      "id": "preview-my-app", "priority": "P1", "source": "gap", "tier": "B", "reference": ["Claude Desktop"], "specs": ["cuj-preview-my-app"], "status": { "codex": "Covered", "claude": "Covered", "acp": "None" },
+      "gap": "Covered on both harnesses (cuj-preview-my-app): browser_preview_start asks on the Dev server card, the page opens in the built-in browser after the site card, preview_list, and Deny refuses. Left: launch.json configurations, preview_stop and logs, ACP."
+    },
+    {
+      "id": "terminal-and-background-work", "priority": "P1", "source": "gap", "tier": "B", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": ["terminal", "claude-tasks", "codex-background"], "status": { "codex": "Partial", "claude": "Partial", "acp": "None" },
+      "gap": "One journey through the terminal panel, a command the agent leaves running and sub-agents: list them, open one, stop one, and keep them across Stop of the turn. Launch decision (2026-10-20): no new spec; terminal, claude-tasks and codex-background cover the pieces."
+    },
+    {
+      "id": "context-attachments", "priority": "P1", "source": "gap", "tier": "B", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": ["cuj-context-attachments", "file-search", "cuj-daily-chat-loop"], "status": { "codex": "Covered", "claude": "Covered", "acp": "None" },
+      "gap": "Covered on both harnesses (cuj-context-attachments): a PDF and a folder from the + menu and an @ file reach the harness in its form; a removed chip is not sent. Found #1719 (text typed right after an @ pick lands inside the file name). Left: drop, pasted screenshot (regressions.spec), ACP."
+    },
+    {
+      "id": "quick-entry-and-windows", "priority": "P1", "source": "gap", "tier": "B", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": ["mini", "multi-window"], "status": { "codex": "Partial", "claude": "Partial", "acp": "None" },
+      "gap": "The global shortcut opens Quick Chat over another app, the prompt becomes a chat, it opens in its own window, and the tray's New chat and Stop work with the main window closed. Launch decision (2026-10-20): no new spec; mini and multi-window cover the pieces."
+    },
+    {
+      "id": "parallel-chats-and-status", "priority": "P1", "source": "gap", "tier": "B", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": ["cuj-parallel-chats-and-status", "notifications"], "status": { "codex": "Covered", "claude": "Covered", "acp": "None" },
+      "gap": "Covered (cuj-parallel-chats-and-status): a Codex and a Claude Code chat at once, Working and Awaiting approval in the sidebar, the approval answered in its own chat, the finished chat marked unread and notified. Left: ACP, more than two chats, the Priority list."
+    },
+    {
+      "id": "connectors-directory", "priority": "P2", "source": "gap", "tier": "B", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": [], "status": { "codex": "None", "claude": "None", "acp": "None" },
+      "gap": "Connect a remote MCP server or connector that signs in with OAuth, use it in a chat, and disconnect it. configure-mcp covers a local STDIO server added by hand. Deferred after launch (P2)."
+    },
+
+    {
+      "id": "update-and-migrate", "priority": "P1", "source": "gap", "tier": "C", "reference": ["MoPilot"], "specs": ["cuj-update-and-migrate", "persist-migration", "downgrade", "update-channel"], "status": { "codex": "Covered", "claude": "Covered", "acp": "None" },
+      "gap": "Squirrel's quitAndInstall itself (it needs a signed, packaged build; the spec quits through the same before-quit path); composer drafts, which are kept for the app's run only; the ACP harness."
+    },
+    {
+      "id": "quit-crash-restore", "priority": "P1", "source": "gap", "tier": "C", "reference": ["MoPilot"], "specs": ["cuj-quit-crash-restore", "harness-crash", "exit-gate", "codex-goal-quit", "acp"], "status": { "codex": "Covered", "claude": "Partial", "acp": "Partial" },
+      "gap": "After the app is killed, a Claude chat whose turn it left mid-way reads as running in another app for up to a minute (#1744); queued messages and composer drafts across an app restart (not in the app yet: both are kept for the app's run only); the ACP harness quitting mid-turn with an approval waiting."
+    },
+    {
+      "id": "errors-limits-offline", "priority": "P1", "source": "gap", "tier": "C", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": ["cuj-errors-limits-offline", "account-switching"], "status": { "codex": "Partial", "claude": "Covered", "acp": "None" },
+      "gap": "Sign in on a Codex turn that failed on its own lapsed login (#1745); a real network drop (the fakes model the harness retrying a failing stream); a Retry on a turn that already ended in an error (not in the app yet: Retry is on the running turn's banner); the ACP harness."
+    },
+    {
+      "id": "no-window-background", "priority": "P1", "source": "gap", "tier": "C", "reference": ["MoPilot"], "specs": ["scheduler-no-window", "account-switching", "cuj-cross-session-messaging", "cuj-orchestrator-chat"], "status": { "codex": "Partial", "claude": "Partial", "acp": "None" },
+      "gap": "With every window closed a scheduled task runs (scheduler-no-window), a queued cross-session request is delivered and answered, and an orchestrator child finishes and wakes its parent (the two CUJ specs). Missing: the notification that opens the right chat, and any of it on an ACP chat."
+    },
+    {
+      "id": "adopt-existing-sessions", "priority": "P1", "source": "gap", "tier": "C", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": ["cuj-adopt-existing-sessions", "native-thread-adoption", "external-writes"], "status": { "codex": "Covered", "claude": "Covered", "acp": "None" },
+      "gap": "Bulk import of many threads and sessions at first launch (paging); the ACP harness."
+    },
+    {
+      "id": "keyboard-and-accessibility", "priority": "P2", "source": "gap", "tier": "C", "reference": ["Claude Desktop", "ChatGPT desktop"], "specs": ["keybindings"], "status": { "codex": "Partial", "claude": "Partial", "acp": "None" },
+      "gap": "The daily chat loop with the keyboard only (new chat, send, approve, Stop, switch chat) and every control named for VoiceOver. Deferred after launch (P2)."
+    }
+  ],
+  "outOfScope": [
+    { "id": "consumer-chat-features", "reason": "Image generation, Canvas and Artifacts, web search and deep research as product features, voice conversation mode and memory across chats belong to the reference products' consumer chat, not to a desktop host for coding agents. They become journeys only if MoPilot adds them." }
+  ]
+}

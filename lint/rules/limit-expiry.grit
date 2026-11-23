@@ -1,0 +1,10 @@
+// A quota limit checked by hand: copies drift apart, and one that forgets the reset time keeps an account limited after it starts over.
+// docs/bug-prevention/stale-async-results.md
+language js
+
+or {
+  `$a * 1000 > Date.now()` where { $a <: r"(?s).*\bresetsAt\b.*" },
+  `$a >= 100` where { $a <: r"(?s).*\busedPercent\b.*" }
+} as $m where {
+  register_diagnostic(span=$m, message="[limit-expiry] A quota limit checked by hand can miss its reset time. Use windowLimited(window) or resetAhead(resetsAt) from src/harness/usageWindows (docs/bug-prevention/stale-async-results.md).", severity="warn")
+}

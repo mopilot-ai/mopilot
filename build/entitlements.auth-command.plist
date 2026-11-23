@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- auth-command (Contents/Helpers/auth-command), signed with the hardened runtime. It reads one keychain item
+     and prints it: no JIT, no third-party libraries. -->
+<plist version="1.0">
+<dict/>
+</plist>

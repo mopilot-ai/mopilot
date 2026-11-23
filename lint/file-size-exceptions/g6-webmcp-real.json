@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/electronMainStartup.test.ts": {
+      "maxLines": 733,
+      "reason": "Startup wiring scenarios share the Electron main-process fixture. Identity, notification and computer-use options are exercised at their real composition boundary. It also checks that a <webview> guest gets the WebMCP page API with its switch. Computer use registers through action memory's recorder (G4), so its check proves main's Registry passes through it."
+    }
+  }
+}

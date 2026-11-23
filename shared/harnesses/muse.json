@@ -1,0 +1,31 @@
+{
+  "id": "muse",
+  "label": "Muse",
+  "vendor": "Meta",
+  "bins": [
+    "muse"
+  ],
+  "docsUrl": "https://meta-models.github.io/muse-code-sdk/next/guides/editors-acp/",
+  "install": {
+    "docs": "https://meta-models.github.io/muse-code-sdk/next/guides/editors-acp/",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "acp"
+    ],
+    "env": {
+      "MUSE_EXPERIMENTAL_ACP": "on"
+    },
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration.",
+    "Muse ACP is experimental; its opt-in applies only to the MoPilot process."
+  ]
+}

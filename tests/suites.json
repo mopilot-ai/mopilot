@@ -1,0 +1,230 @@
+{
+  "composer-goal": {
+    "tests": [
+      "tests/composerGoalUI.test.ts"
+    ]
+  },
+  "streaming": {
+    "tests": [
+      "tests/streaming.test.ts",
+      "tests/streamingUI.test.ts"
+    ]
+  },
+  "side-chat": {
+    "tests": [
+      "tests/chatPanes.test.ts",
+      "tests/sideChat.test.ts",
+      "tests/selectionAnnotationsUI.test.ts"
+    ]
+  },
+  "annotations": {
+    "tests": [
+      "tests/selectionAnnotations.test.ts",
+      "tests/selectionAnchor.test.ts",
+      "tests/selectionAnnotationsUI.test.ts",
+      "tests/selectionDictation.test.ts"
+    ]
+  },
+  "composer-ime": {
+    "tests": [
+      "tests/composerInput.test.ts"
+    ]
+  },
+  "edited-files": {
+    "tests": [
+      "tests/turnChanges.test.ts",
+      "tests/composerInput.test.ts",
+      "tests/codexAdapter.test.ts",
+      "tests/turnDiff.test.ts",
+      "tests/editedFilesCard.test.ts",
+      "tests/sharedTranslate.test.ts"
+    ]
+  },
+  "browser": {
+    "tests": [
+      "tests/browserRecovery.test.ts",
+      "tests/browserAuth.test.ts",
+      "tests/browserPanel.test.ts",
+      "tests/yourChrome.test.ts",
+      "tests/signing.test.ts",
+      "tests/browserPanelUI.test.ts",
+      "tests/browserPermissions.test.ts",
+      "tests/browserPermissionSettings.test.ts",
+      "tests/browserHost.test.ts",
+      "tests/browserHostHelpers.test.ts",
+      "tests/browserTab.test.ts",
+      "tests/browserHostTurns.test.ts",
+      "tests/browserHostPage.test.ts",
+      "tests/browserHostInput.test.ts",
+      "tests/browserHostCapture.test.ts",
+      "tests/browserHostTools.test.ts",
+      "tests/browserScript.test.ts",
+      "tests/browserScriptRuntime.test.ts",
+      "tests/pageAgent.test.ts",
+      "tests/browserAgentTabs.test.ts",
+      "tests/claudeHostServers.test.ts",
+      "tests/agentBrowserTabsStore.test.ts",
+      "tests/approvalAllowAlwaysUI.test.ts",
+      "tests/sidePaneUI.test.ts",
+      "tests/browserShim.test.ts",
+      "tests/agentCursor.test.ts"
+    ],
+    "timeout": 10000,
+    "skip": [
+      "the pinned CLI in --extension mode"
+    ]
+  },
+  "browser-use": {
+    "tests": [
+      "tests/codexBrowserUse.test.ts",
+      "tests/browserUseSettingsUI.test.ts",
+      "tests/browserPermissionSettings.test.ts"
+    ]
+  },
+  "navigation": {
+    "tests": [
+      "tests/threadNavigation.test.ts",
+      "tests/turnNavigationUI.test.ts",
+      "tests/persist.test.ts"
+    ]
+  },
+  "sidebar-resize": {
+    "tests": [
+      "tests/sidebarResizeUI.test.ts",
+      "tests/threadNavigation.test.ts"
+    ]
+  },
+  "desktop": {
+    "tests": [
+      "tests/desktopPolicy.test.ts",
+      "tests/controlIndicator.test.ts",
+      "tests/desktopTools.test.ts",
+      "tests/desktopAccess.test.ts",
+      "tests/desktopGrants.test.ts",
+      "tests/desktopGate.test.ts",
+      "tests/desktopActions.test.ts",
+      "tests/desktopCapture.test.ts",
+      "tests/appScopedTools.test.ts",
+      "tests/appScopedCapture.test.ts",
+      "tests/appScopedActions.test.ts",
+      "tests/appScopedBatch.test.ts",
+      "tests/desktopHost.test.ts",
+      "tests/desktopCardsUI.test.ts",
+      "tests/approvalsUI.test.ts",
+      "tests/nativeControlUI.test.ts",
+      "tests/desktopVisibility.test.ts",
+      "tests/notify.test.ts"
+    ]
+  },
+  "native-control": {
+    "tests": [
+      "tests/nativeControlLib.test.ts",
+      "tests/nativeControlUI.test.ts",
+      "tests/nativeControlMain.test.ts",
+      "tests/nativeClaudeChrome.test.ts",
+      "tests/nativeClaudeDisplay.test.ts",
+      "tests/nativeAvailability.test.ts",
+      "tests/browserApprovals.test.ts",
+      "tests/nativeStepNarrationUI.test.ts",
+      "tests/claudeChromeTabs.test.ts",
+      "tests/codexFastStop.test.ts",
+      "tests/desktopCardsUI.test.ts",
+      "tests/claudeChromeLink.test.ts"
+    ]
+  },
+  "native-availability": {
+    "tests": [
+      "tests/nativeAvailability.test.ts",
+      "tests/nativeAvailabilityUI.test.ts",
+      "tests/nativeControlUI.test.ts",
+      "tests/toolRouting.test.ts",
+      "tests/nativeControlMain.test.ts"
+    ],
+    "timeout": 30000
+  },
+  "tool-routing": {
+    "tests": [
+      "tests/toolRouting.test.ts",
+      "tests/agentNarration.test.ts",
+      "tests/nativeStepNarration.test.ts",
+      "tests/controlNarrationUI.test.ts",
+      "tests/nativeStepNarrationUI.test.ts",
+      "tests/browserPanelUI.test.ts",
+      "tests/nativeAvailability.test.ts",
+      "tests/codexFastStop.test.ts",
+      "tests/browserHandoffTabs.test.ts"
+    ],
+    "timeout": 30000
+  },
+  "native-narration": {
+    "tests": [
+      "tests/agentNarration.test.ts",
+      "tests/nativeStepNarration.test.ts",
+      "tests/nativeStepNarrationUI.test.ts",
+      "tests/controlNarrationUI.test.ts",
+      "tests/browserHandoffTabs.test.ts"
+    ]
+  },
+  "claude-chrome-tabs": {
+    "tests": [
+      "tests/claudeChromeTabs.test.ts",
+      "tests/claude.test.ts",
+      "tests/composerGoalUI.test.ts",
+      "tests/nativeClaudeChrome.test.ts",
+      "tests/claudeChromeLink.test.ts"
+    ]
+  },
+  "browser-handoff-tabs": {
+    "tests": [
+      "tests/browserHandoffTabs.test.ts",
+      "tests/composerGoalUI.test.ts",
+      "tests/mentionPopup.test.ts",
+      "tests/composerInput.test.ts"
+    ]
+  },
+  "codex-fast-stop": {
+    "tests": [
+      "tests/codexFastStop.test.ts",
+      "tests/nativeControlMain.test.ts",
+      "tests/nativeControlUI.test.ts",
+      "tests/browserHandoffTabs.test.ts"
+    ],
+    "timeout": 20000
+  },
+  "code-quality": {
+    "tests": [
+      "tests/gitQueries.test.ts",
+      "tests/claudeTranscriptEdits.test.ts",
+      "tests/settings-shell.test.ts",
+      "tests/automationStore.test.ts",
+      "tests/automationsLib.test.ts",
+      "tests/scheduledLoadingUI.test.ts",
+      "tests/codexSettingsUI.test.ts",
+      "tests/computerUse.test.ts",
+      "tests/computerGrants.test.ts",
+      "tests/capPolicyGrants.test.ts",
+      "tests/vision.test.ts",
+      "tests/capVisionIndex.test.ts",
+      "tests/capComputerUseSetup.test.ts",
+      "tests/browserStorage.test.ts",
+      "tests/browserClearData.test.ts",
+      "tests/focusedUnitCoverage.test.ts",
+      "tests/diffCoverage.test.ts",
+      "tests/store-boot.test.ts",
+      "tests/chatActions.test.ts",
+      "tests/accountSwitching.test.ts",
+      "tests/turnNavigationUI.test.ts",
+      "tests/threadNavigation.test.ts",
+      "tests/browserAnnotateUI.test.ts",
+      "tests/boundary.test.ts",
+      "tests/cjk-ui-strings.test.ts",
+      "tests/mainQualityWiring.test.ts",
+      "tests/claudeCoverageTranscripts.test.ts"
+    ]
+  },
+  "control-matrix": {
+    "tests": [
+      "tests/controlMatrix*.test.ts"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+/* The chat's find bar (src/components/thread/view/ChatFind.tsx) at the transcript's top right, and its matches. */
+.chat-find {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 6px 0 10px;
+  max-width: calc(100% - 32px);
+  background: var(--menu-bg);
+  border: 0.5px solid var(--menu-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+  animation: pop-in 120ms var(--ease);
+}
+.chat-find-icon {
+  flex: none;
+  color: var(--text-3);
+}
+.chat-find-input {
+  width: 200px;
+  min-width: 80px;
+  flex: 1 1 auto;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-ui);
+}
+.chat-find-count {
+  flex: none;
+  min-width: 52px;
+  text-align: right;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.chat-find-older {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-small);
+  padding: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.chat-find-older:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.chat-find-older:disabled {
+  color: var(--text-4);
+  cursor: default;
+}
+::highlight(chat-find) {
+  background-color: color-mix(in srgb, var(--yellow) 32%, transparent);
+}
+::highlight(chat-find-current) {
+  background-color: color-mix(in srgb, var(--yellow) 60%, transparent);
+}

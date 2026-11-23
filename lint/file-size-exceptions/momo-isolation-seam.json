@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/hostMomoChats.test.ts": {
+      "maxLines": 560,
+      "reason": "MoMo's chats on a Host: isolation, the chat veil's guard and the turn ledger's acceptance share one world of real Claude sessions and a home (the `world` helper), so the cases stay in one file. The review's guard cases (a resend never runs again, a turn without an id is refused) use the same world. The home is named by the Host's own id there too."
+    }
+  }
+}

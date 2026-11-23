@@ -1,0 +1,28 @@
+{
+  "id": "hermes",
+  "label": "Hermes Agent",
+  "vendor": "Nous Research",
+  "bins": [
+    "hermes"
+  ],
+  "docsUrl": "https://hermes-agent.nousresearch.com/docs/reference/cli-commands",
+  "install": {
+    "docs": "https://hermes-agent.nousresearch.com/docs/reference/cli-commands",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ]
+}

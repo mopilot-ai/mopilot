@@ -1,0 +1,34 @@
+{
+  "layer": "L3",
+  "public": [
+    "remoteItemFeed.cjs",
+    "claude/index.cjs",
+    "items/acp.cjs",
+    "items/acpTranslator.cjs",
+    "items/claude.cjs",
+    "acp.cjs",
+    "acp/cardAnswer.cjs",
+    "acp/inheritedPermission.cjs",
+    "bindings.cjs",
+    "claude/accounts.cjs",
+    "claude/desktopLineage.cjs",
+    "claude/message.cjs",
+    "claude/tasks.cjs",
+    "codexIsolation.cjs",
+    "codexReadState.cjs",
+    "codexRollout.cjs",
+    "compact.cjs",
+    "compactionSignals.cjs",
+    "family.cjs",
+    "instructionFiles.cjs",
+    "quirks/index.cjs",
+    "routeReader.cjs",
+    "versions.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2"
+  ],
+  "allow": []
+}

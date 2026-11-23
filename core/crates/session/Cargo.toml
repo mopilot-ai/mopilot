@@ -1,0 +1,16 @@
+[package]
+name = "session"
+version = "0.1.0"
+description = "Each chat's live session state as main patches it: which keys a patch may set, what a turn's change implies, which values changed, and the revision windows apply patches in."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+inventory = "0.3"
+# preserve_order: compared as JSON.stringify writes it; float_roundtrip: two numbers JS tells apart stay apart
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }

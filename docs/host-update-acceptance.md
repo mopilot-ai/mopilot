@@ -1,0 +1,7 @@
+# Update authority at acceptance
+
+The CLI captures trusted keys for an early manifest/download check. Asynchronous preparation can outlive that snapshot: another authorized client may revoke the signer or advance the downgrade floor while files are being read.
+
+When a live key store is supplied, acceptance therefore acquires the config directory's trust lock, finishes any already-committed pending trust change, and reruns the existing manifest validator against current keys, time and floor. Only then does synchronous unpacking, native-core inspection and acceptance run under the same owner; archive extraction and the native probe each request a 30-second timeout with SIGKILL, so handling SIGTERM cannot retain the lock. Filesystem I/O is not a strict wall-clock deadline; concurrent trust writers receive retryable trust_busy while the operation owns the lock. Administrator key replacement participates in that owner too, without restoring revoked keys. A refusal publishes no new next/floor pointer or trust addition and asks the app to reconnect/retry; it does not mislabel temporary eligibility as a need to pair again.
+
+This is a freshness check, not a new signature, revocation, expiry or downgrade policy. Durable pending intent still recovers without renewed authority: it represents an earlier committed decision. Network preparation is outside the lock, and this does not make archive/next/floor/trust crash-atomic. Standalone callers without a live key store retain their existing explicit-key-list API; the production CLI supplies the authoritative store.

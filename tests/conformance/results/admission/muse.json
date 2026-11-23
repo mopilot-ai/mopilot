@@ -1,0 +1,47 @@
+{
+  "id": "muse",
+  "version": "1.4.14",
+  "checkedAt": "2026-11-04T00:38:22.992Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Muse 1.4.14 was installed with curl -fsSL https://dev.meta.ai/install.sh | bash and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "muse",
+      "version": "1.4.14"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": false
+      },
+      "sessionCapabilities": {
+        "resume": {},
+        "list": {}
+      }
+    },
+    "authMethods": [
+      {
+        "id": "muse-login",
+        "name": "Log in to Muse",
+        "description": "Sign in with a device code shown in your browser."
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": false,
+    "sageMcpHello": false,
+    "error": "log in to Muse before opening a session"
+  },
+  "probeWithQuirksFixes": {
+    "state": "signin",
+    "version": "1.4.14",
+    "reason": "log in to Muse before opening a session"
+  }
+}

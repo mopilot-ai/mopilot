@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/harness/claude/sessions.cjs": {
+      "maxLines": 501,
+      "reason": "Keep the synchronous local ownership recheck adjacent to Claude's native send after asynchronous lease readiness. This one-line increase closes retirement between the helper resolving and the caller resuming without moving the send's lifetime checks to another owner."
+    }
+  }
+}

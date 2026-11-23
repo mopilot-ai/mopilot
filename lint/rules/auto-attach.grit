@@ -1,0 +1,10 @@
+// Target.setAutoAttach run with its own parameters on a built-in browser page: the page's debugger is shared
+// (documentScripts.cjs keeps the early scripts on it, tab.cjs and the Browser plugin drive it), the last call wins,
+// and pausing new frames hangs out-of-process frames in Electron 44. Pass AUTO_ATTACH from documentScripts.cjs.
+// docs/bug-prevention/external-contracts.md
+language js
+
+JsPropertyObjectMember() as $p where {
+  $p <: r"(?s)^waitForDebuggerOnStart\s*:.*",
+  register_diagnostic(span=$p, message="[auto-attach] Target.setAutoAttach parameters written out: every client of a browser page's debugger must run auto-attach the same way. Use AUTO_ATTACH from electron/capabilities/browser/documentScripts.cjs (docs/bug-prevention/external-contracts.md).", severity="warn")
+}

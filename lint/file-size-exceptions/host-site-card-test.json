@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/browserHostTurns.test.ts": {
+      "maxLines": 695,
+      "reason": "Browser turn and user-handoff cases share tab handles, ownership and consent controls. Page changes must be tested against the same pending action."
+    }
+  }
+}

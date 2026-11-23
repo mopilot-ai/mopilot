@@ -1,0 +1,7 @@
+{"dir":"s2c","msg":{"method":"turn/started","params":{"threadId":"t1","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"item/started","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"commandExecution","id":"c1","command":"sleep 300","cwd":"/repo","processId":"86937","status":"inProgress","aggregatedOutput":null,"exitCode":null}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"collabAgentToolCall","id":"s1","tool":"spawnAgent","status":"completed","senderThreadId":"t1","receiverThreadIds":["sub-1","sub-2"],"prompt":"Explore the repo"}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"collabAgentToolCall","id":"s2","tool":"wait","status":"completed","senderThreadId":"t1","receiverThreadIds":["sub-1"],"prompt":null}}}}
+{"dir":"s2c","msg":{"method":"turn/completed","params":{"threadId":"t1","turn":{"id":"turn-1","status":"completed","items":[],"error":null}}}}
+{"dir":"result","method":"thread/backgroundTerminals/list","result":{"data":[{"itemId":"c1","processId":"86937","command":"sleep 300","cwd":"/repo","osPid":null,"cpuPercent":null,"rssKb":null}]}}
+{"dir":"result","method":"thread/backgroundTerminals/list","result":{"data":[]}}

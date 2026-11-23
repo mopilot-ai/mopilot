@@ -1,0 +1,17 @@
+// Copy that names one harness where any harness may be the subject: the default harness's label shown as if it were
+// the feature's (the Code Review page's "Review with Claude Code", #1645), or one harness's name as the fallback when a
+// label is missing (a transcript's "## Codex", "Use your Claude subscription"). Name the chat's own harness, or say it
+// without a name. Applied to src, electron and shared (biome.json overrides). docs/bug-prevention/cross-harness-gaps.md
+language js
+
+or {
+  `HARNESS_LABEL[newChatHarness($...)]`,
+  `HARNESS_LABEL[defaultHarness($...).$_]`,
+  `$_ ?? HARNESS_LABEL.$_`,
+  `$_ || HARNESS_LABEL.$_`,
+  `() => HARNESS_LABEL.$_`,
+  `$_ ?? $s` where { $s <: r"['\"](?:Codex|Claude|OpenCode)\b[^'\"]*['\"]" },
+  `$_ || $s` where { $s <: r"['\"](?:Codex|Claude|OpenCode)\b[^'\"]*['\"]" }
+} as $hit where {
+  register_diagnostic(span=$hit, message="[harness-fallback] This names one harness where any harness may be the subject: the default harness's label, or one harness as the fallback for a missing label. Name the chat's own harness (chatHarnessLabel, harnessLabelOf) or say it without a name (docs/bug-prevention/cross-harness-gaps.md).", severity="warn")
+}

@@ -1,0 +1,119 @@
+/* A chat on a machine: what its panels say in place of this Mac's git and files, and the Files and Changes panes that read the machine through its Host. */
+/* what a panel says in place of git or files for a folder on a machine (MachineFolderNote.tsx) */
+.machine-folder-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  color: var(--text-3);
+  font-size: var(--fs-ui);
+}
+.machine-folder-note > svg {
+  flex: none;
+}
+
+/* the Files pane of a chat on a machine (files/RemoteFiles.tsx) */
+.files-tree-title {
+  flex: 1;
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.remote-file {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.remote-file-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: var(--fs-ui);
+}
+.remote-file-dir {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+.remote-file-text {
+  flex: 1;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  white-space: pre;
+}
+.remote-file-note {
+  padding: 6px 12px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+
+.remote-file-hit {
+  display: block;
+  background: var(--row-hover);
+  color: inherit;
+}
+
+/* the @ popup's one line when the machine has not answered or cannot search (ComposerPopups.tsx) */
+.mention-note {
+  color: var(--text-3);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* what a machine chat says beside a sentence that asks for the Host to be updated (components/host/HostUpdateAction.tsx): it follows the sentence and drops under it where there is no room, never clipped or squeezed into a column */
+.host-update-note {
+  color: var(--text-3);
+}
+.host-update-note,
+.host-picker-notice > button,
+.machine-folder-note > button,
+.file-node > button {
+  margin-inline-start: 8px;
+  white-space: nowrap;
+}
+.machine-folder-note {
+  flex-wrap: wrap;
+}
+.machine-folder-note > span:first-of-type {
+  flex: 1 1 12ch;
+  min-width: 0;
+}
+.machine-folder-note > button,
+.machine-folder-note > .host-update-note {
+  margin-inline-start: 24px;
+  white-space: normal;
+}
+.machine-folder-note > button {
+  white-space: nowrap;
+}
+.file-node.muted:has(> button, > .host-update-note) {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 28px;
+  padding-block: 4px;
+  white-space: normal;
+}
+/* the model picker's note under an agent with no models: the whole sentence shows, the action below it */
+.menu-desc.hp-note {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+.hp-note > button,
+.hp-note > .host-update-note {
+  display: block;
+  margin: 4px 0 0;
+  white-space: normal;
+}

@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/threadPullRequestBadge.test.ts": {
+      "maxLines": 522,
+      "reason": "Badge reads share a fake reader, store and native bridge. Mount, cached-answer and refresh-trigger cases exercise the same lifecycle."
+    }
+  }
+}

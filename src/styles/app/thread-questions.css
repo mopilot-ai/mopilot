@@ -1,0 +1,233 @@
+/* Agent question cards: choices, text responses, asynchronous forms and submitted replies. */
+/* The question card: the question as its title with a
+   "2/3" count and a fold and dismiss pair, one tile per choice with its number key, an Other tile with its field, and
+   Back, Skip and Submit (Next before the last question) under them. */
+.question-card {
+  padding: 12px;
+  gap: 12px;
+}
+.question-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.question-count {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  height: calc(var(--fs-chat) * 1.43);
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--status-waiting) 18%, transparent);
+  color: color-mix(in srgb, var(--status-waiting) 70%, var(--text));
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+.question-title {
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.question-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: -4px -4px 0 0;
+}
+.question-head-actions .icon-btn {
+  color: var(--text-3);
+}
+.question-caret {
+  transition: transform var(--dur-fast) ease-out;
+}
+.question-caret.open {
+  transform: rotate(90deg);
+}
+.question-body {
+  min-height: 0;
+  overflow: auto;
+  margin: 0 -12px;
+  padding: 0 12px;
+}
+.question-options {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+/* a choice: a tile in the ink's faintest wash, a shade darker on hover or walked to with the arrows; picked ones sit
+   on the popover surface inside a hairline ring */
+.question-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 5px;
+  background: rgba(var(--ink), 0.04);
+  color: var(--text);
+  text-align: start;
+  transition: background-color 0.12s ease-out;
+}
+.question-option:not(:disabled):hover,
+.question-option.hl {
+  background: rgba(var(--ink), 0.075);
+}
+.question-option.sel {
+  background: var(--composer-bg);
+  box-shadow: inset 0 0 0 1px var(--hairline-strong);
+}
+[data-theme='dark'] .question-option.sel {
+  background: rgba(var(--ink), 0.075);
+}
+.question-option:focus-visible,
+.question-other-pick:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.question-option-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.question-option-label {
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  color: var(--text);
+}
+.question-option-desc {
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  color: var(--text-3);
+  white-space: pre-wrap;
+}
+.question-option-key {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.question-check {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(var(--ink), 0.3);
+  border-radius: 4px;
+  color: var(--on-color);
+}
+.question-check.on {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+/* Other: its tile holds the pick (with its number key) and the field to type into */
+.question-other {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+.question-other.alone {
+  display: flex;
+  padding: 8px 10px;
+  border-radius: 5px;
+  background: rgba(var(--ink), 0.04);
+}
+.question-other-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  text-align: start;
+}
+.question-other-pick .question-option-label {
+  flex: 1;
+}
+.question-other-input {
+  width: 100%;
+  min-width: 0;
+  max-height: calc(4lh + 8px);
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  resize: none;
+  field-sizing: content;
+}
+.question-other-input::placeholder {
+  color: var(--text-4);
+}
+.question-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.question-foot .question-back {
+  margin-inline-end: auto;
+}
+.question-foot .ap-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.async-questions {
+  margin: 12px 0;
+}
+.async-questions.docked {
+  margin: 0;
+}
+/* above the composer, which stays to write instead */
+.docked-questions,
+.thread-composer-area > .approval-card {
+  margin-bottom: 8px;
+}
+.user-bubble.question-reply-bubble {
+  min-width: 0;
+  background: var(--text);
+  color: var(--surface);
+}
+.question-reply-summary {
+  color: inherit;
+  opacity: 0.65;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
+}
+/* the answered-questions card: one row per question, the answer muted under it, hairlines between rows */
+.answered-card {
+  margin: 8px 0 14px;
+  border: 0.5px solid var(--card-border);
+  border-radius: var(--card-radius-lg);
+  background: var(--card-bg);
+  overflow: hidden;
+}
+.answered-row {
+  padding: 10px 14px;
+  font-size: var(--fs-chat);
+  line-height: 1.45;
+}
+.answered-row + .answered-row {
+  border-top: 0.5px solid var(--card-border);
+}
+.answered-question {
+  color: var(--text);
+}
+.answered-answer {
+  margin-top: 2px;
+  color: var(--text-3);
+}
+.answered-answer.skipped {
+  font-style: italic;
+}

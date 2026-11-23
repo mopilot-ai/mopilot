@@ -1,0 +1,20 @@
+[package]
+name = "llmroute"
+version = "0.1.0"
+description = "A model request translated from the wire its SDK speaks to a provider's through one canonical IR, and the reply, whole or streamed, back: Anthropic Messages in, OpenAI Chat Completions out. Ported from Nasiko's llm-router (Apache-2.0)."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# a text document's bytes, carried as base64 the way the IR carries every file
+base64 = "0.22"
+dispatch = { path = "../dispatch" }
+inventory = "0.3"
+serde = { version = "1", features = ["derive"] }
+# objects keep the order their keys came in, as they do in the addon anyway (crates/session asks for it, and features
+# unify): this crate's own tests see the bytes the app sends
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }

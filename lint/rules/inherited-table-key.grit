@@ -1,0 +1,8 @@
+// Named lookup tables admit only their own keys, not Object.prototype names supplied by callers.
+// docs/bug-prevention/strings-paths-and-keys.md
+language js
+
+`$key in $table` as $hit where {
+  $table <: r"[A-Z][A-Z0-9_]*",
+  register_diagnostic(span=$hit, message="[inherited-table-key] Named lookup tables must reject inherited object names. Use Object.hasOwn(table, key) (docs/bug-prevention/strings-paths-and-keys.md).", severity="warn")
+}

@@ -1,0 +1,384 @@
+/* Review findings: the card of findings by file, and each finding under its diff line. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.findings-card {
+  position: relative;
+  margin: 8px 0 14px;
+  padding: 8px 14px 10px;
+  border: 0.5px solid var(--card-border);
+  border-radius: var(--card-radius-lg);
+  background: var(--card-bg);
+}
+/* the header runs edge to edge over a hairline, the findings by file below it */
+.findings-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 28px;
+  margin: -8px -14px 6px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 0.5px solid var(--card-border);
+}
+/* a review that found nothing is its header alone: no hairline, no empty body under it */
+.findings-card.empty {
+  padding-bottom: 0;
+}
+.findings-card.empty .findings-head {
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+.findings-title {
+  flex: none;
+  font-size: var(--fs-chat);
+  font-weight: 500;
+  color: var(--text);
+}
+/* the finding count grows while a review streams, and the outcome line's counts change as fixes land:
+   tabular figures keep the text beside them still (.diff-stat does the same in thread-results.css) */
+.findings-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-chat);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+.findings-grow {
+  flex: 1;
+}
+.btn-pill.findings-action {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  font-size: var(--fs-small);
+  transition:
+    background-color 60ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    color 60ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    opacity 120ms;
+}
+/* Apply fixes (and Re-run review) as muted ghost text, Walk through in diff an outlined pill */
+.btn-pill.ghost.findings-action {
+  border-color: transparent;
+  background: none;
+  color: var(--text-2);
+}
+.btn-pill.ghost.findings-action:hover:not(:disabled) {
+  background: rgba(var(--ink), 0.05);
+  color: var(--text);
+}
+.btn-pill.ghost.findings-action:active:not(:disabled) {
+  background: rgba(var(--ink), 0.09);
+}
+.btn-pill.findings-action:not(.ghost) {
+  border-color: rgba(var(--ink), 0.12);
+  background: var(--card-bg);
+  box-shadow: 0 1px 1px color-mix(in srgb, black 5%, transparent);
+  color: var(--text);
+}
+.btn-pill.findings-action:not(.ghost):hover:not(:disabled) {
+  background: rgba(var(--ink), 0.04);
+}
+.btn-pill.findings-action:not(.ghost):active:not(:disabled) {
+  background: rgba(var(--ink), 0.08);
+  box-shadow: none;
+}
+.btn-pill.findings-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn-pill.findings-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.findings-list {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) 1fr;
+}
+.findings-file,
+.findings-rows,
+.finding,
+.finding-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-width: 0;
+}
+.findings-file {
+  padding-top: 3px;
+}
+.findings-file-name {
+  display: block;
+  grid-column: 1 / -1;
+  max-width: 100%;
+  padding: 3px 0 0;
+  border: 0;
+  background: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-chat);
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.findings-file-name:hover {
+  text-decoration: underline;
+}
+.findings-rows {
+  margin: 0;
+  padding: 0 0 0 28px;
+  list-style: none;
+}
+.finding.settled {
+  opacity: 0.7;
+}
+.finding-row {
+  align-items: center;
+  column-gap: 10px;
+  width: 100%;
+  min-height: 30px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--row-radius);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.finding-row:hover {
+  background: var(--row-hover);
+}
+.finding-badge {
+  flex: none;
+  max-width: 7rem;
+  padding: 1px 6px;
+  border-radius: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-micro);
+  line-height: 1.48;
+  background: var(--kbd-bg);
+  color: var(--text-2);
+}
+.finding-badge.success {
+  background: color-mix(in srgb, var(--green) 18%, transparent);
+  color: var(--green-text);
+}
+.finding-badge.danger {
+  background: color-mix(in srgb, var(--red) 18%, transparent);
+  color: var(--red-text);
+}
+.finding-badge.warning {
+  background: color-mix(in srgb, var(--yellow) 20%, transparent);
+  color: var(--text);
+}
+.finding-badge-cell {
+  display: flex;
+  min-width: 0;
+}
+.finding-line {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.finding-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-chat);
+  color: var(--text-2);
+}
+.finding-chevron {
+  flex: none;
+  color: var(--text-3);
+  transform: rotate(-90deg);
+  transition: transform var(--dur) var(--ease);
+}
+.finding-chevron.open {
+  transform: none;
+}
+.finding-detail {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 6px 6px 16px;
+  font-size: var(--fs-chat);
+}
+.finding-summary {
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+.finding-scenario {
+  overflow-wrap: anywhere;
+  color: var(--text-2);
+}
+.finding-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 5px;
+}
+/* the footer's badge says a sentence ("Not in the current diff"), not a category: it may use the footer's width */
+.finding-foot .finding-badge {
+  max-width: 100%;
+}
+/* one per finding, in a column: tabular figures line the ":line" numbers up as findings arrive */
+.finding-loc {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.finding-loc:hover {
+  text-decoration: underline;
+}
+.finding-loc-line {
+  font-weight: 500;
+  color: var(--text);
+}
+.btn-pill.finding-view {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.findings-outcomes {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 6px 0;
+  font-size: var(--fs-chat);
+}
+.findings-outcomes-title {
+  flex: none;
+  color: var(--text-2);
+}
+/* in the Changes pane: under its line, held in view while the diff scrolls sideways */
+.finding-annotation-wrap {
+  position: sticky;
+  left: 0;
+  max-width: 720px;
+  padding: 6px 12px;
+  white-space: normal;
+  font-family: var(--font-sans);
+}
+.finding-annotation {
+  display: flex;
+  flex-direction: column;
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  outline: none;
+}
+.finding-annotation.current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.finding-annotation-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 12px 0;
+}
+.finding-annotation-author {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  color: var(--text);
+}
+/* the walk moves between findings without moving this label, so its line range stays put */
+.finding-annotation-lines {
+  flex: none;
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+.finding-annotation-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-left: auto;
+}
+.finding-annotation-badges .finding-badge.category {
+  max-width: 12rem;
+}
+.finding-annotation-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+.finding-annotation-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 12px 12px;
+}
+.finding-annotation-body.fixable {
+  padding-bottom: 5px;
+}
+.finding-annotation-summary,
+.finding-annotation-scenario {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.finding-annotation-scenario {
+  color: var(--text-3);
+}
+.finding-annotation-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  border-top: 0.5px solid var(--hairline-strong);
+}
+.finding-annotation-foot .btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+/* the strip under the Changes pane's head while findings are walked: where the fixes stand, Previous, Next, Dismiss */
+.findings-walk {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 8px 0 12px;
+  border-bottom: 0.5px solid var(--hairline-strong);
+  background: rgba(var(--ink), 0.03);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.findings-walk-label {
+  margin-right: 4px;
+  font-variant-numeric: tabular-nums;
+}

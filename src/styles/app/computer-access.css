@@ -1,0 +1,104 @@
+/* Settings → Computer access (src/components/pages/settings/ComputerAccess.tsx): the pairing offer, a device waiting to pair, scopes, the access log. */
+.access-offer,
+.access-connect {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 16px 12px;
+}
+.access-offer code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-ui);
+  user-select: all;
+}
+.access-request {
+  margin: 4px 16px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.access-request-title {
+  font-weight: 600;
+}
+.access-request-code {
+  margin: 6px 0;
+  font-size: var(--fs-title);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+.access-request-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.access-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 4px 16px 8px;
+}
+.access-request .access-scopes {
+  padding: 8px 0 0;
+}
+.access-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px 8px;
+  font-size: var(--fs-ui);
+}
+.access-scopes .access-scope {
+  padding: 0;
+}
+.access-device + .access-device {
+  border-top: 1px solid var(--surface-border);
+}
+.access-log {
+  margin: 0;
+  padding: 8px 16px 12px;
+  list-style: none;
+  font-size: var(--fs-ui);
+  font-variant-numeric: tabular-nums;
+}
+.access-log li {
+  padding: 2px 0;
+}
+.access-log-empty {
+  padding: 10px 16px 12px;
+  color: var(--text-3);
+  font-size: var(--fs-ui);
+}
+/* A card a paired computer raised, in the chat that used it (src/components/thread/approvals/hostCards.tsx RemoteMark). */
+.approval-remote {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin-top: 6px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.approval-remote > svg {
+  flex: none;
+  height: 1lh;
+  min-height: 14px;
+}
+.access-cards {
+  margin: 0;
+  padding: 0 16px 10px;
+  list-style: none;
+}
+.access-card {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  font-size: var(--fs-ui);
+}
+.access-card > span {
+  flex: 1;
+  min-width: 0;
+}

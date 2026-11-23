@@ -1,0 +1,28 @@
+{
+  "layer": "L4",
+  "public": [
+    "orchestration/family.cjs",
+    "orchestration/childSetup.cjs",
+    "orchestration/userRemoval.cjs",
+    "userWords.cjs",
+    "voice.cjs",
+    "harnessCaps.cjs",
+    "viewing.cjs",
+    "queueItem.cjs",
+    "quickChat.cjs",
+    "authoredInput.cjs",
+    "controller.cjs",
+    "hookChain.cjs",
+    "orchestration/service.cjs",
+    "state.cjs",
+    "switch.cjs",
+    "switchAccount.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3"
+  ],
+  "allow": []
+}

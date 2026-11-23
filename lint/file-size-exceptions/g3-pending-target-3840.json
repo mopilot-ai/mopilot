@@ -1,0 +1,12 @@
+{
+  "exceptions": {
+    "electron/capabilities/browser/pageAgent.cjs": {
+      "maxLines": 1467,
+      "reason": "Serialized page-agent closure cannot capture module state. Bot-check and consent classifiers and the closed-shadow-root and ref re-binding kit (pageAgentShadow.cjs) are injected; frame traversal and element references remain inside the closure, which calls the kit at each shadow-root read and ref lookup. Action memory's anchor kit (pageAgentAnchor.cjs, G4) is injected the same way; the closure passes it its helpers and lists its op. G3 (#3571): the form summary also reports where the form posts (form.action), so a tainted turn's cross-origin submit asks. #3571 Codex \u00d7 IAB: a cut text run, name or value says how much it left out (q), and the tree and find() show an element's name past the 150 characters its ref is keyed by; the closure is serialized, so the mark is written inline rather than imported from shared/clippedText.mjs. #3840: one additional local selector line selects the actual submitter before reading its formaction override; this serialized closure cannot import the other browser reader. Existing responsibility stays form-intent extraction. #3879 review: the destination comes from the prototype's action getter, since a field named action shadows form.action, and from the form's default button wherever it sits. #3571 ref survives reload: each call reports the refs it minted and adopts main's hints for refs a new document does not know, which needs the closure's ref tables and name/role helpers."
+    },
+    "electron/capabilities/browser/iabBackend/backend.cjs": {
+      "maxLines": 553,
+      "reason": "Owns a native thread's browser tabs and command lifecycle. Consent rechecks, Stop retirement and bot-check refusal must guard the same commands. #3840 adds two lines beside the existing post-approval intent recheck to refuse a changed form destination before native input; moving this check away would split that command safety boundary. Current ceiling grows from 551 to 553, below the retired legacy allowance."
+    }
+  }
+}

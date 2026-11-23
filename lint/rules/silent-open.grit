@@ -1,0 +1,17 @@
+// A link, file or Finder open whose failure nobody handles: the click does nothing and says nothing.
+// Use openLink / openFile / revealPath / showInFinder / openPath / openInApp / openMoPilotPage from src/session/open.ts,
+// which report a failure.
+// docs/bug-prevention/misleading-error-text-and-silent-opens.md
+language js
+
+JsCallExpression(callee=$callee) as $call where {
+  $callee <: or {
+    `native.shell.$open` where { $open <: or { `openExternal`, `openPath`, `reveal`, `openIn` } },
+    `native.mopilot.openWeb`
+  },
+  // handled where it stands: awaited, or its own promise gets .catch(…) or .then(ok, failed)
+  $call <: not within `await $_`,
+  $call <: not within `$p.catch($_)` where { $p <: contains $call },
+  $call <: not within `$p.then($_, $_)` where { $p <: contains $call },
+  register_diagnostic(span=$call, message="[silent-open] Nothing handles this open's failure, so a click that opens nothing says nothing. Use openLink, openFile, revealPath, showInFinder, openPath, openInApp or openMoPilotPage from src/session/open.ts (docs/bug-prevention/misleading-error-text-and-silent-opens.md).", severity="warn")
+}

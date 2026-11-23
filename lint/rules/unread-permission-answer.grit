@@ -1,0 +1,14 @@
+// A macOS permission request or look again whose answer nobody reads: native.computer.requestPermission and
+// recheck answer whether the permission is on now, and macOS may show no prompt at all (a stale grant for an
+// older helper build), so a click that drops the answer changes nothing and says nothing. Read the answer and
+// say "still off" with the next step (copy computerUse.permissionStillOff). Applied to the renderer (biome.json
+// overrides). docs/bug-prevention/misleading-error-text-and-silent-opens.md
+language js
+
+JsCallExpression(callee=$callee) as $call where {
+  $callee <: `native.computer.$ask` where { $ask <: or { `requestPermission`, `recheck` } },
+  $call <: within JsExpressionStatement(expression=$e) where {
+    $e <: or { $call, JsAwaitExpression(argument=$call), JsUnaryExpression(argument=$call) }
+  },
+  register_diagnostic(span=$call, message="[unread-permission-answer] This permission request's answer is dropped: macOS may show no prompt, so a click that leaves the permission off must say so and what to do next. Read the answer and show copy computerUse.permissionStillOff (docs/bug-prevention/misleading-error-text-and-silent-opens.md).", severity="warn")
+}

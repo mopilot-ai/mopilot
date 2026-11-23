@@ -1,0 +1,93 @@
+/* Base: box sizing, the root elements, scrollbars and shared resets. */
+/* ================================================================== */
+/* Base                                                                */
+/* ================================================================== */
+* {
+  box-sizing: border-box;
+  /* Native scrollbars retain OS fading, dragging and always-visible accessibility preferences. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-chat);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+/* Controls keep native selection behavior even inside copyable settings and transcripts. */
+button,
+[role='button'] {
+  user-select: none;
+}
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+a {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+::selection {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.app {
+  position: fixed;
+  inset: 0;
+  background: var(--frame);
+  color: var(--text-ui);
+  font-size: var(--fs-chat);
+  font-weight: 430;
+  line-height: 1.5;
+  user-select: none;
+  overflow: hidden;
+}
+.app.blurred {
+  --frame: var(--frame-inactive);
+  --sidebar: var(--sidebar-inactive);
+}
+.flex1 {
+  flex: 1;
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.spinner {
+  animation: spin 2s steps(60, end) infinite;
+}
+/* a turn that stopped mid-plan freezes its running marker rather than spinning for ever */
+.spinner.still {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+

@@ -1,0 +1,13 @@
+// An input's Escape that cancels its edit (a rename, a search, a typed address) but leaves the key unhandled: the
+// app's own Escape (src/session/appShortcuts.ts) then closes the side pane as well, so cancelling a pane tab's or a
+// chat's rename hid the pane. Cancel with cancelOnEscape (src/lib/focus.ts), which handles the key, or call
+// e.preventDefault() / e.stopPropagation() with the cancel, as DiffComments and GoalBar do.
+language js
+
+JsxAttribute(name = $name, initializer = $handler) as $key where {
+  $name <: r"onKeyDown",
+  $handler <: r"(?s).*'Escape'.*",
+  not $handler <: r"(?s).*\b(?:preventDefault|stopPropagation|cancelOnEscape)\b.*",
+  $key <: within or { JsxSelfClosingElement(name = $element), JsxOpeningElement(name = $element) } where { $element <: r"input|textarea" },
+  register_diagnostic(span=$key, message="[escape-leak] this field's Escape cancels its edit but leaves the key unhandled, so the app's own Escape closes the side pane too. Cancel with cancelOnEscape (src/lib/focus.ts), or call e.preventDefault() with the cancel (docs/bug-prevention/keyboard-and-focus.md).", severity="warn")
+}

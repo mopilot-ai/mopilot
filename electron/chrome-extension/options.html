@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MoPilot</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body class="page">
+    <main>
+      <header><img src="icons/icon-32.png" alt="" />MoPilot</header>
+      <nav class="tabs" role="tablist" aria-label="Settings">
+        <button id="connection-tab" role="tab" type="button" aria-controls="connection" aria-selected="true">Connection</button>
+        <button id="sites-tab" role="tab" type="button" aria-controls="sites" aria-selected="false" tabindex="-1">Site permissions</button>
+        <button id="shortcuts-tab" role="tab" type="button" aria-controls="shortcuts" aria-selected="false" tabindex="-1">Shortcuts</button>
+      </nav>
+      <p id="settings-error" class="error" role="alert" hidden></p>
+      <section id="connection" role="tabpanel" aria-labelledby="connection-tab">
+        <p class="state"><span id="dot" class="dot"></span><span id="line"></span></p>
+        <div class="actions">
+          <button id="connect" class="primary" type="button" hidden>Connect</button>
+          <button id="launch" class="primary" type="button" hidden>Open MoPilot</button>
+          <button id="update" class="primary" type="button" hidden>Update extension</button>
+          <button id="download" class="primary" type="button" hidden>Download MoPilot</button>
+          <button id="disconnect" type="button" hidden>Disconnect</button>
+        </div>
+        <ol id="welcome" class="steps" hidden>
+          <li id="step-connect">Connect to MoPilot</li>
+          <li id="step-pin">Pin MoPilot to the toolbar</li>
+          <li id="step-try">Try it on a sample task <button id="try" type="button">Try it</button></li>
+        </ol>
+        <p id="pin" class="tip" hidden>Pin MoPilot from Chrome's Extensions menu to see its status here.</p>
+        <form id="name-form" class="name" hidden>
+          <label for="chrome-name">Name this Chrome</label>
+          <div class="row"><input id="chrome-name" maxlength="80" autocomplete="off" spellcheck="false" placeholder="My Chrome" /><button id="save-name" type="submit">Save</button></div>
+          <p class="hint">MoPilot shows this name in Settings → Browser.</p>
+        </form>
+        <details id="advanced">
+          <summary>Advanced</summary>
+          <label for="code">Pairing code</label>
+          <input id="code" autocomplete="off" spellcheck="false" placeholder="mopilot-chrome:1:…" />
+          <p id="hint" class="hint"></p>
+          <div class="actions"><button id="pair" type="button">Pair</button></div>
+          <p id="port"></p>
+        </details>
+      </section>
+      <section id="sites" role="tabpanel" aria-labelledby="sites-tab" hidden>
+        <p class="hint">Sites you allowed MoPilot's agents to use in this Chrome. Revoke one and agents ask again next time.</p>
+        <ul id="sites-list" class="sites"></ul>
+        <p id="sites-empty" class="hint" hidden>No saved sites yet.</p>
+      </section>
+      <section id="shortcuts" role="tabpanel" aria-labelledby="shortcuts-tab" hidden>
+        <p class="shortcut-row"><span>Open MoPilot</span><kbd id="shortcut"></kbd></p>
+        <div class="actions"><button id="shortcuts-open" type="button">Change shortcuts</button></div>
+      </section>
+    </main>
+    <script type="module" src="options.mjs"></script>
+  </body>
+</html>

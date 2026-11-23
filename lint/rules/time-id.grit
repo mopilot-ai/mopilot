@@ -1,0 +1,9 @@
+// An id or file name made from the clock alone: two made in the same millisecond collide.
+// docs/bug-prevention/identity-collisions.md
+language js
+
+JsTemplateExpression() as $t where {
+  $t <: contains JsTemplateElement(expression=$e) where { $e <: or { `Date.now()`, `Date.now().toString($_)` } },
+  $t <: not contains or { `Math.random()`, `$_.randomUUID()`, `randomUUID()`, `$_.randomBytes($_)`, JsPostUpdateExpression(), JsPreUpdateExpression() },
+  register_diagnostic(span=$t, message="[time-id] A timestamp is not a unique id or file name: two made in the same millisecond collide. Use crypto.randomUUID() or a counter (docs/bug-prevention/identity-collisions.md).", severity="warn")
+}

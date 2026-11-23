@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- ab-compare's observability fixture: an image without alt, an unlabeled input, a cookie-carrying fetch and a layout shift, for the devtools rows. -->
+<html lang="en">
+<head><meta charset="utf-8"><title>Observe fixture</title></head>
+<body>
+  <main>
+    <h1>Observe</h1>
+    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="200" height="120">
+    <input type="text" name="q">
+    <div id="late"></div>
+    <p id="out">waiting</p>
+  </main>
+  <script>
+    document.cookie = 'sid=' + ['planted', 'secret', 'cookie'].join('-');
+    fetch('api.json').then((r) => r.text()).then((t) => { document.getElementById('out').textContent = t; });
+    // a layout shift once the page painted
+    setTimeout(() => { document.getElementById('late').style.height = '160px'; }, 300);
+  </script>
+</body>
+</html>

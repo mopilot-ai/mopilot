@@ -1,0 +1,369 @@
+/* A chat's PR inbox: the tray its status-line count opens, listing the family's open PRs and what merged
+   (designs/session-prs-compact). A CSS Module: every class is local to the inbox's components, and a row's group, tag and
+   step are data attributes. */
+/* the tray */
+.tray {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(560px, calc(100vh - 160px));
+  border: 0.5px solid var(--menu-border);
+  border-radius: 14px;
+  background: var(--menu-bg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--menu-shadow);
+  color: var(--text);
+  font-size: var(--fs-ui);
+  overflow: hidden;
+}
+.tray:focus {
+  outline: none;
+}
+.tray button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 16px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--fs-chat);
+  font-weight: 600;
+}
+.body {
+  overflow-y: auto;
+  padding: 2px 6px 8px;
+}
+.group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 10px 4px;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--text-3);
+}
+.group[data-hot='true'] {
+  color: var(--accent);
+}
+.count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+/* a PR: title, then number and session, then its reason; the action at the end */
+.row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.row:hover {
+  background: var(--row-hover);
+}
+.icon {
+  grid-row: 1;
+  display: flex;
+  color: var(--linked-pr-open);
+}
+.icon[data-state='merged'] {
+  color: var(--linked-pr-merged);
+}
+.icon[data-state='draft'],
+.icon[data-state='unknown'] {
+  color: var(--linked-pr-draft);
+}
+.title {
+  grid-row: 1;
+  grid-column: 2;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.title:hover {
+  text-decoration: underline;
+}
+.meta {
+  grid-row: 2;
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.session {
+  padding: 0 6px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+}
+.session:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.why {
+  grid-row: 3;
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 4px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* a question reads whole, over up to three lines, with its answers below it */
+.row[data-tag='asks'] .why {
+  align-items: flex-start;
+}
+.row[data-tag='asks'] .text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.tag {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  background: var(--surface);
+  color: var(--text-2);
+}
+.tag[data-tag='merge'],
+.tag[data-tag='review'],
+.tag[data-tag='check'] {
+  background: var(--badge-bg);
+  color: var(--badge-text);
+}
+.tag[data-tag='asks'] {
+  background: color-mix(in oklab, var(--status-waiting) 14%, transparent);
+  color: var(--status-waiting);
+}
+.tag[data-tag='stuck'] {
+  background: color-mix(in oklab, var(--red) 12%, transparent);
+  color: var(--red-text);
+}
+.tag[data-tag='fixing'],
+.tag[data-tag='checks'],
+.tag[data-tag='merging'] {
+  background: color-mix(in oklab, var(--status-unread) 12%, transparent);
+  color: var(--status-unread);
+}
+.tag[data-tag='landed'] {
+  background: color-mix(in oklab, var(--purple) 12%, transparent);
+  color: var(--purple);
+}
+.actions {
+  grid-row: 1 / span 3;
+  grid-column: 3;
+  display: flex;
+  gap: 6px;
+}
+.row[data-tag='asks'] .actions {
+  grid-row: 4;
+  grid-column: 2 / span 2;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 8px;
+}
+.btn {
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--surface-2);
+}
+.primary,
+.primary:hover {
+  background: var(--text);
+  color: var(--menu-bg);
+}
+.sent {
+  grid-row: 1 / span 3;
+  grid-column: 3;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+
+/* checks, merge, main: done steps green, the current one blue */
+.track {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-4);
+}
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.step i {
+  width: 7px;
+  height: 7px;
+  box-sizing: border-box;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+.step[data-at='done'] {
+  color: var(--text-3);
+}
+.step[data-at='done'] i {
+  border-color: var(--green);
+  background: var(--green);
+}
+.step[data-at='now'] {
+  color: var(--text);
+}
+.step[data-at='now'] i {
+  border-color: var(--status-unread);
+  background: var(--status-unread);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--status-unread) 18%, transparent);
+}
+.fold {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-3);
+  font: inherit;
+  font-size: var(--fs-small);
+  text-align: left;
+  cursor: pointer;
+}
+.fold:hover {
+  background: var(--row-hover);
+}
+
+/* the sidebar row's count (SidebarInboxCount.tsx): the accent disc beside the PR badge */
+.rowCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-sizing: border-box;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--on-color);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* the tray head's scope: this chat's family, or every main chat's */
+.seg {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: var(--fs-small);
+  font-weight: 400;
+}
+.seg button {
+  padding: 2px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-3);
+  font: inherit;
+  cursor: pointer;
+}
+.seg button[aria-pressed='true'] {
+  background: var(--menu-bg);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+/* All chats: one section per main chat, the ones with something for the user first (each sets its own order) */
+.all {
+  display: flex;
+  flex-direction: column;
+}
+.chat + .chat {
+  border-top: 1px solid var(--hairline);
+}
+.chatHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 10px 4px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.chatTitle {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.chatTitle:hover {
+  color: var(--text);
+}
+.chatHead .rowCount {
+  margin-left: auto;
+}
+
+/* the summary panel's Pull requests card (panels/SummaryPullRequests.tsx): three counts, the first hot when nonzero */
+.none {
+  margin: 0;
+  padding: 12px 10px;
+  color: var(--text-3);
+}

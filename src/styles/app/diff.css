@@ -1,0 +1,68 @@
+/* Diff: file diffs. */
+/* ================================================================== */
+/* Diff                                                                */
+/* ================================================================== */
+.diff-lines {
+  overflow: auto;
+  border-top: 0.5px solid var(--code-border);
+}
+.diff-lines table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  line-height: var(--lh-code);
+}
+.diff-lines td {
+  padding: 0;
+  white-space: pre;
+}
+.diff-lines td.ln {
+  width: 1%;
+  min-width: 38px;
+  padding: 0 8px;
+  text-align: right;
+  color: var(--text-4);
+  user-select: none;
+  font-size: var(--fs-micro);
+}
+.diff-lines td.code {
+  padding-right: 12px;
+}
+.diff-lines .sign {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  color: var(--text-4);
+  user-select: none;
+}
+.diff-add {
+  background: var(--diff-add-bg);
+}
+.diff-add td.ln {
+  background: var(--diff-add-gutter);
+}
+.diff-add .sign {
+  color: var(--green-text);
+}
+.diff-del {
+  background: var(--diff-del-bg);
+}
+.diff-del td.ln {
+  background: var(--diff-del-gutter);
+}
+.diff-del .sign {
+  color: var(--red-text);
+}
+.diff-hunk td {
+  background: var(--diff-hunk);
+  color: var(--text-3);
+  padding: 2px 8px;
+  font-size: var(--fs-micro);
+}
+.diff-binary {
+  padding: 12px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+

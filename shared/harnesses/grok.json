@@ -1,0 +1,46 @@
+{
+  "id": "grok",
+  "label": "Grok",
+  "vendor": "xAI",
+  "bins": [
+    "grok"
+  ],
+  "docsUrl": "https://x.ai/cli",
+  "install": {
+    "docs": "https://x.ai/cli",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g @xai-official/grok",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@xai-official/grok"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "agent",
+      "stdio"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "contract": {
+    "npm": "@xai-official/grok",
+    "bin": "grok"
+  },
+  "runtimeQuirks": true
+}

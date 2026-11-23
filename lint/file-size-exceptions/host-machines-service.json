@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/host/machines.cjs": {
+      "maxLines": 545,
+      "reason": "Main's machines service joins the registry, installer, pairing and tunnel pool for the windows. Update state and uninstall live in updateStates.cjs and uninstallHost.cjs; only their wiring and the IPC-facing methods are here. Authentication-before-update adds only the session/access wiring and clears old update state after pairing (517 lines); ownership checks and update-state transitions remain in hostUpdate.cjs and updateStates.cjs. The cap stays 520. H1 routes a local address to this Mac's own commands and socket here (the channel, the pool and one row note); the routing lives in electron/host/localHost.cjs. pairedFor (a phone's introduction, P2) sits beside the private openPaired and adds seven lines. The cap was 527. A connection's drop time (linkWatch.cjs) feeds the row seconds before a heartbeat would miss: two lines in `list` and the registry call and a few in the connection's setup; the watching lives in linkWatch.cjs. Starting a stopped Host (startHost.cjs) adds its wiring, the row's hostStopped flag and one call; the work lives in startHost.cjs. The cap is 545. The service reports committed removals and an unreadable registry for Run on. Preference and draft handling stay with their owners. The repository lookup adds one scope field to the machine row already built here."
+    }
+  }
+}

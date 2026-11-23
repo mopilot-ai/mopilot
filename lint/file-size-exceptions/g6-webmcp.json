@@ -1,0 +1,12 @@
+{
+  "exceptions": {
+    "electron/capabilities/browser/hostTools.cjs": {
+      "maxLines": 691,
+      "reason": "Registers browser actions over the common action gate (target rechecks, task consent and bot-check refusal stay consistent across tools and script steps), and spreads in the page-tool handlers and their discovery notes; the WebMCP catalog and gates live in webmcp.cjs and webmcpTools.cjs."
+    },
+    "electron/capabilities/browser/tab.cjs": {
+      "maxLines": 550,
+      "reason": "Owns a browser tab's CDP attachment and teardown, runs page agent ops through the closed-shadow-root hand-over (closedShadow.cjs), and starts the tab's WebMCP catalog after setup and releases it with CDP (webmcp.cjs). Download navigation and native zoom rules remain in shared helpers. #3571 ref survives reload: every page-agent call site passes the tab's ref hints (bookkeeping is in refHints.cjs)."
+    }
+  }
+}

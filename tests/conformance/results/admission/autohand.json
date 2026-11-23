@@ -1,0 +1,52 @@
+{
+  "id": "autohand",
+  "version": "0.9.9",
+  "checkedAt": "2026-11-04T00:37:28.449Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Autohand 0.9.9 was installed with the vendor archive https://github.com/autohandai/code-cli/releases/download/v0.9.9/autohand-macos-arm64.tar.gz and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded, it offers native session recovery, and session/new returned a session in which sage-mcp said hello. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "autohand-cli",
+      "title": "Autohand Code",
+      "version": "0.9.9"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "sessionCapabilities": {
+        "resume": {},
+        "list": {},
+        "fork": {}
+      }
+    },
+    "authMethods": [
+      {
+        "id": "autohand-setup",
+        "name": "Set up Autohand Code",
+        "description": "Configure authentication and a model in an interactive terminal.",
+        "type": "terminal",
+        "args": [
+          "--setup"
+        ]
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": true,
+    "sageMcpHello": true
+  },
+  "probeWithQuirksFixes": {
+    "state": "admitted",
+    "version": "0.9.9",
+    "reason": null
+  }
+}

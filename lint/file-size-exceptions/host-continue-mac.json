@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/session/switch.cjs": {
+      "maxLines": 515,
+      "reason": "Coordinates harness switches and returning Host chats. Continue settlement is delegated while the runner owns the shared inbox and transition state. Automatic quota-switch ownership checks remain beside the history, native startup and handoff waits before committing the new segment."
+    }
+  }
+}

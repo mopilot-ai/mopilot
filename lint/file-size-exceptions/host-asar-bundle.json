@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/packageScripts.test.ts": {
+      "maxLines": 545,
+      "reason": "Packager hooks share tool fakes and recorded packager options. Host archive verification belongs beside the other packaging-boundary checks."
+    }
+  }
+}

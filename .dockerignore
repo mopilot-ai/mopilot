@@ -1,0 +1,23 @@
+**/node_modules
+**/.next
+.git
+.claude
+out
+dist
+build
+design
+src
+# Admit only the hosted event schema and its types from the desktop tree.
+electron/*
+!electron/private
+electron/private/*
+!electron/private/analytics
+electron/private/analytics/*
+!electron/private/analytics/events.cjs
+!electron/private/analytics/events.d.cts
+tests
+# patterns match from the context root only; the web tests import ../../tests, which isn't sent, and
+# next build would fail typechecking them
+web/tests
+web/.env*
+.env*

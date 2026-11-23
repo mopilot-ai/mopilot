@@ -1,0 +1,74 @@
+/* Settings → Other harnesses: one line per basic harness, with details on demand. */
+.basic-row + .basic-row {
+  border-top: 0.5px solid var(--hairline-strong);
+}
+.basic-row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.basic-row-text {
+  flex: 1;
+  min-width: 0;
+}
+.basic-row-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.basic-row-state {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.basic-row-desc {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* what a signed-out harness needs is read in full: it says how to sign in or set it up */
+.basic-row-desc.full {
+  white-space: normal;
+}
+.basic-row-link {
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.basic-row-details {
+  margin: 0 16px 4px 50px;
+  border-top: 0.5px solid var(--hairline-strong);
+}
+.basic-row-details .settings-row {
+  padding-inline: 0;
+}
+.basic-row-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0 12px;
+}
+.basic-row-foot.spread {
+  justify-content: space-between;
+  padding: 10px 16px 12px;
+  border-top: 0.5px solid var(--hairline-strong);
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+/* a sign-in waiting on the harness's own login (a browser page): Settings rows, Welcome and a chat's sign-in error */
+.signin-waiting {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-3);
+}
+/* in a Settings row it takes the row's description size */
+span.signin-waiting {
+  display: inline-flex;
+}
+div.signin-waiting {
+  margin-top: 8px;
+  font-size: var(--fs-small);
+}

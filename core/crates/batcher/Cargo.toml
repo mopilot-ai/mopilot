@@ -1,0 +1,17 @@
+[package]
+name = "batcher"
+version = "0.1.0"
+description = "Main's stream batcher: one queue per chat across the harness families, each family's text deltas joined per key, events that wait behind them, the slow lane for windows not showing a chat, the size bound and the ticks' decisions."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+jsvalue = { path = "../jsvalue" }
+inventory = "0.3"
+# whose sub-agent an ACP update is: one implementation, the translator's
+translate = { path = "../translate" }

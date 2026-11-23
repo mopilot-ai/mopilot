@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "host/src/cli.mjs": {
+      "maxLines": 520,
+      "reason": "The Host's serve entry composes every part of the Host in one place; the options a test entry may hand MoMo's home (momoOverrides: quirks, ready) are one parameter and its few pass-throughs (the ACP host, the sign-in probe, MoMo's home), and stay here so no shipped file can read them from anywhere else."
+    }
+  }
+}

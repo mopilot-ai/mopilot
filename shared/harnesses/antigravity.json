@@ -1,0 +1,30 @@
+{
+  "id": "antigravity",
+  "label": "Antigravity",
+  "vendor": "Google",
+  "bins": [
+    "agy_acp_server.par",
+    "agy_acp_server",
+    "agy_acp_server.exe"
+  ],
+  "docsUrl": "https://antigravity.google/docs/ide/extensions",
+  "install": {
+    "docs": "https://github.com/agentclientprotocol/registry/tree/main/antigravity-acp",
+    "methods": []
+  },
+  "enabled": true,
+  "order": 0,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "privacyDefaults": [
+      "syslog_on_start=false"
+    ],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    }
+  },
+  "dataNotes": [
+    "MoPilot uses the separate Antigravity ACP server with localharness_external beside it."
+  ]
+}

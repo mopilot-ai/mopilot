@@ -1,0 +1,434 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "src/**",
+      "electron/**",
+      "shared/**",
+      "relay/**",
+      "mobile/src/**",
+      "mobile/App.tsx",
+      "mobile/index.js",
+      "mobile/metro.config.js",
+      "host/**",
+      "scripts/**",
+      "bench/**",
+      "tests/**",
+      "!src/protocol/**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/out",
+      "!**/coverage",
+      "!**/build",
+      "!native",
+      "!web"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 140
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "none",
+      "suspicious": {
+        "noEmptyBlockStatements": "error",
+        "noExplicitAny": "error",
+        "noDoubleEquals": {
+          "level": "error",
+          "options": {
+            "ignoreNull": true
+          }
+        },
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateCase": "error",
+        "noDuplicateClassMembers": "error",
+        "noDuplicateParameters": "error",
+        "noSelfCompare": "error",
+        "noAsyncPromiseExecutor": "error",
+        "noArrayIndexKey": "warn"
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnreachable": "error",
+        "noConstAssign": "error",
+        "noSelfAssign": "error",
+        "noUnsafeFinally": "error",
+        "noUnsafeOptionalChaining": "error",
+        "useIsNan": "error",
+        "useValidTypeof": "error",
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "warn",
+        "noMisusedPromises": "warn"
+      },
+      "a11y": {
+        "useKeyWithClickEvents": "warn"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "tests/**"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noEmptyBlockStatements": "off",
+            "noArrayIndexKey": "off"
+          },
+          "correctness": {
+            "useExhaustiveDependencies": "off"
+          },
+          "nursery": {
+            "noFloatingPromises": "off",
+            "noMisusedPromises": "off"
+          },
+          "a11y": {
+            "useKeyWithClickEvents": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/**",
+        "electron/**",
+        "shared/**",
+        "scripts/**"
+      ],
+      "plugins": [
+        "./lint/rules/swallowed-error.grit",
+        "./lint/rules/time-id.grit",
+        "./lint/rules/asserted-template-id.grit",
+        "./lint/rules/captured-owner.grit",
+        "./lint/rules/missing-index.grit",
+        "./lint/rules/inherited-table-key.grit",
+        "./lint/rules/file-url.grit",
+        "./lint/rules/cut-text.grit",
+        "./lint/rules/version-sort.grit",
+        "./lint/rules/timer-window.grit",
+        "./lint/rules/segment-owner.grit",
+        "./lint/rules/read-error.grit",
+        "./lint/rules/exec-path-depth.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "electron/**",
+        "shared/**"
+      ],
+      "plugins": [
+        "./lint/rules/non-atomic-write.grit",
+        "./lint/rules/quadratic-lines.grit"
+      ]
+    },
+    {
+      "includes": [
+        "electron/**"
+      ],
+      "plugins": [
+        "./lint/rules/sync-log-append.grit",
+        "./lint/rules/apikey-login.grit",
+        "./lint/rules/argv-secret.grit",
+        "./lint/rules/plain-secret.grit",
+        "./lint/rules/open-mode.grit",
+        "./lint/rules/sync-child-process.grit",
+        "./lint/rules/login-env.grit",
+        "./lint/rules/sync-ipc-read.grit",
+        "./lint/rules/json-line-rescan.grit",
+        "./lint/rules/unsignalled-wait.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**"
+      ],
+      "plugins": [
+        "./lint/rules/raw-error-text.grit",
+        "./lint/rules/enter-selects.grit",
+        "./lint/rules/escape-leak.grit",
+        "./lint/rules/focus-drop.grit",
+        "./lint/rules/deferred-caret.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "electron/**",
+        "shared/**",
+        "!electron/capabilities/tools/**",
+        "!electron/chrome-extension/**",
+        "!electron/capabilities/contract/controlRefusals.cjs",
+        "!electron/capabilities/contract/peerMessages.cjs",
+        "!electron/capabilities/browser/refusals.cjs"
+      ],
+      "plugins": [
+        "./lint/rules/raw-internal-text.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "!src/session/open.ts"
+      ],
+      "plugins": [
+        "./lint/rules/silent-open.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "!src/lib/edgeDrag.ts"
+      ],
+      "plugins": [
+        "./lint/rules/raw-edge-drag.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "!src/harness/usageWindows.ts"
+      ],
+      "plugins": [
+        "./lint/rules/limit-expiry.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "!src/session/harness/claude/usage.ts"
+      ],
+      "plugins": [
+        "./lint/rules/login-usage.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "!src/lib/paths.ts"
+      ],
+      "plugins": [
+        "./lint/rules/asset-url.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/store/**",
+        "src/lib/**",
+        "src/session/**",
+        "!src/session/harness/**",
+        "src/App.tsx",
+        "electron/session/**",
+        "electron/app/ipc/**",
+        "electron/app/**",
+        "shared/**",
+        "!shared/harnessKind.mjs"
+      ],
+      "plugins": [
+        "./lint/rules/harness-gate.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**"
+      ],
+      "plugins": [
+        "./lint/rules/family-collapse.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**"
+      ],
+      "plugins": [
+        "./lint/rules/held-session-selector.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**"
+      ],
+      "plugins": [
+        "./lint/rules/archive-list-predicate.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "electron/**",
+        "shared/**",
+        "!src/components/harness/**",
+        "!src/harness/claude/**",
+        "!src/session/harness/claude/**",
+        "!electron/harness/**",
+        "!electron/claude*.cjs",
+        "!electron/platform/codexImport.cjs"
+      ],
+      "plugins": [
+        "./lint/rules/harness-fallback.grit"
+      ]
+    },
+    {
+      "includes": [
+        "electron/**",
+        "shared/**",
+        "!electron/capabilities/visibility.cjs",
+        "!electron/capabilities/contract/toolRefusal.cjs"
+      ],
+      "plugins": [
+        "./lint/rules/hidden-refusal.grit"
+      ]
+    },
+    {
+      "includes": [
+        "electron/main.cjs",
+        "electron/app/**",
+        "electron/session/**",
+        "electron/app/ipc/**",
+        "electron/harness/**"
+      ],
+      "plugins": [
+        "./lint/rules/turn-end-path.grit"
+      ]
+    },
+    {
+      "includes": [
+        "electron/**",
+        "!electron/capabilities/browser/documentScripts.cjs"
+      ],
+      "plugins": [
+        "./lint/rules/auto-attach.grit"
+      ]
+    },
+    {
+      "includes": [
+        "electron/**"
+      ],
+      "plugins": [
+        "./lint/rules/popup-tab-lifetime.grit"
+      ]
+    },
+    {
+      "includes": [
+        "electron/**",
+        "src/**",
+        "!electron/capabilities/browser/historyCopy.cjs"
+      ],
+      "plugins": [
+        "./lint/rules/history-restore.grit"
+      ]
+    },
+    {
+      "includes": [
+        "electron/**"
+      ],
+      "plugins": [
+        "./lint/rules/raw-input.grit"
+      ]
+    },
+    {
+      "includes": [
+        "tests/e2e/**",
+        "!tests/e2e/fixtures/settings.ts"
+      ],
+      "plugins": [
+        "./lint/rules/settings-select.grit"
+      ]
+    },
+    {
+      "includes": [
+        "electron/capabilities/browser/hostTools.cjs",
+        "electron/capabilities/browser/script.cjs",
+        "electron/capabilities/browser/credentials.cjs"
+      ],
+      "plugins": [
+        "./lint/rules/card-wait.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**"
+      ],
+      "plugins": [
+        "./lint/rules/unread-permission-answer.grit",
+        "./lint/rules/detached-action.grit",
+        "./lint/rules/stale-toast-action.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**/*.css",
+        "!src/styles/tokens.css"
+      ],
+      "plugins": [
+        "./lint/rules/type-scale.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**"
+      ],
+      "plugins": [
+        "./lint/rules/inline-type-size.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**/*.css",
+        "!src/styles/tokens.css"
+      ],
+      "plugins": [
+        "./lint/rules/literal-color.grit"
+      ]
+    },
+    {
+      "includes": [
+        "src/**",
+        "!src/**/*.css",
+        "!src/lib/themes.ts",
+        "!src/lib/highlightEngine.ts",
+        "!src/lib/brandColors.ts",
+        "!src/lib/annotateOverlay.ts"
+      ],
+      "plugins": [
+        "./lint/rules/inline-color.grit"
+      ]
+    }
+  ],
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": false
+    },
+    "linter": {
+      "enabled": true
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": false
+    }
+  }
+}

@@ -1,0 +1,2 @@
+# Byte-exact golden fixtures (src/journey.rs compares them byte for byte): no line-ending conversion on any checkout.
+* -text

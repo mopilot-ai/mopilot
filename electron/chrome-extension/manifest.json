@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "MoPilot",
+  "description": "Lets MoPilot's agents use the tabs they open in this Chrome, one tab group per chat.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "125",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuorsPNzYcmMW3KWoQGbJgpUXQ/BfXzZ6TgJsvqTcebclLx1obYiS3axSYQa7PRoVeov7J1e6QCDpI5XCnHfmhChORFfflNLidKlsVYwJ7XjsavP5DZdoIj0a4kZYROjO8FTLSt7xhNnw4ghOFxnnpHXFFg5vS03ZmzwF6KcGfWOjiF7uh0njavpamY+IOpI0Gdi3ERVjlJmu/vFerGQjZdWmkFQc77D5n1t54LqkMZMGELwYgjL8dQXmMMt7jB4KtCqvWGsu55GCREFjzQA/FlI7ktd3tMLA4dPrZff9qP6H1EWQBNEyDLmc3ORILLp4sYFXnLKjnVIYqZrS9hEP8QIDAQAB",
+  "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
+  "permissions": ["debugger", "tabs", "tabGroups", "webNavigation", "storage", "alarms", "nativeMessaging", "downloads", "sidePanel", "contextMenus"],
+  "background": { "service_worker": "background.mjs", "type": "module" },
+  "storage": { "managed_schema": "managed_schema.json" },
+  "options_page": "options.html",
+  "side_panel": { "default_path": "sidepanel.html" },
+  "action": { "default_title": "Open MoPilot", "default_icon": { "16": "icons/icon-16.png", "32": "icons/icon-32.png" } },
+  "commands": { "_execute_action": { "suggested_key": { "default": "Ctrl+E", "mac": "Command+E" }, "description": "Open MoPilot" } }
+}

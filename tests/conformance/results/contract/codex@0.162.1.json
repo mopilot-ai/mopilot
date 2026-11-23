@@ -1,0 +1,828 @@
+{
+  "schema": 1,
+  "kind": "codex",
+  "label": "Codex",
+  "version": "0.162.1",
+  "verdict": "fail",
+  "startedAt": "2026-10-18T02:30:42.470Z",
+  "finishedAt": "2026-10-18T03:16:37.616Z",
+  "seconds": 2755,
+  "install": {
+    "method": "npm",
+    "package": "@openai/codex@0.162.1",
+    "ok": true,
+    "observed": "0.162.1",
+    "seconds": 3
+  },
+  "environment": {
+    "commit": "6b38ea4b8b9760ee14ad7cdaa8b4f26f49c95f7b",
+    "app": "0.3.0",
+    "macos": "26.6.2",
+    "node": "v24.21.0",
+    "vm": "Manageds-Virtual-Machine.local",
+    "claude": "2.1.296 (Claude Code)",
+    "codex": "codex-cli 0.162.1"
+  },
+  "baseline": {
+    "version": "0.162.0-alpha.17.2",
+    "file": "codex@0.162.0-alpha.17.2.json",
+    "as": "tested"
+  },
+  "suites": {
+    "controlMatrix": {
+      "verdict": "pass",
+      "pass": 456,
+      "fail": 0,
+      "seconds": 18
+    },
+    "conformance": {
+      "verdict": "fail",
+      "cli": "0.162.1",
+      "counts": {
+        "pass": 16,
+        "fail": 1
+      },
+      "file": "~/contract/runs/codex@0.162.1/conformance/codex@0.162.1.json",
+      "seconds": 302
+    },
+    "edge": {
+      "verdict": "fail",
+      "counts": {
+        "PASS": 45,
+        "FAIL": 1
+      },
+      "cells": [
+        "codex",
+        "switch"
+      ],
+      "seconds": 1906
+    },
+    "acp": {
+      "verdict": "skip",
+      "why": "not an ACP harness"
+    },
+    "mgb": {
+      "verdict": "fail",
+      "seconds": 525
+    }
+  },
+  "items": [
+    {
+      "key": "conformance:X1",
+      "suite": "conformance",
+      "id": "X1",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "model",
+        "effort",
+        "speed"
+      ]
+    },
+    {
+      "key": "conformance:X2",
+      "suite": "conformance",
+      "id": "X2",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "goal"
+      ]
+    },
+    {
+      "key": "conformance:X3",
+      "suite": "conformance",
+      "id": "X3",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "plan"
+      ]
+    },
+    {
+      "key": "conformance:X4",
+      "suite": "conformance",
+      "id": "X4",
+      "verdict": "fail",
+      "failing": true,
+      "why": [
+        "wrote ~/.codex/config.toml"
+      ],
+      "rows": [],
+      "semantics": [
+        "review"
+      ],
+      "attempts": [
+        "fail",
+        "fail"
+      ]
+    },
+    {
+      "key": "conformance:X5",
+      "suite": "conformance",
+      "id": "X5",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "compact"
+      ]
+    },
+    {
+      "key": "conformance:X6",
+      "suite": "conformance",
+      "id": "X6",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "shell"
+      ]
+    },
+    {
+      "key": "conformance:X7",
+      "suite": "conformance",
+      "id": "X7",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "computerUse",
+        "browser"
+      ],
+      "attempts": [
+        "fail",
+        "pass"
+      ]
+    },
+    {
+      "key": "conformance:X8",
+      "suite": "conformance",
+      "id": "X8",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "rename",
+        "fork",
+        "rewind",
+        "archive",
+        "search"
+      ]
+    },
+    {
+      "key": "conformance:X9",
+      "suite": "conformance",
+      "id": "X9",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "textGen"
+      ]
+    },
+    {
+      "key": "conformance:X10",
+      "suite": "conformance",
+      "id": "X10",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "tasks"
+      ]
+    },
+    {
+      "key": "conformance:X11",
+      "suite": "conformance",
+      "id": "X11",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "skills",
+        "mcp",
+        "status",
+        "feedback"
+      ]
+    },
+    {
+      "key": "conformance:X12",
+      "suite": "conformance",
+      "id": "X12",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "computerUse"
+      ]
+    },
+    {
+      "key": "conformance:X13",
+      "suite": "conformance",
+      "id": "X13",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": []
+    },
+    {
+      "key": "conformance:X14",
+      "suite": "conformance",
+      "id": "X14",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": [
+        "computerUse",
+        "browser"
+      ]
+    },
+    {
+      "key": "conformance:X15",
+      "suite": "conformance",
+      "id": "X15",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": []
+    },
+    {
+      "key": "conformance:X16",
+      "suite": "conformance",
+      "id": "X16",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": []
+    },
+    {
+      "key": "conformance:X17",
+      "suite": "conformance",
+      "id": "X17",
+      "verdict": "pass",
+      "failing": false,
+      "rows": [],
+      "semantics": []
+    },
+    {
+      "key": "edge:codex:basic-auth",
+      "suite": "edge",
+      "id": "basic-auth",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P5a",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:bot-check",
+      "suite": "edge",
+      "id": "bot-check",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S4b",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:checkout-saved",
+      "suite": "edge",
+      "id": "checkout-saved",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P8b",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:checkout",
+      "suite": "edge",
+      "id": "checkout",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P8",
+      "rows": [
+        "CM-J08",
+        "CM-J16"
+      ]
+    },
+    {
+      "key": "edge:codex:crash",
+      "suite": "edge",
+      "id": "crash",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P5d",
+      "rows": [
+        "CM-L16",
+        "CM-L16a"
+      ]
+    },
+    {
+      "key": "edge:codex:deep-link",
+      "suite": "edge",
+      "id": "deep-link",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P6",
+      "rows": [
+        "CM-M15"
+      ]
+    },
+    {
+      "key": "edge:codex:dialogs",
+      "suite": "edge",
+      "id": "dialogs",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P2",
+      "rows": [
+        "CM-K10",
+        "CM-M13",
+        "CM-K11",
+        "CM-K12",
+        "CM-K15"
+      ]
+    },
+    {
+      "key": "edge:codex:download-prompt",
+      "suite": "edge",
+      "id": "download-prompt",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P2c",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:files",
+      "suite": "edge",
+      "id": "files",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P2b",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:hang",
+      "suite": "edge",
+      "id": "hang",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P5c",
+      "rows": [
+        "CM-L16",
+        "CM-M16",
+        "CM-K13"
+      ]
+    },
+    {
+      "key": "edge:codex:infinite-scroll",
+      "suite": "edge",
+      "id": "infinite-scroll",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P4",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:new-tab",
+      "suite": "edge",
+      "id": "new-tab",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P1",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:oauth-popup",
+      "suite": "edge",
+      "id": "oauth-popup",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S3",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:pdf",
+      "suite": "edge",
+      "id": "pdf",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P6b",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:permissions",
+      "suite": "edge",
+      "id": "permissions",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P7",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:session-expiry",
+      "suite": "edge",
+      "id": "session-expiry",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S6",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:shadow-dom",
+      "suite": "edge",
+      "id": "shadow-dom",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P3b",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:stop-and-duplicate",
+      "suite": "edge",
+      "id": "stop-and-duplicate",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P15",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:tls",
+      "suite": "edge",
+      "id": "tls",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P5b",
+      "rows": [
+        "CM-M14",
+        "CM-M18"
+      ]
+    },
+    {
+      "key": "edge:codex:twofa",
+      "suite": "edge",
+      "id": "twofa",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S4",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:webauthn-create",
+      "suite": "edge",
+      "id": "webauthn-create",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S1b",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:webauthn-get",
+      "suite": "edge",
+      "id": "webauthn-get",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S1",
+      "rows": []
+    },
+    {
+      "key": "edge:codex:xorigin-iframe",
+      "suite": "edge",
+      "id": "xorigin-iframe",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P3",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:basic-auth",
+      "suite": "edge",
+      "id": "basic-auth",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P5a",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:bot-check",
+      "suite": "edge",
+      "id": "bot-check",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S4b",
+      "rows": [],
+      "attempts": [
+        "FAIL",
+        "PASS"
+      ]
+    },
+    {
+      "key": "edge:switch:checkout-saved",
+      "suite": "edge",
+      "id": "checkout-saved",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P8b",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:checkout",
+      "suite": "edge",
+      "id": "checkout",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P8",
+      "rows": [
+        "CM-J08",
+        "CM-J16"
+      ]
+    },
+    {
+      "key": "edge:switch:crash",
+      "suite": "edge",
+      "id": "crash",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P5d",
+      "rows": [
+        "CM-L16",
+        "CM-L16a"
+      ]
+    },
+    {
+      "key": "edge:switch:deep-link",
+      "suite": "edge",
+      "id": "deep-link",
+      "cell": "switch",
+      "verdict": "FAIL",
+      "failing": true,
+      "why": [
+        "the answer did not report the blocker"
+      ],
+      "edge": "E-P6",
+      "rows": [
+        "CM-M15"
+      ],
+      "attempts": [
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "key": "edge:switch:dialogs",
+      "suite": "edge",
+      "id": "dialogs",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P2",
+      "rows": [
+        "CM-K10",
+        "CM-M13",
+        "CM-K11",
+        "CM-K12",
+        "CM-K15"
+      ]
+    },
+    {
+      "key": "edge:switch:download-prompt",
+      "suite": "edge",
+      "id": "download-prompt",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P2c",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:files",
+      "suite": "edge",
+      "id": "files",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P2b",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:hang",
+      "suite": "edge",
+      "id": "hang",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P5c",
+      "rows": [
+        "CM-L16",
+        "CM-M16",
+        "CM-K13"
+      ]
+    },
+    {
+      "key": "edge:switch:infinite-scroll",
+      "suite": "edge",
+      "id": "infinite-scroll",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P4",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:new-tab",
+      "suite": "edge",
+      "id": "new-tab",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P1",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:oauth-popup",
+      "suite": "edge",
+      "id": "oauth-popup",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S3",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:pdf",
+      "suite": "edge",
+      "id": "pdf",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P6b",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:permissions",
+      "suite": "edge",
+      "id": "permissions",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P7",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:session-expiry",
+      "suite": "edge",
+      "id": "session-expiry",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S6",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:shadow-dom",
+      "suite": "edge",
+      "id": "shadow-dom",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P3b",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:stop-and-duplicate",
+      "suite": "edge",
+      "id": "stop-and-duplicate",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P15",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:tls",
+      "suite": "edge",
+      "id": "tls",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P5b",
+      "rows": [
+        "CM-M14",
+        "CM-M18"
+      ]
+    },
+    {
+      "key": "edge:switch:twofa",
+      "suite": "edge",
+      "id": "twofa",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S4",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:webauthn-create",
+      "suite": "edge",
+      "id": "webauthn-create",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S1b",
+      "rows": []
+    },
+    {
+      "key": "edge:switch:webauthn-get",
+      "suite": "edge",
+      "id": "webauthn-get",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-S1",
+      "rows": [],
+      "attempts": [
+        "DEAD-END",
+        "PASS"
+      ]
+    },
+    {
+      "key": "edge:switch:xorigin-iframe",
+      "suite": "edge",
+      "id": "xorigin-iframe",
+      "cell": "switch",
+      "verdict": "PASS",
+      "failing": false,
+      "edge": "E-P3",
+      "rows": []
+    },
+    {
+      "key": "mgb:codex:f1-invoice-reconcile",
+      "suite": "mgb",
+      "id": "f1-invoice-reconcile",
+      "cell": "codex",
+      "verdict": "PASS",
+      "failing": false,
+      "why": [],
+      "rows": []
+    },
+    {
+      "key": "mgb:switch:f2-onboarding",
+      "suite": "mgb",
+      "id": "f2-onboarding",
+      "cell": "switch",
+      "verdict": "FAIL",
+      "failing": true,
+      "why": [
+        "unmet: The signed copy is in the signed folder under the folder’s naming pattern",
+        "unmet: The filed signed copy carries the submitted application’s confirmation number"
+      ],
+      "rows": [],
+      "attempts": [
+        "FAIL",
+        "FAIL"
+      ]
+    }
+  ],
+  "regressions": [
+    "edge:switch:deep-link",
+    "mgb:switch:f2-onboarding"
+  ],
+  "known": [
+    "conformance:X4"
+  ],
+  "unbaselined": [],
+  "incomplete": [],
+  "failingRows": [
+    "CM-M15"
+  ]
+}

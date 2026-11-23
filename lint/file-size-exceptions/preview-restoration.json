@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/capabilities/browser/views.cjs": {
+      "maxLines": 517,
+      "reason": "PaneViews remains the owner of native view lifecycle, bindings and toolbar dispatch. Preview loading is extracted into viewLoad.cjs; this class connects its ownership state to existing private load events and Stop/reload actions. Moving those callbacks away from the view owner would require exposing its private event/state machinery."
+    }
+  }
+}

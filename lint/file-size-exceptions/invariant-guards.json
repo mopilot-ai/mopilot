@@ -1,0 +1,28 @@
+{
+  "exceptions": {
+    "tests/controlMatrixChromeReliability.test.ts": {
+      "maxLines": 555,
+      "reason": "Chrome reliability scenarios share the relay and browser-host fixture, including reconnect and ownership transitions."
+    },
+    "tests/controlMatrixHealth.test.ts": {
+      "maxLines": 883,
+      "reason": "Control-health scenarios share the host, helper and recovery fixture. Permission and readiness outcomes are exercised through the common control boundary."
+    },
+    "tests/controlMatrixPageEdges.test.ts": {
+      "maxLines": 705,
+      "reason": "Page-edge scenarios share fake tabs and the browser host. Keep crash, failed-load and recovery outcomes in that common environment."
+    },
+    "tests/controlMatrixStop.test.ts": {
+      "maxLines": 620,
+      "reason": "Stop scenarios share pending actions, ownership tokens and the control fixture. Keep cancellation and late-completion cases in one matrix."
+    },
+    "tests/controlMatrixTokens.test.ts": {
+      "maxLines": 801,
+      "reason": "Turn-token scenarios share the control fixture and its adapters. Token retirement and late commands must be compared across the same owners."
+    },
+    "tests/titleBarUI.test.ts": {
+      "maxLines": 505,
+      "reason": "Title-bar and browser-tab interactions share a mounted header, store and native bridge. Motion and failure cases use that same fixture."
+    }
+  }
+}

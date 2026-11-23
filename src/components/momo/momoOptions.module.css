@@ -1,0 +1,44 @@
+/* MoMo's answer chips (alignment row 6): outlined pills under the question, entering as the design's chip beat (rise 10px and grow from .7, overshoot curve, one after another) on the shared motion tokens (shared/momoMotion.mjs, held in step by tests/momoOptions.test.ts); they stand still with Reduce Motion. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  /* The design's spacing (2x frame, pane 778 pt): 16 pt from the bubble to the pills, pills 28 pt tall, 12 pt between them */
+  gap: 12px;
+  margin-top: 16px;
+}
+.chip {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 8px;
+  font: inherit;
+  border: 1px solid var(--surface-border);
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text);
+  animation: chipIn var(--momo-dur-m, 200ms) var(--momo-ease-overshoot, ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--momo-dur-xs, 60ms));
+  transition:
+    background var(--momo-dur-xs, 60ms) var(--momo-ease-out, ease-out),
+    transform var(--momo-dur-xs, 60ms) var(--momo-ease-out, ease-out);
+}
+.chip:hover {
+  background: var(--surface-2);
+}
+.chip:active {
+  transform: scale(0.97);
+}
+.chip:disabled {
+  opacity: 0.45;
+}
+@keyframes chipIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.7);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,0 +1,22 @@
+/* Settings → About → Diagnostics: the tables of Chat data (migration counts) and Request log. */
+.compat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+.settings-card .compat-table th,
+.settings-card .compat-table td {
+  text-align: left !important;
+  vertical-align: top;
+  padding: 6px 10px 6px 0;
+  border-bottom: 0.5px solid var(--hairline-strong);
+  font-weight: 400;
+}
+.compat-table thead th {
+  font-weight: 500;
+  color: var(--text-3);
+}
+/* row labels as written ("In a worktree") */
+.compat-table tbody th {
+  white-space: nowrap;
+}

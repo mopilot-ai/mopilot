@@ -1,0 +1,17 @@
+// A pixel type size written in a JSX style object: a stylesheet cannot see it, so it ignores the Chat and Code
+// font-size settings (Settings -> Appearance -> Advanced) and the type scale cannot reach it. React turns a
+// numeric fontSize into pixels, and a 'Npx' string is pixels either way. Put the size in the element's
+// stylesheet, or read a step: style={{ fontSize: 'var(--fs-ui)' }}. A numeric lineHeight is already unitless, so
+// it follows the size it lands on and does not warn. src/styles/tokens.css, docs/code-quality.md#type-scale
+language js
+
+JsxAttribute(name = $name, initializer = $init) where {
+  $name <: r"style",
+  $init <: contains JsPropertyObjectMember() as $member where {
+    or {
+      $member <: r"(?s)^fontSize\s*:\s*(?:[0-9.]+|'[0-9.]*px'|\"[0-9.]*px\")\s*$",
+      $member <: r"(?s)^lineHeight\s*:\s*(?:'[0-9.]*px'|\"[0-9.]*px\")\s*$",
+    },
+    register_diagnostic(span=$member, message="[inline-type-size] A pixel type size in a style object: a stylesheet cannot see it, so it ignores the Chat and Code font-size settings. Put the size in the element's stylesheet, or read a step from the type scale: style={{ fontSize: 'var(--fs-ui)' }} (src/styles/tokens.css, docs/code-quality.md#type-scale).", severity="warn")
+  }
+}

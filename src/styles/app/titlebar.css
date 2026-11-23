@@ -1,0 +1,153 @@
+/* Title bar: the window caption, its buttons and the Windows caption overlay. */
+/* ================================================================== */
+/* Title bar                                                           */
+/* ================================================================== */
+.titlebar {
+  /* Clear of macOS's window buttons: 88px at Actual Size. They stay 12pt and keep their place as the page zooms
+     (electron/app/zoom.cjs), so zoomed out their right edge (23px + 46px / zoom) plus the 19px gap needs more. */
+  --titlebar-nav-inset: max(88px, calc(42px + 46px / var(--zoom, 1)));
+  --titlebar-content-gap: 12px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--titlebar-h);
+  -webkit-app-region: drag;
+  z-index: 5;
+}
+.titlebar button,
+.titlebar input,
+.titlebar .tooltip-anchor {
+  -webkit-app-region: no-drag;
+}
+.titlebar-main {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  padding-left: var(--titlebar-nav-inset);
+  padding-right: 9px;
+  display: grid;
+  /* The navigation's intrinsic width is always a floor, even while the sidebar is dragged closed. */
+  grid-template-columns: minmax(max-content, var(--titlebar-sidebar-space, 0px)) minmax(0, 1fr) max-content;
+  column-gap: var(--titlebar-content-gap);
+  align-items: center;
+  pointer-events: none;
+}
+.titlebar-main.sidebar-open {
+  --titlebar-sidebar-space: calc(var(--sidebar-w) + 13px - var(--titlebar-nav-inset) - var(--titlebar-content-gap));
+}
+.titlebar-main.beside-pane {
+  padding-right: 10px;
+}
+.titlebar-nav {
+  justify-self: start;
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+.titlebar.fullscreen {
+  --titlebar-nav-inset: 12px;
+}
+/* Windows: no traffic lights on the left; the caption buttons (window controls overlay) take the
+   top right, so everything pinned there moves left by their width. */
+:root[data-platform='win32'] {
+  --wco-w: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 138px)));
+}
+:root[data-platform='win32'] .titlebar {
+  --titlebar-nav-inset: 12px;
+}
+:root[data-platform='win32'] .titlebar-main:not(.beside-pane) {
+  margin-right: var(--wco-w);
+}
+:root[data-platform='win32'] .tb-tabs {
+  box-sizing: border-box;
+  padding-right: calc(5px + var(--wco-w));
+}
+.tb-btn {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: var(--icon);
+  transition: background var(--dur), color var(--dur);
+}
+.tb-btn:hover:not(:disabled),
+.tb-btn.active {
+  background: var(--control-hover);
+  color: var(--icon-hover);
+}
+.tb-btn.active {
+  background: var(--control-active);
+}
+/* Pressed-state toggle (e.g. "Hide tabs" while the pane is showing). */
+.tb-btn.on {
+  background: rgba(var(--ink), 0.05);
+}
+.tb-btn:disabled {
+  opacity: 0.45;
+}
+.titlebar-center {
+  min-width: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tb-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  pointer-events: auto;
+}
+.tb-folder,
+.tb-title > .host-mark {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--text-ui);
+  border-radius: 5px;
+  -webkit-app-region: no-drag;
+}
+.tb-folder:hover {
+  background: var(--row-hover);
+}
+.tb-title-text {
+  font-size: var(--fs-chat);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-app-region: no-drag;
+}
+.tb-rename {
+  background: var(--surface-2);
+  border: 0.5px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: var(--fs-chat);
+  font-weight: 500;
+  outline: none;
+  width: 360px;
+  min-width: 0;
+  max-width: 100%;
+}
+.titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: auto;
+}
+.tb-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--divider);
+  margin: 0 3px 0 4px;
+}
+

@@ -1,0 +1,22 @@
+/* Rich file previews keep controls visible and documents bounded by their pane, including narrow windows. */
+.file-document-frame { flex: 1; min-width: 0; min-height: 0; width: 100%; border: 0; background: var(--bg); }
+.file-media-preview { flex: 1; min-width: 0; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden; }
+.file-media-preview > video { max-width: 100%; max-height: 100%; min-width: 0; min-height: 0; }
+.file-media-preview > audio { width: 100%; }
+.file-media-preview > .center-pad { position: absolute; top: 0; pointer-events: none; }
+.preview-error { gap: 12px; }
+.preview-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; flex-shrink: 0; font-size: var(--fs-ui); }
+.preview-toolbar select { max-width: 100%; min-width: 0; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--hairline-strong); border-radius: 6px; padding: 4px; }
+.preview-notice { padding: 8px; color: var(--text-2); font-size: var(--fs-ui); }
+.file-table-preview, .file-pdf-preview { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; }
+.preview-table-scroll, .pdf-page-scroll { flex: 1; min-width: 0; min-height: 0; overflow: auto; }
+.preview-table-scroll table { border-collapse: collapse; font-size: var(--fs-ui); min-width: 100%; }
+.preview-table-scroll td, .preview-table-scroll th { padding: 6px 10px; border: 1px solid var(--hairline-strong); white-space: pre-wrap; overflow-wrap: anywhere; max-width: 400px; text-align: left; vertical-align: top; }
+.preview-table-scroll th { color: var(--text-3); background: var(--row-hover); }
+.pdf-page-scroll { padding: 12px; scrollbar-gutter: stable; }
+.pdf-page-scroll canvas { display: block; background: var(--bg); box-shadow: 0 1px 8px rgba(var(--shadow-ink), .15); }
+.pdf-page-scroll canvas[hidden] { display: none; }
+.pdf-page-text { padding: 12px 0; font-size: var(--fs-ui); }
+.pdf-page-text p { white-space: pre-wrap; }
+.file-legacy-preview { flex: 1; min-height: 0; overflow: auto; }
+.file-legacy-preview pre { padding: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }

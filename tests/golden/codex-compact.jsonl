@@ -1,0 +1,10 @@
+{"dir":"s2c","msg":{"method":"thread/status/changed","params":{"threadId":"t1","status":{"type":"active","activeFlags":[]}}}}
+{"dir":"s2c","msg":{"method":"turn/started","params":{"threadId":"t1","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"item/started","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"contextCompaction","id":"k1"}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"contextCompaction","id":"k1"}}}}
+{"dir":"s2c","msg":{"method":"turn/completed","params":{"threadId":"t1","turn":{"id":"turn-1","status":"completed","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"turn/started","params":{"threadId":"t1","turn":{"id":"turn-2","status":"inProgress","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-2","item":{"type":"userMessage","id":"u2","content":[{"type":"text","text":"Keep going","text_elements":[]}]}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-2","item":{"type":"contextCompaction","id":"k2"}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-2","item":{"type":"agentMessage","id":"m1","text":"Continuing.","phase":null}}}}
+{"dir":"s2c","msg":{"method":"turn/completed","params":{"threadId":"t1","turn":{"id":"turn-2","status":"completed","items":[],"error":null}}}}

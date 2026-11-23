@@ -1,0 +1,30 @@
+/* MoMo (#2139): its sidebar row's donut (a 16px static ring), and its tabs' and settings' notes. */
+.momo-dot {
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border-style: solid;
+  border-color: var(--accent);
+}
+.momo-empty {
+  padding: 48px 0;
+  color: var(--text-3);
+  font-size: var(--fs-chat);
+  text-align: center;
+}
+/* Settings › MoMo: a time of day (quiet hours) */
+/* The field is as wide as its own value: a fixed width cut a 12-hour time to "07:23 P" (#2504) */
+.momo-time.text-input.slim {
+  width: auto;
+  min-width: 112px;
+}
+.momo-time-sep {
+  color: var(--text-3);
+}
+/* MoMo's nav title: its dot in the chosen color before its name, once setup is done */
+.momo-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

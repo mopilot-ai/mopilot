@@ -1,0 +1,11 @@
+{
+  "layer": "L2",
+  "public": [
+    "vendorSkills.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1"
+  ],
+  "allow": []
+}

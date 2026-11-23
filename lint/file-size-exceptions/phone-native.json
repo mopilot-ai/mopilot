@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "mobile/src/runtime.ts": {
+      "maxLines": 767,
+      "reason": "Owns the phone's relay connection, authenticated session and event routing. Push, organization access and reconnect services share that connection; their implementations are separate. Failing the one request a malformed reply names sits beside the onMessage handler that settles requests. A relay inbox overflow and a closed relay socket share one lost-connection path, and a return after a real absence replaces the socket through that same catch-up (the logic is in inboxCatchUp.ts and relayLiveness.ts; the runtime only wires their hooks). A relay refusal (full, device limit, switched off) is one more field published on that lost-connection path and on a failed open; what it means is in relayRefused.ts."
+    }
+  }
+}

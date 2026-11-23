@@ -1,0 +1,51 @@
+{
+  "id": "hermes",
+  "version": "0.22.7",
+  "checkedAt": "2026-11-04T00:37:38.489Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Hermes Agent 0.22.7 was installed with curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): it was not admitted (unsupported: MoPilot can't give Hermes Agent computer and browser control). No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "hermes-agent",
+      "version": "0.22.7"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": false
+      },
+      "mcpCapabilities": {
+        "http": false,
+        "sse": false
+      },
+      "sessionCapabilities": {
+        "resume": {},
+        "list": {},
+        "fork": {}
+      }
+    },
+    "authMethods": [
+      {
+        "args": [
+          "--setup"
+        ],
+        "description": "Open Hermes' interactive model/provider setup in a terminal. Use this when Hermes has not been configured on this machine yet.",
+        "id": "hermes-setup",
+        "name": "Configure Hermes provider",
+        "type": "terminal"
+      }
+    ]
+  },
+  "probeWithQuirksFixes": {
+    "state": "unsupported",
+    "version": "0.22.7",
+    "reason": "MoPilot can't give Hermes Agent computer and browser control"
+  },
+  "sessionNew": {
+    "ok": true,
+    "sageMcpHello": false
+  }
+}

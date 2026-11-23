@@ -1,0 +1,9 @@
+{
+  "name": "mopilot-host",
+  "version": "0.0.1",
+  "private": true,
+  "description": "MoPilot Host: runs a chat for one harness on this machine without Electron",
+  "type": "module",
+  "bin": { "mopilot-host": "bin/mopilot-host.mjs" },
+  "engines": { "node": ">=22" }
+}

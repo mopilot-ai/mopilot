@@ -1,0 +1,412 @@
+/* The chat's session rail, with compact environment, repository, activity, context and source cards. */
+.summary-slot {
+  width: calc(var(--summary-w) + 8px);
+  flex: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.summary-panel {
+  width: var(--summary-w);
+  flex: none;
+  margin: 9px 8px 0 0;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--fs-small);
+  line-height: 1.4;
+  animation: pop-in 140ms var(--ease);
+  max-height: calc(100% - 20px);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.summary-panel > * {
+  flex: none;
+  min-width: 0;
+  background: color-mix(in srgb, var(--surface) 50%, var(--card-bg));
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+}
+.summary-panel > .summary-group {
+  padding: 4px 10px;
+}
+.summary-changes:empty {
+  display: none;
+}
+.summary-context,
+.summary-changes {
+  container: session-rail / inline-size;
+}
+
+.summary-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 10px 10px;
+}
+.summary-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.summary-folder {
+  flex: none;
+  color: var(--text-3);
+}
+.summary-project {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  color: var(--text);
+}
+.summary-project.none {
+  color: var(--text-3);
+  font-weight: 500;
+}
+.summary-machine,
+.summary-branch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline: 1px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+.summary-branch {
+  font-family: var(--font-mono);
+}
+.summary-machine > svg,
+.summary-branch > svg {
+  flex: none;
+}
+.summary-header .icon-btn.xs {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 7px;
+  color: var(--text-3);
+}
+.summary-header .icon-btn.xs:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.summary-header .summary-remote {
+  margin-top: 3px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 7px;
+}
+.summary-remote > .summary-label {
+  white-space: normal;
+}
+
+.summary-card-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  list-style: none;
+  cursor: pointer;
+}
+.summary-card-toggle::-webkit-details-marker {
+  display: none;
+}
+.summary-card-toggle:hover {
+  background: var(--row-hover);
+}
+.summary-card-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.summary-card-toggle > svg {
+  color: var(--text-3);
+  flex: none;
+  transition: transform var(--dur) ease;
+}
+.summary-card[open] > .summary-card-toggle > svg:last-of-type {
+  transform: rotate(180deg);
+}
+.summary-agent-transcripts > button {
+  padding-inline-start: 23px;
+}
+
+/* Context: its tokens and share on one line, the meter full width under them */
+.summary-context > .summary-card-toggle {
+  display: grid;
+  row-gap: 0;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-areas:
+    'label tokens value arrow'
+    'meter meter meter meter';
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.summary-context-label {
+  grid-area: label;
+}
+.summary-context-tokens {
+  grid-area: tokens;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+.summary-context-value {
+  grid-area: value;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.summary-context[data-level='warn'] .summary-context-value {
+  color: var(--orange);
+}
+.summary-context[data-level='full'] .summary-context-value {
+  color: var(--red);
+}
+.summary-context meter {
+  grid-area: meter;
+  width: 100%;
+  height: 4px;
+  margin-top: 6px;
+  border: none;
+}
+.summary-context > .summary-card-toggle > svg {
+  grid-area: arrow;
+}
+.summary-context meter::-webkit-meter-bar {
+  background: var(--row-hover);
+  border: none;
+  border-radius: 2px;
+}
+.summary-context meter::-webkit-meter-optimum-value {
+  background: var(--accent);
+  border-radius: 2px;
+}
+.summary-context[data-level='warn'] meter::-webkit-meter-optimum-value {
+  background: var(--orange);
+}
+.summary-context[data-level='full'] meter::-webkit-meter-optimum-value {
+  background: var(--red);
+}
+.summary-context-detail {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* Sections and their rows */
+.summary-group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px 8px;
+}
+.summary-section-head,
+.summary-subhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  height: auto;
+  min-width: 0;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-3);
+}
+.summary-section-head > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.summary-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  min-height: 16px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--row-hover);
+  font-size: var(--fs-micro);
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: normal;
+  color: var(--text-2);
+}
+.summary-group .icon-btn.xs {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--text-3);
+}
+.summary-group .icon-btn.xs:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.summary-row {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 0;
+  color: var(--text-ui);
+  text-align: left;
+}
+/* the hover fill reaches 8px past the text column on both sides */
+.summary-row::before {
+  content: '';
+  position: absolute;
+  inset: 0 -8px;
+  z-index: -1;
+  border-radius: 6px;
+  transition: background-color var(--dur) ease;
+}
+.summary-row:not(.static):hover::before {
+  background: var(--row-hover);
+}
+.summary-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+.summary-row > svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--text-2);
+}
+.summary-row.muted > svg,
+.summary-row > svg.summary-next {
+  width: 12px;
+  height: 12px;
+  color: var(--text-3);
+}
+.summary-row > svg.flipped {
+  transform: rotate(180deg);
+}
+.summary-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.summary-hint {
+  color: var(--text-3);
+  font-size: inherit;
+  white-space: nowrap;
+}
+.summary-note {
+  margin: 0 0 0 23px;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  overflow-wrap: anywhere;
+}
+.summary-row .diff-stat {
+  font-family: var(--font-mono);
+  font-size: inherit;
+  white-space: nowrap;
+}
+.summary-branch-changes {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'icon label totals arrow';
+}
+.summary-branch-changes > svg:first-child {
+  grid-area: icon;
+}
+.summary-branch-changes > .summary-label {
+  grid-area: label;
+}
+.summary-branch-changes > .summary-next {
+  grid-area: arrow;
+}
+.summary-change-totals {
+  grid-area: totals;
+  display: flex;
+  gap: 8px;
+}
+/* At larger chat font sizes, give secondary measurements their own line. */
+@container session-rail (max-width: 16em) {
+  .summary-context > .summary-card-toggle {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'label value arrow'
+      'tokens tokens tokens'
+      'meter meter meter';
+  }
+  .summary-branch-changes {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'icon label arrow'
+      '. totals totals';
+    row-gap: 0;
+  }
+}
+/* Create and Attach read as the row's action, not as a status */
+.summary-row .summary-action {
+  padding: 1px 9px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  color: var(--text-ui);
+  font-weight: 500;
+}
+/* A source's host as a lettered tile; the expand row keeps the label column */
+.summary-monogram,
+.summary-monogram-gap {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.summary-monogram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--row-hover);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-2);
+}
+
+/* "Track pull request…": a URL field under the pull request row (components/panels/PullRequestRow.tsx) */
+.summary-track {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0 6px;
+}
+.summary-track-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+.summary-track-error {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--red-text);
+}

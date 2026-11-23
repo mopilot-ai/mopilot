@@ -1,0 +1,90 @@
+/* Thread inline diffs. */
+/* inline diff */
+.idiff {
+  border-radius: 12.5px;
+  border: 1px solid rgba(var(--ink), 0.08);
+  overflow: hidden;
+  background: var(--main);
+}
+.idiff-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 4px 0 10px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+  background: rgba(var(--ink), 0.04);
+  border-bottom: 0.5px solid rgba(var(--ink), 0.08);
+}
+.idiff-head .diff-stat {
+  font-size: var(--fs-ui);
+}
+.idiff-copy {
+  margin-left: auto;
+}
+.idiff-body {
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  line-height: 1.8;
+  color: var(--text);
+}
+.idiff-row {
+  display: flex;
+  min-width: max-content;
+}
+.idiff-ln {
+  position: relative;
+  flex: none;
+  width: 52px;
+  padding-right: 10px;
+  text-align: right;
+  color: var(--text-4);
+  user-select: none;
+}
+.idiff-code {
+  flex: 1;
+  padding: 0 14px 0 6px;
+  white-space: pre;
+}
+.idiff-row.del {
+  background: var(--diff-del-bg);
+}
+.idiff-row.del .idiff-ln {
+  background: var(--diff-del-gutter);
+  color: var(--diff-del-ink);
+}
+.idiff-row.del .idiff-ln::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: repeating-linear-gradient(to bottom, var(--diff-del-ink) 0 2px, transparent 2px 4px);
+}
+.idiff-row.add {
+  background: var(--diff-add-bg);
+}
+.idiff-row.add .idiff-ln {
+  background: var(--diff-add-gutter);
+  color: var(--diff-add-ink);
+}
+.idiff-row.add .idiff-ln::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--diff-add-ink);
+}
+.idiff-row.del .word-mark {
+  background: var(--diff-del-word);
+  border-radius: 3px;
+}
+.idiff-row.add .word-mark {
+  background: var(--diff-add-word);
+  border-radius: 3px;
+}

@@ -1,0 +1,13 @@
+[package]
+name = "dispatch"
+version = "0.1.0"
+description = "The core's route registry: each crate submits the routes it serves, and dispatch finds one by name."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+inventory = "0.3"

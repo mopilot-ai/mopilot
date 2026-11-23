@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/harness/claude/index.cjs": {
+      "maxLines": 509,
+      "reason": "Constructs the Claude harness over explicit platform ports and session services. Exposes the CLI service's per-executable version reader beside the existing status version so updates use the selected binary's identity."
+    }
+  }
+}

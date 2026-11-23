@@ -1,0 +1,24 @@
+// mouseenter that opens a submenu or picks a list's active row: Chromium sends mouseenter when the layout moves rows
+// under a still pointer, so a list that filters as the user types, or a line loading in above, hands the row that slid
+// under the pointer the submenu or the highlight, and Enter picks it (the model picker's harness flyout swapped this
+// way, and cuj-claude's switch-harness-handoff failed on it). Open or select as the pointer moves over the row
+// (onMouseMove), as SubMenu, HarnessRow and useListbox (src/components/MenuList.tsx) do.
+language js
+
+or {
+  JsxAttribute(name = $name, initializer = $handler) as $enter where {
+    $name <: r"onMouseEnter",
+    or {
+      $handler <: r"(?s).*\b(?:set\w*(?:Index|Idx)|onHover)\(.*",
+      $enter <: within or { JsxOpeningElement(attributes = $attrs), JsxSelfClosingElement(attributes = $attrs) } where {
+        $attrs <: contains JsxAttribute(name = $a) where { $a <: r"aria-haspopup" }
+      }
+    },
+    register_diagnostic(span=$enter, message="[enter-selects] mouseenter opens a submenu or picks the active row, and Chromium sends it when the layout moves rows under a still pointer: the row that slid under it gets the submenu or the highlight, and Enter picks it. Open or select on onMouseMove, as SubMenu and useListbox (src/components/MenuList.tsx) do (docs/bug-prevention/keyboard-and-focus.md).", severity="warn")
+  },
+  JsPropertyObjectMember(name = $name, value = $handler) as $enter where {
+    $name <: r"onMouseEnter",
+    $handler <: r"(?s).*\b(?:set\w*(?:Index|Idx)|onHover)\(.*",
+    register_diagnostic(span=$enter, message="[enter-selects] mouseenter opens a submenu or picks the active row, and Chromium sends it when the layout moves rows under a still pointer: the row that slid under it gets the submenu or the highlight, and Enter picks it. Open or select on onMouseMove, as SubMenu and useListbox (src/components/MenuList.tsx) do (docs/bug-prevention/keyboard-and-focus.md).", severity="warn")
+  }
+}

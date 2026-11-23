@@ -1,0 +1,8 @@
+{
+  "name": "mopilot-selectable-text",
+  "version": "0.1.0",
+  "description": "A read-only UITextView for a reply's prose, so iOS selects a range in place with handles and its edit menu (spike for #4837).",
+  "license": "UNLICENSED",
+  "author": "MoPilot",
+  "homepage": "https://mopilot.ai"
+}

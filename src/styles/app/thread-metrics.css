@@ -1,0 +1,87 @@
+/* Thread rhythm, message actions, step summaries and the Changes pane surface. */
+/* message actions: visible under the last turn, on hover elsewhere (official behaviour) */
+.turn:not(.last) .message-actions {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.turn:not(.last):hover .message-actions,
+.turn .message-actions:focus-within {
+  opacity: 1;
+}
+/* thread rhythm measured from the official app (same window size) */
+.worked-for {
+  margin-bottom: 18px;
+}
+.worked-for::after {
+  bottom: -4.5px;
+}
+.message-actions {
+  margin-top: 8px;
+}
+.turn {
+  margin-bottom: 10px;
+}
+.user-message {
+  margin-bottom: 40px;
+}
+.user-bubble {
+  padding: 10px 16px;
+  border-radius: 22px;
+  line-height: var(--lh-prose);
+}
+.edited-card {
+  margin-top: 12px;
+}
+.message-actions {
+  margin-top: 5px;
+}
+.edited-card {
+  margin-bottom: 0;
+}
+.edited-card + .message-actions,
+.message-actions.bare {
+  margin-top: 14px;
+}
+.worked-for + .message-actions.bare {
+  margin-top: 24px;
+}
+/* completed step summary looks static like the official one; chevron appears on hover or when open */
+.step-group:not(.open) > .step-row.summary .step-chevron {
+  opacity: 0;
+}
+.step-group > .step-row.summary:hover .step-chevron {
+  opacity: 1;
+}
+.cp-files[hidden] {
+  display: none;
+}
+.cp-file-row:first-of-type,
+.cp-file-row.active {
+  background: rgba(var(--ink), 0.05);
+}
+.lang-icon.logo {
+  background: none;
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+}
+.side-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 26px;
+  padding: 8px 10px 0 12px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.side-section-label .icon-btn {
+  opacity: 0;
+}
+.side-section-label:hover .icon-btn {
+  opacity: 1;
+}
+.side-section-input {
+  margin: 8px 8px 2px;
+  width: calc(100% - 16px);
+}

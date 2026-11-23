@@ -1,0 +1,16 @@
+{
+  "layer": "L5",
+  "public": [
+    "codexAccounts.cjs",
+    "accounts/relayPeers.cjs",
+    "mopilot.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4"
+  ],
+  "allow": []
+}

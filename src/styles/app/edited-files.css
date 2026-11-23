@@ -1,0 +1,218 @@
+/* The edited files card and the above-composer changes pill. */
+/* edited files card */
+.edited-card {
+  overflow: hidden;
+  margin: 4px 0 8px;
+  border-radius: var(--card-radius-lg);
+  background: var(--card-bg);
+  box-shadow: 0 0 0 0.5px var(--card-border);
+}
+.edited-card.undone {
+  opacity: 0.75;
+}
+.edited-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+.edited-overview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.edited-overview-detail {
+  display: grid;
+}
+.edited-overview-detail > span {
+  grid-area: 1 / 1;
+}
+.edited-view-hint {
+  visibility: hidden;
+  color: var(--text-2);
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+}
+.edited-view-hint > span {
+  margin-left: 4px;
+}
+.edited-overview:hover .edited-stats,
+.edited-overview:focus-visible .edited-stats {
+  visibility: hidden;
+}
+.edited-overview:hover .edited-view-hint,
+.edited-overview:focus-visible .edited-view-hint {
+  visibility: visible;
+}
+.edited-files {
+  border-top: 1px solid rgba(var(--ink), 0.09);
+  padding: 4px 0;
+}
+.edited-file-list {
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.edited-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.edited-file,
+.edited-expand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: var(--fs-ui);
+  line-height: 1.54;
+}
+.edited-file:hover,
+.edited-expand:hover {
+  background: rgba(var(--ink), 0.04);
+}
+.edited-file-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+.edited-file .edited-stats {
+  flex: none;
+  white-space: nowrap;
+}
+.edited-expand {
+  color: var(--text);
+}
+@media (max-width: 520px) {
+  .edited-header {
+    flex-wrap: wrap;
+  }
+  .edited-actions {
+    margin-left: auto;
+  }
+}
+.edited-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--card-radius);
+  background: var(--surface);
+  color: var(--text-2);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.edited-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.edited-title {
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--text);
+}
+.edited-stats {
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  letter-spacing: -0.325px;
+}
+.edited-stats .plus,
+.thread-pr-list-stats .plus {
+  color: var(--diff-add-ink);
+}
+.edited-stats .minus,
+.thread-pr-list-stats .minus {
+  color: var(--diff-del-ink);
+}
+.edited-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 12.5px;
+  font-size: var(--fs-ui);
+  color: var(--text);
+  background: rgba(var(--ink), 0.03);
+  border: 1px solid rgba(var(--ink), 0.082);
+}
+.btn-pill:hover {
+  background: rgba(var(--ink), 0.08);
+}
+.btn-pill.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn-pill.ghost:hover {
+  background: rgba(var(--ink), 0.06);
+}
+/* the official above-composer surface: a centered row of rounded pills (the goal) that fade up */
+.composer-pills {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.goal-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  /* a fixed height, so the scroll-to-bottom button's place above it holds at any chat font size */
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in oklab, var(--hairline-strong) 80%, transparent);
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--text);
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .goal-pill {
+    animation: composer-pill-in 150ms ease-out;
+  }
+}
+@keyframes composer-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+/* a rich hover card (a pull request list), on the menu surface */
+.tooltip.rich {
+  display: block;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--menu-bg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--menu-shadow);
+  border: 0;
+  color: var(--text);
+  white-space: normal;
+}

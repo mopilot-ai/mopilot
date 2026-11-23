@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/host/remote.cjs": {
+      "maxLines": 520,
+      "reason": "Owns one Host connection's handshake, requests and error routing. A call that needs the Host's trust asks again once before it shows a remembered unknown-client answer (the asking lives in remoteTrust.cjs; only its wiring and the gate split are here, 517 lines). Continue ownership and delivery details use those same connection boundaries."
+    }
+  }
+}

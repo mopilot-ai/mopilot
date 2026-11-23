@@ -1,0 +1,18 @@
+{
+  "layer": "R5",
+  "public": [],
+  "mayImport": [
+    "L0",
+    "R0",
+    "R1",
+    "R2",
+    "R3",
+    "R4"
+  ],
+  "files": [
+    "src/App.tsx",
+    "src/main.tsx",
+    "src/launch.ts"
+  ],
+  "allow": []
+}

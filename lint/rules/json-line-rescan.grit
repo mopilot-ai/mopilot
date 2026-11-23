@@ -1,0 +1,10 @@
+// Repeatedly searching an accumulated record from zero makes fragmented JSON input quadratic.
+// Read the stream with electron/transport/jsonReader.cjs (the Rust core frames it); a fixed-buffer scanner carries its offset explicitly.
+// docs/bug-prevention/external-contracts.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or { `$buffer.indexOf('\n')`, `$buffer.indexOf("\n")` },
+  $hit <: within `while ($condition) { $body }` where { $condition <: contains $hit },
+  register_diagnostic(span=$hit, message="[json-line-rescan] This newline loop rescans an accumulated prefix on every chunk. Read the stream with electron/transport/jsonReader.cjs, or use an explicit offset for a fixed buffer (docs/bug-prevention/external-contracts.md).", severity="warn")
+}

@@ -1,0 +1,65 @@
+{
+  "model": "claude-sonnet-5-5",
+  "max_tokens": 32000,
+  "stream": true,
+  "thinking": { "type": "enabled", "budget_tokens": 4096 },
+  "metadata": { "user_id": "user_fixture" },
+  "system": [
+    { "type": "text", "text": "You are Claude Code, a coding agent." },
+    { "type": "text", "text": "Working directory: /work/app", "cache_control": { "type": "ephemeral" } }
+  ],
+  "tools": [
+    {
+      "name": "Read",
+      "description": "Read a file from the local filesystem.",
+      "input_schema": {
+        "type": "object",
+        "properties": { "file_path": { "type": "string" }, "offset": { "type": "number" }, "limit": { "type": "number" } },
+        "required": ["file_path"]
+      }
+    },
+    {
+      "name": "Bash",
+      "description": "Run a shell command.",
+      "input_schema": { "type": "object", "properties": { "command": { "type": "string" } }, "required": ["command"] },
+      "cache_control": { "type": "ephemeral" }
+    }
+  ],
+  "tool_choice": { "type": "auto" },
+  "messages": [
+    { "role": "user", "content": [{ "type": "text", "text": "Why does the screenshot test fail?" }] },
+    {
+      "role": "assistant",
+      "content": [
+        { "type": "thinking", "thinking": "I should look at the screenshot first.", "signature": "c2ln" },
+        { "type": "text", "text": "Let me look at the screenshot." },
+        { "type": "tool_use", "id": "toolu_01A", "name": "Read", "input": { "file_path": "/work/app/shot.png" } }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01A",
+          "content": [
+            { "type": "text", "text": "Read image (2 KB)" },
+            { "type": "image", "source": { "type": "base64", "media_type": "image/png", "data": "iVBORw0KGgo=" } }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [{ "type": "tool_use", "id": "toolu_01B", "name": "Bash", "input": { "command": "npm test -- shot" } }]
+    },
+    {
+      "role": "user",
+      "content": [
+        { "type": "tool_result", "tool_use_id": "toolu_01B", "content": "1 failing: pixel diff 3.2%", "is_error": true },
+        { "type": "document", "title": "spec.pdf", "source": { "type": "base64", "media_type": "application/pdf", "data": "JVBERi0xLjQK" } },
+        { "type": "text", "text": "Here is the spec too.", "cache_control": { "type": "ephemeral" } }
+      ]
+    }
+  ]
+}

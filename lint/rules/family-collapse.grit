@@ -1,0 +1,18 @@
+// A chat's harness read as Codex or Claude Code, with a basic harness (ACP) folded into Codex: shared UI then acts on
+// Codex's account, selection, caps or limits in a basic chat. Read the family (chatFamily, composerFamily, currentFamily,
+// nativeFamily, newChatKind) and narrow it with firstTierOf or composerFirstTier, which are null on a basic harness, so
+// the caller says what a basic chat does instead. Applied to the renderer (biome.json overrides).
+// docs/bug-prevention/cross-harness-gaps.md
+language js
+
+or {
+  `chatHarness($...)`,
+  `composerHarness($...)`,
+  `currentHarness($...)`,
+  `ownerOf($_) === 'codex'`,
+  `ownerOf($_) !== 'codex'`,
+  `$_ === 'claude' ? 'claude' : 'codex'`
+} as $hit where {
+  $hit <: not within `!isAcpThread($_) && $_`,
+  register_diagnostic(span=$hit, message="[family-collapse] This reads a chat's harness as Codex or Claude Code, so a basic harness's chat is taken for Codex. Read its family (chatFamily, composerFamily, nativeFamily) and narrow it with firstTierOf, which is null on a basic harness (docs/bug-prevention/cross-harness-gaps.md).", severity="warn")
+}

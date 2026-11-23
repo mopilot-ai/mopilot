@@ -1,0 +1,56 @@
+{
+  "exceptions": {
+    "tests/relayCoverage.test.ts": {
+      "maxLines": 565,
+      "reason": "Relay scenarios share fake admitted peers and one protocol fixture. Peer-process authentication retains its separate focused tests."
+    },
+    "tests/e2e/fixtures/fake-codex.mjs": {
+      "maxLines": 1184,
+      "reason": "Implements the fake Codex app-server protocol and thread lifecycle. Relay probes and background-command behavior remain in focused helper modules."
+    },
+    "tests/e2e/fixtures/fake-claude.mjs": {
+      "maxLines": 1068,
+      "reason": "Implements the fake Claude CLI protocol and session lifecycle used by E2E specs. Tool responses, foreground-task details and the CLI's local-command rule (fake-claude-local.mjs) remain in helper modules."
+    },
+    "tests/store-boot.test.ts": {
+      "maxLines": 914,
+      "reason": "Boot scenarios share the store and native startup fixture. Window readiness is checked for both main and Quick Chat startup."
+    },
+    "electron/capabilities/tools/computer.cjs": {
+      "maxLines": 595,
+      "reason": "Registers computer tool handlers over the shared permission anchor and control services. Refusal handling stays at the tool boundary."
+    },
+    "tests/appShell.test.ts": {
+      "maxLines": 614,
+      "reason": "App-shell commands and render-scope cases share one mounted shell, store and native bridge. Keep the scenario matrix with that fixture."
+    },
+    "tests/quickChatUI.test.ts": {
+      "maxLines": 517,
+      "reason": "Quick Chat layout and MoMo-toggle scenarios share the window's store, native bridge and mounted shell. MoMo's own pane is tested separately."
+    },
+    "tests/browserPermissions.test.ts": {
+      "maxLines": 592,
+      "reason": "Browser permission modes share one fake panel and intent reader. Action-gate behavior is exercised through the same browser control fixture."
+    },
+    "tests/composerGoalUI.test.ts": {
+      "maxLines": 665,
+      "reason": "Goal-composer scenarios share an isolated mounted composer and hook environment. Plugin delivery, input ownership and Stop behavior retain their focused tests."
+    },
+    "tests/turnNavigationUI.test.ts": {
+      "maxLines": 806,
+      "reason": "Navigation-rail cases share mounted geometry, anchors and frame controls. Memoization is checked through the fixture's real subscriptions."
+    },
+    "electron/capabilities/browser/script.cjs": {
+      "maxLines": 542,
+      "reason": "Owns browser-script execution and its guarded action surface. Locator, pointer and drag operations share cancellation and target checks. The result text carries the shared paging note (#3571): one require of it, the result line otherwise unchanged."
+    },
+    "tests/claudeSessions.test.ts": {
+      "maxLines": 618,
+      "reason": "Claude session lifecycle scenarios share a fake SDK, query options and transcript environment. Process exits and encrypted account state use that same fixture."
+    },
+    "tests/claudeCoverageSessions.test.ts": {
+      "maxLines": 826,
+      "reason": "Claude session control scenarios share one fake SDK and command collector. Context-detail requests are checked beside the other control operations."
+    }
+  }
+}

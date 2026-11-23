@@ -1,0 +1,446 @@
+/* Approvals: permission cards, browser approvals and access cards. */
+/* ================================================================== */
+/* Approvals                                                           */
+/* ================================================================== */
+/* Both card entrypoints share the composer column. */
+.approval-stack,
+.thread-composer-area > .approval-card {
+  width: min(var(--composer-w), calc(100% - 48px));
+}
+.approval-stack {
+  position: relative;
+  isolation: isolate;
+}
+/* queued cards peek out above the shown one, stacked 6px up, .03 smaller and .25 fainter per card */
+.approval-ghosts {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.approval-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: var(--composer-bg);
+  border: 0.5px solid var(--card-border);
+  border-radius: var(--card-radius-lg);
+  transform-origin: top;
+  transform: translateY(calc(var(--n) * -6px)) scale(calc(1 - var(--n) * 0.03));
+  opacity: calc(1 - var(--n) * 0.25);
+  transition:
+    transform 0.22s cubic-bezier(0.215, 0.61, 0.355, 1),
+    opacity 0.22s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .approval-ghost {
+    transition: none;
+  }
+}
+.approval-card {
+  background: var(--composer-bg);
+  border: 0.5px solid var(--card-border);
+  border-radius: var(--card-radius-lg);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  overflow: hidden;
+}
+/* each card comes in as the next one is promoted: from .97 scale, 6px up and .75 opacity */
+.approval-card {
+  transform-origin: top;
+  animation: approval-promote 0.22s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+@keyframes approval-promote {
+  0% {
+    opacity: 0.75;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .approval-card {
+    animation: none;
+  }
+}
+.approval-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px 12px;
+}
+.approval-kind {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-ui);
+  line-height: 1.54;
+  font-weight: 400;
+  color: var(--text-2);
+}
+.approval-message {
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  font-weight: 500;
+  color: var(--text);
+}
+.approval-detail {
+  padding: 0 12px;
+  overflow: auto;
+  min-height: 0;
+}
+.approval-cmd {
+  background: var(--code-bg);
+  border-radius: var(--row-radius);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--text-3);
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+/* what a design tool's approval publishes or changes, in place of its raw input */
+.approval-facts {
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.approval-cwd {
+  font-size: var(--fs-small);
+  color: var(--text-4);
+  margin: 6px 4px 0;
+}
+.approval-diffs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.approval-foot {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 16px 16px;
+}
+.ap-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  height: auto;
+  min-width: 0;
+  padding: 4px 10px;
+  border-radius: var(--row-radius);
+  font-size: var(--fs-ui);
+  line-height: 1.385;
+}
+/* A button's press: it squeezes the button to .975 in 60ms, and the release springs back over 450ms, a little past
+   its size, and settles. */
+.ap-btn {
+  transform-origin: 50%;
+  transition: transform var(--dur-slow) var(--spring-press);
+}
+.ap-btn:not(:disabled):active {
+  transform: scale(0.975);
+  transition: transform var(--dur-fast) ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ap-btn,
+  .ap-btn:not(:disabled):active {
+    transition: none;
+  }
+}
+.ap-btn kbd {
+  flex-shrink: 0;
+  min-width: 0;
+  min-height: 16px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: var(--fs-small);
+  line-height: 1.33;
+}
+.ap-btn.deny {
+  color: var(--text);
+  background: rgba(var(--ink), 0.03);
+  border: 1px solid rgba(var(--ink), 0.082);
+}
+.ap-btn.deny kbd {
+  background: rgba(var(--ink), 0.1);
+  color: var(--text);
+}
+.ap-split {
+  display: flex;
+  max-width: 100%;
+  border-radius: var(--row-radius);
+}
+/* the primary choice, in the accent as the reference app's Allow once is */
+.ap-btn.allow {
+  background: var(--accent);
+  color: var(--on-color);
+  border-radius: var(--row-radius) 0 0 var(--row-radius);
+  padding: 4px 4px 4px 10px;
+}
+.ap-btn.allow:hover {
+  background: var(--send-hover);
+}
+.ap-split > .ap-btn.allow:only-child {
+  border-radius: var(--row-radius);
+  padding: 4px 10px;
+}
+.ap-btn.allow kbd {
+  background: color-mix(in srgb, var(--on-color) 22%, transparent);
+  color: var(--on-color);
+}
+.ap-btn.allow.chevron {
+  border-radius: 0 var(--row-radius) var(--row-radius) 0;
+  padding: 4px 6px 4px 2px;
+  flex-shrink: 0;
+}
+.ap-btn.allow.chevron svg {
+  opacity: 0.5;
+}
+.ap-info {
+  display: grid;
+  color: var(--text-3);
+}
+.ap-btn.allow.solo {
+  border-radius: var(--row-radius);
+  padding: 4px 10px;
+}
+.ap-btn.allow.holding {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+.sage-approval .ap-btn.deny:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* browser approvals: the site's host first, the request's input as labeled rows */
+.browser-site {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.browser-origin {
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+.approval-rows {
+  margin: 4px 4px 8px;
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.approval-rows > div {
+  display: grid;
+  grid-template-columns: minmax(64px, max-content) 1fr;
+  gap: 8px;
+}
+.approval-rows dt {
+  color: var(--text-3);
+}
+.approval-rows dd {
+  margin: 0;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  max-height: 160px;
+  overflow: auto;
+}
+.browser-confirm {
+  margin: 4px 4px 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--ink), 0.16);
+  background: rgba(var(--ink), 0.04);
+}
+.browser-confirm p {
+  margin: 0;
+}
+.browser-confirm .desktop-access-warning {
+  margin: 6px 0 0;
+  align-items: flex-start;
+}
+.browser-confirm .desktop-access-warning > svg {
+  flex: none;
+  height: 1lh;
+  min-height: 13px;
+}
+.approval-risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--yellow);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.approval-risk > svg {
+  flex-shrink: 0;
+  height: 1lh;
+  min-height: 14px;
+}
+.approval-risk strong {
+  font-weight: 600;
+}
+.sage-access-hint {
+  margin: 8px 4px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.desktop-access-apps {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.desktop-access-apps label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.desktop-access-apps label:hover {
+  background: rgba(var(--ink), 0.04);
+}
+.desktop-access-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.desktop-access-tier {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.desktop-access-warning {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  color: var(--yellow);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* the access card's fine print, behind a small disclosure */
+.desktop-access-details {
+  margin-top: 4px;
+  font-size: var(--fs-small);
+}
+.desktop-access-details > summary {
+  width: fit-content;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.desktop-access-why {
+  margin: 4px 0 0;
+}
+.sage-levels {
+  background: rgba(var(--ink), 0.04);
+  border: 1px solid var(--hairline-strong);
+}
+.sage-levels button:not(:disabled) {
+  cursor: pointer;
+}
+.sage-levels button:not(:disabled):hover {
+  background: var(--row-hover);
+}
+.sage-levels button:disabled {
+  opacity: 0.4;
+}
+.approval-queue {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  margin-top: 6px;
+}
+.approval-stop {
+  font: inherit;
+  color: var(--text-2);
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.approval-stop:hover,
+.approval-stop:focus-visible {
+  color: var(--text);
+  background: rgba(var(--ink), 0.06);
+}
+.approval-body {
+  padding: 0 16px 8px;
+  overflow: auto;
+}
+.approval-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 16px 8px;
+}
+.approval-icon {
+  color: var(--text-2);
+}
+.approval-titles {
+  flex: 1;
+}
+.approval-title {
+  font-size: var(--fs-chat);
+  font-weight: 500;
+  color: var(--text);
+}
+.approval-subtitle {
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.approval-footer {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 16px 16px;
+}
+.approval-footer .btn.sm {
+  min-height: 28px;
+  height: auto;
+  padding-block: 4px;
+  white-space: normal;
+}
+
+/* the Host's clock under a waiting card (CardClock.tsx) */
+.approval-clock {
+  margin-top: 2px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}

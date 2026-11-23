@@ -1,0 +1,45 @@
+{
+  "id": "grok",
+  "version": null,
+  "checkedAt": "2026-11-04T00:37:37.011Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Grok was installed with npm install -g @xai-official/grok and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": null,
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "sessionCapabilities": {
+        "resume": {},
+        "list": {},
+        "close": {}
+      }
+    },
+    "authMethods": [
+      {
+        "id": "grok.com",
+        "name": "Grok",
+        "description": "Sign in with Grok"
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": false,
+    "sageMcpHello": false,
+    "error": "Sign in to Grok first"
+  },
+  "probeWithQuirksFixes": {
+    "state": "signin",
+    "version": null,
+    "reason": "Sign in to Grok first"
+  }
+}

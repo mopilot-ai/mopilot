@@ -1,0 +1,8 @@
+{
+  "name": "mopilot-live-activity",
+  "version": "0.1.0",
+  "description": "Starts, updates and ends the phone app's iOS Live Activity, and reads its push-to-update token.",
+  "license": "UNLICENSED",
+  "author": "MoPilot",
+  "homepage": "https://mopilot.ai"
+}

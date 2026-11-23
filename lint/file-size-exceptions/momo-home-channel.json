@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/remote/service.cjs": {
+      "maxLines": 525,
+      "reason": "The phone channel's one service: it also offers MoMo's home to phones (momo.home.* hidden unless MoMo is allowed and the flag is on, the hello field, and the change event forwarded to every paired phone), which are its own gate and its own event beside the others it already holds (the gate and event helpers are the same ones every method uses, so they stay beside them); the change event is sent only to a phone the Mac lets read the view (the same permission check the read makes)."
+    }
+  }
+}

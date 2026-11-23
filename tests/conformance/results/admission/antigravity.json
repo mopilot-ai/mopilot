@@ -1,0 +1,78 @@
+{
+  "id": "antigravity",
+  "version": "1.4.3",
+  "checkedAt": "2026-10-26T22:48:13.814Z",
+  "platform": "darwin arm64, Node v26.0.0",
+  "how": "Antigravity ACP 1.4.3 was probed on 2026-10-26 with the production admission check and sage-mcp, in a scratch home using gemini-api-key auth without a key. initialize succeeded; session/new required sign-in. No authenticate or prompt call was sent.",
+  "package": "https://dl.google.com/agy-extensions/releases/macos/agy-acp-server-1.4.3-darwin-arm64.zip",
+  "sha256": "c57db0a9b8b712daa9c3c17cdb990a61842ea569f279e8bd79d7aa85a303b20b",
+  "binary": "agy_acp_server.par (with localharness_external beside it)",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": true,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "sessionCapabilities": {
+        "list": {},
+        "resume": {}
+      },
+      "auth": {
+        "logout": {}
+      },
+      "_meta": {
+        "antigravity": {
+          "tier": true,
+          "systemPrompt": {
+            "append": true
+          }
+        }
+      }
+    },
+    "authMethods": [
+      {
+        "id": "oauth-personal",
+        "name": "Log in with Google",
+        "description": "Log in with your Google account"
+      },
+      {
+        "id": "oauth-business",
+        "name": "Log in with Gemini Enterprise",
+        "description": "Log in with your Gemini Enterprise account"
+      },
+      {
+        "id": "gemini-api-key",
+        "name": "Gemini API key",
+        "description": "Use an API key with Gemini Developer API"
+      },
+      {
+        "id": "agent-platform",
+        "name": "Gemini Enterprise Agent Platform",
+        "description": "Use Gemini Enterprise Agent Platform (formerly Vertex AI) with Application Default Credentials or an API key"
+      }
+    ],
+    "agentInfo": {
+      "name": "antigravity-acp",
+      "title": "Google Antigravity",
+      "version": "1.4.3"
+    }
+  },
+  "sessionNew": {
+    "ok": false,
+    "sageMcpHello": false,
+    "error": "auth.type is set to 'gemini-api-key' in settings.json ($GEMINI_HOME/antigravity-acp/settings.json) but the GEMINI_API_KEY environment variable is not set. Set GEMINI_API_KEY in the environment the ACP server is launched from, then restart the editor."
+  },
+  "probeWithQuirksFixes": {
+    "state": "signin",
+    "version": "1.4.3",
+    "reason": "auth.type is set to 'gemini-api-key' in settings.json ($GEMINI_HOME/antigravity-acp/settings.json) but the GEMINI_API_KEY environment variable is not set. Set GEMINI_API_KEY in the environment the ACP server is launched from, then restart the editor.",
+    "durationMs": 1311
+  }
+}

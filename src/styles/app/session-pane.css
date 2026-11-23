@@ -1,0 +1,32 @@
+/* Session Outputs and Usage keep long paths and reports readable within narrow pane tiles. */
+.session-pane {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.session-pane header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.session-pane h2 { margin: 0; font-size: var(--fs-title); }
+.session-pane p { color: var(--text-3); line-height: var(--lh-prose); }
+.session-output-list { display: flex; flex-direction: column; gap: 4px; }
+.session-output { display: flex; align-items: start; text-align: left; gap: 8px; padding: 10px; border-radius: 8px; }
+.session-output:hover { background: var(--row-hover); }
+.session-output svg { flex-shrink: 0; }
+.session-output span { min-width: 0; overflow-wrap: anywhere; }
+.session-pane h3 { margin: 20px 0 8px; font-size: var(--fs-ui); }
+.plan-usage header { margin-top: 12px; }
+.plan-usage header h3 { margin: 0; }
+.plan-usage-harness { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.plan-usage-harness h4 { margin: 0; font-size: var(--fs-small); font-weight: 600; color: var(--text-2); }
+.plan-usage-account { display: flex; flex-direction: column; gap: 6px; }
+.plan-usage-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-width: 0; }
+.plan-usage-name { min-width: 0; overflow-wrap: anywhere; }
+.plan-usage-plan, .plan-usage-status { font-size: var(--fs-small); color: var(--text-3); }
+.plan-usage-status[data-tone='warn'] { color: var(--orange); }
+.session-usage { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; }
+.session-usage dd { margin: 0; font-variant-numeric: tabular-nums; }
+.preview-swap, .preview-generation { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.preview-generation[hidden] { display: none; }
+.preview-refresh-status { padding: 8px 12px; color: var(--text-3); font-size: var(--fs-micro); }

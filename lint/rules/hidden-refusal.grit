@@ -1,0 +1,10 @@
+// A hidden tool's refusal written in place: one fixed sentence tells every session the same thing, so a
+// harness that serves only one surface is told about the other too (CM-X07e). Applied outside
+// electron/capabilities/visibility.cjs and toolRefusal.cjs, which own the wording (biome.json overrides).
+// docs/bug-prevention/cross-harness-gaps.md
+language js
+
+or { JsStringLiteralExpression(), JsTemplateExpression() } as $s where {
+  $s <: r"(?s).*unavailable in this session.*",
+  register_diagnostic(span=$s, message="[hidden-refusal] A hidden tool's refusal written in place names surfaces the session's harness may not serve. Refuse with hiddenRefusalText(hide, name) from electron/capabilities/contract/toolRefusal.cjs, which uses the session rule's own message (docs/bug-prevention/cross-harness-gaps.md).", severity="warn")
+}

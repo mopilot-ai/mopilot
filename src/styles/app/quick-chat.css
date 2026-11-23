@@ -1,0 +1,65 @@
+/* Quick Chat window. */
+/* Quick Chat uses the same surfaces and text as the app. */
+html.mini-root, html.mini-root body, html.mini-root #root {
+  background: var(--main) !important;
+  overflow: hidden;
+}
+/* The window is opaque and the system draws its frame, so the panel fills it with no frame of its own. */
+.quick-chat {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--main);
+  color: var(--text);
+  overflow: hidden;
+}
+/* Windows and Linux may draw no edge around a frameless window. */
+html.mini-root:not([data-platform="darwin"]) .quick-chat { border: 1px solid var(--hairline-strong); }
+/* Drag regions never cover a control: the title (with the header's left edge) and the spacer move the
+   window, each the header's full height. */
+.quick-chat-header { display: flex; align-items: stretch; min-height: 48px; padding-right: 12px; border-bottom: 1px solid var(--hairline); }
+.quick-chat-header > * { align-self: center; }
+.quick-chat-header > .quick-chat-drag { align-self: stretch; display: flex; align-items: center; -webkit-app-region: drag; }
+.quick-chat-title { font-size: var(--fs-ui); font-weight: 500; white-space: nowrap; padding: 0 10px 0 12px; }
+.quick-chat-spacer { flex: 1; min-width: 12px; }
+.quick-chat-header .model-btn { max-width: 200px; overflow: hidden; }
+.quick-chat-actions { display: flex; gap: 4px; }
+.quick-chat-actions .icon-btn:disabled { opacity: .35; cursor: default; background: none; }
+.quick-chat-empty { flex: 1; display: grid; place-items: center; padding: 24px; color: var(--text-2); font-family: var(--font-serif); font-size: var(--fs-title); }
+.quick-chat .thread-view { flex: 1; min-height: 0; }
+.quick-chat .thread-column { max-width: 100%; padding: 20px; }
+.quick-chat .thread-composer-area:empty { display: none; }
+.quick-chat .thread-composer-area { padding: 0 12px; }
+/* no composer column here: the working-in stack keeps to the compose box's 12px edge */
+.quick-chat .working-in-stack { right: 12px; }
+.quick-chat .thread-composer-area .ctx-btn { font-size: var(--fs-small); }
+.quick-chat-compose { padding: 8px 12px 12px; }
+.quick-chat-input-row { display: flex; align-items: flex-end; gap: 8px; background: var(--composer-bg); border: 1px solid var(--composer-border); border-radius: 18px; padding: 8px; }
+.quick-chat-input { flex: 1; min-width: 0; min-height: 44px; max-height: 140px; resize: none; padding: 10px 6px; border: 0; outline: none; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-chat, 14px); line-height: 1.5; }
+.quick-chat-input::placeholder { color: var(--text-3); }
+.quick-chat-input-row:focus-within { border-color: var(--text-3); }
+/* the main composer's send button: an 8px square in the accent */
+.quick-chat-send { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; border: 0; border-radius: var(--row-radius); background: var(--send-bg); color: var(--on-color); margin-bottom: 6px; }
+.quick-chat-send:disabled { opacity: .35; }
+.quick-chat-error { color: var(--text); font-size: var(--fs-ui); margin-bottom: 8px; }
+.quick-chat button:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+.profile-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  font-weight: 500;
+  color: rgba(var(--white-ink), 0.8);
+  background: var(--accent);
+}
+.mt-lines i:first-child {
+  background: var(--accent);
+  width: 80%;
+}
+/* Ask MoMo: MoMo's brain in the header, read-only (#2288) */
+.quick-chat-header .ask-momo-brain {
+  cursor: default;
+}

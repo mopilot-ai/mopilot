@@ -1,0 +1,35 @@
+{
+  "layer": "L5",
+  "public": [
+    "*"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4"
+  ],
+  "allow": [
+    {
+      "path": "electron/remote/runtime.cjs",
+      "to": "electron/platform/flags.cjs",
+      "reason": "reads the remote.enabled kill switch, as electron/momo/access.cjs reads momo.enabled"
+    },
+    {
+      "path": "electron/remote/review/changes.cjs",
+      "to": "electron/platform/gitDiff.cjs",
+      "reason": "reads the working-tree diff through the same checked git reader the Changes pane uses"
+    },
+    {
+      "path": "electron/remote/review/ops.cjs",
+      "to": "node:child_process",
+      "reason": "runs git without a shell, read-only, to read a chat folder's changes"
+    },
+    {
+      "path": "electron/remote/review/chatStats.cjs",
+      "to": "electron/platform/gitDiff.cjs",
+      "reason": "counts a chat folder's added and removed lines for the phone's chat list through the same checked git reader the Changes pane uses"
+    }
+  ]
+}

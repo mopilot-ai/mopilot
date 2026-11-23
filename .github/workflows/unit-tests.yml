@@ -1,0 +1,73 @@
+# The required pull request check: format, lint, types, headers, file size and the unit tests on a macOS runner.
+name: unit-tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: unit-tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  unit-tests:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # what the change is measured against: the pull request's base, else the previous main (the parent when a push
+      # created or replaced main, which reports no usable previous commit)
+      - name: Base commit
+        env:
+          CANDIDATE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$CANDIDATE" ] && ! echo "$CANDIDATE" | grep -qE '^0+$' && git cat-file -e "$CANDIDATE^{commit}" 2>/dev/null; then
+            echo "BASE=$CANDIDATE" >> "$GITHUB_ENV"
+          else
+            echo "BASE=$(git rev-parse --verify HEAD^ 2>/dev/null || git rev-parse HEAD)" >> "$GITHUB_ENV"
+          fi
+      # a maintainer update brings in a newer commit of the snapshots branch, which only maintainers push; file size
+      # and changed-code coverage were enforced on every file it holds before it was pushed, and here those checks
+      # compare against main, where long-existing files look new
+      - name: Maintainer update
+        run: |
+          if SNAPSHOT=$(git merge-base HEAD refs/remotes/origin/snapshots 2>/dev/null) &&
+            ! git merge-base --is-ancestor "$SNAPSHOT" "$BASE"; then
+            echo "UPDATE=1" >> "$GITHUB_ENV"
+          fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      - run: npm ci
+      # the phone client's packages are for the type check
+      - run: npm ci --prefix mobile
+      - name: Format and lint errors
+        run: npx biome check --diagnostic-level=error .
+      - name: Types
+        run: npm run typecheck
+      - name: Lint ratchet
+        run: npm run lint:ratchet -- --base=$BASE
+      - name: File size
+        if: env.UPDATE != '1'
+        run: node scripts/file-size.mjs --base=$BASE
+      - name: Source headers
+        run: npm run module-map -- --check
+      - name: Interface text
+        run: npm run i18n:check
+      # a maintainer update was measured before it was pushed, so it runs the whole suite instead of the coverage gate
+      - name: Related tests with 100% changed-code coverage
+        if: github.event_name == 'pull_request' && env.UPDATE != '1'
+        run: npm run test:coverage -- --changed=$BASE --related
+      - name: Whole unit suite
+        if: github.event_name != 'pull_request' || env.UPDATE == '1'
+        run: npm test

@@ -1,0 +1,46 @@
+{
+  "id": "auggie",
+  "label": "Auggie",
+  "vendor": "Augment Code",
+  "bins": [
+    "auggie"
+  ],
+  "docsUrl": "https://docs.augmentcode.com/cli/acp",
+  "install": {
+    "docs": "https://docs.augmentcode.com/cli/acp",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g @augmentcode/auggie",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@augmentcode/auggie"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "--acp"
+    ],
+    "env": {
+      "AUGMENT_DISABLE_AUTO_UPDATE": "1"
+    },
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "contract": {
+    "npm": "@augmentcode/auggie",
+    "bin": "auggie"
+  }
+}

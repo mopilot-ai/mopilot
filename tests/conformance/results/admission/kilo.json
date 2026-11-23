@@ -1,0 +1,48 @@
+{
+  "id": "kilo",
+  "version": "7.8.18",
+  "checkedAt": "2026-11-04T00:38:06.169Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Kilo Code 7.8.18 was installed with npm install -g @kilocode/cli and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded, it offers native session recovery, and session/new returned a session in which sage-mcp said hello. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "Kilo",
+      "version": "7.8.18"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "sessionCapabilities": {
+        "resume": {},
+        "list": {},
+        "close": {},
+        "fork": {}
+      }
+    },
+    "authMethods": [
+      {
+        "description": "Run `kilo auth login` in the terminal",
+        "name": "Login with Kilo",
+        "id": "kilo-login"
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": true,
+    "sageMcpHello": true
+  },
+  "probeWithQuirksFixes": {
+    "state": "admitted",
+    "version": "7.8.18",
+    "reason": null
+  }
+}

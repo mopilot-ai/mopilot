@@ -1,0 +1,486 @@
+/* Frame card and the thread sidebar: projects, chat rows and activity. */
+/* ================================================================== */
+/* Frame card: sidebar + main                                          */
+/* ================================================================== */
+/* The whole window: the sidebar and the main column run to the top edge, under the transparent title bar,
+   so the sidebar's color holds the traffic lights and the chat's holds the title and the pane tabs. */
+.frame-card {
+  position: absolute;
+  inset: 0;
+  background: var(--main);
+  overflow: hidden;
+  display: flex;
+}
+
+/* ---------- sidebar ---------- */
+.sidebar {
+  position: relative;
+  width: var(--sidebar-w);
+  flex: none;
+  background: var(--sidebar);
+  border-right: 0.5px solid var(--divider);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: var(--titlebar-h);
+}
+.sidebar-header {
+  height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 0 10px;
+}
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--text);
+  padding: 3px 6px;
+  border-radius: 7px;
+  letter-spacing: -0.01em;
+}
+.sidebar-title svg {
+  color: var(--icon);
+  margin-top: 2px;
+}
+.sidebar-title:hover:not(.static) {
+  background: var(--row-hover);
+}
+.sidebar-header-actions {
+  display: flex;
+  gap: 4px;
+}
+.icon-btn {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--icon);
+  flex: none;
+  transition: background var(--dur), color var(--dur);
+}
+.icon-btn:hover {
+  background: var(--row-hover);
+  color: var(--icon-hover);
+}
+.icon-btn.sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+.icon-btn.xs {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+.icon-btn.on {
+  color: var(--text);
+}
+.bell-dot {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 8px 16px;
+}
+.sidebar-section + .sidebar-section {
+  margin-top: 16px;
+}
+.sidebar-section:first-child {
+  margin-bottom: -4px;
+}
+.side-label-row {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 6px 0 8px;
+  margin-bottom: 4px;
+}
+.side-label-row .side-label {
+  padding: 0;
+  height: auto;
+}
+.side-label-actions {
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--dur);
+}
+.side-label-row:hover .side-label-actions {
+  opacity: 1;
+}
+.side-label {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 8px;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--text-3);
+  text-align: left;
+}
+.side-row {
+  --side-row-gap: 8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--row-h);
+  line-height: 1.5;
+  padding: 0 8px;
+  margin-bottom: 1px;
+  border-radius: var(--row-radius);
+  color: var(--text-ui);
+  font-size: var(--fs-chat);
+  text-align: left;
+  gap: var(--side-row-gap);
+  white-space: nowrap;
+}
+.side-row:hover,
+.side-row.menu-open {
+  background: var(--row-hover);
+}
+.side-row.selected,
+.side-row.selected:hover {
+  background: var(--row-active);
+  color: var(--text);
+}
+.side-row.muted {
+  color: var(--text-4);
+}
+.side-row-icon {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--text-ui);
+}
+.side-row-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent);
+}
+/* a working chat's name shimmers in the row's own ink */
+.side-row-label .shimmer-text {
+  --shimmer-ink: currentColor;
+}
+.side-row-label:not(:has(+ .row-status:empty)) {
+}
+.side-row-kbd {
+  font-size: var(--fs-small);
+  color: var(--text-4);
+  opacity: 0;
+  transition: opacity var(--dur);
+}
+.side-row:hover .side-row-kbd {
+  opacity: 1;
+}
+.side-row-trailing {
+  color: var(--text-3);
+}
+.chat-shortcut-hint {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.side-row.indent {
+  padding-left: 32px;
+}
+.side-row.empty-note {
+  padding-left: 32px;
+  color: var(--text-4);
+  pointer-events: none;
+}
+/* a note can be a sentence (Code Review's "To get started with GitHub CLI…"): it wraps instead of running off */
+.side-row.empty-note {
+  height: auto;
+  min-height: var(--row-h);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  white-space: normal;
+}
+.project-group + .project-group {
+  margin-top: 8px;
+}
+.show-more {
+  padding-left: 32px;
+  color: var(--text-3);
+}
+.show-more:hover {
+  color: var(--text-ui);
+}
+.row-status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.row-status:empty {
+  display: none;
+}
+/* Every chat keeps the same trailing slot, including idle, nested and renaming rows; a hovered row's menu fills it. */
+.thread-row-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.thread-row .row-status {
+  display: flex;
+  justify-content: center;
+  width: 16px;
+  height: 22px;
+}
+.thread-row > .tooltip-anchor,
+.thread-row-content > .tooltip-anchor {
+  flex: none;
+}
+.host-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+}
+.thread-row > .host-mark {
+  width: var(--row-location-width);
+}
+.thread-row > .host-mark,
+.priority-heading > .host-mark {
+  color: var(--text-2);
+}
+/* Keep PR glyphs aligned in a sidebar with machine chats, even on rows without a location mark. */
+.thread-sidebar:has(.thread-row > .host-mark)
+  .thread-row:not(:has(> .host-mark)) > .tooltip-anchor:has(> .thread-pr-badge) {
+  margin-inline-end: calc(var(--row-location-width) + var(--side-row-gap));
+}
+/* A crowded row can shorten a PR count while keeping the 16px glyph, 8px padding and 3px gap. */
+.thread-row > .tooltip-anchor:has(.thread-pr-count) {
+  flex-shrink: 1;
+  min-width: 27px;
+}
+.thread-row .row-status .row-dot {
+  margin-right: 0;
+}
+.thread-pr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  cursor: pointer;
+}
+/* The lifecycle glyph uses CD's theme colors, as the hover card's glyphs below do; the CI-health dot is separate. */
+.thread-pr-badge.open { color: var(--linked-pr-open); }
+.thread-pr-badge.merged { color: var(--linked-pr-merged); }
+.thread-pr-badge.closed { color: var(--linked-pr-closed); }
+.thread-pr-badge.draft { color: var(--linked-pr-draft); }
+.thread-pr-badge:hover { background: var(--row-hover); }
+.thread-pr-icon { position: relative; display: inline-flex; flex: none; }
+/* The dot sits in a hole cut from the glyph, not on a ring of the sidebar's color, so a hovered or selected row's
+   background shows around it. Its center is 2px in from the icon's corner and the hole 2px wider than the dot. */
+.thread-pr-icon:has(> .thread-pr-dot) svg {
+  -webkit-mask: radial-gradient(circle at calc(100% - 2px) calc(100% - 2px), transparent 5px, black 5.5px);
+  mask: radial-gradient(circle at calc(100% - 2px) calc(100% - 2px), transparent 5px, black 5.5px);
+}
+/* A solid dot is the checks' state; a ring is a merge that waits on something besides them (pullRequestPresentation). */
+.thread-pr-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pr-dot);
+}
+.thread-pr-dot.passing,
+.thread-pr-dot.waiting,
+.thread-pr-dot.conflict { border: 1.5px solid var(--pr-dot); background: none; }
+.thread-pr-dot.ready,
+.thread-pr-dot.passing { --pr-dot: var(--green-text); }
+.thread-pr-dot.pending,
+.thread-pr-dot.waiting { --pr-dot: var(--yellow); }
+.thread-pr-dot.failing,
+.thread-pr-dot.conflict { --pr-dot: var(--red); }
+.thread-pr-dot.unknown { --pr-dot: var(--text-3); }
+/* Counts grow toward the title, leaving every PR glyph on the same vertical line. */
+.thread-pr-count {
+  order: -1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+/* the hover card of a chat's PRs (PullRequestList), on the menu surface: title over state, repository #number and line counts */
+.thread-pr-list { display: flex; flex-direction: column; width: max-content; min-width: 280px; max-width: 420px; max-height: 320px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.thread-pr-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-size: var(--fs-ui);
+  text-align: left;
+  cursor: pointer;
+}
+.thread-pr-list-item:hover { background: var(--row-hover); }
+.thread-pr-list-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thread-pr-list-meta { display: flex; align-items: center; min-width: 0; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.thread-pr-list-state { display: inline-flex; flex: none; align-items: center; gap: 4px; }
+.thread-pr-list-item.open .thread-pr-list-state { color: var(--green-text); }
+.thread-pr-list-item.merged .thread-pr-list-state { color: var(--purple); }
+.thread-pr-list-item.closed .thread-pr-list-state,
+.thread-pr-list-item .thread-pr-list-state[data-indicator='failing'] { color: var(--red); }
+/* The state's words keep text-contrast colors; its glyph matches the badge the card opened from. */
+.thread-pr-list-item.open .thread-pr-list-state svg { color: var(--linked-pr-open); }
+.thread-pr-list-item.merged .thread-pr-list-state svg { color: var(--linked-pr-merged); }
+.thread-pr-list-item.closed .thread-pr-list-state svg { color: var(--linked-pr-closed); }
+.thread-pr-list-item.draft .thread-pr-list-state svg { color: var(--linked-pr-draft); }
+.thread-pr-list-number { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+.thread-pr-list-stats { flex: none; margin-left: 12px; }
+.thread-workspace { display: inline-flex; align-items: center; gap: 4px; color: var(--text-3); }
+.row-status.error { color: var(--red); }
+.row-goal {
+  flex: none;
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
+  color: var(--text-3);
+}
+/* Status dots are 8px across; compact summaries set their own size. */
+.row-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 50%;
+}
+.row-dot.waiting { background: var(--status-waiting); }
+.row-dot.unread { background: var(--status-unread); }
+.row-dot.working,
+.row-dot.elsewhere { background: var(--text-3); }
+/* A chat running elsewhere is dimmed; its pulse peaks at that dimming instead of animating it away. */
+.row-dot.elsewhere { --row-dot-peak: 0.6; opacity: 0.6; }
+@keyframes row-dot-pulse {
+  0%, 100% { opacity: calc(0.3 * var(--row-dot-peak, 1)); }
+  50% { opacity: var(--row-dot-peak, 1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .row-dot.working,
+  .row-dot.elsewhere { animation: row-dot-pulse 1.5s ease-in-out infinite; }
+}
+.row-actions {
+  display: none;
+  align-items: center;
+  gap: 0;
+  margin-right: -4px;
+}
+.side-row:hover .row-actions,
+.side-row.menu-open .row-actions,
+.side-row:focus-visible .row-actions,
+.side-row:has(:focus-visible) .row-actions {
+  display: flex;
+}
+/* Hold the disclosure in place while hover or keyboard focus reveals the project actions. */
+.project-group.with-location > .project-row > .row-actions {
+  display: flex;
+}
+.project-group.with-location > .project-row:not(:hover, .menu-open, :focus-visible, :has(:focus-visible)) > .row-actions {
+  visibility: hidden;
+}
+.thread-row:has(.chat-shortcut-hint) .row-actions {
+  display: none;
+}
+/* A chat's menu sits right of its PR badge and, while shown, takes the status dot's place:
+   its 22px button overhangs the 16px slot by 3px a side so the PR column does not move. */
+.thread-row .row-actions { margin: 0 -3px; }
+.thread-row:is(:hover, .menu-open, :focus-visible, :has(:focus-visible)):not(:has(.chat-shortcut-hint)) .row-status {
+  display: none;
+}
+.project-row .row-actions .icon-btn,
+.thread-row .row-actions .icon-btn {
+  width: 22px;
+  height: 22px;
+}
+.rename-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-2);
+  border: 0.5px solid var(--accent);
+  border-radius: 5px;
+  padding: 2px 6px;
+  outline: none;
+  font-size: var(--fs-chat);
+  margin-left: -7px;
+}
+
+/* an in-app action inside a sentence: looks like a link, is a button (it goes nowhere a URL names) */
+.text-link {
+  color: var(--accent);
+  cursor: pointer;
+}
+.text-link:hover {
+  text-decoration: underline;
+}
+.link-btn {
+  color: var(--accent);
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+/* Leave room for a machine chat's attention state under its title. */
+.thread-row.has-sub {
+  height: auto;
+  min-height: var(--row-h);
+  padding-block: 4px;
+}
+.thread-row.has-sub .thread-row-content {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+.side-row-sub {
+  order: 99;
+  flex: 1 0 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-micro);
+  line-height: 1.3;
+  color: var(--text);
+  font-weight: 500;
+}

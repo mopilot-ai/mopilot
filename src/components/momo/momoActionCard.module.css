@@ -1,0 +1,128 @@
+/* MoMo's approval card (MomoActionCard.tsx), after Muse's: the icon in a soft circle beside the question, one line on
+   why, the exact detail in a gray box, then full-width choices with Allow once in the accent. A CSS Module on the
+   app's theme tokens; the card keeps the global .approval-card frame (its stack, shadow and entrance). */
+.card {
+  gap: 12px;
+  padding: 16px;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--icon);
+  background: rgba(var(--ink), 0.06);
+}
+.title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.why {
+  margin: 0;
+  font-size: var(--fs-ui);
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.detail {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.045);
+  max-height: 160px;
+  overflow: auto;
+}
+.detail dt {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.detail dd {
+  margin: 0 0 4px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  line-height: var(--lh-code);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.detail dd:last-child {
+  margin-bottom: 0;
+}
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* stacked full width, as Muse's are; side by side only in a row */
+.choices > .primary,
+.choices > .choice {
+  flex: none;
+}
+.more summary {
+  align-self: center;
+  margin: 2px auto 0;
+  width: fit-content;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  cursor: pointer;
+}
+.more summary:hover {
+  color: var(--text-2);
+}
+.more .row {
+  margin-top: 6px;
+}
+.primary,
+.choice {
+  flex: 1 1 120px;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.primary {
+  color: var(--on-color);
+  background: var(--accent);
+}
+.primary:hover {
+  background: var(--send-hover);
+}
+.choice {
+  color: var(--text);
+  background: rgba(var(--ink), 0.06);
+}
+.choice:hover {
+  background: rgba(var(--ink), 0.1);
+}
+.primary:focus-visible,
+.choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .primary,
+  .choice {
+    transition: none;
+  }
+}

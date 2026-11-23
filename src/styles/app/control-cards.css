@@ -1,0 +1,214 @@
+/* Control cards: browser handoff, refused steps, background control and the working-in stack. */
+/* the agent handed the browser to the user: prominent, in the accent color */
+.handoff-strip {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.handoff-strip .elsewhere-icon {
+  margin-top: 0;
+  color: var(--accent);
+}
+.handoff-strip .btn-pill.primary {
+  color: var(--on-color);
+  background: var(--accent);
+  border-color: transparent;
+}
+.handoff-strip .btn-pill.primary:hover {
+  filter: brightness(1.08);
+  background: var(--accent);
+}
+/* a browser or desktop step was refused: the ways forward that apply */
+.blocked-strip {
+  align-items: center;
+}
+.blocked-strip .elsewhere-actions {
+  flex-wrap: wrap;
+}
+/* background control: the live thumbnail of the window the agent works in */
+.cu-app { align-items: center; }
+.cu-app-thumb {
+  width: 72px;
+  height: 45px;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 6px;
+  border: 1px solid rgba(var(--ink), 0.1);
+  background: rgba(var(--ink), 0.04);
+}
+.cu-app .btn-pill svg { vertical-align: -2px; }
+
+/* the "working in" stack: a floating card per desktop app the latest turn controls (components/thread/WorkingIn.tsx).
+   Its right edge is the composer's (.composer-wrap's width, centred in this area), 16px from the area's edge at
+   the least, and its width is fixed so the left edge holds still while the step text changes. */
+.working-in-stack {
+  position: absolute;
+  right: max(16px, calc((100% - min(var(--composer-w), 100% - 48px)) / 2));
+  bottom: calc(100% + 8px);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(288px, calc(100% - 32px));
+}
+/* the composer's own surface and ring, so the card reads as part of it */
+.working-in-card {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--composer-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--composer-border),
+    0 6px 20px rgba(var(--shadow-ink), 0.16);
+}
+.working-in-head { display: flex; align-items: center; gap: 4px; }
+/* the card's main click opens its live view (Watch); the arrow beside it brings the app forward (#2045) */
+.working-in-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.working-in-main:disabled { cursor: default; }
+.working-in-card:has(.working-in-main:not(:disabled):hover) { background: var(--control-hover); }
+.working-in-front { width: 28px; height: 28px; flex-shrink: 0; opacity: 0.7; }
+.working-in-front:hover { opacity: 1; }
+/* opened: the window at the panel's width, at most 288px tall; never wider than the composer */
+.working-in-stack[data-open] { width: min(480px, var(--composer-w), calc(100% - 48px)); }
+/* a ring drawn inside the box (outline, not border) keeps the picture's radius at the card's 12px less its 6px padding */
+.working-in-live {
+  position: relative;
+  margin-top: 6px;
+  border-radius: 6px;
+  overflow: hidden;
+  outline: 1px solid rgba(var(--ink), 0.1);
+  outline-offset: -1px;
+  background: rgba(var(--ink), 0.04);
+}
+.working-in-live img { display: block; width: 100%; height: auto; max-height: 288px; object-fit: contain; }
+/* a dark pill with a green dot: readable over any window, light or dark */
+.working-in-live-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 7px;
+  border-radius: 999px;
+  background: rgba(var(--shadow-ink), 0.72);
+  color: var(--on-color);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.working-in-live-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.working-in-live-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96px;
+  font-size: var(--fs-small);
+  opacity: 0.75;
+}
+/* 16:10, most windows' shape, cropped from the top centre; the radius is the card's 12px less its 6px padding */
+.working-in-thumb {
+  width: 72px;
+  height: 45px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 6px;
+  outline: 1px solid rgba(var(--ink), 0.1);
+  outline-offset: -1px;
+  background: rgba(var(--ink), 0.04);
+}
+/* no picture yet (or refused): a window glyph, so the app's icon shows once, beside its name */
+.working-in-icon { display: flex; align-items: center; justify-content: center; color: var(--text-3); }
+.working-in-main:disabled .working-in-icon { opacity: 0.45; }
+/* two lines whose text starts at the same x: the app's icon before its name, the status before the step */
+.working-in-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.working-in-app,
+.working-in-step { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.working-in-app { font-size: var(--fs-ui); font-weight: 600; line-height: 1.3; }
+.working-in-step { font-size: var(--fs-small); line-height: 1.35; color: var(--text-2); }
+.working-in-name,
+.working-in-step-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the app's icon: text-sized, never its natural size */
+.working-in-app-icon { width: 14px; height: 14px; flex-shrink: 0; }
+/* the status sits in a 14px slot, as wide as the icon above it */
+.working-in-badge { display: inline-grid; place-items: center; width: 14px; height: 14px; flex-shrink: 0; }
+.working-in-badge.ok { color: var(--green-text); }
+.working-in-badge.failed { color: var(--red-text); }
+.working-in-badge.stopped { opacity: 0.7; }
+
+.side-row.empty-note.recents,
+.show-more.recents {
+  padding-left: 8px;
+}
+
+/* the computer-use strip while the agent works: a docked strip (an 8px dot pulsing over 2s cubic-bezier(.4,0,.6,1),
+   opacity .5 at 50%; a semibold label), in MoPilot's accent */
+.cu-activity:is([data-state='active'], [data-state='reading']) .elsewhere-title {
+  font-weight: 600;
+}
+.cu-activity-dot {
+  width: 8px;
+  height: 8px;
+  margin: 2px 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: agent-tab-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cu-activity-dot {
+    animation: none;
+  }
+}
+/* the app the strips name: its icon and display name inline after the verb, then the quiet hint (design 1A) */
+.cu-activity-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: bottom;
+}
+.cu-activity-app-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.cu-activity-hint {
+  font-weight: 400;
+  color: var(--text-3, var(--text-2));
+}
+/* the strip is one line: dot, text and Stop share a centre */
+.cu-activity { align-items: center; }
+.cu-activity .elsewhere-icon { margin-top: 0; }
+/* the desktop access card's one line: the app's icon, then the question (design 4A) */
+.desktop-access-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.desktop-access-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+

@@ -1,0 +1,12 @@
+// A browser_* tool waits for the user's card (a site, action or JavaScript question) inside the tab's action
+// queue (BrowserTabs.run) without tabs.awaitUser: the card's time counts against the action's 60 s, the action
+// times out while the user reads it, and the tab is not checked again after the answer (taken over, signing in,
+// moved to another site). Wrap the question: await tabs.awaitUser(tab, grants.act(...)). Applied to the
+// browser_* tools (biome.json overrides). docs/bug-prevention/overlapping-operations.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or { `grants.act($...)`, `grants.require($...)`, `confirm($...)` },
+  $hit <: not within `$_.awaitUser($...)`,
+  register_diagnostic(span=$hit, message="[card-wait] A user's card awaited in a browser_* tool outside tabs.awaitUser: its time counts against the tab action's limit and the tab is not checked again after the answer. Use await tabs.awaitUser(tab, <question>) (docs/bug-prevention/overlapping-operations.md).", severity="warn")
+}

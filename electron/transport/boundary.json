@@ -1,0 +1,13 @@
+{
+  "layer": "L3",
+  "public": [
+    "byteQueue.cjs",
+    "jsonReader.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2"
+  ],
+  "allow": []
+}

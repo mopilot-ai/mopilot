@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/suggestionCard.test.ts": {
+      "maxLines": 503,
+      "reason": "Covers the suggestion card on one shared set of store, native and popover stubs. Start all's concurrent sends need those same stubs; a second file would copy them."
+    }
+  }
+}

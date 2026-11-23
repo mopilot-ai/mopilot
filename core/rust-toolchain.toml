@@ -1,0 +1,5 @@
+# The core's pinned stable toolchain (docs/architecture/rust-core.md §3); the coverage job alone pins a nightly.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

@@ -1,0 +1,25 @@
+// A file or folder made with a plain fs call and no mode: it gets the umask's 0644/0755, so in MoPilot's data
+// folder other users could read chats, history or screenshots (#2144). Write through writeAtomic/writePrivate
+// (electron/fsutil.cjs: owner-only in the data folder), make folders with mkdirPrivate (electron/privateFiles.cjs), or
+// pass an explicit `mode` (0o644 for a file another program must read, such as a project file or a native-host
+// manifest). Copies (copyFileSync, cpSync) take no permission mode; the data folder's startup pass tightens them.
+// docs/bug-prevention/data-at-rest.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or {
+    `$fs.writeFileSync($_, $...)`, `writeFileSync($_, $...)`,
+    `$fs.appendFileSync($_, $...)`, `appendFileSync($_, $...)`,
+    `$fs.writeFile($_, $...)`, `writeFile($_, $...)`,
+    `$fs.appendFile($_, $...)`, `appendFile($_, $...)`,
+    `$fs.createWriteStream($_, $...)`, `createWriteStream($_, $...)`,
+    `$fs.mkdirSync($_, $...)`, `mkdirSync($_, $...)`,
+    `$fs.mkdir($_, $...)`, `mkdir($_, $...)`
+  },
+  // a member call only when its receiver names a file system (fs, fsp, fsm, this.fsSync, fs.promises, fileFs, p): a
+  // store's own writeFile method writes through its own private path. An open FileHandle (handle, fh) counts: the rule
+  // does not see the open() that made the file, so its write is where a missing mode shows
+  or { $fs <: undefined, $fs <: r"(?i)(?:.*\.)?(?:\w*fs\w*|promises|p|handle|fh)" },
+  not $hit <: contains or { `mode: $_`, `{ mode }` },
+  register_diagnostic(span=$hit, message="[open-mode] A file or folder made without a mode gets the umask's 0644/0755, readable by other users. Use writeAtomic/writePrivate or mkdirPrivate, or pass an explicit mode (docs/bug-prevention/data-at-rest.md).", severity="warn")
+}

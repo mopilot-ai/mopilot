@@ -1,0 +1,188 @@
+/* Welcome flow and Extensions. */
+/* Welcome page (WP3-11): one quiet list of agents, each connected in its row */
+.welcome .basic-login-term {
+  width: 100%;
+}
+.welcome-tagline {
+  margin: -4px 0 18px;
+}
+.welcome-list {
+  width: min(460px, 92%);
+  border: 0.5px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  overflow: hidden;
+}
+.welcome-row {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 0.5px solid var(--card-border);
+  background: none;
+  color: var(--text);
+  text-align: left;
+}
+.welcome-row:last-child {
+  border-bottom: 0;
+}
+.welcome-row-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 22px;
+}
+.welcome-row-label {
+  margin-right: auto;
+  font-size: var(--fs-ui);
+}
+.welcome-row-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.welcome-row .welcome-row-note {
+  margin: 0;
+  font-size: var(--fs-small);
+}
+.welcome-row .welcome-row-said {
+  margin: 8px 0 0 30px;
+  font-size: var(--fs-small);
+  text-align: left;
+}
+.welcome-row-error {
+  margin: 8px 0 0 30px;
+  font-size: var(--fs-small);
+  color: var(--red-text);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.welcome-row .welcome-row-hint {
+  margin: 4px 0 0 30px;
+  font-size: var(--fs-small);
+  text-align: left;
+}
+.welcome-optional {
+  width: min(460px, 92%);
+  margin: 16px 0 6px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  text-align: left;
+}
+.welcome-method {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.welcome-method:hover,
+.welcome-method.on {
+  color: var(--text);
+}
+.welcome-method.on {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.welcome-row-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 10px 0 2px 30px;
+}
+.welcome-row-body .login-actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  width: 100%;
+  margin: 0;
+}
+.welcome-row-body .text-input {
+  flex: 1;
+  min-width: 0;
+}
+.welcome-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.welcome-more {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.welcome-more:hover {
+  color: var(--text);
+}
+.welcome-more > svg:last-child {
+  margin-left: auto;
+}
+.welcome-more-marks {
+  display: inline-flex;
+  gap: 6px;
+  color: var(--text-2);
+}
+.welcome-more-marks .harness-icon.logo {
+  color: inherit;
+}
+.welcome-start,
+.welcome-nudge {
+  margin: 14px 0 0;
+}
+.welcome-nav {
+  flex-direction: row;
+  margin-top: 18px;
+}
+.welcome code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  user-select: text;
+}
+
+/* Extensions (WP7-13) */
+.ext-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ext-harness-tabs {
+  padding: 14px 24px 0;
+  display: flex;
+  justify-content: center;
+}
+.mcp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mcp-preview {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(var(--ink), 0.05);
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+
+/* the launch's first moments, while the coding agents are looked for (WelcomeColdStart) */
+.welcome-cold {
+  align-content: center;
+  gap: 10px;
+}
+.welcome-other-pay {
+  align-self: flex-start;
+  margin-top: 6px;
+  font-size: var(--fs-small);
+}

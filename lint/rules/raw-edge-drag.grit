@@ -1,0 +1,11 @@
+// A panel edge dragged with its own window mousemove listener: one setState (and one layout of everything under the
+// panel) per mouse event, which froze the side pane over a large diff for a second a move (#2049). Drag through
+// startEdgeDrag (src/lib/edgeDrag.ts): one DOM write per frame, state once on release. docs/bug-prevention/render-cost.md
+// A window listener also misses a release over an iframe or <webview>, leaving the edge on the mouse (#3833).
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: `window.addEventListener($type, $_)`,
+  $type <: or { `'mousemove'`, `"mousemove"`, `'pointermove'`, `"pointermove"` },
+  register_diagnostic(span=$hit, message="[raw-edge-drag] A drag's own window mousemove listener renders and lays out the panel on every mouse event. It also misses a release over an iframe or webview. Use startEdgeDrag from src/lib/edgeDrag.ts (docs/bug-prevention/render-cost.md).", severity="warn")
+}

@@ -1,0 +1,41 @@
+{
+  "id": "codex-acp",
+  "label": "Codex (ACP)",
+  "vendor": "OpenAI",
+  "bins": [
+    "codex-acp"
+  ],
+  "docsUrl": "https://github.com/agentclientprotocol/registry",
+  "install": {
+    "docs": "https://github.com/agentclientprotocol/registry",
+    "methods": []
+  },
+  "enabled": false,
+  "developer": true,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "titleSessions": false,
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "anchors": {
+      "read-only": "readOnly",
+      "workspace-write": "ask",
+      "agent": "auto",
+      "agent-full-access": "full",
+      "plan": "readOnly"
+    },
+    "permissionModes": {
+      "read-only": "read-only",
+      "workspace-write": "default",
+      "agent": "auto-review",
+      "agent-full-access": "full-access"
+    },
+    "plan": {
+      "configOption": "collaboration_mode",
+      "value": "plan"
+    }
+  }
+}

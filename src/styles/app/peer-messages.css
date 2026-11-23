@@ -1,0 +1,323 @@
+/* Messages between chats (components/thread/PeerMessages.tsx): the sent and received cards above the transcript and the compose dialog. */
+.peer-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block: 8px 20px;
+  font-size: var(--fs-ui);
+}
+.peer-entry {
+  align-self: flex-start;
+  cursor: pointer;
+}
+.peer-entry svg {
+  color: var(--text-3);
+}
+.peer-message {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 0.5px solid var(--surface-border);
+}
+.peer-message-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.peer-message-head svg {
+  flex: none;
+  color: var(--text-3);
+}
+.peer-chat-link {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+}
+.peer-chat-link:hover {
+  text-decoration: underline;
+}
+.peer-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: var(--fs-micro);
+  color: var(--text-2);
+  background: rgba(var(--ink), 0.06);
+}
+.peer-badge.delivered,
+.peer-badge.done {
+  color: var(--green-text);
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+}
+.peer-badge.blocked,
+.peer-badge.failed,
+.peer-badge.declined,
+.peer-badge.expired {
+  color: var(--red-text);
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+}
+.peer-badge.uncertain,
+.peer-badge.held {
+  color: var(--orange);
+  background: color-mix(in srgb, var(--orange) 14%, transparent);
+}
+.peer-message-body {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.peer-message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.peer-message-actions:empty {
+  display: none;
+}
+.peer-message-actions .btn-pill {
+  min-height: 26px;
+  padding: 0 10px;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.peer-note {
+  margin: 0;
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+.peer-note.warn {
+  color: var(--orange);
+}
+/* the compose dialog: the app's dialog (sketch-pad.css) with a recipient row and the message field */
+.peer-compose {
+  width: min(520px, calc(100vw - 80px));
+}
+.peer-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.peer-field select {
+  flex: 1;
+  min-width: 0;
+  padding-right: 28px;
+  cursor: pointer;
+}
+.peer-compose-body {
+  min-height: 110px;
+  max-height: 50vh;
+}
+.peer-compose .sketch-foot button {
+  cursor: pointer;
+}
+.peer-compose .sketch-foot .btn-pill {
+  padding: 0 12px;
+}
+.peer-compose .sketch-foot .btn-white {
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 14px;
+}
+.peer-compose .sketch-foot button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* A brief, wake-up or family message of linked sessions (components/thread/SideSessionCard.tsx), in place of a user bubble. */
+.side-session-card {
+  align-self: stretch;
+  margin-block: 4px;
+}
+.side-session-title {
+  font-weight: 500;
+  color: var(--text);
+}
+.side-session-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.side-session-note + .side-session-note {
+  padding-top: 8px;
+  border-top: 0.5px solid var(--surface-border);
+}
+.side-session-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-2);
+}
+.side-session-text.folded {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.side-session-more {
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+
+
+/* A chat's own task list and wrap-up box under its latest message (components/thread/TurnBox.tsx). */
+/* The checklist owns the gap after the latest work; the running turn's status line (ThreadView's status slot) comes
+   after it. Do not stack the transcript's turn and work margins against it; work followed by a reply still keeps its
+   normal separation from that reply. */
+.turn-slot:has(+ .turn-box.with-tasks) > .turn,
+.turn-slot:has(+ .turn-box.with-tasks) > .turn > .collapse:last-child > .collapse-inner > .work {
+  margin-bottom: 0;
+}
+/* The running turn's live status row straight under the latest turn (no task list between): Claude Desktop puts 15.75px
+   between the last row and the live row, as padding of the tail under it, and the live row is 28px with its words
+   centred (#5342). Here the turn and its work gave up 10px and 16px of their own margins to the row, so the row sat 26px
+   under the last step; the turn gives them up and the row owns the gap, 19.75px: the 15.75px with the 4px of padding a
+   Claude Desktop step row has around its words, which ours has not (21px rows), so the words are as far apart. */
+.turn-slot:has(+ .turn-status-slot:not(:empty)) > .turn,
+.turn-slot:has(+ .turn-status-slot:not(:empty)) > .turn > .collapse:last-child > .collapse-inner > .work {
+  margin-bottom: 0;
+}
+.turn-slot + .turn-status-slot:not(:empty) {
+  margin-top: 19.75px;
+}
+/* Nothing but the message above the row yet (the step runs in the row itself, so the turn's work is empty, or holds only the empty wrapper a step that just came in leaves): the row is
+   15.75px under the message's bubble, not under the 8px under it and the 40px the message keeps for the reply to come. */
+.turn-slot:has(+ .turn-status-slot:not(:empty)) > .turn > .user-message:has(+ .collapse:last-child > .collapse-inner > .work:empty),
+.turn-slot:has(+ .turn-status-slot:not(:empty)) > .turn > .item-enter:has(+ .collapse:last-child > .collapse-inner > .work:empty) > .user-message,
+.turn-slot:has(+ .turn-status-slot:not(:empty)) > .turn > .user-message:has(+ .collapse:last-child > .collapse-inner > .work > .item-enter:only-child:empty),
+.turn-slot:has(+ .turn-status-slot:not(:empty)) > .turn > .item-enter:has(+ .collapse:last-child > .collapse-inner > .work > .item-enter:only-child:empty) > .user-message {
+  margin-bottom: -12px;
+}
+.turn-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block: 4px 12px;
+}
+/* a 15px turn gap above the task list, where the latest turn gives up its own
+   bottom margin; a recap alone still follows the turn's margin */
+.turn-box.with-tasks {
+  margin-top: 15px;
+}
+/* the turn box card: the column's full width, 16px in from a 1px inset ring at 10% ink, 12px corners, no fill; the
+   wrap-up shares it, so both draw in one card */
+.turn-tasks,
+.wrap-up-box {
+  max-width: none;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(var(--ink), 0.1);
+  background: transparent;
+}
+/* the task list in the turn box: no header, its notes 4px from the list, steps 8px apart on a 20px line at 14px, the text 4px past a 16px icon column, open steps in the primary ink, finished
+   steps and waiting markers in the secondary and muted inks; "N earlier steps" and "N more to go" */
+.turn-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.turn-tasks .todo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+}
+.turn-tasks .todo-step {
+  gap: 4px;
+  padding: 0;
+  line-height: 1.42857;
+  color: var(--text);
+}
+.turn-tasks .todo-step.completed .todo-text {
+  color: var(--text-2);
+}
+.turn-tasks .todo-step:not(.completed, .inProgress) .todo-check {
+  color: var(--text-3);
+}
+.turn-tasks-more {
+  margin: 0;
+  padding-left: 24px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+/* the plan from before the user's last message: flush with the card */
+.turn-tasks-stale {
+  padding-left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.turn-tasks-dismiss {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.turn-tasks-dismiss:hover {
+  color: var(--text);
+}
+.turn-tasks-dismiss:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.wrap-up-box {
+  font-size: var(--fs-ui);
+  line-height: 1.46;
+}
+.wrap-up-recap {
+  margin: 0;
+  color: var(--text-ui);
+}
+.wrap-up-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--hairline);
+}
+.wrap-up-question {
+  flex: 1;
+  min-width: 180px;
+  font-weight: 500;
+  color: var(--text);
+}
+.wrap-up-actions {
+  display: flex;
+  gap: 8px;
+}
+.wrap-up-sent {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+
+.turn-tasks-recovery {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--text-3);
+  font-size: 0.85em;
+}

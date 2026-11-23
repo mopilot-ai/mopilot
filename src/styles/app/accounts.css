@@ -1,0 +1,383 @@
+/* Multiple accounts. */
+/* ================================================================== */
+/* Multiple accounts                                                   */
+/* ================================================================== */
+.toast-action {
+  pointer-events: auto;
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 0;
+  background: rgba(var(--ink), 0.08);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  cursor: pointer;
+}
+.toast-action:hover {
+  background: rgba(var(--ink), 0.14);
+}
+/* one line under a harness in the profile menu: a long email and plan end in an ellipsis, not mid-word */
+.acct-line {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* "email · plan": when both do not fit one line the plan wraps below the email; only an email longer than the
+   line itself ends in an ellipsis */
+.acct-split {
+  display: flex;
+  flex-wrap: wrap;
+}
+.acct-split-who {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.acct-split-plan {
+  white-space: pre;
+}
+.acct-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.acct-status {
+  font-size: var(--fs-small);
+  color: var(--text-3, var(--text-2));
+}
+.acct-status.warn {
+  color: var(--orange);
+}
+.acct-warn {
+  color: var(--orange);
+}
+.acct-row {
+  padding: 14px 16px;
+  border-bottom: 0.5px solid var(--hairline-strong);
+}
+.acct-row.acct-focus {
+  background: var(--row-hover);
+  transition: background 0.4s;
+}
+.acct-row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.acct-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.acct-row-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-ui);
+  color: var(--text);
+  min-width: 0;
+}
+.acct-chip {
+  flex: none;
+  font-size: var(--fs-micro);
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(var(--ink), 0.07);
+  color: var(--text-2);
+}
+.acct-chip.on {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+.acct-chip.usable {
+  background: transparent;
+  border: 1px solid rgba(var(--ink), 0.12);
+}
+.applies-to {
+  margin-left: 8px;
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(var(--ink), 0.07);
+  color: var(--text-2);
+}
+.provider-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 26px 0 10px;
+}
+.provider-head:first-child {
+  margin-top: 4px;
+}
+.provider-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.acct-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.acct-limits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin: 12px 0 0 40px;
+}
+.acct-limit .limit-meta {
+  margin: 0 0 6px;
+}
+.acct-limit .limit-left {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.acct-limit .limit-fill {
+  background: var(--green);
+}
+.acct-limit .limit-fill.low {
+  background: var(--orange);
+}
+.acct-limit .limit-fill.out {
+  background: var(--red);
+}
+.limit-reset {
+  margin-top: 5px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+.acct-dialog-wait {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-ui);
+}
+.acct-dialog-hint {
+  margin: 0;
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.acct-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.acct-banners {
+  flex: none;
+  /* every banner at once still leaves the chat under them most of the window (#2119, #2120) */
+  max-height: 30vh;
+  overflow-y: auto;
+}
+/* a row that wraps: in a narrow pane the actions go under the text, which keeps a readable width, rather than squeeze
+   it to a letter a line and push the transcript out of the pane (#2119, #2120) */
+.acct-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 10px 16px 0;
+  padding: 8px 10px 8px 12px;
+  border-radius: 12px;
+  font-size: var(--fs-ui);
+  color: var(--text);
+  background: color-mix(in srgb, var(--orange) 12%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--orange) 35%, transparent);
+}
+.acct-banner > svg {
+  color: var(--orange);
+  flex: none;
+}
+/* the text takes the room left (a long binary path breaks anywhere): the actions wrap before it is under 16em, or
+   under half a narrower row */
+.acct-banner-text {
+  flex: 1 1 min(16em, 50%);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* the actions stay together at the row's end, wrapping among themselves when even their own line is too narrow */
+.acct-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 8px;
+  margin-left: auto;
+  min-width: 0;
+}
+.acct-banner-actions > button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.acct-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.acct-choice-check {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  color: var(--accent);
+}
+.menu-icon:has(> .acct-choice) {
+  width: auto;
+}
+.harness-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+.harness-head-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.harness-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.harness-head-title {
+  margin: 0;
+  line-height: 1.071;
+}
+.harness-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.harness-head-error {
+  font-size: var(--fs-small);
+  color: var(--red-text);
+}
+.harness-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-4);
+}
+.harness-dot.ok {
+  background: var(--green);
+}
+.harness-dot.warn {
+  background: var(--orange);
+}
+.harness-dot.err {
+  background: var(--red);
+}
+.acct-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.acct-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.acct-card-text {
+  flex: 1;
+  min-width: 0;
+}
+.acct-card-name {
+  font-size: var(--fs-chat);
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.acct-card-sub {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.acct-card-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.acct-card-note {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.acct-card .acct-limits {
+  margin: 0 0 0 48px;
+}
+.acct-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--hairline-strong);
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.provider-head {
+  justify-content: space-between;
+}
+.provider-head-text {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.acct-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-ui);
+  text-align: left;
+  cursor: pointer;
+}
+.acct-add:hover {
+  background: var(--row-hover);
+}
+.acct-add:disabled {
+  color: var(--text-4);
+  cursor: default;
+}
+/* Add account and Use an API key side by side under a provider's accounts */
+.acct-add-row {
+  display: flex;
+}
+.acct-add-row > .acct-add {
+  width: auto;
+  flex: 1 1 0;
+}
+.acct-key-form {
+  padding: 12px 16px;
+}
+.acct-advanced {
+  margin-top: 4px;
+}
+.credits-balance {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--text);
+}
+.provider-resets {
+  margin-top: -18px;
+}
+/* the fold's own label already says it; the group inside keeps its description */
+.provider-resets .settings-group-title {
+  display: none;
+}

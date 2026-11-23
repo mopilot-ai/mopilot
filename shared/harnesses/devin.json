@@ -1,0 +1,31 @@
+{
+  "id": "devin",
+  "label": "Devin",
+  "vendor": "Cognition",
+  "bins": [
+    "devin"
+  ],
+  "docsUrl": "https://docs.devin.ai/cli",
+  "install": {
+    "docs": "https://docs.devin.ai/cli",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "tested": [
+    "3000.11.234"
+  ]
+}

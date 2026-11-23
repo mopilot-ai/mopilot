@@ -1,0 +1,420 @@
+/* Markdown: rendered message text, HTML previews and Codex directives. */
+/* ================================================================== */
+/* Markdown                                                            */
+/* ================================================================== */
+.md {
+  word-wrap: break-word;
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md p {
+  margin: 0 0 14px;
+}
+.md strong {
+  font-weight: 600;
+  color: var(--text);
+}
+.md h1,
+.md h2,
+.md h3,
+.md h4 {
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 22px 0 10px;
+}
+.md h1 {
+  font-size: 1.45em;
+}
+.md h2 {
+  font-size: 1.25em;
+}
+.md h3 {
+  font-size: 1.1em;
+}
+.md h4 {
+  font-size: 1em;
+}
+.md ul,
+.md ol {
+  margin: 0 0 8px;
+  padding-left: 28px;
+}
+.md ul {
+  list-style: none;
+}
+.md ul > li {
+  position: relative;
+}
+.md ul > li::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.md ul ul > li::before {
+  background: transparent;
+  border: 1px solid currentColor;
+  width: 4px;
+  height: 4px;
+}
+.md li {
+  margin: 0;
+}
+.md li > p {
+  margin: 0;
+}
+.md li::marker {
+  color: var(--text-ui);
+}
+.md ul ul,
+.md ol ol,
+.md ul ol,
+.md ol ul {
+  margin: 2px 0;
+}
+.md blockquote {
+  margin: 0 0 14px;
+  padding-left: 14px;
+  border-left: 3px solid var(--divider);
+  color: var(--text-2);
+}
+.md hr {
+  border: 0;
+  height: 0.5px;
+  background: var(--divider);
+  margin: 20px 0;
+}
+.md a {
+  color: var(--accent);
+}
+/* a link to another chat (src/components/markdown/ChatLink.tsx): a pill that opens it */
+.md .md-chat-link {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0 8px;
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 0.92em;
+  line-height: 1.6;
+  vertical-align: baseline;
+  /* a long title wraps rather than being cut off (the card variant, .peer-chat-link, stays one clipped line) */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.md .md-favicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  margin: 0 0.28em 0 0.07em;
+  /* Align the badge with the surrounding text, independent of its smaller letter's baseline. */
+  vertical-align: middle;
+  border-radius: 0.21em;
+  color: var(--on-color);
+  font-size: inherit;
+  font-weight: 600;
+  line-height: 1;
+}
+.md .md-favicon::before {
+  content: attr(data-letter);
+  font-size: 0.64em;
+}
+.md img.md-image {
+  display: block;
+  max-width: min(320px, 100%);
+  max-height: 240px;
+  margin: 8px 0;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 0.5px solid var(--hairline-strong);
+}
+.zoomable-image {
+  cursor: zoom-in;
+}
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 48px;
+  background: rgba(var(--shadow-ink), 0.72);
+  animation: lightbox-in 140ms var(--ease);
+  -webkit-app-region: no-drag;
+}
+.lightbox-image {
+  max-width: 100%;
+  max-height: calc(100vh - 96px);
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 24px 64px rgba(var(--shadow-ink), 0.5);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--on-color);
+  background: rgba(var(--white-ink), 0.12);
+  border-radius: 999px;
+}
+.lightbox-close:hover {
+  background: rgba(var(--white-ink), 0.22);
+}
+@keyframes lightbox-in {
+  from {
+    opacity: 0;
+  }
+}
+.inline-code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--inline-code-bg);
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: var(--text);
+}
+/* a path a reply names that is there (MessagePathLink): no longer code but a link, in the text's own font and
+   always underlined */
+.md-path {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.md-path code {
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+/* Agent-authored HTML previews stay isolated from the app renderer. */
+.md-visualization {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  margin: 12px 0;
+  overflow: hidden;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 10px;
+}
+.md-visualization.wide {
+  max-width: 1024px;
+}
+.md-visualization-header,
+.md-visualization-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.md-visualization-header {
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--hairline-strong);
+}
+.md-visualization-actions {
+  flex-shrink: 0;
+}
+.md-visualization-actions button {
+  cursor: pointer;
+  color: var(--accent);
+}
+.md-visualization iframe {
+  display: block;
+  width: 100%;
+  height: 480px;
+  border: 0;
+}
+.md-visualization.wide iframe {
+  height: 760px;
+}
+.md-visualization.expanded iframe {
+  height: max(960px, 85vh);
+}
+.md-visualization-status {
+  display: block;
+  padding: 20px 12px;
+  color: var(--text-2);
+  font-size: var(--fs-ui);
+}
+/* Codex directives: file citations, annotation markers, follow-up suggestions */
+.md-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  margin: 0 2px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.92em;
+  line-height: 1.6;
+  vertical-align: 1px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.md-file-chip:hover {
+  filter: brightness(1.1);
+}
+.md-file-chip svg {
+  flex: none;
+}
+.md-file-chip-page {
+  opacity: 0.7;
+}
+/* a GitHub pull request link (PullRequestLink): state icon, owner/repo#N and its title */
+.md-pr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  margin: 0 1px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 0.92em;
+  line-height: 1.4;
+  vertical-align: middle;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.md-pr-chip:hover {
+  filter: brightness(1.1);
+}
+.md-pr-chip-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-3);
+}
+.md-pr-chip.open .md-pr-chip-icon { color: var(--green-text); }
+.md-pr-chip.merged .md-pr-chip-icon { color: var(--purple); }
+.md-pr-chip.closed .md-pr-chip-icon { color: var(--red); }
+.md-pr-chip-ref {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.md-pr-chip-title {
+  min-width: 0;
+  max-width: 24em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.md-pr-chip-sep {
+  flex: none;
+  opacity: 0.6;
+}
+.md-annotation {
+  display: inline-block;
+  min-width: 14px;
+  margin: 0 1px 0 2px;
+  padding: 0 4px;
+  border-radius: 7px;
+  background: rgba(var(--ink), 0.08);
+  color: var(--text-2);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: center;
+}
+.md-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.md-followup {
+  max-width: 100%;
+  height: auto;
+  min-height: 28px;
+  padding: 3px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.md-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 14px;
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 10px;
+}
+.md table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--fs-ui);
+}
+.md th,
+.md td {
+  padding: 7px 12px;
+  border-bottom: 0.5px solid var(--hairline);
+  text-align: left;
+  vertical-align: top;
+}
+.md th {
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+}
+.md tr:last-child td {
+  border-bottom: 0;
+}
+.code-block {
+  margin: 0 0 14px;
+  border-radius: 12px;
+  background: var(--code-bg);
+  border: 0.5px solid var(--code-border);
+  overflow: hidden;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 6px 0 12px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.code-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--dur);
+}
+.code-block:hover .code-actions {
+  opacity: 1;
+}
+.code-body {
+  overflow: auto;
+}
+.code-body pre,
+.shiki-fallback {
+  margin: 0;
+  padding: 2px 12px 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  line-height: var(--lh-code);
+  background: transparent !important;
+  tab-size: 4;
+}
+.code-block:not(:has(.code-header)) .code-body pre {
+  padding-top: 10px;
+}
+.code-block.wrap .code-body pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+

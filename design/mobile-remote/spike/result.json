@@ -1,0 +1,231 @@
+{
+  "ran": "2026-10-26",
+  "node": "v24.21.0",
+  "host": "darwin arm64",
+  "libraries": {
+    "sodium-native": "5.x",
+    "libsodium-wrappers": "0.8.4"
+  },
+  "interop": {
+    "passed": 30,
+    "failed": 0,
+    "results": [
+      {
+        "name": "sodium-native: reproduces vectors.json byte for byte (keys, nonces, boxes)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: mac derives the vector direction keys",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: phone derives the vector direction keys",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: mac opens every p2m vector frame (incl. a counter gap)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: phone opens every m2p vector frame (incl. a counter gap)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: replayed frame rejected",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: rewound counter rejected",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: header field ctr tampered -> rejected",
+        "ok": true,
+        "detail": "(auth)"
+      },
+      {
+        "name": "sodium-native: header field dir tampered -> rejected",
+        "ok": true,
+        "detail": "(route)"
+      },
+      {
+        "name": "sodium-native: header field pair tampered -> rejected",
+        "ok": true,
+        "detail": "(route)"
+      },
+      {
+        "name": "sodium-native: ciphertext bit flip rejected",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: a forged frame does not advance state",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "sodium-native: counter jump beyond the gap limit rejected",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: reproduces vectors.json byte for byte (keys, nonces, boxes)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: mac derives the vector direction keys",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: phone derives the vector direction keys",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: mac opens every p2m vector frame (incl. a counter gap)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: phone opens every m2p vector frame (incl. a counter gap)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: replayed frame rejected",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: rewound counter rejected",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: header field ctr tampered -> rejected",
+        "ok": true,
+        "detail": "(auth)"
+      },
+      {
+        "name": "libsodium-wrappers: header field dir tampered -> rejected",
+        "ok": true,
+        "detail": "(route)"
+      },
+      {
+        "name": "libsodium-wrappers: header field pair tampered -> rejected",
+        "ok": true,
+        "detail": "(route)"
+      },
+      {
+        "name": "libsodium-wrappers: ciphertext bit flip rejected",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: a forged frame does not advance state",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "libsodium-wrappers: counter jump beyond the gap limit rejected",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "@noble/curves x25519 matches sodium-native public keys and shared secret",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "cross: sodium-native seals 200 frames, libsodium-wrappers opens them in order",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "cross: libsodium-wrappers seals 200 frames, sodium-native opens them in order",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "a m2p frame is refused on a p2m receiver",
+        "ok": true,
+        "detail": ""
+      }
+    ]
+  },
+  "rtt": {
+    "samples": 1000,
+    "p50_ms": 0.427,
+    "p95_ms": 1.292,
+    "p99_ms": 2.708,
+    "max_ms": 5.555
+  },
+  "relayStats": {
+    "routed": 2203,
+    "queued": 4,
+    "drained": 3,
+    "dropped": 1,
+    "rejected": 1
+  },
+  "checks": [
+    {
+      "name": "presence: mac sees the phone come online",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sealed card.answer crosses the relay (phone=wasm, mac=sodium-native)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "localhost round trip p95 under 300 ms (floor, not the Wi-Fi bar)",
+      "ok": true,
+      "detail": "p95=1.292 ms"
+    },
+    {
+      "name": "replayed frame forwarded by the relay is rejected by the Mac",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "presence: mac sees the phone go away",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "offline peer: relay acks queued=true",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mailbox drains in order on reconnect",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "expired mailbox frame is dropped and the sender gets mailbox.dropped",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a peer that stops answering pings is marked gone",
+      "ok": true,
+      "detail": "after 140 ms with pingMs=40"
+    },
+    {
+      "name": "frame for another pair is nacked",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

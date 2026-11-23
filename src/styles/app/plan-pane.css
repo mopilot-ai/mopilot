@@ -1,0 +1,108 @@
+/* Proposal reading and line comments in the Plan pane. */
+.plan-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  font-size: var(--fs-chat);
+}
+.plan-pane-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.plan-pane-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+.plan-pane-path {
+  text-align: left;
+  overflow-wrap: anywhere;
+  padding: 8px 16px 0;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.plan-pane-hint {
+  margin: 0;
+  padding: 10px 16px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.plan-pane-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+.plan-checklist {
+  margin-bottom: 12px;
+}
+.plan-checklist h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-small);
+}
+.plan-source-line {
+  display: grid;
+  grid-template-columns: 3ch minmax(0, 1fr) 26px;
+  gap: 8px;
+  align-items: start;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.plan-source-line code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-code);
+  line-height: var(--lh-code);
+}
+.plan-source-number {
+  color: var(--text-4);
+  font-size: var(--fs-small);
+  text-align: right;
+}
+.plan-pane-comment {
+  padding: 12px 16px;
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  flex-shrink: 0;
+  gap: 8px;
+  font-size: var(--fs-small);
+}
+.plan-pane-comment .annotation-comment-input {
+  min-width: 0;
+}
+.plan-pane-empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--text-3);
+}
+.plan-pane-empty p {
+  max-width: 38ch;
+}
+.plan-pane-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.plan-pane-comment blockquote {
+  margin: 0;
+  min-width: 0;
+  max-height: 6em;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-3);
+}

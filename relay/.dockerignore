@@ -1,0 +1,5 @@
+# the image is built from package.json, package-lock.json and src only; nothing else of this folder (an env file with secrets included) goes into the build context
+*
+!package.json
+!package-lock.json
+!src/**

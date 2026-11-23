@@ -1,0 +1,11 @@
+{
+  "direct": [
+    { "name": "tldts", "use": "The Public Suffix List, for checking which site a built-in browser page may ask a passkey for (electron/capabilities/browser/passkeyRequest.cjs).", "ships": "JavaScript in the main process, with the list it bundles.", "license": "MIT", "lockLicense": "MIT", "url": "https://github.com/remusao/tldts" },
+    { "name": "node-api-headers", "use": "Node-API declarations passkeys.node (native/passkeys) is compiled against (scripts/build-passkeys.mjs).", "ships": "Not shipped: a build-time dependency only.", "license": "MIT", "lockLicense": "MIT", "url": "https://github.com/nodejs/node-api-headers" }
+  ],
+  "runtimeRoots": ["tldts"],
+  "notices": [
+    { "title": "tldts", "path": "node_modules/tldts/LICENSE" },
+    { "title": "tldts-core", "path": "node_modules/tldts-core/LICENSE" }
+  ]
+}

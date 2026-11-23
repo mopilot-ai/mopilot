@@ -1,0 +1,10 @@
+// A tool session's owner chat looked up once, when the session opens: a harness switch starts the native
+// session before it records the chat's new segment, so the lookup still returns the native id and the
+// session's calls go to a chat nobody sees. Store a resolver instead. docs/bug-prevention/stale-async-results.md
+language js
+
+`$sessions.$method($key, $patch)` where {
+  $method <: or { `open`, `assign`, `rotate` },
+  $patch <: contains `chatId: $value` where { $value <: or { `$_.chatOf($_)`, `chatOf($_)` } },
+  register_diagnostic(span=$patch, message="[captured-owner] A tool session's owner chat is looked up once, when the session opens; a harness switch records the chat's segment later, so calls go to the native id. Pass a resolver: chatId: () => chatOf(id) (docs/bug-prevention/stale-async-results.md).", severity="warn")
+}

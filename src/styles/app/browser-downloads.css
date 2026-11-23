@@ -1,0 +1,259 @@
+/* The browser pane's Downloads button and panel, and its Download complete notice. */
+/* #1523 4b; the motion uses the #1511 scale in tokens.css. */
+
+/* the button: a ring for the downloads under way (how far, when their sizes are known), a dot for finished ones not looked at */
+.browser-downloads-btn {
+  position: relative;
+}
+.browser-downloads-btn[data-active='true']::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  --ring: conic-gradient(var(--accent) var(--download-progress, 25%), rgba(var(--ink), 0.12) 0);
+  background: var(--ring);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), rgba(var(--ink), 1) calc(100% - 1.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), rgba(var(--ink), 1) calc(100% - 1.5px));
+  pointer-events: none;
+}
+/* sizes unknown: the ring turns instead of filling */
+.browser-downloads-btn[data-active='true'][data-sized='false']::before {
+  animation: spin 1s linear infinite;
+}
+.browser-downloads-btn[data-attention]::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: browser-download-dot var(--dur-snap) var(--ease-overshoot) both;
+}
+.browser-downloads-btn[data-attention='failure']::after {
+  background: var(--red-text);
+}
+@keyframes browser-download-dot {
+  from {
+    transform: scale(0);
+  }
+}
+
+/* the panel: a card under the button, newest first */
+.popover-layer.browser-downloads-layer {
+  transform-origin: top right;
+  animation: browser-downloads-in var(--dur-sheet) var(--ease-snap) both;
+}
+@keyframes browser-downloads-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+.browser-downloads {
+  background: var(--menu-bg);
+  border: 0.5px solid var(--menu-border);
+  border-radius: 14px;
+  box-shadow: var(--menu-shadow);
+  color: var(--text);
+  font-size: var(--fs-ui);
+  width: 360px;
+  max-height: min(480px, 70vh);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 4px 6px 6px;
+}
+.browser-downloads-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 4px 6px;
+  font-weight: 500;
+}
+.browser-downloads-head .browser-btn.round {
+  background: none;
+}
+.browser-downloads-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+.browser-downloads-empty {
+  padding: 18px 8px 22px;
+  text-align: center;
+  color: var(--text-3);
+}
+.browser-downloads-empty > div:first-child {
+  color: var(--text);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.browser-download {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px 6px 6px;
+  border-radius: 10px;
+}
+.browser-download:hover {
+  background: rgba(var(--ink), 0.04);
+}
+.browser-download-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(var(--ink), 0.06);
+  color: var(--green-text);
+  margin-right: 6px;
+}
+.browser-download-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.browser-download-text:disabled {
+  cursor: default;
+}
+.browser-download-name,
+.browser-download-status {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browser-download-status {
+  color: var(--text-3);
+  font-size: calc(var(--fs-ui) * 0.92);
+}
+.browser-download .browser-btn.round {
+  width: 28px;
+  height: 28px;
+  background: none;
+}
+/* Stopped, failed, or a file that was moved or deleted: greyed */
+.browser-download:is([data-state='cancelled'], [data-state='interrupted'], [data-gone]) .browser-download-name,
+.browser-download:is([data-state='cancelled'], [data-gone]) .browser-download-icon {
+  color: var(--text-3);
+}
+.browser-download[data-state='interrupted'] .browser-download-icon {
+  color: var(--red-text);
+}
+.browser-download:is([data-state='progressing'], [data-state='paused']) .browser-download-icon {
+  color: var(--text-2);
+}
+.browser-download-bar {
+  width: 100%;
+  height: 3px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: rgba(var(--ink), 0.1);
+  overflow: hidden;
+}
+.browser-download-bar > span {
+  display: block;
+  height: 100%;
+  width: 30%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--dur-base) var(--ease-out);
+}
+.browser-download[data-state='paused'] .browser-download-bar > span {
+  background: var(--text-3);
+}
+.browser-download-bar[data-known='false'] > span {
+  animation: browser-download-sweep 1.2s var(--ease-move) infinite;
+}
+@keyframes browser-download-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+/* the notice: a band under the toolbar (the page is a native view: anything over it would hide it), framed as the
+   "Save password?" bar is, with Download complete (Show in folder, Open) or Download failed (View downloads) */
+.browser-download-slot {
+  flex: none;
+}
+.browser-download-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 0.5px solid var(--hairline-strong);
+  background: rgba(var(--ink), 0.04);
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  animation: browser-download-notice-in var(--dur-base) var(--ease-out) both;
+}
+@keyframes browser-download-notice-in {
+  from {
+    opacity: 0;
+  }
+}
+.browser-download-notice > svg {
+  flex: none;
+  color: var(--green-text);
+}
+.browser-download-notice[data-state='interrupted'] > svg {
+  color: var(--red-text);
+}
+.browser-download-notice-text {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.browser-download-notice-text b {
+  color: var(--text);
+  font-weight: 600;
+}
+.browser-download-notice-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.browser-download-notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.browser-download-notice-actions .browser-btn {
+  width: 24px;
+  height: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover-layer.browser-downloads-layer,
+  .browser-download-notice,
+  .browser-downloads-btn[data-attention]::after,
+  .browser-downloads-btn[data-active='true']::before,
+  .browser-downloads-btn[data-active='true'][data-sized='false']::before,
+  .browser-download-bar > span,
+  .browser-download-bar[data-known='false'] > span {
+    animation: none;
+    transition: none;
+  }
+}

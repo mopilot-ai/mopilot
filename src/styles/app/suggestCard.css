@@ -1,0 +1,223 @@
+/* The turn's suggestion card (thread/SuggestionCard.tsx): up to 480px, a header band, then a row per proposal. */
+.session-suggestions {
+  display: flex;
+  flex-direction: column;
+  margin: 6px 0 10px;
+}
+.suggest-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  overflow: clip;
+  border: none;
+  box-shadow: inset 0 0 0 1px rgba(var(--ink), 0.1);
+  border-radius: 10px;
+  user-select: text;
+}
+.suggest-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 12px;
+  background: rgba(var(--ink), 0.05);
+  font-size: var(--fs-ui);
+  font-weight: 500;
+}
+.suggest-head-text {
+  min-width: 0;
+}
+.suggest-head-started {
+  color: var(--text-3);
+  font-weight: 400;
+}
+.suggest-start-all {
+  margin-left: auto;
+}
+/* a lone offer's "Don't ask again": quiet, at the header's end */
+.suggest-head-link {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 400;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.suggest-head-link:hover {
+  color: var(--text);
+}
+.suggest-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 12px;
+  border-top: 0.5px solid var(--hairline);
+}
+.suggest-row[data-state='started'] {
+  padding: 6px 8px;
+}
+.suggest-row[data-state='started'] .session-card {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.suggest-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.suggest-row-text {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.suggest-row-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-chat);
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+}
+/* a starting offer's title shimmers in the shimmer's ink, not the title's own */
+.suggest-row-title.shimmer-text {
+  color: var(--shimmer-ink);
+}
+.suggest-row-title.link {
+  cursor: pointer;
+}
+.suggest-row-title.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.suggest-row-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.suggest-row-place {
+  color: var(--text-2);
+}
+/* where a row runs opens its start options */
+.suggest-row-place.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.suggest-row-place.link:hover:not(:disabled) {
+  color: var(--text);
+}
+.suggest-row-place.link:disabled {
+  cursor: default;
+}
+.suggest-row-prompt {
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+  margin-top: 4px;
+  font-size: var(--fs-small);
+  line-height: 1.46;
+  color: var(--text-ui);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.suggest-row-dismiss {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+.suggest-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* a row's answers sit beside its title; they wrap under it when the card is narrow */
+.suggest-row-top > .suggest-row-actions {
+  flex: none;
+  margin-left: auto;
+}
+.suggest-row-actions kbd {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: rgba(var(--ink), 0.08);
+  font: inherit;
+  font-size: var(--fs-micro);
+}
+.suggest-row-failed {
+  margin-right: auto;
+  font-size: var(--fs-small);
+  color: var(--red-text);
+}
+.suggest-row-status {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+/* a waiting offer counting down to "Do it here" (OfferCountdown.tsx): what happens if nobody answers, under its title */
+.suggest-row-countdown {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+/* and that answer fills as main counts, so the time gone by shows where the choice will land */
+.suggest-row-actions .offer-countdown-fill {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.suggest-row-actions .offer-countdown-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--accent-soft);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: offer-countdown-fill var(--offer-countdown, 60s) linear var(--offer-countdown-ran, 0ms) forwards;
+}
+@keyframes offer-countdown-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+/* with reduced motion the seconds alone say it */
+@media (prefers-reduced-motion: reduce) {
+  .suggest-row-actions .offer-countdown-fill::before {
+    animation: none;
+  }
+}
+.suggest-more {
+  padding: 8px 14px;
+  border-top: 0.5px solid var(--hairline);
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  text-align: left;
+  cursor: pointer;
+}
+.suggest-more:hover {
+  color: var(--text);
+}
+

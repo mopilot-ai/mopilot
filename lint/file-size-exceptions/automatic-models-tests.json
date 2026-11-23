@@ -1,0 +1,16 @@
+{
+  "exceptions": {
+    "tests/harnessSelect.test.ts": {
+      "maxLines": 515,
+      "reason": "The existing harness-selection fixture owns the renderer selection contract. The added scenario checks a refreshed recommendation, saved Automatic, pending Automatic and pending explicit picks against the same mutable chat/default state; keeping the sequence together exposes accidental inheritance. Review this change at exactly 515 lines."
+    },
+    "tests/sessionCaps.test.ts": {
+      "maxLines": 525,
+      "reason": "The existing CapsService fixture owns native model/account capability negotiation. The added Automatic and explicit brain/legacy cases compare recommendation and pin ownership against its real provider gates, alongside the existing explicit-model tests. No new fixture owner is introduced. Review this change at exactly 525 lines."
+    },
+    "tests/store-events.test.ts": {
+      "maxLines": 527,
+      "reason": "The existing store-event fixture owns optimistic send notes and native receipts. The added Automatic model-change-note regression needs that real send/event sequence and its shared runtime/config state, beside the existing explicit-selection note. Review this change at exactly 527 lines."
+    }
+  }
+}

@@ -1,0 +1,190 @@
+/* The add (+) panel card, the sketch pad and the small dialogs (feedback chips, bug report, status). */
+/* + panel: separate card 4px above the composer, 320px tall, as in the official app */
+.add-panel {
+  border-radius: 20px;
+  padding: 4px;
+  margin: 0;
+  max-height: 320px;
+  box-shadow: 0 0 0 1px rgba(var(--ink), 0.06);
+}
+.add-panel-label {
+  padding: 8px 10px 4px;
+}
+/* sketch pad */
+.sketch-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  align-items: safe center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(var(--shadow-ink), 0.45);
+}
+.sketch {
+  width: min(860px, calc(100vw - 80px));
+  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid rgba(var(--ink), 0.1);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sketch-head,
+.sketch-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.sketch-foot {
+  justify-content: flex-end;
+  gap: 8px;
+}
+.sketch-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sketch-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 0;
+  cursor: pointer;
+}
+.sketch-color.on {
+  box-shadow: 0 0 0 2px var(--main), 0 0 0 4px var(--accent);
+}
+.sketch-tool {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 0;
+  background: rgba(var(--ink), 0.06);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+.sketch-tool.on {
+  color: var(--text);
+  background: rgba(var(--ink), 0.14);
+}
+.sketch-canvas {
+  width: 100%;
+  aspect-ratio: 1200 / 760;
+  border-radius: 12px;
+  background: var(--paper);
+  cursor: crosshair;
+  touch-action: none;
+}
+.slash-panel .add-panel-chevron {
+  margin-left: auto;
+  color: var(--text-3);
+}
+.slash-panel .add-panel-check {
+  margin-left: auto;
+}
+.dialog {
+  width: min(480px, calc(100vw - 80px));
+  border-radius: var(--card-radius-lg);
+  background: var(--composer-bg);
+  border: 0.5px solid var(--card-border);
+  box-shadow: var(--menu-shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text);
+}
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-lg);
+  font-weight: 500;
+}
+.dialog-chips {
+  display: flex;
+  gap: 6px;
+}
+.dialog-chip {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--ink), 0.1);
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-ui);
+  cursor: pointer;
+}
+.dialog-chip.on {
+  background: rgba(var(--ink), 0.1);
+  color: var(--text);
+}
+.dialog-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+/* the bug report's send result */
+.bug-results {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.bug-results:empty {
+  display: none;
+}
+.bug-failed {
+  color: var(--red-text);
+}
+.status-grid {
+  display: flex;
+  flex-direction: column;
+}
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  font-size: var(--fs-ui);
+  border-bottom: 1px solid rgba(var(--ink), 0.06);
+}
+.status-row span:first-child {
+  color: var(--text-2);
+}
+.add-panel-footer {
+  display: block;
+  width: 100%;
+  padding: 8px 12px 6px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  text-align: left;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.add-panel-footer:hover {
+  color: var(--text-ui);
+}
+.add-panel-scope {
+  margin-left: auto;
+  padding-left: 12px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+  flex: none;
+}
+.slash-panel .add-panel-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}

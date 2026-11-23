@@ -1,0 +1,45 @@
+{
+  "id": "codebuddy",
+  "label": "CodeBuddy",
+  "vendor": "Tencent",
+  "bins": [
+    "codebuddy",
+    "cbc"
+  ],
+  "docsUrl": "https://www.codebuddy.cn/cli/",
+  "install": {
+    "docs": "https://www.codebuddy.cn/cli/",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g @tencent-ai/codebuddy-code",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@tencent-ai/codebuddy-code"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "--acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "contract": {
+    "npm": "@tencent-ai/codebuddy-code",
+    "bin": "codebuddy"
+  }
+}

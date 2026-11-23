@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/app/agentTools.cjs": {
+      "maxLines": 501,
+      "reason": "Wires each harness's tool channel: Codex's native MCP deferral (G2 tool tiers) is an input of the Codex injection it constructs, and the tools object it hands the Claude harness carries the MCP gateway's check of a server entry (harness/claude/gatewayNative.cjs owns what Claude sessions do with it)."
+    }
+  }
+}

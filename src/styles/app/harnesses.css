@@ -1,0 +1,462 @@
+/* Harnesses: the harness list, sign-in rows and the mid-chat switch. */
+/* ---------- harnesses (Codex / Claude Code) ---------- */
+.harness-icon {
+  flex: none;
+  display: inline-block;
+  vertical-align: -2px;
+}
+.harness-icon.codex {
+  color: var(--text);
+}
+.harness-icon.logo {
+  color: var(--text);
+}
+.harness-icon.basic {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 28%;
+  background: rgba(var(--ink), 0.1);
+  color: var(--text-2);
+  font-weight: 600;
+  line-height: 1;
+}
+.model-btn .harness-icon {
+  margin-right: 2px;
+}
+.hp-pop {
+  width: 300px;
+}
+.hp-pop .effort-model {
+  gap: 4px;
+}
+.effort-title.open {
+  background: var(--row-hover);
+}
+.effort-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.hp-no-effort {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  text-align: center;
+  padding: 6px 8px 10px;
+}
+.hp-head {
+  padding: 6px 10px 4px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+.hp-note {
+  padding: 0 10px 4px;
+  font-size: var(--fs-small);
+}
+/* the machine's missing agents, one quiet line under the list */
+.hp-missing {
+  overflow: hidden;
+  padding-top: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* "‹ Harness": the harness list's way back to the effort panel */
+button.hp-back {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+}
+button.hp-back.kbd-active {
+  background: var(--menu-hover);
+}
+.hp-mini.kbd-active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.hp-row .hp-icon {
+  margin-top: 1px;
+}
+.hp-title,
+.hp-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  white-space: normal;
+}
+.hp-badge {
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.52;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(var(--ink), 0.08);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.hp-badge.ok {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green-text);
+}
+.hp-badge.warn {
+  background: color-mix(in srgb, var(--orange) 18%, transparent);
+  color: var(--orange);
+}
+.basic-login-term {
+  height: 220px;
+  margin: 8px 0 4px;
+  padding: 6px 0 0 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  /* the terminal draws on the app's own background in either theme (TerminalPanel termTheme), so the box does too */
+  background: var(--main);
+  border: 0.5px solid var(--hairline-strong);
+}
+.slash-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 2px 6px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.perm-btn.set-by {
+  cursor: default;
+  opacity: 0.8;
+}
+.hp-badge.basic {
+  cursor: default;
+}
+.model-btn .hp-badge.basic {
+  margin-left: 4px;
+}
+.basic-hover a {
+  color: inherit;
+  text-decoration: underline;
+}
+.hp-badge.err {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  color: var(--red-text);
+}
+.hp-meters {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+.hp-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.hp-bar {
+  width: 54px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(var(--ink), 0.12);
+  overflow: hidden;
+}
+.hp-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--green);
+}
+.hp-bar i.low {
+  background: var(--orange);
+}
+.hp-bar i.out {
+  background: var(--red);
+}
+.hs-key-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+.api-chip {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.52;
+  padding: 0 6px;
+  margin-left: 2px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, var(--orange) 18%, transparent);
+  color: var(--orange);
+  white-space: nowrap;
+  cursor: default;
+}
+.hp-mini:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.hp-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.hp-mini {
+  font-size: var(--fs-small);
+  line-height: 1.67;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(var(--ink), 0.08);
+  color: var(--text);
+}
+.hp-mini.primary {
+  background: var(--text);
+  color: var(--main);
+}
+/* keep the inline sign-in button and hint readable on a disabled row */
+.menu-item.hp-row[aria-disabled='true'] {
+  opacity: 1;
+}
+.hp-row[aria-disabled='true'] .hp-icon,
+.hp-row[aria-disabled='true'] .hp-heading,
+.hp-row[aria-disabled='true'] .menu-label > .hp-title,
+.hp-row[data-disabled] .hp-icon,
+.hp-row[data-disabled] .hp-heading,
+.hp-row[data-disabled] .menu-label > .hp-title {
+  opacity: 0.5;
+}
+.hp-more {
+  color: var(--text-2);
+}
+.hp-models {
+  max-height: 420px;
+}
+.hp-models .tooltip-anchor {
+  display: block;
+}
+.thread-harness {
+  display: inline-flex;
+  flex: none;
+  margin-right: 6px;
+}
+.status-note .step-text {
+  color: var(--text-3);
+}
+.harness-icon.chatgpt-mark {
+  display: inline-block;
+  background: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* mid-chat switch */
+.switch-divider {
+  margin: 14px 0 10px;
+}
+/* a switch that happens while the chat is open lands as a notice: from 10px below over .3s on --ease-overshoot, in
+   place of the plain arrival the other rows get */
+.item-enter:has(> .switch-divider) {
+  animation: none;
+}
+.item-enter > .switch-divider {
+  animation: chip-in var(--dur-sheet) var(--ease-overshoot) backwards;
+}
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .item-enter > .switch-divider {
+    animation: none;
+  }
+}
+.switch-divider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.switch-divider-row::before,
+.switch-divider-row::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--hairline-strong);
+}
+.switch-divider-toggle {
+  color: var(--accent);
+  font-size: var(--fs-small);
+}
+.switch-handoff {
+  margin: 8px 0 0;
+  padding: 12px 14px;
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font: var(--fs-code)/var(--lh-code) var(--font-mono);
+  background: var(--surface);
+  border-radius: 10px;
+  color: var(--text-2);
+}
+.status-note.limit {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  row-gap: 6px;
+}
+.status-note.limit .step-icon {
+  margin-top: calc((1.5em - 16px) / 2);
+}
+.status-note.limit .step-text {
+  color: var(--orange);
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.status-note .status-note-action {
+  margin-left: 8px;
+  flex: none;
+}
+.status-note.limit .status-note-action {
+  grid-column: 2;
+  justify-self: start;
+  max-width: 100%;
+  margin-left: 0;
+  white-space: normal;
+}
+.switch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 2px 4px 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.switch-chip .harness-icon {
+  flex: none;
+}
+.switch-chip-x {
+  padding: 0 6px;
+  color: var(--text-3);
+  font-size: var(--fs-chat);
+  line-height: 1;
+}
+.switch-sheet {
+  width: min(420px, calc(100vw - 24px));
+  padding: 14px;
+  font-size: var(--fs-ui);
+}
+.switch-sheet h5 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: var(--fs-chat);
+  font-weight: 600;
+}
+.switch-sheet p {
+  margin: 0 0 8px;
+  color: var(--text-2);
+}
+.switch-sheet .ss-line {
+  margin-bottom: 8px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+.switch-sheet .ss-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--text);
+}
+.switch-sheet .ss-more {
+  color: var(--accent);
+  font-size: var(--fs-small);
+}
+.switch-sheet .ss-opt {
+  display: flex;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  cursor: default;
+  line-height: 1.45;
+}
+.switch-sheet .ss-opt:hover {
+  background: var(--menu-hover);
+}
+.switch-sheet .ss-opt.on {
+  background: var(--accent-soft);
+}
+.switch-sheet .ss-radio {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-3);
+  flex: none;
+  margin: 3px 0 0;
+}
+.switch-sheet .ss-radio:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.switch-sheet .ss-opt.on .ss-radio {
+  border: 4px solid var(--accent);
+}
+.switch-sheet .ss-desc {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.switch-sheet .ss-privacy {
+  margin-top: 8px;
+  font-size: var(--fs-small);
+  color: var(--orange);
+}
+.switch-sheet .ss-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.hs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  max-width: 380px;
+}
+.hp-models-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* a machine's missing agent in the Harness menu: the vendor's command wraps inside the row and its actions wrap under it, so the menu never scrolls sideways (Settings and the new-chat note keep their own look) */
+.hp-row .install-by-hand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+.hp-row .install-by-hand .install-cmd {
+  flex: 1 1 100%;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+.hp-row .hp-actions {
+  flex-wrap: wrap;
+}

@@ -1,0 +1,53 @@
+/* "Allow Chrome to connect?" (ChromeAllowDialog.tsx): the app's .dialog box, narrower, with one left edge from the icon
+   to the hint and the answers at the trailing edge. A CSS Module; the app's .dialog, .text-input and .btn are global. */
+.dialog {
+  width: min(400px, calc(100vw - 80px));
+  padding: 20px;
+  gap: 0;
+}
+/* the accent on a soft tile, as a permission prompt's mark */
+.icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.title {
+  margin-bottom: 6px;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.body {
+  margin: 0 0 16px;
+  font-size: var(--fs-ui);
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.hint {
+  margin: 6px 0 20px;
+  font-size: var(--fs-small);
+  color: var(--text-4);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* Not now as a real button beside Allow, not bare text */
+.actions :global(.btn):not(:global(.primary)) {
+  background: rgba(var(--ink), 0.06);
+}
+.actions :global(.btn):not(:global(.primary)):hover:not(:disabled) {
+  background: rgba(var(--ink), 0.1);
+}

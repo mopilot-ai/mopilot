@@ -1,0 +1,14 @@
+// A turn's host cleanup run beside main's turn ledger: the in-app browser's or the desktop's turnEnded, or the
+// Registry's abortChat, called on its own. It runs again (and concurrently) when the ledger lets go of the
+// same turn, or never reaches the other harnesses' paths. Report the end, crash or Stop to turnLedger
+// (electron/capabilities/turnEnd.cjs) instead. A TargetLeases surface (targetLeases.cjs) names its turn end for
+// the ledger, whose steps are those surfaces. Applied to main's wiring (biome.json overrides).
+// docs/bug-prevention/overlapping-operations.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or { `$obj.turnEnded($chat)`, `$obj?.turnEnded($chat)`, `$obj.abortChat($...)`, `$obj?.abortChat($...)` },
+  $obj <: r"(?s)(?:.*\.)?(?:browserTabs|computerUse|tabs|capabilities|registry)",
+  $hit <: not within or { `turnLedger($_)`, `new TargetLeases($_)` },
+  register_diagnostic(span=$hit, message="[turn-end-path] Host turn-end cleanup called outside main's turn ledger runs again beside it, or misses the other harnesses. Report the end, crash or Stop to turnLedger in electron/capabilities/turnEnd.cjs (docs/bug-prevention/overlapping-operations.md).", severity="warn")
+}

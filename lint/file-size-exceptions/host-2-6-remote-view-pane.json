@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "src/components/panels/BrowserPanel.tsx": {
+      "maxLines": 585,
+      "reason": "Composes local, Chrome and remote browser surfaces with the pane's controls. Rendering each transport remains delegated to its own surface. Preview restoration and legacy navigation ownership live in separate hooks/handles; this component connects their pending/error/retry state to its existing toolbar, notice and guest mount, while Annotate retains the physical guest identity."
+    }
+  }
+}

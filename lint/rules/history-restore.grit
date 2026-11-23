@@ -1,0 +1,14 @@
+// A page's back/forward history restored outside historyCopy.cjs: Electron's navigationHistory.restore() writes the
+// entries at once but settles its promise only when the page finishes or fails loading, so awaiting it as "copied"
+// holds a duplicate on a slow page and undoes it on a Stop (#1362). Use restoreHistory from
+// electron/capabilities/browser/historyCopy.cjs.
+// docs/bug-prevention/external-contracts.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or {
+    `$wc.navigationHistory.restore($...)`,
+    `$history.restore({ $props })` where { $props <: contains `entries` }
+  },
+  register_diagnostic(span=$hit, message="[history-restore] navigationHistory.restore settles only when the page loads or fails, not when the history is written. Use restoreHistory from electron/capabilities/browser/historyCopy.cjs (docs/bug-prevention/external-contracts.md).", severity="warn")
+}

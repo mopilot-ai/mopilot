@@ -1,0 +1,75 @@
+{
+  "layer": "L5",
+  "public": [
+    "access.cjs",
+    "continueAssembly.cjs",
+    "continueInbox.cjs",
+    "folders.cjs",
+    "interface.cjs",
+    "local.cjs",
+    "ownership.cjs",
+    "patchLog.cjs",
+    "registry.cjs",
+    "install.cjs",
+    "machines.cjs",
+    "remote.cjs",
+    "remoteBrowser.cjs",
+    "sshTunnel.cjs",
+    "toolRelay.cjs",
+    "wiring.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4"
+  ],
+  "allow": [
+    {
+      "path": "electron/host/access.cjs",
+      "to": "electron/momo/access.cjs",
+      "reason": "Host's gate is MoMo's gate class with no invite; the class is MoMo's public entry"
+    },
+    {
+      "path": "electron/host/localContinue.cjs",
+      "to": "host/src/continue.mjs",
+      "reason": "this Mac's own Host runs the same continue Host as a remote one (host/src is the Host's code, portable by design), over its own epoch file, ledger and owner file"
+    },
+    {
+      "path": "electron/host/localContinue.cjs",
+      "to": "host/src/epochs.mjs",
+      "reason": "this Mac's own Host runs the same continue Host as a remote one (host/src is the Host's code, portable by design), over its own epoch file, ledger and owner file"
+    },
+    {
+      "path": "electron/host/localContinue.cjs",
+      "to": "host/src/ledger.mjs",
+      "reason": "this Mac's own Host runs the same continue Host as a remote one (host/src is the Host's code, portable by design), over its own epoch file, ledger and owner file"
+    },
+    {
+      "path": "electron/host/localContinue.cjs",
+      "to": "host/src/owners.mjs",
+      "reason": "this Mac's own Host runs the same continue Host as a remote one (host/src is the Host's code, portable by design), over its own epoch file, ledger and owner file"
+    },
+    {
+      "path": "electron/host/continueAssembly.cjs",
+      "to": "host/src/hostFs.mjs",
+      "reason": "this Mac's folders are read with the Host's own git code (host/src is the Host's code, portable by design), as a chat's folder is not bound to a Host's roots"
+    },
+    {
+      "path": "electron/host/continueAssembly.cjs",
+      "to": "host/src/hostGit.mjs",
+      "reason": "this Mac's folders are read with the Host's own git code (host/src is the Host's code, portable by design), as a chat's folder is not bound to a Host's roots"
+    },
+    {
+      "path": "electron/host/continueInbox.cjs",
+      "to": "host/src/continueTarget.mjs",
+      "reason": "the inbox of a chat that comes back to this Mac is the Host's own target half (host/src is the Host's code, portable by design), over this Mac's folders"
+    },
+    {
+      "path": "electron/host/continueInbox.cjs",
+      "to": "host/src/hostFs.mjs",
+      "reason": "the inbox of a chat that comes back to this Mac is the Host's own target half (host/src is the Host's code, portable by design), over this Mac's folders"
+    }
+  ]
+}

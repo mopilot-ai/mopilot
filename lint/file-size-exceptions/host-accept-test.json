@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/hostAccept.test.ts": {
+      "maxLines": 560,
+      "reason": "One scripted machine that every acceptance step runs against; a step's commands and its Host methods are answered by the same fake, so a new step (A11 git.status, A12 fs.tree and fs.read, A13 git.diff, A14 uninstall --purge) is added here rather than to a second fake (restored in full after a bad edit emptied it)."
+    }
+  }
+}

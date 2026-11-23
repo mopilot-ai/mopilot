@@ -1,0 +1,14 @@
+{
+  "layer": "L5",
+  "public": [
+    "index.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4"
+  ],
+  "allow": []
+}

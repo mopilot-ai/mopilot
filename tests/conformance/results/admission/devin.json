@@ -1,0 +1,47 @@
+{
+  "id": "devin",
+  "version": "3000.11.234",
+  "checkedAt": "2026-11-04T00:37:35.351Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Devin 3000.11.234 (which reports itself as 0.0.0-dev, so the app cannot match it to this record) was installed with the vendor archive https://static.devin.ai/cli/3000.11.234/devin-3000.11.234-aarch64-apple-darwin.tar.gz and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded, it offers native session recovery, and session/new returned a session in which sage-mcp said hello. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "affogato",
+      "title": "Devin Agent",
+      "version": "0.0.0-dev"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "sessionCapabilities": {
+        "list": {},
+        "close": {}
+      }
+    },
+    "authMethods": [
+      {
+        "id": "devin-browser",
+        "name": "Log in with browser",
+        "description": "Sign in via your browser"
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": true,
+    "sageMcpHello": true
+  },
+  "probeWithQuirksFixes": {
+    "state": "admitted",
+    "version": "0.0.0-dev",
+    "reason": null
+  }
+}

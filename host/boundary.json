@@ -1,0 +1,13 @@
+{
+  "layer": "host",
+  "modules": [
+    "electron"
+  ],
+  "forbidden": [
+    "electron/app/",
+    "electron/app/ipc/",
+    "electron/capabilities/browser/",
+    "electron/capabilities/computer"
+  ],
+  "reason": "The Host runs without Electron and without the app's windows, IPC, browser or computer-use layers (design/host/index.html, package 2.1)."
+}

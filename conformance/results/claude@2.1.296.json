@@ -1,0 +1,1652 @@
+{
+  "kind": "claude",
+  "cli": "2.1.296",
+  "bin": "claude",
+  "sdk": "0.3.295",
+  "updatedAt": "2026-10-17T14:41:40.787Z",
+  "checks": [
+    {
+      "id": "C1",
+      "title": "Startup via SDK like Sage; init system message",
+      "verdict": "pass",
+      "observed": {
+        "claude_code_version": "2.1.296",
+        "tools": 28,
+        "slash_commands": 68,
+        "terminal_slash_commands": [
+          "doctor",
+          "color",
+          "focus",
+          "reload-plugins"
+        ],
+        "permissionMode": "default",
+        "output_style": "default",
+        "capabilities": [
+          "interrupt_receipt_v1",
+          "interrupt_cancel_queued_v1",
+          "interrupt_send_now_v1",
+          "msg_lifecycle_v1",
+          "request_marker_lists_v1",
+          "sdk_mcp_tools_list_changed",
+          "sdk_mcp_manifests",
+          "mcp_read_resource_v1",
+          "mcp_tool_ui_meta_v1",
+          "ui_surface_v1"
+        ],
+        "fast_mode_disabled_reason": "sdk_opt_in_required",
+        "resultHasFastModeState": true,
+        "result": {
+          "subtype": "success",
+          "result": "OK",
+          "num_turns": 1,
+          "cost": 0.0770324,
+          "is_error": false
+        },
+        "messageTypes": [
+          "system/init",
+          "system/status",
+          "rate_limit_event/",
+          "assistant/",
+          "result/success"
+        ]
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C1-session.jsonl"
+      ],
+      "seconds": 2,
+      "ranAt": "2026-10-17T14:28:44.613Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C2",
+      "title": "systemPrompt preset vs Sage default (no preset)",
+      "verdict": "pass",
+      "observed": {
+        "none": {
+          "answer": "Claude Code (Anthropic's CLI, built on the Claude Agent SDK), working directory: /private/var/folders/p7/f_99nxmj7s16qrxbl0cbpz4r0000gn/T/sage-conf-C2-nDKrQ0/none-1",
+          "systemPromptTokens": 141
+        },
+        "preset": {
+          "answer": "Claude Code (Anthropic's CLI, via the Claude Agent SDK), working directory `/private/var/folders/p7/f_99nxmj7s16qrxbl0cbpz4r0000gn/T/sage-conf-C2-nDKrQ0/preset-2`. ZEBRA",
+          "systemPromptTokens": 2343
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C2-none.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C2-preset.jsonl"
+      ],
+      "seconds": 7,
+      "ranAt": "2026-10-17T14:28:51.138Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C3",
+      "title": "supportedCommands() / init.slash_commands and terminal-only flag",
+      "verdict": "pass",
+      "observed": {
+        "count": 68,
+        "fields": [
+          "aliases",
+          "argumentHint",
+          "builtin",
+          "description",
+          "name"
+        ],
+        "sameAsInitializationResult": true,
+        "codeReviewAliases": [
+          "review"
+        ],
+        "terminal_slash_commands": [
+          "doctor",
+          "color",
+          "focus",
+          "reload-plugins"
+        ],
+        "unavailable": {
+          "/tasks": {
+            "subtype": "success",
+            "result": "/tasks isn't available in this environment.",
+            "num_turns": 0,
+            "cost": 0,
+            "is_error": false
+          },
+          "/status": {
+            "subtype": "success",
+            "result": "/status isn't available in this environment.",
+            "num_turns": 0,
+            "cost": 0,
+            "is_error": false
+          }
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C3-session.jsonl"
+      ],
+      "seconds": 1,
+      "ranAt": "2026-10-17T14:28:52.278Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C4",
+      "title": "'/goal <condition>' passthrough, show, clear, interrupt",
+      "verdict": "pass",
+      "observed": {
+        "loop": {
+          "result": {
+            "subtype": "success",
+            "result": "All three files now exist: a.txt, b.txt and c.txt. Each holds one line, its own letter. I haven't listed the directory to check.",
+            "num_turns": 6,
+            "cost": 0.09362679500000001,
+            "is_error": false
+          },
+          "goalSet": true,
+          "feedbackMessages": 2,
+          "results": 1,
+          "files": true
+        },
+        "showAfterMet": {
+          "subtype": "success",
+          "result": "No goal set. Usage: `/goal <condition>`",
+          "num_turns": 0,
+          "cost": 0.09362679500000001,
+          "is_error": false
+        },
+        "queuedClear": {
+          "filesAtClear": 4,
+          "loopResult": {
+            "subtype": "success",
+            "result": "I checked the directory. d.txt, e.txt and f.txt are all there, and each has exactly one line. a.txt, b.txt and c.txt from the earlier goal are still there too.",
+            "num_turns": 8,
+            "cost": 0.13084940000000003,
+            "is_error": false
+          },
+          "loopFinishedAllFiles": true,
+          "clear": {
+            "subtype": "success",
+            "result": "No goal set",
+            "num_turns": 0,
+            "cost": 0.13084940000000003,
+            "is_error": false
+          }
+        },
+        "interrupted": {
+          "subtype": "error_during_execution",
+          "result": "",
+          "num_turns": 3,
+          "cost": 0.13084940000000003,
+          "is_error": true
+        },
+        "showAfterInterrupt": {
+          "subtype": "success",
+          "result": "Goal active: the current working directory contains g.txt, h.txt, i.txt, j.txt, each with exactly one line of text (not yet evaluated)",
+          "num_turns": 0,
+          "cost": 0.13084940000000003,
+          "is_error": false
+        },
+        "clear": {
+          "subtype": "success",
+          "result": "Goal cleared: the current working directory contains g.txt, h.txt, i.txt, j.txt, each with exactly one line of text",
+          "num_turns": 0,
+          "cost": 0.13084940000000003,
+          "is_error": false
+        },
+        "showAfterClear": {
+          "subtype": "success",
+          "result": "No goal set. Usage: `/goal <condition>`",
+          "num_turns": 0,
+          "cost": 0.13084940000000003,
+          "is_error": false
+        },
+        "activeGoalMessages": 0
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-40-36-647Z/C4-session.jsonl"
+      ],
+      "seconds": 64,
+      "ranAt": "2026-10-17T14:41:40.786Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C5",
+      "title": "origin {kind:\"human\"} and the ultracode keyword",
+      "verdict": "pass",
+      "observed": {
+        "noOrigin": {
+          "ultracode": {
+            "subtype": "success",
+            "result": "hi",
+            "num_turns": 1,
+            "cost": 0.029789799999999998,
+            "is_error": false
+          },
+          "unknownCommand": {
+            "subtype": "success",
+            "result": "The command `/sage-codex-skill-xyz` isn't installed in this session, so it didn't run. As a plain request, there's nothing to summarise, because you didn't give me any content. If you meant a specific file or text, send it and I'll summarise it.",
+            "num_turns": 1,
+            "cost": 0.07061339999999999,
+            "is_error": false
+          },
+          "toolUses": [],
+          "attachments": [
+            "environment",
+            "model",
+            "deferred_tools_delta",
+            "agent_listing_delta",
+            "skill_listing",
+            "total_tokens_reminder",
+            "session_context",
+            "date",
+            "credential_org",
+            "remote_session_change",
+            "prompt_snapshot",
+            "prompt_snapshot",
+            "deferred_tools_delta",
+            "mcp_instructions_delta",
+            "total_tokens_reminder",
+            "unknown_command_fallback"
+          ],
+          "userOrigins": [
+            null,
+            null
+          ]
+        },
+        "human": {
+          "ultracode": {
+            "subtype": "success",
+            "result": "hi",
+            "num_turns": 1,
+            "cost": 0.0561739,
+            "is_error": false
+          },
+          "unknownCommand": {
+            "subtype": "success",
+            "result": "`/sage-codex-skill-xyz` isn't installed in this session, so it didn't run. I treated your message as a plain request.\n\nSummary of nothing: there's nothing to summarise.",
+            "num_turns": 1,
+            "cost": 0.0994114,
+            "is_error": false
+          },
+          "toolUses": [],
+          "attachments": [
+            "environment",
+            "model",
+            "deferred_tools_delta",
+            "agent_listing_delta",
+            "skill_listing",
+            "total_tokens_reminder",
+            "workflow_keyword_request",
+            "session_context",
+            "date",
+            "credential_org",
+            "remote_session_change",
+            "prompt_snapshot",
+            "prompt_snapshot",
+            "deferred_tools_delta",
+            "mcp_instructions_delta",
+            "total_tokens_reminder",
+            "unknown_command_fallback"
+          ],
+          "userOrigins": [
+            "human",
+            "human"
+          ]
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C5-noOrigin.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C5-human.jsonl"
+      ],
+      "seconds": 13,
+      "ranAt": "2026-10-17T14:33:15.230Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C6",
+      "title": "Query.applyFlagSettings / settings.ultracode",
+      "verdict": "pass",
+      "observed": {
+        "getSettingsType": "function",
+        "available": true,
+        "before": false,
+        "afterOn": true,
+        "turn": {
+          "subtype": "success",
+          "result": "hi",
+          "num_turns": 1,
+          "cost": 0.056362699999999995,
+          "is_error": false
+        },
+        "afterEffortChange": false,
+        "afterNull": false,
+        "attachments": [
+          "environment",
+          "model",
+          "deferred_tools_delta",
+          "agent_listing_delta",
+          "skill_listing",
+          "total_tokens_reminder",
+          "ultra_effort_enter",
+          "session_context",
+          "date",
+          "credential_org",
+          "remote_session_change",
+          "prompt_snapshot",
+          "prompt_snapshot"
+        ],
+        "startedWithSetting": true
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C6-flags.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C6-startSettings.jsonl"
+      ],
+      "seconds": 4,
+      "ranAt": "2026-10-17T14:33:19.578Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C7",
+      "title": "Plan mode round trip",
+      "verdict": "pass",
+      "observed": {
+        "calls": [
+          {
+            "name": "ExitPlanMode",
+            "inputKeys": [
+              "plan",
+              "planFilePath"
+            ]
+          }
+        ],
+        "statusAfterSetPlan": [
+          "plan"
+        ],
+        "planTurn": {
+          "result": {
+            "subtype": "success",
+            "result": "I created `hello.txt` in the current directory, and it contains the single line `hello`.",
+            "num_turns": 5,
+            "cost": 0.0940618,
+            "is_error": false
+          },
+          "tools": [
+            "Write",
+            "ToolSearch",
+            "ExitPlanMode",
+            "Write"
+          ],
+          "statusModes": [
+            "acceptEdits"
+          ]
+        },
+        "fileCreated": true,
+        "nextInitMode": "acceptEdits",
+        "statusAfterSetDefault": [
+          "default"
+        ]
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C7-session.jsonl"
+      ],
+      "seconds": 14,
+      "ranAt": "2026-10-17T14:33:33.443Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C8",
+      "title": "Background tasks, stopTask, perTaskStopAffordance",
+      "verdict": "pass",
+      "observed": {
+        "bash_affordance": {
+          "backgroundTypes": [
+            "local_bash",
+            "local_bash"
+          ],
+          "alive": 2,
+          "aliveAfterStopTask": 1,
+          "backgroundAfterStopTask": 1,
+          "shellsSurviveInterrupt": true,
+          "aliveAfterClose": 0
+        },
+        "bash_none": {
+          "backgroundTypes": [
+            "local_bash",
+            "local_bash"
+          ],
+          "alive": 2,
+          "shellsSurviveInterrupt": true,
+          "aliveAfterClose": 0
+        },
+        "agent_affordance": {
+          "before": [
+            "local_agent"
+          ],
+          "after": [
+            "local_agent",
+            "local_bash"
+          ]
+        },
+        "agent_none": {
+          "before": [
+            "local_agent"
+          ],
+          "after": []
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C8-bash-affordance.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C8-bash-none.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C8-agent-affordance.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C8-agent-none.jsonl"
+      ],
+      "seconds": 53,
+      "ranAt": "2026-10-17T14:34:26.041Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C9",
+      "title": "In-process SDK MCP image tool (computer-use channel)",
+      "verdict": "pass",
+      "observed": {
+        "word": "VDEVW",
+        "default": {
+          "result": {
+            "subtype": "success",
+            "result": "VDEVW",
+            "num_turns": 3,
+            "cost": 0.0489713,
+            "is_error": false
+          },
+          "correct": true,
+          "initHasServer": true,
+          "initHasTool": true,
+          "toolUses": [
+            "ToolSearch",
+            "mcp__sage__sage_screenshot"
+          ],
+          "handlerCalls": [
+            {
+              "sessionId": null,
+              "metaKeys": [
+                "claudecode/toolUseId",
+                "progressToken"
+              ]
+            }
+          ],
+          "permCalls": [
+            "mcp__sage__sage_screenshot"
+          ]
+        },
+        "readOnly": {
+          "result": {
+            "subtype": "success",
+            "result": "VDEVW",
+            "num_turns": 3,
+            "cost": 0.1012066,
+            "is_error": false
+          },
+          "correct": true,
+          "initHasServer": true,
+          "initHasTool": true,
+          "toolUses": [
+            "ToolSearch",
+            "mcp__sage__sage_screenshot"
+          ],
+          "handlerCalls": [
+            {
+              "sessionId": null,
+              "metaKeys": [
+                "claudecode/toolUseId",
+                "progressToken"
+              ]
+            }
+          ],
+          "permCalls": []
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C9-default.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C9-readOnly.jsonl"
+      ],
+      "seconds": 14,
+      "ranAt": "2026-10-17T14:34:39.574Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C10",
+      "title": "persistSession:false",
+      "verdict": "pass",
+      "observed": {
+        "jsonlDuring": false,
+        "listedForCwd": false,
+        "inRecent50": false,
+        "info": null,
+        "jsonlAfterClose": false
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C10-session.jsonl"
+      ],
+      "seconds": 6,
+      "ranAt": "2026-10-17T14:34:45.499Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C11",
+      "title": "Block order: slash command last vs not last",
+      "verdict": "pass",
+      "observed": {
+        "last": {
+          "goalSet": true,
+          "result": {
+            "subtype": "success",
+            "result": "The goal is met. `ok.txt` is in the current working directory. It's 3 bytes and was already there, so I didn't have to create it.",
+            "num_turns": 2,
+            "cost": 0.04706675,
+            "is_error": false
+          }
+        },
+        "first": {
+          "goalSet": false,
+          "result": {
+            "subtype": "success",
+            "result": "The goal is already met: `ok.txt` is in the working directory and contains \"ok\". I changed nothing.",
+            "num_turns": 2,
+            "cost": 0.044624899999999995,
+            "is_error": false
+          }
+        },
+        "middle": {
+          "goalSet": false,
+          "result": {
+            "subtype": "success",
+            "result": "The goal is met. The current directory has `ok.txt`, and it contains `ok`. That is the text shown in your image, though the file has it in lowercase.",
+            "num_turns": 2,
+            "cost": 0.0468593,
+            "is_error": false
+          }
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C11-last.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C11-first.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C11-middle.jsonl"
+      ],
+      "seconds": 15,
+      "ranAt": "2026-10-17T14:35:00.569Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C12",
+      "title": "'/compact' passthrough",
+      "verdict": "pass",
+      "observed": {
+        "plain": {
+          "result": {
+            "subtype": "success",
+            "result": "",
+            "num_turns": 0,
+            "cost": 0.059186,
+            "is_error": false
+          },
+          "system": [
+            {
+              "subtype": "status",
+              "status": "compacting"
+            },
+            {
+              "subtype": "status",
+              "compact_result": "success"
+            },
+            {
+              "subtype": "init"
+            },
+            {
+              "subtype": "compact_boundary",
+              "compact_metadata": {
+                "trigger": "manual",
+                "pre_tokens": 19592,
+                "post_tokens": 2104,
+                "cumulative_dropped_tokens": 17488,
+                "duration_ms": 4197
+              }
+            }
+          ]
+        },
+        "withArgs": {
+          "result": {
+            "subtype": "success",
+            "result": "Not enough messages to compact.",
+            "num_turns": 0,
+            "cost": 0.059186,
+            "is_error": false
+          },
+          "system": [
+            {
+              "subtype": "status",
+              "status": "compacting"
+            },
+            {
+              "subtype": "status",
+              "compact_result": "failed",
+              "compact_error": "Not enough messages to compact."
+            },
+            {
+              "subtype": "init"
+            }
+          ]
+        },
+        "recall": "PELICAN"
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C12-session.jsonl"
+      ],
+      "seconds": 8,
+      "ranAt": "2026-10-17T14:35:08.216Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C13",
+      "title": "'/init' and '/code-review' headless",
+      "verdict": "pass",
+      "observed": {
+        "init": {
+          "result": {
+            "subtype": "success",
+            "result": "I created `CLAUDE.md` for this repo. The codebase is tiny, so the file is short.\n\nIt says that `tiny` is a dependency-free CommonJS package whose `index.js` exports `(a, b) => a + b`. It also lists the one command, `npm test`, which runs `node test.js`. That file doesn't exist yet, so the command fa",
+            "num_turns": 4,
+            "cost": 0.060588,
+            "is_error": false
+          },
+          "claudeMd": true
+        },
+        "codeReview": {
+          "result": {
+            "subtype": "success",
+            "result": "calc.js:1 \u2014 `div` now returns `a * b` instead of `a / b`, so `div(6, 3)` returns 18 instead of 2. The trailing `// divide` comment doesn't match the code.",
+            "num_turns": 0,
+            "cost": 0.0446555,
+            "is_error": false
+          },
+          "taskStarted": 1
+        },
+        "local": {
+          "/context": {
+            "num_turns": 0,
+            "is_error": false
+          },
+          "/usage": {
+            "num_turns": 0,
+            "is_error": false
+          },
+          "/mcp": {
+            "num_turns": 0,
+            "is_error": false
+          },
+          "/output-style": {
+            "num_turns": 0,
+            "is_error": false
+          },
+          "/effort": {
+            "num_turns": 0,
+            "is_error": false
+          }
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C13-init.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C13-review.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C13-local.jsonl"
+      ],
+      "seconds": 31,
+      "ranAt": "2026-10-17T14:35:39.294Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C14",
+      "title": "Control methods present in the SDK",
+      "verdict": "pass",
+      "observed": {
+        "methods": {
+          "getContextUsage": "function",
+          "mcpServerStatus": "function",
+          "toggleMcpServer": "function",
+          "rewindFiles": "function",
+          "stopTask": "function",
+          "applyFlagSettings": "function",
+          "setPermissionMode": "function",
+          "backgroundTasks": "function",
+          "reinitialize": "function",
+          "reloadSkills": "function",
+          "setMcpServers": "function",
+          "supportedAgents": "function",
+          "accountInfo": "function",
+          "supportedCommands": "function",
+          "initializationResult": "function",
+          "interrupt": "function"
+        },
+        "before": {
+          "f": "two",
+          "g": "x"
+        },
+        "contextUsage": {
+          "categories": 9,
+          "totalTokens": 23079
+        },
+        "mcpServerStatusIsArray": true,
+        "dryRun": {
+          "canRewind": true,
+          "filesChanged": [
+            "f.txt",
+            "g.txt"
+          ]
+        },
+        "after": {
+          "f": "one",
+          "g": null
+        },
+        "renamedTitle": "conformance renamed",
+        "forkMessages": 1
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C14-session.jsonl"
+      ],
+      "seconds": 11,
+      "ranAt": "2026-10-17T14:35:49.983Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C15",
+      "title": "Other contradictions with the design",
+      "verdict": "pass",
+      "observed": {
+        "getSettingsDeclared": false,
+        "getSettingsAtRuntime": true,
+        "noChromeFlag": true,
+        "rewindCommand": false
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C15-session.jsonl"
+      ],
+      "seconds": 1,
+      "ranAt": "2026-10-17T14:35:51.053Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C16",
+      "title": "MoPilot's tool channel under each billing (sage_debug_echo)",
+      "verdict": "pass",
+      "observed": {
+        "skipped": [
+          "mopilot (no SAGE_MOPILOT_KEY)",
+          "deepseek (no SAGE_DEEPSEEK_KEY)"
+        ],
+        "subscription": {
+          "model": "claude-sonnet-5-5",
+          "result": {
+            "subtype": "success",
+            "result": "echo: GCPYG",
+            "num_turns": 2,
+            "cost": 0.0928618,
+            "is_error": false
+          },
+          "readBack": true,
+          "initHasTool": true,
+          "toolUses": [
+            "mcp__sage_48b141fbf253__sage_debug_echo"
+          ],
+          "asked": [
+            "mcp__sage_48b141fbf253__sage_debug_echo"
+          ]
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C16-subscription.jsonl"
+      ],
+      "seconds": 6,
+      "ranAt": "2026-10-17T14:35:57.316Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C17",
+      "title": "Goal after restartResume (resumed session)",
+      "verdict": "pass",
+      "observed": {
+        "beforeShow": {
+          "subtype": "success",
+          "result": "Goal active: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text (not yet evaluated)",
+          "num_turns": 0,
+          "cost": 0.0605972,
+          "is_error": false
+        },
+        "afterShow": {
+          "subtype": "success",
+          "result": "Goal active: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text (not yet evaluated)",
+          "num_turns": 0,
+          "cost": 0.0605972,
+          "is_error": false
+        },
+        "hookAfterResume": {
+          "feedbackSeen": true,
+          "filesAdded": 0
+        },
+        "clear": {
+          "subtype": "success",
+          "result": "Goal cleared: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text",
+          "num_turns": 0,
+          "cost": 0.0686285,
+          "is_error": false
+        },
+        "showAfterClear": {
+          "subtype": "success",
+          "result": "No goal set. Usage: `/goal <condition>`",
+          "num_turns": 0,
+          "cost": 0.0686285,
+          "is_error": false
+        },
+        "reattach": {
+          "result": {
+            "subtype": "success",
+            "result": "Both files now exist: e.txt and f.txt each contain one line.",
+            "num_turns": 4,
+            "cost": 0.099604365,
+            "is_error": false
+          },
+          "goalSet": true,
+          "feedbackMessages": 1,
+          "results": 1,
+          "files": true
+        },
+        "finalShow": {
+          "subtype": "success",
+          "result": "No goal set. Usage: `/goal <condition>`",
+          "num_turns": 0,
+          "cost": 0.099604365,
+          "is_error": false
+        },
+        "overlay": {
+          "result": {
+            "subtype": "success",
+            "result": "The goal is met. k.txt and l.txt are both in the current directory, and `wc -l` shows one line in each.",
+            "num_turns": 2,
+            "cost": 0.044996005,
+            "is_error": false
+          },
+          "goalSet": true,
+          "results": 1,
+          "files": true,
+          "showAfter": {
+            "subtype": "success",
+            "result": "No goal set. Usage: `/goal <condition>`",
+            "num_turns": 0,
+            "cost": 0.044996005,
+            "is_error": false
+          }
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C17-before.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C17-after.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C17-again.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C17-again-resumed.jsonl"
+      ],
+      "seconds": 42,
+      "ranAt": "2026-10-17T14:36:39.801Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C18",
+      "title": "'/goal clear' right after interrupt()",
+      "verdict": "pass",
+      "observed": {
+        "notAwaited": {
+          "clearSentAfterMs": 0,
+          "clearResultAfterMs": 20,
+          "clearResult": {
+            "subtype": "success",
+            "result": "Goal cleared: the current working directory contains a1.txt, a2.txt, a3.txt, a4.txt, each with exactly one line of text",
+            "num_turns": 0,
+            "cost": 0.0280505,
+            "is_error": false
+          },
+          "interruptedResult": {
+            "subtype": "error_during_execution",
+            "result": "",
+            "num_turns": 3,
+            "cost": 0.0280505,
+            "is_error": true
+          },
+          "resultOrder": [
+            "",
+            "Goal cleared: the current working direct"
+          ],
+          "filesAtClear": 1,
+          "filesFifteenSecondsLater": 1,
+          "showAfter": {
+            "subtype": "success",
+            "result": "No goal set. Usage: `/goal <condition>`",
+            "num_turns": 0,
+            "cost": 0.0280505,
+            "is_error": false
+          }
+        },
+        "awaited": {
+          "clearSentAfterMs": 10,
+          "clearResultAfterMs": 15,
+          "clearResult": {
+            "subtype": "success",
+            "result": "Goal cleared: the current working directory contains b1.txt, b2.txt, b3.txt, b4.txt, each with exactly one line of text",
+            "num_turns": 0,
+            "cost": 0.0280505,
+            "is_error": false
+          },
+          "interruptedResult": {
+            "subtype": "error_during_execution",
+            "result": "",
+            "num_turns": 3,
+            "cost": 0.0280505,
+            "is_error": true
+          },
+          "resultOrder": [
+            "",
+            "Goal cleared: the current working direct"
+          ],
+          "filesAtClear": 2,
+          "filesFifteenSecondsLater": 2,
+          "showAfter": {
+            "subtype": "success",
+            "result": "No goal set. Usage: `/goal <condition>`",
+            "num_turns": 0,
+            "cost": 0.0280505,
+            "is_error": false
+          }
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C18-session.jsonl"
+      ],
+      "seconds": 46,
+      "ranAt": "2026-10-17T14:37:25.513Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C19",
+      "title": "Bash tool result: how the exit code, stdout and stderr arrive, and nothing while it runs",
+      "verdict": "pass",
+      "observed": {
+        "ok": {
+          "command": "echo to-stdout; echo to-stderr 1>&2",
+          "isError": false,
+          "content": "to-stdout\nto-stderr",
+          "toolUseResult": {
+            "stdout": "to-stdout\nto-stderr",
+            "stderr": "",
+            "interrupted": false,
+            "isImage": false,
+            "noOutputExpected": false
+          },
+          "toolUseResultKeys": [
+            "interrupted",
+            "isImage",
+            "noOutputExpected",
+            "stderr",
+            "stdout"
+          ],
+          "topLevelKeys": [
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "timestamp",
+            "tool_result_meta",
+            "tool_use_result",
+            "type",
+            "uuid"
+          ],
+          "betweenToolUseAndResult": [],
+          "toolProgress": [],
+          "seconds": 4
+        },
+        "exit3": {
+          "command": "echo before-fail; sh -c \"exit 3\"",
+          "isError": true,
+          "content": "Exit code 3\nbefore-fail",
+          "toolUseResult": "Error: Exit code 3\nbefore-fail",
+          "toolUseResultKeys": null,
+          "topLevelKeys": [
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "timestamp",
+            "tool_result_meta",
+            "tool_use_result",
+            "type",
+            "uuid"
+          ],
+          "betweenToolUseAndResult": [],
+          "toolProgress": [],
+          "seconds": 8
+        },
+        "slow": {
+          "command": "for i in 1 2 3 4; do echo line$i; sleep 2; done",
+          "isError": false,
+          "content": "line1\nline2\nline3\nline4",
+          "toolUseResult": {
+            "stdout": "line1\nline2\nline3\nline4",
+            "stderr": "",
+            "interrupted": false,
+            "isImage": false,
+            "noOutputExpected": false
+          },
+          "toolUseResultKeys": [
+            "interrupted",
+            "isImage",
+            "noOutputExpected",
+            "stderr",
+            "stdout"
+          ],
+          "topLevelKeys": [
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "timestamp",
+            "tool_result_meta",
+            "tool_use_result",
+            "type",
+            "uuid"
+          ],
+          "betweenToolUseAndResult": [
+            "system/task_started",
+            "system/task_notification"
+          ],
+          "toolProgress": [],
+          "seconds": 19
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C19-session.jsonl"
+      ],
+      "seconds": 31,
+      "ranAt": "2026-10-17T14:37:56.129Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C20",
+      "title": "Goal after a crash (CLI killed mid-round) and reopen",
+      "verdict": "pass",
+      "observed": {
+        "crash": {
+          "killed": true,
+          "exit": {
+            "code": null,
+            "signal": "SIGKILL"
+          },
+          "streamEnded": true,
+          "streamError": "Claude Code process terminated by signal SIGKILL",
+          "resultAfterKill": false
+        },
+        "transcript": {
+          "records": 29,
+          "lastTypes": [
+            "attachment",
+            "user",
+            "system",
+            "user"
+          ]
+        },
+        "afterShow": {
+          "subtype": "success",
+          "result": "Goal active: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text (not yet evaluated)",
+          "num_turns": 0,
+          "cost": 0,
+          "is_error": false
+        },
+        "hookAfterReopen": {
+          "feedbackSeen": true,
+          "filesAdded": 1
+        },
+        "clear": {
+          "subtype": "success",
+          "result": "Goal cleared: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text",
+          "num_turns": 0,
+          "cost": 0.023630305,
+          "is_error": false
+        },
+        "showAfterClear": {
+          "subtype": "success",
+          "result": "No goal set. Usage: `/goal <condition>`",
+          "num_turns": 0,
+          "cost": 0.023630305,
+          "is_error": false
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C20-crashed.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C20-reopened.jsonl"
+      ],
+      "seconds": 25,
+      "ranAt": "2026-10-17T14:38:20.864Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C21",
+      "title": "CLI killed mid-turn, then resumed",
+      "verdict": "pass",
+      "observed": {
+        "commandRunningBeforeKill": true,
+        "kill": {
+          "exit": {
+            "code": null,
+            "signal": "SIGKILL"
+          },
+          "streamEnded": true,
+          "streamError": "Claude Code process terminated by signal SIGKILL",
+          "resultAfterKill": false,
+          "toolResultSeen": false
+        },
+        "commandSurvivedKill": true,
+        "transcript": {
+          "records": 19,
+          "toolUseRecorded": true,
+          "toolResultRecorded": false
+        },
+        "resumed": {
+          "result": {
+            "subtype": "success",
+            "result": "ok",
+            "num_turns": 1,
+            "cost": 0.0028938,
+            "is_error": false
+          },
+          "sameSession": true
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C21-killed.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C21-resumed.jsonl"
+      ],
+      "seconds": 10,
+      "ranAt": "2026-10-17T14:38:30.879Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C22",
+      "title": "extraArgs {'no-chrome': null} reaches the CLI's argv",
+      "verdict": "pass",
+      "observed": {
+        "withFlag": {
+          "argv": [
+            "--no-chrome"
+          ],
+          "hasFlag": true,
+          "commands": 68,
+          "chromeNames": [],
+          "mcpServers": []
+        },
+        "without": {
+          "argv": [],
+          "hasFlag": false,
+          "commands": 68,
+          "chromeNames": [],
+          "mcpServers": [
+            "claude.ai Claude Docs",
+            "claude.ai Gmail",
+            "claude.ai Google Drive"
+          ]
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C22-with.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C22-without.jsonl"
+      ],
+      "seconds": 2,
+      "ranAt": "2026-10-17T14:38:32.772Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C23",
+      "title": "D-68 passive channels: stream_event, task_progress, hook events and hooks while a foreground Bash runs",
+      "verdict": "pass",
+      "observed": {
+        "windowMs": 3209,
+        "taskStartedLagMs": 3184,
+        "insideWindowByType": {
+          "system/task_notification": 1
+        },
+        "insideWindowMentioningCommandOutput": [],
+        "taskStarted": {
+          "task_type": "local_bash",
+          "is_backgrounded": false,
+          "hasOutputFile": false
+        },
+        "allTypesInTurn": [
+          "assistant",
+          "rate_limit_event",
+          "result/success",
+          "stream_event/content_block_delta:input_json_delta",
+          "stream_event/content_block_delta:text_delta",
+          "stream_event/content_block_start",
+          "stream_event/content_block_stop",
+          "stream_event/message_delta",
+          "stream_event/message_start",
+          "stream_event/message_stop",
+          "system/init",
+          "system/status",
+          "system/task_notification",
+          "system/task_started",
+          "user"
+        ],
+        "hookCalls": [
+          {
+            "ev": "UserPromptSubmit",
+            "tool": null,
+            "relMs": -7979
+          },
+          {
+            "ev": "PreToolUse",
+            "tool": "Bash",
+            "relMs": -3181
+          },
+          {
+            "ev": "PostToolUse",
+            "tool": "Bash",
+            "relMs": 3206
+          },
+          {
+            "ev": "Stop",
+            "tool": null,
+            "relMs": 5790
+          }
+        ],
+        "hookEventSubtypes": []
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C23-passive.jsonl"
+      ],
+      "seconds": 15,
+      "ranAt": "2026-10-17T14:38:47.474Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C24",
+      "title": "D-68 control channel: getTaskOutput polled while a foreground Bash runs",
+      "verdict": "pass",
+      "observed": {
+        "startedLagMs": 3189,
+        "commandMs": 10474,
+        "pollsWhileRunning": 11,
+        "errors": [],
+        "distinctSizesWhileRunning": [
+          12,
+          18,
+          24,
+          30
+        ],
+        "samples": [
+          {
+            "relMs": 1,
+            "bytes": 12,
+            "output": "line1\nline2\n"
+          },
+          {
+            "relMs": 703,
+            "bytes": 12,
+            "output": "line1\nline2\n"
+          },
+          {
+            "relMs": 1407,
+            "bytes": 18,
+            "output": "line1\nline2\nline3\n"
+          },
+          {
+            "relMs": 2111,
+            "bytes": 18,
+            "output": "line1\nline2\nline3\n"
+          },
+          {
+            "relMs": 2814,
+            "bytes": 18,
+            "output": "line1\nline2\nline3\n"
+          },
+          {
+            "relMs": 3517,
+            "bytes": 24,
+            "output": "line1\nline2\nline3\nline4\n"
+          },
+          {
+            "relMs": 4221,
+            "bytes": 24,
+            "output": "line1\nline2\nline3\nline4\n"
+          },
+          {
+            "relMs": 4925,
+            "bytes": 24,
+            "output": "line1\nline2\nline3\nline4\n"
+          },
+          {
+            "relMs": 5631,
+            "bytes": 30,
+            "output": "line1\nline2\nline3\nline4\nline5\n"
+          },
+          {
+            "relMs": 6335,
+            "bytes": 30,
+            "output": "line1\nline2\nline3\nline4\nline5\n"
+          },
+          {
+            "relMs": 7038,
+            "bytes": 30,
+            "output": "line1\nline2\nline3\nline4\nline5\n"
+          },
+          {
+            "relMs": 7742,
+            "bytes": 0,
+            "output": ""
+          },
+          {
+            "relMs": 8447,
+            "bytes": 0,
+            "output": ""
+          },
+          {
+            "relMs": 9151,
+            "bytes": 0,
+            "output": ""
+          },
+          {
+            "relMs": 9854,
+            "bytes": 0,
+            "output": ""
+          }
+        ],
+        "afterEnd": {
+          "bytes": 0,
+          "output": ""
+        },
+        "finalText": "line1\nline2\nline3\nline4\nline5",
+        "turnMs": 15626,
+        "resultOk": "success"
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C24-poll.jsonl"
+      ],
+      "seconds": 16,
+      "ranAt": "2026-10-17T14:39:03.820Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C25",
+      "title": "D-68 background shell: output file path, tailing it, getTaskOutput, stream events while it runs",
+      "verdict": "pass",
+      "observed": {
+        "toolResultText": "Command running in background with ID: bixghyruf. Output is being written to: /private/tmp/claude-501/-private-var-folders-p7-f-99nxmj7s16qrxbl0cbpz4r0000gn-T-sage-conf-C25-p2tVFe-bash-1/eda11ad4-ba52-44d2-a825-9626ed892b24/tasks/bixghyruf.output. You will be notified when it completes. To check int",
+        "taskStarted": {
+          "task_type": "local_bash",
+          "is_backgrounded": true,
+          "output_file": null
+        },
+        "pathFoundInToolResultText": "/private/tmp/claude-501/-private-var-folders-p7-f-99nxmj7s16qrxbl0cbpz4r0000gn-T-sage-conf-C25-p2tVFe-bash-1/eda11ad4-ba52-44d2-a825-9626ed892b24/tasks/bixghyruf.output",
+        "taskNotification": {
+          "status": "completed",
+          "output_file": "/private/tmp/claude-501/-private-var-folders-p7-f-99nxmj7s16qrxbl0cbpz4r0000gn-T-sage-conf-C25-p2tVFe-bash-1/eda11ad4-ba52-44d2-a825-9626ed892b24/tasks/bixghyruf.output",
+          "summary": "Background command \"for i in 1 2 3 4 5; do echo bg$i; sleep 2; done\" completed (exit code 0)"
+        },
+        "fileSamples": [
+          {
+            "relMs": 0,
+            "size": 4,
+            "text": "bg1\n"
+          },
+          {
+            "relMs": 1005,
+            "size": 8,
+            "text": "bg1\nbg2\n"
+          },
+          {
+            "relMs": 2008,
+            "size": 8,
+            "text": "bg1\nbg2\n"
+          },
+          {
+            "relMs": 3010,
+            "size": 12,
+            "text": "bg1\nbg2\nbg3\n"
+          },
+          {
+            "relMs": 4012,
+            "size": 12,
+            "text": "bg1\nbg2\nbg3\n"
+          },
+          {
+            "relMs": 5012,
+            "size": 16,
+            "text": "bg1\nbg2\nbg3\nbg4\n"
+          },
+          {
+            "relMs": 6013,
+            "size": 16,
+            "text": "bg1\nbg2\nbg3\nbg4\n"
+          },
+          {
+            "relMs": 7015,
+            "size": 20,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n"
+          },
+          {
+            "relMs": 8015,
+            "size": 20,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n"
+          },
+          {
+            "relMs": 9018,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 10020,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 11022,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 12025,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 13026,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          }
+        ],
+        "getTaskOutputSamples": [
+          {
+            "relMs": 0,
+            "bytes": 4
+          },
+          {
+            "relMs": 1019,
+            "bytes": 4
+          },
+          {
+            "relMs": 2022,
+            "bytes": 4
+          },
+          {
+            "relMs": 3027,
+            "bytes": 8
+          },
+          {
+            "relMs": 4031,
+            "bytes": 8
+          },
+          {
+            "relMs": 5033,
+            "bytes": 12
+          },
+          {
+            "relMs": 6037,
+            "bytes": 12
+          },
+          {
+            "relMs": 7041,
+            "bytes": 16
+          },
+          {
+            "relMs": 8046,
+            "bytes": 16
+          },
+          {
+            "relMs": 9049,
+            "bytes": 20
+          },
+          {
+            "relMs": 10053,
+            "bytes": 20
+          },
+          {
+            "relMs": 11056,
+            "bytes": 42
+          },
+          {
+            "relMs": 12059,
+            "bytes": 42
+          },
+          {
+            "relMs": 13062,
+            "bytes": 42
+          },
+          {
+            "relMs": 14065,
+            "bytes": 42
+          },
+          {
+            "relMs": 15070,
+            "bytes": 42
+          }
+        ],
+        "typesAfterToolResultUntilNotification_exceptModelReply": [],
+        "toolProgress": 0
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C25-bg.jsonl"
+      ],
+      "seconds": 19,
+      "ranAt": "2026-10-17T14:39:22.682Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    },
+    {
+      "id": "C26",
+      "title": "D-68 PreToolUse hook rewrites Bash to tee into a file: tail works, result unchanged, cd no longer persists",
+      "verdict": "pass",
+      "observed": {
+        "plain": {
+          "slow": {
+            "command": "for i in 1 2 3; do echo s$i; echo e$i 1>&2; sleep 2; done; sh -c \"exit 3\"",
+            "isError": true,
+            "content": "Exit code 3\ns1\ne1\ns2\ne2\ns3\ne3",
+            "toolUseResult": "Error: Exit code 3\ns1\ne1\ns2\ne2\ns3\ne3"
+          },
+          "sizesWhileRunning": [],
+          "cd": {
+            "command": "cd sub && echo in-sub",
+            "isError": false,
+            "content": "in-sub",
+            "toolUseResult": {
+              "stdout": "in-sub",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          },
+          "pwdAfter": {
+            "command": "basename \"$PWD\"",
+            "isError": false,
+            "content": "sub",
+            "toolUseResult": {
+              "stdout": "sub",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        "hook": {
+          "slow": {
+            "command": "for i in 1 2 3; do echo s$i; echo e$i 1>&2; sleep 2; done; sh -c \"exit 3\"",
+            "isError": true,
+            "content": "Exit code 3\ns1\ne1\ns2\ne2\ns3\ne3",
+            "toolUseResult": "Error: Exit code 3\ns1\ne1\ns2\ne2\ns3\ne3"
+          },
+          "sizesWhileRunning": [
+            6,
+            12,
+            18
+          ],
+          "teeFile": "s1\ne1\ns2\ne2\ns3\ne3\n",
+          "cd": {
+            "command": "cd sub && echo in-sub",
+            "isError": false,
+            "content": "in-sub",
+            "toolUseResult": {
+              "stdout": "in-sub",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          },
+          "pwdAfter": {
+            "command": "basename \"$PWD\"",
+            "isError": false,
+            "content": "bash-hook-3",
+            "toolUseResult": {
+              "stdout": "bash-hook-3",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        "rewrittenCommandSeenByModel": "for i in 1 2 3; do echo s$i; echo e$i 1>&2; sleep 2; done; sh -c \"exit 3\"",
+        "sameText": true
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C26-plain.jsonl",
+        "conformance/logs/claude@2.1.296/2026-10-17T14-28-42-226Z/C26-hook.jsonl"
+      ],
+      "seconds": 74,
+      "ranAt": "2026-10-17T14:40:36.520Z",
+      "model": "claude-sonnet-5-5",
+      "effort": "low"
+    }
+  ]
+}

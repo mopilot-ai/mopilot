@@ -1,0 +1,49 @@
+{
+  "id": "mistral-vibe",
+  "version": "3.0.4",
+  "checkedAt": "2026-11-04T00:38:20.798Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Mistral Vibe 3.0.4 was installed with the vendor archive https://github.com/mistralai/mistral-vibe/releases/download/v3.0.4/vibe-acp-darwin-aarch64-3.0.4.tar.gz and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "@mistralai/mistral-vibe",
+      "title": "Mistral Vibe",
+      "version": "3.0.4"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": false,
+        "sse": false
+      },
+      "sessionCapabilities": {
+        "list": {},
+        "close": {},
+        "fork": {}
+      }
+    },
+    "authMethods": [
+      {
+        "id": "browser-auth",
+        "name": "Sign in through Mistral AI Studio",
+        "description": "Sign into Mistral Vibe through your Mistral AI Studio account."
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": false,
+    "sageMcpHello": false,
+    "error": "Missing API key for mistral provider."
+  },
+  "probeWithQuirksFixes": {
+    "state": "signin",
+    "version": "3.0.4",
+    "reason": "Missing API key for mistral provider."
+  }
+}

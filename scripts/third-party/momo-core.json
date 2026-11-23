@@ -1,0 +1,7 @@
+{
+  "direct": [],
+  "runtimeRoots": [],
+  "notices": [
+    { "title": "MoMo core (shared/momoCore): ported from n8n-io/nod and elie222/rakazo (Apache-2.0), CopilotKit/OpenClaudeDuet and openclaw/openclaw (MIT)", "path": "shared/momoCore/NOTICE" }
+  ]
+}

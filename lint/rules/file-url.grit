@@ -1,0 +1,10 @@
+// A file:// URL pasted together from a path: `#`, `%`, spaces and Windows drive letters break it.
+// docs/bug-prevention/strings-paths-and-keys.md
+language js
+
+or {
+  JsTemplateExpression() as $t where { $t <: r"(?s)^`file:.*", $t <: contains JsTemplateElement() },
+  `$l + $r` as $t where { $l <: r"^.file:.*" }
+} as $u where {
+  register_diagnostic(span=$u, message="[file-url] A file:// URL built from a path breaks on spaces, #, % and Windows drive letters. Use pathToFileURL(path).href from node:url (docs/bug-prevention/strings-paths-and-keys.md).", severity="warn")
+}

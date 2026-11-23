@@ -1,0 +1,7 @@
+{
+  "direct": [],
+  "runtimeRoots": [],
+  "notices": [
+    { "title": "Rakazo (https://github.com/elie222/rakazo, Apache-2.0, Copyright 2026 Rakazo contributors): MoMo's model-free change watch (fingerprint, tracked items, change note), ported in shared/momoTasks/watch.ts; changed to hand-written validation and injected readers", "path": "docs/licenses/rakazo-LICENSE.txt" }
+  ]
+}

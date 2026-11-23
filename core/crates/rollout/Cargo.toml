@@ -1,0 +1,21 @@
+[package]
+name = "rollout"
+version = "0.1.0"
+description = "A Codex thread's history read from its rollout file, plain or zstd-compressed: its turns held by id and read a page at a time."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+inventory = "0.3"
+jsvalue = { path = "../jsvalue" }
+memchr = "2"
+# pure Rust, so no build of the core needs a C toolchain for it
+ruzstd = "0.9"
+
+[dev-dependencies]
+serde_json = "1"

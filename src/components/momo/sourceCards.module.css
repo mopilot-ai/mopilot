@@ -1,0 +1,164 @@
+/* Settings › MoMo › Sources (SourcesSection.tsx, SourceCard.tsx): one card per source, the same look in every state. Icon, name and a status chip, one plain line, one primary action; folders for Files; details behind a quiet disclosure. */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card {
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: var(--card-radius-lg);
+  background: var(--card-bg);
+  overflow: hidden;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  padding: 16px 18px;
+}
+.icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.text {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title {
+  font-size: var(--fs-chat);
+  font-weight: 600;
+  color: var(--text);
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.status[data-tone='needs'] {
+  color: var(--text);
+}
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+/* Files: the folders MoMo may read */
+.folders {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 0.5px solid var(--hairline);
+}
+.folder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  font-size: var(--fs-ui);
+}
+.folder + .folder {
+  border-top: 0.5px solid var(--hairline);
+}
+.folderPath {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.addBar {
+  display: flex;
+  padding: 10px 18px 14px;
+}
+/* details: what MoMo reads and keeps, what is connected, pause and disconnect */
+.details {
+  border-top: 0.5px solid var(--hairline);
+  font-size: var(--fs-ui);
+}
+.details > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  color: var(--text-3);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.details > summary::-webkit-details-marker {
+  display: none;
+}
+.details > summary:hover {
+  color: var(--text-2);
+}
+.chevron {
+  transition: transform 0.15s;
+}
+.details[open] .chevron {
+  transform: rotate(180deg);
+}
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 2px 18px 12px;
+  color: var(--text-2);
+}
+.facts dt {
+  color: var(--text-3);
+}
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.manage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px 14px;
+}
+.confirm {
+  color: var(--text-2);
+}
+.alert {
+  margin: 0 18px 14px;
+}
+/* Routines (RoutineCard.tsx) in the same card: the sources it uses as chips, what MoMo will do behind a disclosure */
+.uses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.prompt {
+  margin: 0;
+  padding: 2px 18px 14px;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

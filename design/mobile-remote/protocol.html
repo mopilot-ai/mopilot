@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mobile Remote · Protocol</title>
+<meta name="description" content="Pairing and keys, the relay transport, the remote client protocol, approvals from the phone, push, and MoMo on the phone.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+
+<header class="top">
+  <div>
+    <div class="eyebrow">Design · Mobile Remote · 2 of 3</div>
+    <h1>Pairing, transport, protocol, approvals, push, MoMo</h1>
+    <p class="thesis">How a phone becomes a trusted client of one Mac, what travels between them, and what each side may do.</p>
+  </div>
+  <nav class="pages" aria-label="Design pages">
+    <a href="index.html">1 · Overview &amp; architecture</a>
+    <a href="protocol.html" aria-current="page">2 · Pairing, protocol, approvals, MoMo</a>
+    <a href="milestones.html">3 · Milestones, testing, risks</a>
+  </nav>
+</header>
+
+<section class="panel" id="pairing">
+  <h2>Pairing and keys <small>public-key pairing over an untrusted relay; the account only helps the two devices find each other</small></h2>
+  <div class="grid2">
+    <div>
+      <h3>Identities</h3>
+      <ul>
+        <li>Each Mac has an <b>identity key pair</b> (X25519 for agreement, Ed25519 for signing), made on first use and kept only in <code>safeStorage</code>, the way <code>electron/momo/auditKey.cjs</code> keeps the audit key. Each phone has the same pair in its Keychain or Keystore, hardware-backed where the OS offers it.</li>
+        <li>A <b>pair</b> is one phone and one Mac. Its root key comes from X25519 between the two identity keys, HKDF'd with both device ids. From the root key each direction derives its own sending key; message keys ratchet forward per message (a symmetric ratchet with a counter), so the relay replaying or reordering a blob is detected and a captured blob can't be decrypted with a later key.</li>
+        <li>Payloads are sealed with XChaCha20-Poly1305 (libsodium on both sides; <code>sodium-native</code> in main, <code>react-native-libsodium</code> on the phone). The envelope's header (pair id, direction, counter) is authenticated, never encrypted.</li>
+      </ul>
+      <h3>Pairing flow</h3>
+      <ol>
+        <li>Settings › Devices › <b>Pair a phone</b> shows a QR code: <code>{ v:1, relay, macId, macPub, code, exp }</code>. <code>code</code> is a 32-byte one-time secret; <code>exp</code> is two minutes away. The Mac registers the pending pairing with the relay, signed with its account JWT.</li>
+        <li>The phone scans, derives the root key, and sends a sealed <b>pair request</b> through the relay: its id, its public keys, a device name, and HMAC(<code>code</code>, both public keys) as proof it saw the QR.</li>
+        <li>The Mac verifies the proof, shows the phone's name and a six-digit <b>safety number</b> (a short hash of both public keys), and asks the user to confirm. The phone shows the same number. Confirming writes the device to the Mac's device list (<code>safeStorage</code>) and to <code>devices</code> on mopilot.ai with kind <code>phone</code>.</li>
+        <li>From then on the pair key does the authenticating; the account JWT only lets each device open its relay socket and lets the relay route by account.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Trust boundaries</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Party</th><th>Can</th><th>Cannot</th></tr></thead>
+        <tbody>
+          <tr><td>Relay</td><td>Route, store blobs ≤ 7 days, see sizes and timing, push a fixed title</td><td>Read a message, forge one, pair a device (no <code>code</code>, no safety-number confirmation)</td></tr>
+          <tr><td>mopilot.ai</td><td>Issue and revoke device tokens, say whether MoMo is invited</td><td>Reach a Mac or a chat; the account grants nothing a pair didn't</td></tr>
+          <tr><td>A stolen phone</td><td>Act as that device until revoked</td><td>Survive revocation: the Mac drops the pair key and refuses the device's counter; the token is revoked at <code>/api/desktop/revoke</code></td></tr>
+          <tr><td>Phone</td><td>What a window may do on the chats it follows, minus Bypass permissions and minus editing Settings</td><td>Change the device list on the Mac, read keys, read a harness credential</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Revocation and rotation</h3>
+      <ul>
+        <li>The Mac's Devices list removes a phone immediately; the phone sees <code>unpaired</code> on its next frame. mopilot.ai's Trusted devices page revokes the token, which closes the relay socket.</li>
+        <li>Pair keys rotate when either side asks (a new X25519 exchange inside the sealed channel), and every 30 days by default. An identity key rotation is a re-pair.</li>
+        <li>Clearing MoPilot's data, or a new Mac restored from backup, is a re-pair: the identity key is in <code>safeStorage</code> and does not travel with user data on purpose.</li>
+      </ul>
+      <p class="callout">Open question for review: v1 uses a symmetric ratchet, not a full Double Ratchet. Forward secrecy per message holds; post-compromise security needs the 30-day rotation. Happy's scheme was not publicly documented at survey time, so this is our own choice.</p>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="transport">
+  <h2>Transport <small>outbound WebSocket from both devices to the relay; a mailbox when one side is away</small></h2>
+  <div class="grid2">
+    <div>
+      <ul>
+        <li>Main opens one WSS to the relay per account, authenticated by the account JWT, and keeps it up with the reconnect and backoff rules of <code>electron/relay.cjs</code>'s peers. It never listens on a port.</li>
+        <li>A frame is <code>{ pair, dir, ctr, nonce, box }</code>; <code>box</code> is one sealed <b>message</b>. Frames ≤ 256 KB; attachments go as chunked messages with their own stream id, capped at the Chrome panel's attachment limits.</li>
+        <li>The relay keeps a per-pair mailbox: frames for an offline peer wait up to 7 days, then are dropped and the sender told. The phone drains its mailbox on launch and on each push.</li>
+        <li><b>Presence</b>: each Mac publishes <code>online</code> / <code>sleeping</code> / <code>gone</code> through the relay; the phone shows a machine card with a dot, like Claude's device card. A Mac that misses three pings is <code>gone</code>.</li>
+        <li>Several Macs under one account each have their own pair with the phone. The phone's home screen lists machines, then chats; a chat id is scoped by machine.</li>
+      </ul>
+    </div>
+    <div>
+      <pre><code>// a sealed message, after decryption
+{ id: 'm_01J…', t: 1761436800123,
+  kind: 'request' | 'reply' | 'event' | 'ack',
+  // request / reply
+  method: 'chat.send', params: { chatId, text, attachments },
+  inReplyTo: 'm_01J…', ok: true, result: {...}, error: { code, message },
+  // event
+  ev: 'session.patch', chatId, rev: 418, patch: [...] }
+
+// the frame the relay sees
+{ pair: 'p_9f…', dir: 'p2m', ctr: 1032, nonce: '…', box: '…' }</code></pre>
+      <p>Requests carry an idempotency <code>id</code>; main remembers the last 1,000 per pair and replays the reply instead of acting twice, so a phone retrying after a dropped socket can't send a message twice. The <code>ctr</code> must increase strictly per direction; a repeat or a rewind closes the pair's session and asks the phone to resync.</p>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="protocol">
+  <h2>Remote client protocol <small>the Chrome panel's request set, generalized; one service in main serves panel and phones</small></h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Method</th><th>From</th><th>What main does</th><th>Harness note</th></tr></thead>
+    <tbody>
+      <tr><td class="k">machine.hello</td><td><span class="chip phone">new</span></td><td>Capabilities, app version, account, which features the Mac allows this device (MoMo invited, mirrors available).</td><td>—</td></tr>
+      <tr><td class="k">chats.recent · chats.pin · projects.list · scheduled.list</td><td>panel</td><td>The sidebar as the app shows it, with each chat's live state (<code>running</code>, <code>needs you</code>, <code>done</code>).</td><td>Same rows for every harness; the harness is a chip, not a filter.</td></tr>
+      <tr><td class="k">chat.follow · chat.unfollow</td><td><span class="chip phone">new</span></td><td>Sends a snapshot (<code>SessionState</code> at <code>rev</code> plus the last N translated items), then <code>session.patch</code> and <code>items.append</code> events until unfollowed. A follow is what authorizes answering that chat's cards.</td><td>The panel's "followed live" becomes explicit.</td></tr>
+      <tr><td class="k">chat.read</td><td>panel</td><td>Older history, paged, as translated items.</td><td>Codex history from <code>~/.codex/sessions</code>, Claude from <code>~/.claude/projects</code>, ACP from <code>threads/*.items.jsonl</code>; main reads, the phone sees one shape.</td></tr>
+      <tr><td class="k">chat.send · chat.start · chat.stop · chat.switch</td><td>panel</td><td>Through <code>ChatController</code>, as a window would: a follow-up queues while a turn runs; <code>start</code> takes project, harness, account, model, effort, permission mode, worktree.</td><td>Permission mode ≤ the Mac's ceiling; <code>bypass</code> is refused from a phone.</td></tr>
+      <tr><td class="k">chat.queue.cancel</td><td><span class="chip phone">new</span></td><td>Takes one of the user's own queued follow-ups out of the chat's queue, as the app's Remove does; <code>removed: false</code> when it already went out. A phone's Edit is this, then the text back in its composer. <code>chat.send</code> while a turn runs queues, or steers in when the Mac's follow-up setting says so and the harness can (Claude Code, Codex; ACP always queues); <code>session.queue</code> lists each message with <code>mine</code> and <code>attached</code>.</td><td>Another session's or chat's queued message is refused (<code>removed: false</code>).</td></tr>
+      <tr><td class="k">chat.queue.retry</td><td><span class="chip phone">new</span></td><td>Sends again a queued message of the user's that a machine's Host refused, as the app's Retry on that row does, under the message's own key (the Host holds nothing after a refusal, so it is delivered once). <code>retried: false</code> when it is no longer there, or is not one the Mac keeps for a machine; the Host's answer to the new try comes back as <code>status</code> and, when refused again, <code>error</code>. The queue view tells a phone why a message waits: <code>refused</code> (the Host's reason, cut at 300 characters, empty when it gave none), <code>moved</code> (its chat moved to another machine), <code>waiting</code> (<code>host</code>: the machine is away, <code>orgSignin</code>: the organization sign-in the Mac waits for). All additive: an older phone ignores them and shows a plain queued message, a newer phone on an older Mac gets none and answers "Unknown request" to the retry with an update line.</td></tr>
+      <tr><td class="k">card.answer · card.choose · card.permit</td><td>panel</td><td>Answers an approval, a question or a form by choice key; see <a href="#approvals">approvals</a>.</td><td>Codex server requests, Claude <code>canUseTool</code>, ACP <code>acp/permission</code>, Sage's own cards: one shape (<code>shared/approvalRequest.mjs</code>).</td></tr>
+      <tr><td class="k">chat.attach · chat.transcribe</td><td>panel</td><td>Attachments arrive chunked and land in the chat's attachment folder; a voice note is transcribed on the Mac with the dictation engine the app already has.</td><td>—</td></tr>
+      <tr><td class="k">options.get · options.set · harnesses.list · commands.list</td><td>panel</td><td>Model, effort, permission and harness menus; the slash menu.</td><td>From the adapters' capability contracts, never a hardcoded list.</td></tr>
+      <tr><td class="k">momo.*</td><td><span class="chip phone">new</span></td><td>See <a href="#momo">MoMo on the phone</a>.</td><td>MoMo's brain is any harness; the phone never learns which unless it asks the brain chip.</td></tr>
+      <tr><td class="k">diff.list · diff.read · file.read</td><td><span class="chip phone">M3</span></td><td>Read-only git and file reads through <code>platform/git.cjs</code>, bounded like MoMo's Files source (size caps, project folder only).</td><td>—</td></tr>
+      <tr><td class="k">pty.open · pty.write · pty.resize · frames.subscribe</td><td><span class="chip phone">M5</span></td><td>A remote terminal and low-rate JPEG frames of the in-app browser or the screen while a tool runs.</td><td>Frames pass the same masking as the model's (<code>capture.cjs</code>).</td></tr>
+      <tr><td class="k">device.unpair</td><td><span class="chip phone">new</span></td><td>The phone leaves; the Mac forgets the pair.</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <p>Every method's params are validated in main by the same kind of input checks <code>capabilities/browser/chromePanel.cjs</code> runs for the panel today; the two clients share one schema module so the panel can't drift from the phone. A method the Mac doesn't allow this device answers <code>error.code = 'forbidden'</code>, which the phone shows as a grey control, never as a silent no-op.</p>
+</section>
+
+<section class="panel" id="events">
+  <h2>Events and translation <small>main sends thread items, not raw harness events</small></h2>
+  <div class="grid2">
+    <div>
+      <ul>
+        <li><code>session.patch</code>: the <code>SessionState</code> patch stream as windows get it, with <code>rev</code>. A phone that misses a <code>rev</code> asks for a snapshot. This carries turn status, the queue, the cards up, the goal and the plan.</li>
+        <li><code>items.append</code> / <code>items.replace</code>: thread items (user message, assistant text, tool call with status, card, notice, compaction mark). Today <code>src/harness/claudeTranslate.ts</code> and <code>src/harness/acp.ts</code> build these in the renderer from raw events; for remote clients main runs the translation, batched by <code>core/crates/batcher</code>, and sends the result.</li>
+        <li>Streaming text is sent as deltas coalesced to ~10 Hz, then a final item; the phone renders the same way the window does so a reply reads identically on both.</li>
+        <li><code>machine.presence</code>, <code>device.unpaired</code>, <code>mailbox.dropped</code>: the few events about the connection itself.</li>
+      </ul>
+    </div>
+    <div>
+      <p class="callout ok">Moving translation into main is the one refactor the phone forces on the desktop, and it also removes a long-standing split: windows and the Chrome panel will consume the same items. It lands first, behind the existing renderer path, in <a href="milestones.html#m1">M1</a>, with the <code>shared/claudeTranslate/</code> modules as the base.</p>
+      <p>Harness specifics (Codex notifications, Claude SDK events, ACP session updates) stay in the adapters. The phone's item renderer has no harness branch, which is the multi-harness rule of AGENTS.md applied to a new surface.</p>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="approvals">
+  <h2>Approvals, questions and plans from the phone <small>the same authority as a window, checked the same way</small></h2>
+  <div class="grid2">
+    <div>
+      <ol>
+        <li>A card is raised in main and joins <code>SessionState.approvals</code> (harness permission, Sage card or <code>momoAction</code>). Main notifies: the OS banner through <code>notify.cjs</code> and, for each paired phone, a push of the same kind.</li>
+        <li>The phone, following the chat, receives the card in <code>session.patch</code>: title, detail lines, choice keys, the card id and the <code>rev</code> it was raised at. Tool arguments go only when the card already shows them to a window.</li>
+        <li>The user taps a choice. The phone sends <code>card.answer { chatId, cardId, rev, key }</code>.</li>
+        <li>Main checks: the device follows the chat; the card is still up; <code>rev</code> is not older than the card's; <code>key</code> is one the card offered; the device is allowed the choice (a permission-raising choice like "always allow" is allowed only if the Mac's policy lets a window choose it too). The first valid answer from any surface wins; later ones get <code>error.code = 'stale'</code> and the phone shows who answered.</li>
+        <li>The answer goes through the exact path a window's does (<code>claude:permission</code>, Codex server reply, <code>acp/permission</code>, <code>ApprovalBroker</code>), so the harness can't tell a phone answered.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Questions and forms</h3>
+      <p>AskUserQuestion and ACP forms use <code>shared/claudeAnswer.mjs</code> and <code>chromePanelForm.cjs</code> today. The ownership check in <code>session/questionIpc.cjs</code> ("the answering window shows the chat") gets a sibling: "the answering device follows the chat". Both checks live in one helper so they can't diverge.</p>
+      <h3>Plans</h3>
+      <p>A plan waiting for approval is in <code>SessionState.plan</code>; the phone shows it read-only with Approve / Ask for changes, which map to the same controller actions as the window's buttons (<code>controllerPlan.cjs</code>).</p>
+      <h3>What a phone can't do</h3>
+      <ul>
+        <li>Choose Bypass permissions, or raise a chat above the Mac's permission ceiling.</li>
+        <li>Answer a card for a chat it doesn't follow, or a card that asks for a desktop-only act of the user (a macOS privacy prompt, a sign-in in the in-app browser): those say "finish on your Mac".</li>
+        <li>Change Settings, pair or unpair other devices, or turn MoMo on or off.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="spike">
+  <h2>Spike findings that change the design <small>M0, #2615; read from <code>design/mobile-remote/spike/README.md</code></small></h2>
+  <ul>
+    <li><b>The phone library has no X25519.</b> <code>react-native-libsodium</code> 1.7.0 exports no <code>crypto_scalarmult</code> or <code>crypto_kx_*</code>. The phone does key agreement with <code>@noble/curves</code> (matches <code>sodium-native</code>, checked); it runs once per pairing or rotation, so pure JS is fine. The seal and open path still uses libsodium.</li>
+    <li><b>HKDF is not in the wrappers.</b> The phone has only the unstable native HKDF; the Mac uses <code>node:crypto</code>. The app pins the library version and runs <code>shared/remote/vectors.json</code> as a self-test at launch, so an API change fails loudly.</li>
+    <li><b>Ratchet state must be durable on both sides.</b> A reconnecting client keeps its chain key and last counter per pair (phone: Keychain). A fresh session cannot open queued frames. Counter rule: strictly increasing, at most 1000 skipped, and state moves only after the box authenticates.</li>
+    <li><b>"Needs you" is an alerting push, not a silent one.</b> iOS suspends the app and its socket; a silent push is throttled (two or three per hour), dropped after a force-quit and not guaranteed. The mailbox is the source of truth; a silent push only shortens the delay.</li>
+    <li><b>The notification extension is a separate native target.</b> It decrypts the opt-in chat title in its own process (tight memory), so it needs libsodium linked natively, the pair's material in a shared Keychain group and App Group, and a read-only peek or per-notification key so it never advances the app's ratchet. In Expo this is a config plugin or custom target (an EAS step), not JS. Android's FCM data message has no such constraint. This is new work in <a href="milestones.html#m2">M2</a>.</li>
+  </ul>
+</section>
+
+<section class="panel" id="push">
+  <h2>Push notifications <small>APNs and FCM through the relay; the Mac decides when, the content is a fixed title</small></h2>
+  <div class="grid2">
+    <div>
+      <ul>
+        <li>The phone registers its APNs or FCM token with the relay, bound to its device id. The relay never gives tokens to the Mac.</li>
+        <li>When <code>notify.cjs</code> would show a banner, main also sends the relay a <b>push request</b> in the clear: <code>{ pair, kind, ref }</code>, where <code>kind</code> ∈ <code>needsYou · done · momoNeedsYou · machineOffline</code> and <code>ref</code> is an opaque chat handle the phone resolves locally. The notification's title is the kind's fixed text, the body is empty, as <code>shared/momoNotices.mjs</code> does for MoMo today.</li>
+        <li>The relay applies the notifier's merge rule (one per chat, "needs you" outranks "done", same kind within 60 s merges to "(n)"), so phone and Mac agree on what the user saw.</li>
+        <li>An opt-in setting adds the chat's title to the push. It is sent sealed inside a tiny <b>notification extension</b> payload that the phone decrypts on device (iOS Notification Service Extension, Android data message), so even then the relay stays blind.</li>
+        <li>Quiet hours and the "Notifications" preference on the Mac apply to push as they do to banners; a "needs you" that fell in quiet hours is pushed once when they end.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Self-hosted relays and push</h3>
+      <p>APNs needs Apple's key for our app id, so a self-hosted relay can't push to the App Store build directly. Two supported shapes:</p>
+      <ul>
+        <li><b>Push proxy</b> (default): the self-hosted relay forwards <code>{ token, kind }</code> to <code>push.mopilot.ai</code>, which only holds the Apple and Google keys and sees no account or chat.</li>
+        <li><b>No push</b>: the self-hosted relay runs without it; the phone falls back to background fetch and shows the state when opened. The UI says so in Settings.</li>
+      </ul>
+      <p>Teams that build the app themselves can set their own keys on their relay.</p>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="momo">
+  <h2>MoMo on the phone <small>the personal agent is the phone's first job; its trust layer stays on the Mac</small></h2>
+  <div class="grid2">
+    <div>
+      <p>MoMo is a long-lived main chat in its own workspace (<code>electron/momo/mainChat.cjs</code>), with memory on the Mac (<code>memory.cjs</code>), routines the scheduler runs in isolated background chats (<code>routines.cjs</code>), local sources (Calendar, Reminders, Files) behind a hub that decides and audits every read, and a trust gate that raises a <code>momoAction</code> card before anything side-effecting. The Feed and Topics are being removed (#2609), so the phone's MoMo is <b>Chat, Needs you, Memory, Routines</b>.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Surface</th><th>Protocol</th><th>Mac-side owner</th></tr></thead>
+        <tbody>
+          <tr><td>MoMo chat (follow, send, stop)</td><td class="k">momo.chat → chat.follow / chat.send on MoMo's main chat id</td><td><code>mainChatIpc.cjs</code> picks the chat; the phone can't name another, like Quick Chat (<code>askIpc.cjs</code>)</td></tr>
+          <tr><td>Needs you (approval cards, questions)</td><td class="k">card.answer, as any chat</td><td><code>actionAsk.cjs</code> through <code>ApprovalBroker</code>; the card already carries only what the user needs to decide</td></tr>
+          <tr><td>Memory: facts, About you, persona</td><td class="k">momo.memory.list / search / edit / forget / docs</td><td><code>memoryIpc.cjs</code>; changes broadcast as <code>momoMemory:changed</code> to windows and phones alike</td></tr>
+          <tr><td>Routines: list, pause, resume, run now, approve a proposed one</td><td class="k">momo.routines.*</td><td><code>routines.cjs</code> + the scheduler; a run's chat is followable like any chat</td></tr>
+          <tr><td>Brain chip (harness, account, model, at-limit state)</td><td class="k">momo.brain.get / set</td><td><code>mainChatIpc.cjs</code>, <code>brainLimit.cjs</code>; <code>set</code> is allowed only if Settings on the Mac allows remote brain changes (default off)</td></tr>
+          <tr><td>Setup (first-use flow)</td><td>—</td><td>Desktop only in v1: granting Calendar and Reminders is a macOS prompt the user must answer on the Mac</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div>
+      <h3>Rules that carry over unchanged</h3>
+      <ul>
+        <li><b>Closed alpha</b>: <code>access.cjs</code> gates MoMo on the account's <code>features</code> from <code>/api/me</code>. <code>machine.hello</code> tells the phone whether MoMo is allowed for this account; an uninvited account sees no MoMo tab, and every <code>momo.*</code> call is refused in main, as every IPC handler is today.</li>
+        <li><b>Nothing personal on the lock screen</b>: MoMo's push is "MoMo needs you", title only, which is the existing rule of <code>shared/momoNotices.mjs</code>.</li>
+        <li><b>Memory is data</b>: the phone's memory tab shows facts decrypted on the Mac and sent sealed; the relay stores none of it in the clear, and the phone caches it encrypted at rest. A fact edited on the phone is written by <code>memory.cjs</code> on the Mac, nowhere else.</li>
+        <li><b>Audit</b>: a phone-answered card is audited like a window-answered one, with the answering device's id in the intent entry (a new field, so a review of the log can tell which device approved).</li>
+        <li><b>No harness name in copy</b>: the MoMo tab names the brain the user picked, or none.</li>
+      </ul>
+      <h3>What the phone adds for MoMo</h3>
+      <ul>
+        <li>Ask MoMo from the phone's home screen and from a notification's reply field: the same single-target path as Quick Chat's Ask MoMo.</li>
+        <li>A routine's result read on the way to work; a proposed routine approved from the lock screen card.</li>
+      </ul>
+      <p class="callout">Deliberately out of scope, for the owner to decide later: <b>the phone as a MoMo source</b> (location, photos, phone calendar). It would make MoMo far more useful and would also be the first time data originates off the Mac; it needs its own trust design (where the egress taint starts, what the audit log records). Not in M1–M6.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">Next: <a href="milestones.html">milestones, testing and risks</a>. Back to the <a href="index.html">overview</a>.</footer>
+
+</div>
+</body>
+</html>

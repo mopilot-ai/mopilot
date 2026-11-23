@@ -1,0 +1,27 @@
+{
+  "id": "mimo",
+  "version": null,
+  "checkedAt": "2026-11-04T00:38:10.105Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "MiMo Code was installed with npm install -g @mimo-ai/cli and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): it was not admitted (unsupported: MiMo Code quit unexpectedly.). No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": null,
+    "agentInfo": null,
+    "agentCapabilities": {
+      "loadSession": false,
+      "promptCapabilities": {
+        "image": false,
+        "audio": false,
+        "embeddedContext": false
+      },
+      "mcpCapabilities": {},
+      "sessionCapabilities": {}
+    },
+    "authMethods": []
+  },
+  "probeWithQuirksFixes": {
+    "state": "unsupported",
+    "version": null,
+    "reason": "MiMo Code quit unexpectedly."
+  }
+}

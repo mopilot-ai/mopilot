@@ -1,0 +1,18 @@
+{
+  "about": "Test vectors for MoMo push body sealing (A6). The Mac seals (electron/remote/pushTitles.cjs sealBody), the phone opens (mobile/src/push/sealedTitle.ts openSealedBody) and the iOS extension mirrors it (mobile/plugins/Shared/SealedTitle.swift SealedTitle.openBody): all three must read each vector the same. A blob is base64url(nonce24 || XChaCha20-Poly1305 box); the plaintext is the name as UTF-8 padded with spaces to padBytes; the AAD is aadPrefix + ref.",
+  "aadPrefix": "mopilot-push-body-v1|",
+  "padBytes": 160,
+  "keyHex": "030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dc",
+  "nonceHex": "090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "ref": "Zr0Yb2xq9PqEw1hUt3KfLa",
+  "vectors": [
+    {
+      "name": "Morning brief",
+      "sealed": "CQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gvwed8dDPFh6IT4mqd4ARiDoudLARmOpT7yhmM7NYQEH7c7NDSOJ4txV0FrOT43JNCX9xI8CjAr_FrDBwz-4QLrQn23EqqCgI_Cx29O6-SSDeyjkLAoFoKrUJlHMkozTSpLO5eOl3ul7f5-yXaO7nMi5Y6AzkaFd8dzTSro-kgdVONKCBVSsodMDMN-VExaOc9zPleGYJScoZKUp3VSXDIWTTI6yOdL5P6cLJo394aas"
+    },
+    {
+      "name": "Wochenübersicht 早报",
+      "sealed": "CQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gpQeM99zPsoKIWJK8eMNZ3DrowznXMm9T7yhmM7NYQEH7c7NDSOJ4txV0FrOT43JNCX9xI8CjAr_FrDBwz-4QLrQn23EqqCgI_Cx29O6-SSDeyjkLAoFoKrUJlHMkozTSpLO5eOl3ul7f5-yXaO7nMi5Y6AzkaFd8dzTSro-kgdVONKCBVSsodMDMN-VExaOc9zPleGYJScoZKUp3VSXDIVWs4M5scPqxMZJweqZz2N0"
+    }
+  ]
+}

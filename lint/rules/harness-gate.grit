@@ -1,0 +1,10 @@
+// Shared code that branches on a harness name or id prefix: the behavior silently skips the other harnesses.
+// Applied outside the adapters only (biome.json overrides). docs/bug-prevention/cross-harness-gaps.md
+language js
+
+or {
+  `$a === $b`, `$a !== $b`, `$a == $b`, `$a != $b`, `$s.startsWith($b)`, JsCaseClause(test=$b)
+} as $hit where {
+  or { $a <: r"['\"](?:codex|claude|acp:[^'\"]*)['\"]", $b <: r"['\"](?:codex|claude|acp:[^'\"]*|acp)['\"]" },
+  register_diagnostic(span=$hit, message="[harness-gate] Shared code branches on a harness name or id prefix, so the other harnesses miss this behavior. Read a capability or call the adapter instead (docs/bug-prevention/cross-harness-gaps.md).", severity="warn")
+}

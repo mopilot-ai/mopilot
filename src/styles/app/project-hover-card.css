@@ -1,0 +1,87 @@
+/* Project hover card. */
+/* project hover card */
+.project-card {
+  width: 230px;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--menu-bg);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 0 0.5px rgba(var(--ink), 0.082), 0 8px 24px rgba(var(--shadow-ink), 0.25);
+  font-size: var(--fs-ui);
+}
+.project-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 4px 0 10px;
+  color: var(--text);
+}
+.project-card-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 29px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  text-align: left;
+}
+.project-card-row.link {
+  cursor: pointer;
+}
+.project-card-row.link:hover {
+  background: rgba(var(--ink), 0.08);
+  color: var(--text);
+}
+.project-card-row > svg {
+  flex: none;
+}
+.project-card-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-card .menu-sep {
+  height: 0.5px;
+  margin: 4px 10px;
+  background: rgba(var(--ink), 0.1);
+}
+:root[data-theme='light'] .project-card {
+  background: rgba(var(--white-ink), 0.95);
+  box-shadow: 0 0 0 0.5px rgba(var(--shadow-ink), 0.1), 0 8px 24px rgba(var(--shadow-ink), 0.12);
+}
+:root[data-theme='light'] .project-card-row.link:hover {
+  background: rgba(var(--shadow-ink), 0.05);
+}
+.side-label.with-chevron {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.side-label.with-chevron svg {
+  transition: transform 0.15s;
+}
+.side-label.with-chevron svg.rot-90 {
+  transform: rotate(-90deg);
+}
+[data-theme='light'] .menu-sep,
+[data-theme='light'] .project-card .menu-sep {
+  background: rgba(var(--shadow-ink), 0.1);
+}
+[data-theme='light'] .menu-item:hover,
+[data-theme='light'] .menu-item.active {
+  background: rgba(var(--shadow-ink), 0.05);
+}

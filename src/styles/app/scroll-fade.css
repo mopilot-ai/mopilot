@@ -1,0 +1,59 @@
+/* Edge fades for scrolling lists: an edge fades only while more content lies beyond it, driven by the list's own scroll. */
+/* A list fades at an edge it can still scroll toward: a mask whose edge lengths are scroll-driven animations of
+   @property lengths over the first and last 28px of the scroll range. A static mask instead leaves the last row faded when the list is scrolled to its end
+   (the newest line of live shell output) and fades a list that does not scroll at all. Where scroll timelines do not
+   run, both lengths stay 0px and nothing fades. */
+@property --scroll-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --scroll-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes scroll-fade-top {
+  from {
+    --scroll-fade-top: 0px;
+  }
+  to {
+    --scroll-fade-top: var(--scroll-fade-size);
+  }
+}
+@keyframes scroll-fade-bottom {
+  from {
+    --scroll-fade-bottom: var(--scroll-fade-size);
+  }
+  to {
+    --scroll-fade-bottom: 0px;
+  }
+}
+.project-menu .menu-scroll,
+.shell-scroll {
+  --scroll-fade-size: 28px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black var(--scroll-fade-top),
+    black calc(100% - var(--scroll-fade-bottom)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black var(--scroll-fade-top),
+    black calc(100% - var(--scroll-fade-bottom)),
+    transparent
+  );
+  animation:
+    scroll-fade-top linear both,
+    scroll-fade-bottom linear both;
+  animation-timeline: scroll(self y), scroll(self y);
+  animation-range:
+    0 var(--scroll-fade-size),
+    calc(100% - var(--scroll-fade-size)) 100%;
+}
+.shell-scroll {
+  --scroll-fade-size: 24px;
+}

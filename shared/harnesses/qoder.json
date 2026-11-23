@@ -1,0 +1,45 @@
+{
+  "id": "qoder",
+  "label": "Qoder",
+  "vendor": "Qoder",
+  "bins": [
+    "qodercli",
+    "qoder"
+  ],
+  "docsUrl": "https://docs.qoder.com/cli/using-acp",
+  "install": {
+    "docs": "https://docs.qoder.com/cli/using-acp",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g @qoder-ai/qodercli",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@qoder-ai/qodercli"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "--acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "contract": {
+    "npm": "@qoder-ai/qodercli",
+    "bin": "qodercli"
+  }
+}

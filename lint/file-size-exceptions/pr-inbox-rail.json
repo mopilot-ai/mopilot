@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "src/components/thread/ThreadView.tsx": {
+      "maxLines": 501,
+      "reason": "ThreadView remains the single chat layout coordinator. This change only imports and mounts the shared PR rail once beside the existing status/footer components; PR presentation, expansion state and styles live in PrInboxRail. Extracting those two wiring lines would create an arbitrary fragment rather than a separate responsibility."
+    }
+  }
+}

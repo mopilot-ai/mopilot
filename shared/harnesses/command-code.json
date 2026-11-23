@@ -1,0 +1,28 @@
+{
+  "id": "command-code",
+  "label": "Command Code",
+  "vendor": "Command Code",
+  "bins": [
+    "command-code"
+  ],
+  "docsUrl": "https://commandcode.ai/docs/acp",
+  "install": {
+    "docs": "https://commandcode.ai/docs/acp",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ]
+}

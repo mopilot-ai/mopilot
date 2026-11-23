@@ -1,0 +1,10 @@
+// A window-open policy that shows the popup as a tab (createWindow) but ties its lifetime to its opener: Electron then
+// destroys the tab when the tab it came from closes, which Chrome never does (#1777). A tab outlives its opener.
+// docs/bug-prevention/external-contracts.md
+language js
+
+JsObjectExpression() as $o where {
+  $o <: contains JsPropertyObjectMember() as $c where { $c <: r"(?s)^createWindow\s*:.*" },
+  $o <: contains JsPropertyObjectMember() as $p where { $p <: r"(?s)^outlivesOpener\s*:\s*(?:false|!1).*" },
+  register_diagnostic(span=$p, message="[popup-tab-lifetime] A popup shown as a tab (createWindow) with outlivesOpener: false closes when the tab it came from closes. Pass outlivesOpener: true (docs/bug-prevention/external-contracts.md).", severity="warn")
+}

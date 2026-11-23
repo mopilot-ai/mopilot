@@ -1,0 +1,3 @@
+/* Background task styles: pane rules followed by transcript/sidebar status and motion overrides, in original cascade order. */
+@import './tasks-pane.css';
+@import './tasks-status.css';

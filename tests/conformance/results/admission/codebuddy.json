@@ -1,0 +1,56 @@
+{
+  "id": "codebuddy",
+  "version": null,
+  "checkedAt": "2026-11-04T00:37:30.444Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "CodeBuddy was installed with npm install -g @tencent-ai/codebuddy-code and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": null,
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "sessionCapabilities": {}
+    },
+    "authMethods": [
+      {
+        "id": "iOA",
+        "name": "Login with iOA",
+        "description": null
+      },
+      {
+        "id": "external",
+        "name": "Login with Google/Github",
+        "description": null
+      },
+      {
+        "id": "internal",
+        "name": "Login with WeChat",
+        "description": null
+      },
+      {
+        "id": "selfhosted",
+        "name": "Login with Enterprise Domain",
+        "description": null
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": false,
+    "sageMcpHello": false,
+    "error": "Sign in to CodeBuddy first"
+  },
+  "probeWithQuirksFixes": {
+    "state": "signin",
+    "version": null,
+    "reason": "Sign in to CodeBuddy first"
+  }
+}

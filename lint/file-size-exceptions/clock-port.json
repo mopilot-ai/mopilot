@@ -1,0 +1,16 @@
+{
+  "exceptions": {
+    "electron/harness/acp.cjs": {
+      "maxLines": 670,
+      "reason": "Owns ACP process and session lifecycle. Checks the launched executable identity at catalog publication, where the live session and its process are both available. Prompt preparation, provider errors and title sessions remain in separate modules."
+    },
+    "electron/session/controller.cjs": {
+      "maxLines": 607,
+      "reason": "Owns turn admission and lifecycle across adapters. Queue, snapshot, remote-stop and continuation services share its state; their implementations remain separate. Adds the neutral observation import and one terminal outcome call at the shared controller end boundary. This owner already decides cancellation and completion across harnesses; it contains no analytics collector or transport."
+    },
+    "tests/claudeHarnessCoverage.test.ts": {
+      "maxLines": 915,
+      "reason": "Adapter lifecycle and default-option scenarios share the real SessionStore, fake SDK boundary and clock. Their ownership transitions use one fixture."
+    }
+  }
+}

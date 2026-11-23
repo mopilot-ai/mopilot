@@ -1,0 +1,402 @@
+/* Agent pages and background tasks: the agent group, agent page, tasks pane and pill. */
+
+/* ---------- MorphText: live label crossfade (180 ms, 3 px, width glide) ---------- */
+.morph-text {
+  position: relative;
+  display: inline-grid;
+  vertical-align: bottom;
+  white-space: nowrap;
+  transition: width 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+/* in a box that cuts a long label short (a title bar), the label still ends in an ellipsis */
+.morph-text.morph-fit {
+  display: grid;
+  grid-template-columns: minmax(0, auto);
+  max-width: 100%;
+}
+.morph-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.morph-layer.morph-enter {
+  animation: morph-enter 180ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.morph-layer.morph-out {
+  position: absolute;
+  inset: 0 auto auto 0;
+  pointer-events: none;
+  animation: morph-out 180ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes morph-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+@keyframes morph-out {
+  to {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .morph-text {
+    transition: none;
+  }
+  .morph-layer.morph-enter {
+    animation: none;
+  }
+  .morph-layer.morph-out {
+    display: none;
+  }
+}
+
+/* ---------- Shimmer band: the running-label sweep (3 s, a 120deg band, held at both ends) ---------- */
+/* the composited band of .shimmer-text (src/styles/app/motion.css) in place of the cadenced sweep */
+:is(.agent-group-head, .agent-row, .task-card, .task-event-card, .tasks-count, .agent-page) .shimmer {
+  --shimmer-ink: currentColor;
+  --shimmer-peak: color-mix(in srgb, var(--shimmer-ink) 30%, white);
+  display: inline;
+}
+:root:not([data-theme='light']) :is(.agent-group-head, .agent-row, .task-card, .task-event-card, .tasks-count, .agent-page) .shimmer {
+  --shimmer-peak: var(--text);
+}
+.task-card .shimmer,
+.task-event-card .shimmer {
+  --shimmer-ink: var(--text);
+}
+.agent-row .shimmer {
+  --shimmer-ink: var(--text-2);
+}
+:is(.agent-group-head, .agent-row, .task-card, .task-event-card, .tasks-count, .agent-page) .shimmer > .shimmer-band::after {
+  inset: 0 -300% 0 0;
+  background-image: linear-gradient(120deg, transparent 37.5%, var(--shimmer-peak) 50%, transparent 62.5%);
+  translate: -62.5%;
+  animation: shimmer-band 3s linear var(--shimmer-delay, 0s) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.agent-group-head, .agent-row, .task-card, .task-event-card, .tasks-count, .agent-page) .shimmer > .shimmer-band::after {
+    animation: none;
+  }
+}
+
+/* ---------- Agent group: the tool-group card in the transcript ---------- */
+.agent-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.agent-group-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* thoughts before the first step: dim italic lines above the card */
+.agent-group-thoughts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.agent-group-thought {
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  font-style: italic;
+  color: var(--text-3);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+/* header: live label + chevron; muted when collapsed, secondary when open or running, one step up on hover */
+.agent-group-head {
+  position: relative;
+  display: flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 0;
+  border-radius: 4px;
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  text-align: left;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.agent-group-head:hover,
+.agent-group-head.open,
+.agent-group-head.running {
+  color: var(--text-2);
+}
+.agent-group-head.running:hover {
+  color: var(--text);
+}
+.agent-group-head:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.agent-group-head .shimmer {
+  --shimmer-ink: currentColor;
+}
+.agent-group-title {
+  min-width: 0;
+}
+.agent-group-head .activity-time {
+  margin-left: 4px;
+}
+.agent-group-chevron {
+  flex: none;
+  transition: transform 60ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.agent-group-head[aria-expanded='true'] .agent-group-chevron {
+  transform: rotate(90deg);
+}
+/* the card: 8 px under the header, 8 px radius, a 1 px inner ring and a divider between rows */
+.agent-card {
+  position: relative;
+  /* its own line under the header, also when the header's live link or task count shares the header's row */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: clip;
+}
+.agent-card[hidden] {
+  display: none;
+}
+.agent-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--hairline-strong);
+}
+.agent-card > .agent-card-cell {
+  padding: 8px 10px;
+}
+.agent-card > .agent-card-cell + .agent-card-cell {
+  border-top: 1px solid var(--hairline-strong);
+}
+/* the group's ordinary steps sit in the same 36 px cells: the transcript's 14/20 text, not the app's 21 px line */
+.agent-card-cell .step-row {
+  min-height: 20px;
+  line-height: 1.43;
+}
+/* an agent row: dim verb (underlined on hover), dark description, muted caret once settled */
+.agent-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  text-align: left;
+  cursor: pointer;
+}
+.agent-row-verb {
+  flex: none;
+  color: var(--text-3);
+}
+.agent-row:hover .agent-row-verb {
+  color: var(--text-2);
+}
+.agent-row-verb-text {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 60ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+.agent-row:hover .agent-row-verb-text {
+  text-decoration-color: currentColor;
+}
+.agent-row.failed .agent-row-verb {
+  color: var(--red-text);
+}
+.agent-row-desc {
+  min-width: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agent-row-outcome {
+  flex: none;
+  color: var(--text-2);
+}
+.agent-row-caret {
+  flex: none;
+  align-self: center;
+  color: var(--text-3);
+}
+.agent-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* ---------- Agent page: one sub-agent's prompt and transcript (side pane, 13/19 body) ---------- */
+.agent-page {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable both-edges;
+  contain: content;
+  padding: 12px 12px 64px;
+  font-size: var(--fs-ui);
+  line-height: 1.46;
+  color: var(--text);
+}
+/* Following the newest step is the page's anchor while it follows: the browser's would move it off the bottom. */
+.agent-page.following {
+  overflow-anchor: none;
+}
+.agent-page-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-wrap: anywhere;
+}
+.agent-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.agent-page-model {
+  margin: 0;
+  font-size: var(--fs-small);
+  line-height: 1.25;
+  color: var(--text-3);
+}
+.agent-page-model-value {
+  color: var(--text-2);
+}
+.agent-page-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 100%;
+  min-width: 0;
+}
+.agent-page-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.05);
+  color: var(--text);
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  user-select: text;
+}
+.agent-page-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  user-select: text;
+}
+.agent-page-placeholder,
+.agent-page-note {
+  font-size: var(--fs-ui);
+  line-height: 1.46;
+  color: var(--text-3);
+}
+.agent-page-placeholder {
+  animation: agent-placeholder-reveal 0.15s ease-out 0.5s backwards;
+}
+@keyframes agent-placeholder-reveal {
+  from {
+    opacity: 0;
+  }
+}
+.agent-page-error {
+  color: var(--red-text);
+}
+.agent-page-stats {
+  font-size: var(--fs-small);
+  line-height: 1.25;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+/* the running spark: 18 px in a 20 px row, 9 frames x 90 ms (8 rays, so 40 deg in 9 steps loops seamlessly) */
+.agent-spark {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  color: var(--orange);
+}
+.agent-spark svg {
+  fill: currentColor;
+  animation: agent-spark 810ms steps(9, jump-none) infinite;
+}
+@keyframes agent-spark {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(40deg);
+  }
+}
+.agent-spark-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-group-chevron,
+  .agent-row-verb-text {
+    transition: none;
+  }
+  .agent-spark svg,
+  .agent-page-placeholder {
+    animation: none;
+  }
+}
+
+/* "View live output ›" on the same line as a command that still runs in the background, above the row's toggle */
+.step-live-link {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 0 0 8px;
+  padding: 0;
+  border-radius: 3px;
+  font: inherit;
+  color: var(--text-2);
+  vertical-align: baseline;
+  cursor: pointer;
+}
+/* a collapsed group's summary gives up its full width so the link sits right after its text */
+.step-group > .step-row.summary:has(+ .step-live-link),
+.agent-group-head:has(~ .step-live-link) {
+  display: inline-flex;
+  width: auto;
+  max-width: calc(100% - 140px);
+  vertical-align: middle;
+}
+.step-group > .step-live-link,
+.agent-group-main > .step-live-link {
+  vertical-align: middle;
+}
+.agent-group-main:has(> .agent-group-head + :is(.step-live-link, .tasks-count-inline)) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.step-live-link:hover {
+  color: var(--text);
+}
+.step-live-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent);
+}

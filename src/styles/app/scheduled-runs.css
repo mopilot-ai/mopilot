@@ -1,0 +1,302 @@
+/* Scheduled: run locations, the "Where it runs" panel, Recent runs and scheduled-task cards. */
+/* Scheduled: where each task runs (the run-location labels, the "Where it runs" panel, Recent runs) */
+.side-row.sched-row {
+  height: auto;
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 7px 8px;
+}
+.sched-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.sched-row-main .side-row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sched-apps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  white-space: normal;
+}
+.sched-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 0.5px solid var(--surface-border);
+  font-size: var(--fs-micro);
+  /* align-items centres the label, so the pill takes the app's own leading rather than a prose
+     leading: 1.6 of --fs-micro plus the 0.5px borders asks for 19.4px of an 18px pill at Chat 14 */
+  color: var(--text-2);
+}
+.sched-app-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  flex: none;
+  background: var(--accent);
+}
+.sched-app-dot.codex-app {
+  background: rgba(var(--ink), 0.8);
+}
+.sched-app-dot.claude-desktop {
+  background: var(--orange);
+}
+.sched-harness-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  flex: none;
+  background: var(--accent);
+}
+.sched-harness-dot.codex {
+  background: rgba(var(--ink), 0.8);
+}
+.sched-harness-dot.claude {
+  background: var(--orange);
+}
+.notice.sched-off {
+  border-color: color-mix(in srgb, var(--yellow) 45%, transparent);
+  color: var(--text-ui);
+}
+.sched-where {
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 12.5px;
+  background: rgba(var(--ink), 0.03);
+  margin-top: 4px;
+}
+.sched-where-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 11px 14px 8px;
+}
+.sched-where-head h2 {
+  margin: 0;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  color: var(--text);
+}
+.sched-where-head span {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.sched-where-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-top: 0.5px solid var(--hairline);
+  font-size: var(--fs-ui);
+}
+.sched-where-row .sched-app-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+}
+.sched-where-name {
+  width: 120px;
+  flex: none;
+  font-weight: 500;
+  color: var(--text);
+}
+.sched-where-line {
+  color: var(--text-2);
+}
+.task-run.sched-made-in {
+  margin-top: 10px;
+  color: var(--accent);
+}
+.sched-runs {
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 12.5px;
+  overflow: hidden;
+}
+.sched-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 9px 14px;
+  font-size: var(--fs-ui);
+}
+.sched-run + .sched-run {
+  border-top: 0.5px solid var(--hairline);
+}
+.sched-run-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  white-space: nowrap;
+  background: rgba(var(--ink), 0.08);
+  color: var(--text-ui);
+}
+.sched-run-status.ran {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green-text);
+}
+.sched-run-status.catchup {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.sched-run-status.failed {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  color: var(--red-text);
+}
+.sched-run-detail {
+  flex: 1 1 220px;
+  min-width: 0;
+  color: var(--text-ui);
+}
+.sched-run-source {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.sched-run .task-run-time {
+  white-space: nowrap;
+}
+.sched-run-open {
+  font-size: var(--fs-small);
+  color: var(--accent);
+}
+.sched-run-open:hover {
+  text-decoration: underline;
+}
+.sched-field.sched-where-note {
+  min-height: 0;
+  padding: 0 0 12px;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-2);
+  justify-content: flex-start;
+}
+/* a machine run that can't start as things stand (signed out, agent missing) */
+.sched-field.sched-where-note.warn {
+  color: var(--orange);
+}
+.sched-field-note {
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+  text-align: right;
+}
+.sched-apps-row .settings-row-text {
+  flex: 1;
+}
+.sched-app-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.sched-app-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.04);
+  font-size: var(--fs-ui);
+}
+.sched-app-status-row .sched-app-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+}
+.sched-app-status-name {
+  width: 110px;
+  font-weight: 500;
+  color: var(--text);
+}
+.sched-app-status-detail {
+  flex: 1 1 220px;
+  min-width: 0;
+  color: var(--text-2);
+}
+/* A chat's scheduled-task tool call that worked (thread/ScheduledTaskCard.tsx) */
+.sched-call {
+  margin: 6px 0 10px;
+  max-width: 620px;
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 14px;
+  background: rgba(var(--ink), 0.03);
+  overflow: hidden;
+}
+.sched-call-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.sched-call-icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.sched-call-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sched-call-title {
+  font-size: var(--fs-chat);
+  font-weight: 600;
+  color: var(--text);
+}
+.sched-call-sub {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sched-call-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 6px 14px;
+  padding: 10px 14px 12px;
+  border-top: 0.5px solid var(--hairline);
+  font-size: var(--fs-ui);
+  line-height: 1.46;
+}
+.sched-call-facts dt {
+  color: var(--text-3);
+}
+.sched-call-facts dd {
+  margin: 0;
+  color: var(--text-ui);
+}
+.sched-call-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 0.5px solid var(--hairline);
+}

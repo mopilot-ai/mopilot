@@ -1,0 +1,17 @@
+{
+  "layer": "R3",
+  "public": [
+    "capsTypes.ts",
+    "runSemantic.ts",
+    "sessionState.ts",
+    "useCaps.ts",
+    "useSession.ts"
+  ],
+  "mayImport": [
+    "L0",
+    "R0",
+    "R1",
+    "R2"
+  ],
+  "allow": []
+}

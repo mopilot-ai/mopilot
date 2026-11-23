@@ -1,0 +1,16 @@
+// An error shown to the user as its raw text: an error main threw reaches the renderer wrapped as
+// "Error invoking remote method 'x': Error: …", so the toast or error line names an IPC channel instead of
+// saying what went wrong. docs/bug-prevention/misleading-error-text-and-silent-opens.md
+language js
+
+or {
+  // the first argument of toast(…) or of an error-state setter (setError, setLoadError, setFailed …)
+  JsCallExpression(callee=$callee, arguments=JsCallArguments(args=[$msg, ...])) as $hit where {
+    $callee <: or { `toast`, `$_.toast`, r"^set[A-Za-z]*(?:Error|Err|Failed|Failure)$" }
+  },
+  // an error field of a state or result object: { error: … }, { configError: … }
+  JsPropertyObjectMember(name=$key, value=$msg) as $hit where { $key <: r"^(?:error|[a-z]+Error)$", $key <: not r"^on[A-Z].*" }
+} where {
+  $msg <: r"(?s).*(?:(?:^|[^\w.?])\(?(?:e|err|error|ex|reason)(?:\s+as\s+[^)]*\))?\??\.message\b|\bString\(\s*(?:e|err|error|ex|reason)\s*\)|\$\{\s*(?:e|err|ex)\s*\}).*",
+  register_diagnostic(span=$hit, message="[raw-error-text] This shows an error's raw text; an error from main starts with Electron's wrapper (Error invoking remote method …). Use errorText(e) from src/lib/ignored.ts, or toastFailure(what) for a toast (docs/bug-prevention/misleading-error-text-and-silent-opens.md).", severity="warn")
+}

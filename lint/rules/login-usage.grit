@@ -1,0 +1,8 @@
+// A Claude Code login's usage read straight from the store: the CLI's own login can be signed in again as another
+// account, and a reading kept under its id is then another account's figures (#1582).
+// docs/bug-prevention/wrong-scope.md
+language js
+
+`$o.claudeUsage[$k]` as $m where {
+  register_diagnostic(span=$m, message="[login-usage] A login's usage read by id can be another account's figures. Use loginUsage(usage, pool, id) or usageOfLogin(reading, login) from src/harness/claudeUsage (docs/bug-prevention/wrong-scope.md).", severity="warn")
+}

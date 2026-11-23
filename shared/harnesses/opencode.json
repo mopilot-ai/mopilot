@@ -1,0 +1,102 @@
+{
+  "id": "opencode",
+  "label": "opencode",
+  "vendor": "Anomaly",
+  "bins": [
+    "opencode",
+    "opencode2"
+  ],
+  "docsUrl": "https://opencode.ai/docs/",
+  "install": {
+    "docs": "https://opencode.ai/docs/cli/",
+    "methods": [
+      {
+        "via": "script",
+        "command": "curl -fsSL https://opencode.ai/install | bash",
+        "os": [
+          "darwin",
+          "linux"
+        ]
+      },
+      {
+        "via": "brew",
+        "command": "brew install anomalyco/tap/opencode",
+        "os": [
+          "darwin",
+          "linux"
+        ],
+        "needs": "brew",
+        "brew": {
+          "name": "anomalyco/tap/opencode",
+          "cask": false
+        }
+      },
+      {
+        "via": "npm",
+        "command": "npm install -g opencode-ai",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "opencode-ai"
+      }
+    ]
+  },
+  "enabled": true,
+  "order": 2,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {
+      "OPENCODE_CONFIG_CONTENT": "{\"share\":\"disabled\",\"agent\":{\"mopilot-ask\":{\"mode\":\"primary\",\"description\":\"Asks before edits, commands and web fetches\",\"permission\":{\"edit\":\"ask\",\"bash\":\"ask\",\"webfetch\":\"ask\"}},\"mopilot-full\":{\"mode\":\"primary\",\"description\":\"Edits, runs commands and fetches without asking\",\"permission\":{\"edit\":\"allow\",\"bash\":\"allow\",\"webfetch\":\"allow\",\"external_directory\":\"allow\"}}}}"
+    },
+    "args": [
+      "acp",
+      "--print-logs",
+      "--log-level",
+      "ERROR"
+    ],
+    "privacyDefaults": [
+      "session sharing (share: disabled)"
+    ],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "anchors": {
+      "plan": "readOnly",
+      "build": "ask",
+      "mopilot-ask": "ask",
+      "mopilot-full": "full"
+    },
+    "permissionModes": {
+      "plan": "read-only",
+      "mopilot-ask": "default",
+      "mopilot-full": "full-access"
+    },
+    "agentModes": [
+      "build"
+    ],
+    "plan": {
+      "configOption": "mode",
+      "value": "plan"
+    },
+    "loginCommand": [
+      "opencode",
+      "auth",
+      "login"
+    ]
+  },
+  "instructionsFiles": [
+    "AGENTS.md",
+    "~/.config/opencode/AGENTS.md"
+  ],
+  "tested": [
+    "1.18.35"
+  ],
+  "resumePrefix": "opencode --session",
+  "contract": {
+    "npm": "opencode-ai",
+    "bin": "opencode"
+  }
+}

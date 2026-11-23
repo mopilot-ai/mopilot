@@ -1,0 +1,115 @@
+/* The chat's PR rail uses the same compact row rhythm and state tokens as the Changes card's Claude Code PR rows. */
+.rail {
+  margin-top: 16px;
+  padding: 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 0 6px 4px;
+}
+.summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.summary:hover,
+.summary[aria-expanded='true'] {
+  color: var(--text);
+}
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.row:hover,
+.fold:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.icon {
+  display: flex;
+  flex: none;
+  color: var(--linked-pr-open);
+}
+.icon[data-state='merged'] {
+  color: var(--linked-pr-merged);
+}
+.icon[data-state='draft'],
+.icon[data-state='unknown'] {
+  color: var(--linked-pr-draft);
+}
+.number {
+  flex: none;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fold {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  color: var(--text-3);
+  text-align: left;
+  cursor: pointer;
+}
+.caret {
+  flex: none;
+}
+.fold[aria-expanded='true'] .caret {
+  transform: rotate(90deg);
+}
+.merged {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.rail button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

@@ -1,0 +1,3 @@
+# Line width matches Biome's for the JS side (biome.json).
+max_width = 140
+use_small_heuristics = "Max"

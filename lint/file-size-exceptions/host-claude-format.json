@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/hostClaude.test.ts": {
+      "maxLines": 730,
+      "reason": "The Host's Claude-family scenario matrix shares a fake SDK and stream collector. Tool, permission and usage outcomes are tested together."
+    }
+  }
+}

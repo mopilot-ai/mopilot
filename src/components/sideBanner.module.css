@@ -1,0 +1,63 @@
+/* The card above the sidebar's chat list (SideBanner.tsx): icon | title and detail, then the actions on their own row
+   at the trailing edge, so the icon stays on the title's first line however it wraps and the actions never trail under
+   the text. A CSS Module: its classes are local to the card; the app's buttons inside it are named with :global(), and
+   the tone is a data attribute. */
+/* the sidebar holds each child at its full width (motion.css), so the inset is the slot's padding, not the card's margin */
+.slot {
+  padding: 8px 8px 0;
+}
+.banner {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 10px;
+  padding: 10px 10px 10px 12px;
+  border-radius: 12px;
+  font-size: var(--fs-ui);
+  color: var(--text);
+  background: rgba(var(--ink), 0.035);
+  border: 0.5px solid rgba(var(--ink), 0.1);
+  --title-lh: 1.35;
+}
+/* a question: a neutral card, the accent only on the icon */
+.banner[data-tone='ask'] .icon {
+  color: var(--accent);
+}
+/* something went wrong: the warning tint the account banners use */
+.banner[data-tone='warn'] {
+  background: color-mix(in srgb, var(--orange) 12%, transparent);
+  border-color: color-mix(in srgb, var(--orange) 35%, transparent);
+}
+.banner[data-tone='warn'] .icon {
+  color: var(--orange);
+}
+/* as tall as the title's first line (same font size), so the icon centers on it */
+.icon {
+  display: flex;
+  height: calc(1em * var(--title-lh));
+  align-items: center;
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.title {
+  font-weight: 600;
+  line-height: var(--title-lh);
+}
+.detail {
+  font-size: var(--fs-small);
+  line-height: var(--title-lh);
+  color: var(--text-2);
+}
+.actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.actions :global(.btn):not(:global(.primary)):hover:not(:disabled) {
+  background: rgba(var(--ink), 0.06);
+}

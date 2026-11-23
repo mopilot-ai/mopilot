@@ -1,0 +1,16 @@
+// An app-store selector that asks whether a chat is archived of `s.archived`, the Settings › Archived chats list: that list
+// is loaded only when the page opens (src/store/connection.ts loadArchived) or for a chat archived in this window, so
+// after a restart every archived chat reads as live (#3403: archived sessions counted as "2 sessions need you"). Read the
+// chat's own archive mark, `s.claudeArchived[id] != null`, which every harness's chat meta fills at boot.
+// docs/bug-prevention/edge-states.md
+language js
+
+`useStore($select)` where {
+  $select <: contains or {
+    `$s.archived.some($...)`,
+    `$s.archived.find($...)`,
+    `$s.archived.findIndex($...)`,
+    `$s.archived.includes($...)`
+  },
+  register_diagnostic(span=$select, message="[archive-list-predicate] This selector asks whether a chat is archived of the Settings archive list, which is loaded only when that page opens. Read the chat's archive mark, s.claudeArchived[id] (docs/bug-prevention/edge-states.md).", severity="warn")
+}

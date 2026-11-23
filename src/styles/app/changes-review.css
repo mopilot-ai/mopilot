@@ -1,0 +1,146 @@
+/* Changes review: Viewed marks, per-file actions and pull request comment threads. */
+.cp-review-actions {
+  align-items: center;
+}
+.cp-viewed {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 4px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  cursor: pointer;
+}
+.cp-file-note {
+  color: var(--text-3);
+}
+.cp-file-badge,
+.cp-review-tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(var(--ink), 0.06);
+  font: inherit;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.cp-file-badge.conflicted {
+  color: var(--red-text);
+}
+.cp-review-toggle {
+  cursor: pointer;
+}
+.cp-file-row.viewed .cp-file-row-name {
+  color: var(--text-3);
+}
+.cp-review-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 0.5px solid var(--hairline-strong);
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.cp-review-bar > span {
+  flex: 1;
+  min-width: 0;
+}
+.cp-review-thread {
+  margin: 6px 12px;
+  padding: 8px 10px;
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 8px;
+  background: var(--surface-1, rgba(var(--ink), 0.02));
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.cp-review-thread.focused {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.cp-review-thread.resolved {
+  color: var(--text-2);
+}
+.cp-review-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cp-review-author {
+  font-weight: 500;
+}
+.cp-review-snippet {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+.cp-review-comment p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.cp-review-bar {
+  flex-wrap: wrap;
+}
+.cp-review-bar > span {
+  flex-basis: 180px;
+}
+.cp-review-author {
+  overflow-wrap: anywhere;
+}
+.cp-review-unanchored > span {
+  display: block;
+  padding: 6px 12px 0;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+.cp-review-layout {
+  container-type: inline-size;
+}
+/* Comment actions must stay inside narrow diff columns, including beside the file list. */
+.changes-pane .diff-comment-wrap {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.changes-pane .diff-comment-box,
+.changes-pane .diff-comment-box textarea {
+  min-width: 0;
+}
+.changes-pane .diff-comment-actions {
+  flex-wrap: wrap;
+}
+.changes-pane .diff-comment-actions button {
+  max-width: 100%;
+  height: auto;
+  min-height: 28px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Leave room to read and comment when the pane cannot fit a diff beside its file list. */
+@container (max-width: 600px) {
+  .cp-review-layout .cp-body {
+    flex-direction: column;
+  }
+  .cp-review-layout .cp-files {
+    order: -1;
+    width: 100%;
+    max-height: 30%;
+    border-left: 0;
+    border-bottom: 0.5px solid var(--hairline-strong);
+  }
+  .cp-review-layout .cp-diffs {
+    min-height: 0;
+  }
+}

@@ -1,0 +1,385 @@
+#!/usr/bin/env node
+// A fake `ssh` for the Host specs: instead of a tunnel to a machine it serves the Host's line protocol on the forwarded socket itself
+// (status, the pairing proof, fs.list over the real folders under FAKE_HOST_ROOT, and a git.clone that reports progress), so the app's
+// tunnel, registry and folder picker run for real against it. A clone address containing "fail" is refused as clone_failed; one containing "private" is, unless the request carries a credential.
+// For a continue onto this machine it also answers the handshake (host.hello), git.inspect (FAKE_HOST_REPO: the repository every folder
+// holds, as JSON; unset: not a repository), chat.prepareContinue (a folder that does not exist under FAKE_HOST_ROOT is refused as
+// directory_missing), chat.subscribe, chat.release, git.carryApply and git.carryDrop; every call it answers is appended to
+// FAKE_HOST_LOG (one JSON line: method and params) so a spec can read what the app asked.
+// With FAKE_HOST_CHATS_SOCK set, the chat methods (chat.start, chat.send, chat.stop, chat.answer, chat.permit, chat.subscribe) are bridged to the resident fake Host
+// in host-chats.cjs, which keeps chats and turns running while this tunnel comes and goes. While the file FAKE_HOST_OFFLINE exists this `ssh` is down: it
+// exits at once, and one already up checks before every I/O boundary as well as periodically while idle. FAKE_HOST_HARNESSES (JSON) is what `status` reports,
+// with FAKE_HOST_LOCAL_NETWORK as its `localNetwork`. The machine named by FAKE_HOST_ASLEEP restarted and waits at the login window: its tunnel never comes
+// up, and the app's sign-in probe (electron/host/signinWait.cjs) hears that root owns the console and that it booted just now.
+// Keep running after restart (electron/host/startAtBoot.cjs): `status` says FAKE_HOST_PLATFORM and, with FAKE_HOST_BOOT_FILE set, starts at boot while that
+// file exists (FileVault as FAKE_HOST_FILEVAULT); the one-off commands answer `install --print-daemon`, `sudo -S` (the password on standard input must be
+// FAKE_HOST_ADMIN_PASSWORD; the turn-on script creates the file, the turn-off one removes it) and the CLI's `status`. The machine named by FAKE_HOST_LOCKED
+// waits at its FileVault unlock: its tunnel never comes up and the sign-in probe's key is refused, as macOS 26 does there.
+// A sign-in (host.login, host.loginStatus, host.loginCancel, host.loginInput) waits showing the code FAKE_HOST_LOGIN_CODE and no link (nothing opens a browser); while the file
+// FAKE_HOST_LOGIN_FAIL exists it has failed with FAKE_HOST_LOGIN_ERROR, the vendor's own words.
+// FAKE_HOST_COMPUTER_NAME is the `computerName` `status` reports (unset: an older Host). FAKE_HOST_BUILD is the Host build `status` reports (else the app's own; one other than the app's makes the row offer Update); FAKE_HOST_VERSIONS (JSON, destination -> { build, appVersion }) says another build and the app version that made it for one machine, which orders it against the app (#4923); `idle` says a turn runs while the file FAKE_HOST_BUSY exists.
+const net = require('node:net');
+const fs = require('node:fs');
+const path = require('node:path');
+const gitSignedIn = () => process.env.FAKE_HOST_GIT_LOGIN_DONE && fs.existsSync(process.env.FAKE_HOST_GIT_LOGIN_DONE);
+const down = () => process.env.FAKE_HOST_OFFLINE && fs.existsSync(process.env.FAKE_HOST_OFFLINE);
+const exitIfOffline = () => {
+  if (down()) process.exit(255);
+};
+
+const args = process.argv.slice(2);
+const destination = args[args.indexOf('--') + 1];
+// the sign-in probe: one command, no tunnel; a machine other than the asleep one has this account at its console
+if (!args.includes('-L') && args.at(-1)?.includes('kern.boottime')) {
+  exitIfOffline();
+  if (destination === process.env.FAKE_HOST_LOCKED) {
+    process.stderr.write(`${destination}: Permission denied (publickey,password,keyboard-interactive).\n`);
+    process.exit(255);
+  }
+  const asleep = destination === process.env.FAKE_HOST_ASLEEP;
+  process.stdout.write(`${asleep ? 'root' : 'me'}\nme\n{ sec = ${Math.floor(Date.now() / 1000)}, usec = 0 }\n`);
+  process.exit(0);
+}
+const BOOT = process.env.FAKE_HOST_BOOT_FILE;
+const startup = () => (BOOT ? { startup: { atBoot: fs.existsSync(BOOT) ? 'yes' : 'no', fileVault: process.env.FAKE_HOST_FILEVAULT || 'off' } } : {});
+// FAKE_SSH_SCRIPT (JSON, destination -> failure) makes one machine's add fail the way a real one does (the Add machine failure cards):
+// { say } prints it on stderr and exits 255;
+// { keyRefused } answers `uname -sm` and the key being added, and refuses every key sign-in after (an sshd with PubkeyAuthentication off).
+const SCRIPT = JSON.parse(process.env.FAKE_SSH_SCRIPT || '{}')[destination];
+// { askKey } first asks, through the app's askpass as ssh does, whether to trust a machine it has not seen (once per destination: the answer is kept under HOME), and goes on as the entry's other fields say;
+// { changedKey } refuses as ssh does for a host key that is not the one on record.
+const trail = (line) => process.env.FAKE_SSH_TRAIL && fs.appendFileSync(process.env.FAKE_SSH_TRAIL, `${process.pid} ${destination} ${line}\n`);
+trail(`start ${args.slice(-1)[0] ?? ''}`);
+if (SCRIPT?.changedKey) {
+  process.stderr.write('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\nHost key verification failed.\n');
+  process.exit(255);
+}
+if (SCRIPT?.askKey) {
+  const known = path.join(process.env.HOME || '/tmp', `.fake-known-${destination.replace(/[^\w.-]/g, '_')}`);
+  // ssh asks once per machine even when several commands start together (the shared connection): the first asks, the others wait for its answer
+  let first = false;
+  try {
+    fs.writeFileSync(`${known}.asking`, '', { flag: 'wx' });
+    first = true;
+  } catch {}
+  if (!first) {
+    const until = Date.now() + 120_000;
+    while (!fs.existsSync(known) && !fs.existsSync(`${known}.refused`) && Date.now() < until) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+    if (!fs.existsSync(known)) {
+      process.stderr.write('Host key verification failed.\n');
+      process.exit(255);
+    }
+  } else if (!fs.existsSync(known)) {
+    let said = '';
+    trail('asks');
+    try {
+      // the askpass protocol spoken directly (the app's askpass script needs a netcat that leaves when the app hangs up, which a Linux runner's may not): token, the question in base64, an empty line; the answer comes back in base64
+      const ask = `const s=require('node:net').connect(process.env.MOPILOT_ASKPASS_SOCK);let b='';s.on('connect',()=>s.write(process.env.MOPILOT_ASKPASS_TOKEN+'\\n'+Buffer.from(process.argv[1]).toString('base64')+'\\n\\n'));s.on('data',(d)=>{b+=d});s.on('end',()=>{process.stdout.write(Buffer.from(b.trim(),'base64').toString());process.exit(b.trim()?0:1)});`;
+      said = require('node:child_process').execFileSync(process.execPath, ['-e', ask, `The authenticity of host '${destination.split('@').pop()}' can't be established.\nED25519 key fingerprint is ${SCRIPT.askKey}.\nThis key is not known by any other names.\nAre you sure you want to continue connecting (yes/no/[fingerprint])? `], { encoding: 'utf8', env: process.env, stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    } catch (e) {
+      trail(`ask failed ${e?.message}`);
+      fs.writeFileSync(`${known}.refused`, '');
+      fs.rmSync(`${known}.asking`, { force: true });
+      process.stderr.write('MoPilot: no answer was given to ssh.\nHost key verification failed.\n');
+      process.exit(255);
+    }
+    if (said !== 'yes') {
+      fs.writeFileSync(`${known}.refused`, '');
+      fs.rmSync(`${known}.asking`, { force: true });
+      process.stderr.write('Host key verification failed.\n');
+      process.exit(255);
+    }
+    trail(`answer ${said}`);
+    fs.writeFileSync(known, 'trusted');
+  }
+}
+// { hang } never answers its first command (a machine that takes the connection and then says nothing), until it is stopped; the commands after it (an undo) are answered
+if (SCRIPT?.hang && !args.includes('-L')) {
+  const hung = path.join(process.env.HOME || '/tmp', `.fake-hung-${destination.replace(/[^\w.-]/g, '_')}`);
+  if (!fs.existsSync(hung)) {
+    fs.writeFileSync(hung, '');
+    trail('hangs');
+    process.on('SIGTERM', () => (trail('stopped'), process.exit(143)));
+    setInterval(() => undefined, 1000);
+    return;
+  }
+  process.exit(0);
+}
+if (SCRIPT && !args.includes('-L')) {
+  const command = args.at(-1) ?? '';
+  if (SCRIPT.keyRefused) {
+    if (command.includes('uname -sm')) process.stdout.write('Linux x86_64\n');
+    else if (command.includes('authorized_keys')) process.stdout.write('authorized\n');
+    else if (args.includes('-i') || command === 'true') process.stderr.write(`${destination}: Permission denied (publickey).\n`);
+    process.exit(command.includes('uname -sm') || command.includes('authorized_keys') ? 0 : 255);
+  }
+  process.stderr.write(`${SCRIPT.say}\n`);
+  process.exit(255);
+}
+if (!args.includes('-L')) {
+  exitIfOffline();
+  const command = args.at(-1) ?? '';
+  // Remove asks a machine whether ssh answers with a bare `true` (electron/host/uninstallHost.cjs): the locked one refuses it as sshd does
+  if (command === 'true' && destination === process.env.FAKE_HOST_LOCKED) {
+    process.stderr.write(`${destination}: Permission denied (publickey).\n`);
+    process.exit(255);
+  }
+  if (command.includes('--print-daemon')) {
+    const home = '/Users/me';
+    const info = { user: 'me', home, node: `${home}/.mopilot-host/runtime/current/bin/node`, bin: `${home}/.mopilot-host/current/host/bin/mopilot-host.mjs`, dataDir: `${home}/Library/Application Support/mopilot-host`, path: '/usr/bin:/bin' };
+    process.stdout.write(`${JSON.stringify(info)}\n`);
+    process.exit(0);
+  }
+  if (command.startsWith('/usr/bin/sudo')) {
+    const chunks = [];
+    process.stdin.on('data', (c) => { exitIfOffline(); chunks.push(c); });
+    process.stdin.on('end', () => {
+      exitIfOffline();
+      if (Buffer.concat(chunks).toString('utf8') !== `${process.env.FAKE_HOST_ADMIN_PASSWORD}\n`) {
+        process.stderr.write('Sorry, try again.\nsudo: 1 incorrect password attempt\n');
+        process.exit(1);
+      }
+      const on = command.includes('turned-on');
+      if (on) fs.writeFileSync(BOOT, 'on');
+      else fs.rmSync(BOOT, { force: true });
+      process.stdout.write(on ? 'turned-on\n' : 'turned-off\n');
+      process.exit(0);
+    });
+    return;
+  }
+  // Remove (electron/host/uninstallHost.cjs): the Host's uninstall, which fails while FAKE_HOST_UNINSTALL_FAIL exists, and the deletion of its files; both are logged
+  if (/ uninstall$/.test(command) || command.includes('rm -rf')) {
+    const kind = command.includes('rm -rf') ? 'purge' : 'uninstall';
+    if (process.env.FAKE_HOST_LOG) fs.appendFileSync(process.env.FAKE_HOST_LOG, `${JSON.stringify({ method: kind, params: { destination } })}\n`);
+    if (kind === 'uninstall' && process.env.FAKE_HOST_UNINSTALL_FAIL && fs.existsSync(process.env.FAKE_HOST_UNINSTALL_FAIL)) {
+      process.stderr.write('no bin\n');
+      process.exit(1);
+    }
+  }
+  if (/ status$/.test(command)) process.stdout.write(`${JSON.stringify({ running: true, ...(process.env.FAKE_HOST_COMPUTER_NAME ? { computerName: process.env.FAKE_HOST_COMPUTER_NAME } : {}), ...startup() })}\n`);
+  process.exit(0);
+}
+const forward = args[args.indexOf('-L') + 1];
+const local = forward.slice(0, forward.lastIndexOf(':'));
+const root = fs.realpathSync(process.env.FAKE_HOST_ROOT);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const dirs = (dir) =>
+  fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
+    .map((e) => ({ name: e.name, path: path.join(dir, e.name), git: fs.existsSync(path.join(dir, e.name, '.git')) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+const note = (method, params) => process.env.FAKE_HOST_LOG && fs.appendFileSync(process.env.FAKE_HOST_LOG, `${JSON.stringify({ method, params })}\n`);
+// the build `status` reports: FAKE_HOST_BUILD, else the app's own, so a machine is not called old unless a spec says so
+let ownBuild;
+const said = () => (process.env.FAKE_HOST_VERSIONS ? JSON.parse(process.env.FAKE_HOST_VERSIONS)[destination] : undefined);
+const hostBuild = () => said()?.build ?? process.env.FAKE_HOST_BUILD ?? (ownBuild ??= require('../../../../electron/host/bundle.cjs').appHostBuild(path.join(__dirname, '../../../..')));
+// FAKE_HOST_OLD_CLONE: a Host from before a clone could borrow the app's sign-in; FAKE_HOST_OLD_GIT_SIGNIN: one from before GitHub device sign-in; FAKE_HOST_OLD_FAMILIES: one from before a continue took Claude Code and Codex (no `continueFamilies`)
+const FEATURES = ['epoch', 'dedupe', 'isolation', 'lanes', 'browser', 'stream2', 'gitWrite', ...(process.env.FAKE_HOST_OLD_GIT_SIGNIN ? [] : ['gitSignin']), ...(process.env.FAKE_HOST_OLD_FAMILIES ? [] : ['continueFamilies']), ...(process.env.FAKE_HOST_OLD_CLONE ? [] : ['cloneCredential']),
+  ...(process.env.FAKE_HOST_SIDE_CHATS ? ['sideChats', 'journalLifecycle'] : []),
+  // FAKE_HOST_FILES: a Host that takes uploads (chat.attach); FAKE_HOST_OLD_FILES: one from before files and folders (pictures only)
+  ...(process.env.FAKE_HOST_FILES ? ['chatImages', ...(process.env.FAKE_HOST_OLD_FILES ? [] : ['chatFiles'])] : [])];
+// With FAKE_HOST_WIRE_SOCK set, the real Host wire (host-wire.mjs) answers the versioned protocol: every host.* but the handshake, chat.*, browser.* and desktop.*
+const WIRE = process.env.FAKE_HOST_WIRE_SOCK;
+const WIRE_METHOD = (m) => /^(chat|browser|desktop)\./.test(m) || (m.startsWith('host.') && m !== 'host.challenge' && m !== 'host.auth');
+// The real Host's rule (host/src/versionedMethods.mjs): a request of the versioned protocol is refused until `host.hello` came first on its connection
+const { VERSIONED_METHOD, BEFORE_HELLO } = require('../../../../host/src/versionedMethods.mjs');
+const { HelloRequiredError } = require('../../../../host/src/protocol.mjs');
+const CHAT_METHODS = new Set(['chat.start', 'chat.send', 'chat.stop', 'chat.answer', 'chat.permit', 'chat.subscribe', 'chat.attach', 'chat.remove']);
+
+async function answer(method, params, say) {
+  if (method.startsWith('chat.') || method.startsWith('git.carry') || method === 'git.inspect' || method === 'git.status' || method === 'fs.tree' || method === 'fs.read' || method === 'git.diff' || method === 'host.gitCommit' || method === 'host.gitDiscard' || method === 'fs.search' || method === 'git.clone' || (method === 'host.status' && params?.signIn)) note(method, params);
+  switch (method) {
+    case 'ping':
+      return { result: 'pong' };
+    // whether a turn runs: while the file FAKE_HOST_BUSY exists one does
+    case 'idle':
+      return { result: { idle: !(process.env.FAKE_HOST_BUSY && fs.existsSync(process.env.FAKE_HOST_BUSY)) } };
+    case 'status':
+      return {
+        result: {
+          build: hostBuild(),
+          ...(said()?.appVersion ? { appVersion: said().appVersion } : {}),
+          harnesses: process.env.FAKE_HOST_HARNESSES ? JSON.parse(process.env.FAKE_HOST_HARNESSES) : [{ id: 'claude', detected: true, signedIn: true }],
+          capabilities: process.env.FAKE_HOST_CAPS ? JSON.parse(process.env.FAKE_HOST_CAPS) : { shell: true },
+          ...(process.env.FAKE_HOST_LOCAL_NETWORK ? { localNetwork: process.env.FAKE_HOST_LOCAL_NETWORK } : {}),
+          ...(process.env.FAKE_HOST_PLATFORM ? { platform: process.env.FAKE_HOST_PLATFORM } : {}),
+          // the computer's own name, as a current Host reports it (#4930); unset: an older Host, which names nothing
+          ...(process.env.FAKE_HOST_COMPUTER_NAME ? { computerName: process.env.FAKE_HOST_COMPUTER_NAME } : {}),
+          ...startup(),
+        },
+      };
+    // FAKE_HOST_GIT_SIGNIN ('yes' | 'no'): what the Host reports for git's sign-in when a status asks for it (`signIn`)
+    case 'host.status':
+      return {
+        result: {
+          build: hostBuild(),
+          ...(said()?.appVersion ? { appVersion: said().appVersion } : {}),
+          harnesses: process.env.FAKE_HOST_HARNESSES ? JSON.parse(process.env.FAKE_HOST_HARNESSES) : [{ id: 'claude', detected: true, signedIn: true }],
+          capabilities: process.env.FAKE_HOST_CAPS ? JSON.parse(process.env.FAKE_HOST_CAPS) : { shell: true },
+          ...(params?.signIn ? { gitSignIn: Object.fromEntries(params.signIn.map((h) => [h, gitSignedIn() ? 'yes' : process.env.FAKE_HOST_GIT_SIGNIN ?? 'yes'])) } : {}),
+        },
+      };
+    case 'host.challenge':
+      return { result: { nonce: 'fake-nonce', hostId: 'abababababababababababababababab' } };
+    case 'host.auth':
+      return { result: { ok: true } };
+    case 'host.hello':
+      return { result: { protocol: { minor: 1, floor: 1 }, features: FEATURES, capabilities: {} } };
+    case 'host.login':
+    case 'host.loginStatus': {
+      const failed = process.env.FAKE_HOST_LOGIN_FAIL && fs.existsSync(process.env.FAKE_HOST_LOGIN_FAIL);
+      const codes = process.env.FAKE_HOST_LOGIN_CODE ? [process.env.FAKE_HOST_LOGIN_CODE] : [];
+      note(method, params);
+      return {
+        result: failed
+          ? { harness: params.harness, state: 'failed', links: [], codes: [], error: process.env.FAKE_HOST_LOGIN_ERROR ?? 'The sign-in failed.' }
+          : { harness: params.harness, state: params.harness === 'git:github.com' && gitSignedIn() ? 'done' : 'waiting', links: [], codes, error: null },
+      };
+    }
+    case 'host.loginCancel':
+      return { result: { cancelled: true } };
+    case 'host.loginInput':
+      return { result: { accepted: true } };
+    case 'fs.search': {
+      const dir = params.path;
+      if (dir !== root && !dir.startsWith(`${root}${path.sep}`)) return { error: 'That folder is outside what this host shares.', code: 'outside_roots' };
+      const found = [];
+      const walk = (d, rel) => {
+        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+          if (e.name === '.git') continue;
+          if (e.isDirectory()) walk(path.join(d, e.name), `${rel}${e.name}/`);
+          else if (e.name.toLowerCase().includes(params.query.toLowerCase())) found.push(`${rel}${e.name}`);
+        }
+      };
+      walk(dir, '');
+      return { result: { files: found.slice(0, params.limit), truncated: found.length > params.limit } };
+    }
+    // FAKE_HOST_GIT_DIFF_FILE: the patch lives in a file a commit or a discard below takes its files out of, so the pane reads what a write left
+    case 'git.diff': {
+      const file = process.env.FAKE_HOST_GIT_DIFF_FILE;
+      const patch = file && fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : (process.env.FAKE_HOST_GIT_DIFF ?? '');
+      return { result: { isRepo: true, patch, truncated: false, unreadable: false } };
+    }
+    // the Host's git writes (#5050); FAKE_HOST_GIT_WRITE_REFUSE: the sentence a refusal says (a file by that name makes every write answer it)
+    case 'host.gitCommit':
+    case 'host.gitDiscard': {
+      const refuse = process.env.FAKE_HOST_GIT_WRITE_REFUSE;
+      if (refuse && fs.existsSync(refuse)) return { result: { ok: false, stderr: fs.readFileSync(refuse, 'utf8'), refused: true } };
+      const patchFile = process.env.FAKE_HOST_GIT_DIFF_FILE;
+      if (patchFile && fs.existsSync(patchFile)) {
+        const named = method === 'host.gitCommit' ? params.files?.map((f) => f.path) : params.file == null ? null : [params.file];
+        const sections = fs.readFileSync(patchFile, 'utf8').split(/(?=^diff --git )/m);
+        const left = named ? sections.filter((sec) => !named.some((n) => sec.startsWith(`diff --git a/${n} `))) : [];
+        fs.writeFileSync(patchFile, left.join(''));
+      }
+      return { result: { ok: true, stderr: '' } };
+    }
+    case 'fs.tree': {
+      const dir = params.path;
+      if (dir !== root && !dir.startsWith(`${root}${path.sep}`)) return { error: 'That folder is outside what this host shares.', code: 'outside_roots' };
+      const entries = fs
+        .readdirSync(dir, { withFileTypes: true })
+        .filter((e) => e.name !== '.git')
+        .map((e) => ({ name: e.name, isDirectory: e.isDirectory() }))
+        .sort((a, b) => Number(b.isDirectory) - Number(a.isDirectory) || a.name.localeCompare(b.name));
+      return { result: { path: dir, entries, truncated: false } };
+    }
+    case 'fs.read': {
+      if (!params.path.startsWith(`${root}${path.sep}`)) return { error: 'That folder is outside what this host shares.', code: 'outside_roots' };
+      const buf = fs.readFileSync(params.path);
+      return { result: { kind: 'text', text: buf.toString('utf8'), size: buf.length, truncated: false } };
+    }
+    case 'git.status':
+      return { result: process.env.FAKE_HOST_GIT_STATUS ? { isRepo: true, ...JSON.parse(process.env.FAKE_HOST_GIT_STATUS) } : { isRepo: false } };
+    case 'git.inspect':
+      return { result: process.env.FAKE_HOST_REPO ? { isRepo: true, ...JSON.parse(process.env.FAKE_HOST_REPO) } : { isRepo: false } };
+    case 'chat.prepareContinue':
+      if (!fs.existsSync(params.cwd)) return { error: 'That folder is not on this machine.', code: 'directory_missing' };
+      return { result: { preparedId: `prep-${params.chatId}-${params.epoch}`, epoch: params.epoch, cwd: params.cwd } };
+    case 'chat.subscribe':
+      return { result: { rev: 0, items: [] } };
+    case 'chat.release':
+      return { result: { released: 'noop' } };
+    case 'git.carryApply':
+      return { result: { files: 3 } };
+    case 'git.carryDrop':
+      return { result: {} };
+    case 'fs.list': {
+      const dir = params.path ?? root;
+      if (dir !== root && !dir.startsWith(`${root}${path.sep}`)) return { error: 'That folder is outside what this host shares.', code: 'outside_roots' };
+      return { result: { path: dir, roots: [root], entries: dirs(dir) } };
+    }
+    case 'git.clone': {
+      const progress = (percent) => say({ event: 'progress', key: params.key, phase: 'Receiving objects', percent });
+      progress(10);
+      await sleep(300);
+      if (params.url.includes('fail')) return { error: 'fatal: repository not found', code: 'clone_failed' };
+      // "private": a repository this machine cannot sign in to unless the app lent it a sign-in
+      if (params.url.includes('private') && !params.credential)
+        return { error: "fatal: could not read Username for 'https://git.example.test': terminal prompts disabled", code: 'clone_failed' };
+      progress(60);
+      await sleep(1500);
+      fs.mkdirSync(path.join(params.dest, '.git'), { recursive: true });
+      return { result: { path: params.dest, existed: false } };
+    }
+    default:
+      return { error: `Unknown method ${method}.` };
+  }
+}
+
+exitIfOffline();
+if (destination === process.env.FAKE_HOST_ASLEEP || destination === process.env.FAKE_HOST_LOCKED) process.exit(255);
+fs.rmSync(local, { force: true });
+net
+  .createServer((socket) => {
+    let buffer = '';
+    const forwardToApp = (chunk) => {
+      exitIfOffline();
+      if (socket.writable) socket.write(chunk);
+    };
+    const say = (message) => forwardToApp(`${JSON.stringify(message)}\n`);
+    /** The resident fake Host's connection for this tunnel connection, made on the first chat request; whatever it says goes to the app as it is. */
+    let resident = null;
+    let hello = false;
+    const toResident = (line) => {
+      if (!resident) {
+        resident = net.connect(WIRE || process.env.FAKE_HOST_CHATS_SOCK);
+        resident.setEncoding('utf8');
+        resident.on('data', forwardToApp);
+        resident.on('error', () => socket.destroy());
+        resident.once('close', () => socket.destroy());
+        socket.on('close', () => resident.destroy());
+      }
+      resident.write(`${line}\n`);
+    };
+    socket.setEncoding('utf8');
+    socket.on('error', () => socket.destroy());
+    socket.on('data', (chunk) => {
+      exitIfOffline();
+      buffer += chunk;
+      for (let i = buffer.indexOf('\n'); i >= 0; i = buffer.indexOf('\n')) {
+        exitIfOffline();
+        const line = buffer.slice(0, i);
+        const req = JSON.parse(line);
+        buffer = buffer.slice(i + 1);
+        if (req.method === 'host.hello') hello = true;
+        if (!hello && VERSIONED_METHOD.test(req.method) && !BEFORE_HELLO.has(req.method)) {
+          const refusal = new HelloRequiredError();
+          note('refused', { method: req.method, code: refusal.code });
+          say({ id: req.id, error: refusal.message, code: refusal.code });
+          continue;
+        }
+        if (WIRE ? WIRE_METHOD(req.method) : process.env.FAKE_HOST_CHATS_SOCK && CHAT_METHODS.has(req.method)) {
+          toResident(line);
+          continue;
+        }
+        answer(req.method, req.params ?? {}, say).then((reply) => say({ id: req.id, ...reply }));
+      }
+    });
+  })
+  .listen(local);
+// ssh -N stays up until the app stops it, or the machine is taken down
+setInterval(exitIfOffline, 200);

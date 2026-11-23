@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "src/components/composer/Composer.tsx": {
+      "maxLines": 738,
+      "reason": "Owns the composer's shared input, draft/submission state, layout and event wiring. Send/queue shortcuts and popup modifier arbitration extend this same owner; pure keyboard intent and shortcut labels remain in composerSendKeys.ts. Keeping the existing callbacks together preserves their draft, attachment and pending-read ownership."
+    }
+  }
+}

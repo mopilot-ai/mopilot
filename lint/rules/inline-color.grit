@@ -1,0 +1,10 @@
+// A color written as a string in renderer code (a style object, an SVG fill, a table of colors): a stylesheet's
+// tokens cannot reach it, so it keeps its color under every theme preset, accent and light/dark mode. Use a CSS
+// variable (style={{ color: 'var(--accent)' }}, fill="currentColor") or read the palette from
+// shared/defaultPalette.mjs or src/lib/themes.ts, where colors are data. docs/code-quality.md#colors
+language js
+
+or { JsStringLiteralExpression(), JsxString() } as $s where {
+  $s <: r"(?s)^['\"](?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgba?|hsla?)\(\s*[0-9.][^'\"]*)['\"]$",
+  register_diagnostic(span=$s, message="[inline-color] A color written in code ignores the theme preset, the accent and light/dark mode. Use a CSS variable (var(--accent), currentColor) or read the palette from shared/defaultPalette.mjs (docs/code-quality.md#colors).", severity="warn")
+}

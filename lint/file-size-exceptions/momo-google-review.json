@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/momoGoogleReview.test.ts": {
+      "maxLines": 560,
+      "reason": "One review's findings on the Google connector, each a test that fails without its fix; they share the fake Google, the `clientRig` and the account kit, so splitting them would copy those helpers."
+    }
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "_about": "What live turns report about plan usage, as each harness sends it (#1317). Claude: stream-json rate_limit_event lines in the shapes Claude Code's own schema declares (rate_limit_info: status, rateLimitType, utilization, resetsAt, unifiedWindows) and the assistant rate_limit error. Codex: app-server notifications (account/rateLimits/updated, turn/completed with codexErrorInfo usageLimitExceeded), a backend 429 body and the x-codex-* response headers. Times: weekly reset 2026-10-18 18:00 UTC (1792346400), 5h reset 2026-10-17 15:00 UTC (1792249200). claude.recorded is a real event captured from Claude Code on 2026-10-17 in a dev instance (a Haiku turn on a Max login); session and uuid replaced.",
+  "claude": {
+    "recorded": {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "allowed",
+        "resetsAt": 1792236000,
+        "rateLimitType": "five_hour",
+        "overageStatus": "rejected",
+        "overageDisabledReason": "org_level_disabled",
+        "isUsingOverage": false,
+        "unifiedWindows": {
+          "five_hour": {
+            "utilization": 0.31,
+            "resetsAt": 1792236000
+          },
+          "seven_day": {
+            "utilization": 0.35,
+            "resetsAt": 1792627200
+          }
+        }
+      },
+      "uuid": "3f6b1d2a-9c4e-4a7b-8e15-2d0c6f9a1b97",
+      "session_id": "b1d6c0f2-2b37-4a0e-8f43-6c5e3b0a7d21"
+    },
+    "allowed": {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "allowed",
+        "unifiedWindows": {
+          "five_hour": {
+            "utilization": 0.42,
+            "resetsAt": 1792249200
+          },
+          "seven_day": {
+            "utilization": 0.83,
+            "resetsAt": 1792346400
+          }
+        }
+      },
+      "uuid": "8f0c2b1e-4f7a-4c55-9a51-0d1f6a3c2e10",
+      "session_id": "b1d6c0f2-2b37-4a0e-8f43-6c5e3b0a7d21"
+    },
+    "warning": {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "allowed_warning",
+        "rateLimitType": "seven_day",
+        "utilization": 0.91,
+        "resetsAt": 1792346400,
+        "surpassedThreshold": 0.9,
+        "unifiedWindows": {
+          "five_hour": {
+            "utilization": 0.5,
+            "resetsAt": 1792249200
+          },
+          "seven_day": {
+            "utilization": 0.91,
+            "resetsAt": 1792346400
+          }
+        }
+      },
+      "uuid": "1c9e7a40-5d2b-4e8f-b3a6-7f0d2c4e9b31",
+      "session_id": "b1d6c0f2-2b37-4a0e-8f43-6c5e3b0a7d21"
+    },
+    "rejectedWeekly": {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "rejected",
+        "rateLimitType": "seven_day",
+        "utilization": 0.99,
+        "resetsAt": 1792346400,
+        "overageStatus": "rejected",
+        "overageDisabledReason": "org_level_disabled",
+        "isUsingOverage": false,
+        "unifiedWindows": {
+          "five_hour": {
+            "utilization": 0.12,
+            "resetsAt": 1792249200
+          },
+          "seven_day": {
+            "utilization": 0.99,
+            "resetsAt": 1792346400
+          }
+        }
+      },
+      "uuid": "6a2d8e13-0b4f-4f9c-8e27-3d5a1c7b9e42",
+      "session_id": "b1d6c0f2-2b37-4a0e-8f43-6c5e3b0a7d21"
+    },
+    "olderCliAllowed": {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "allowed",
+        "rateLimitType": "five_hour",
+        "utilization": 0.12,
+        "resetsAt": 1792249200
+      },
+      "uuid": "2e7b5c90-8a1d-4b3e-9f62-4c0d7e1a5b53",
+      "session_id": "b1d6c0f2-2b37-4a0e-8f43-6c5e3b0a7d21"
+    },
+    "olderCliRejected": {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "rejected",
+        "rateLimitType": "five_hour",
+        "resetsAt": 1792249200
+      },
+      "uuid": "9d4f1a26-3c8e-4a7b-b5d0-1e6c2f8a4b64",
+      "session_id": "b1d6c0f2-2b37-4a0e-8f43-6c5e3b0a7d21"
+    },
+    "noFigures": {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "allowed"
+      },
+      "uuid": "4b8c2d71-6e0f-4d3a-a9c4-5f2e8b1d7c75",
+      "session_id": "b1d6c0f2-2b37-4a0e-8f43-6c5e3b0a7d21"
+    },
+    "rateLimitError": {
+      "type": "assistant",
+      "error": "rate_limit",
+      "message": {
+        "id": "msg_01",
+        "type": "message",
+        "role": "assistant",
+        "model": "<synthetic>",
+        "content": [
+          {
+            "type": "text",
+            "text": "You've hit your limit \u00b7 resets Oct 18, 11am (America/Los_Angeles)"
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "uuid": "7c1e9b38-2f5d-4c0a-8b16-9a3d5e7f1c86",
+      "session_id": "b1d6c0f2-2b37-4a0e-8f43-6c5e3b0a7d21"
+    }
+  },
+  "codex": {
+    "rateLimitsUpdatedReached": {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1792249200
+          },
+          "secondary": {
+            "usedPercent": 64,
+            "windowDurationMins": 10080,
+            "resetsAt": 1792346400
+          },
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "plus",
+          "rateLimitReachedType": "rate_limit_reached"
+        }
+      }
+    },
+    "turnUsageLimit": {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "thr_1",
+        "turn": {
+          "id": "turn_1",
+          "status": "failed",
+          "error": {
+            "message": "You've hit your usage limit. Upgrade to Pro, or try again in 4 days.",
+            "codexErrorInfo": "usageLimitExceeded",
+            "additionalDetails": null,
+            "misalignment": null
+          }
+        }
+      }
+    },
+    "usageLimit429": {
+      "error": {
+        "type": "usage_limit_reached",
+        "message": "The usage limit has been reached",
+        "plan_type": "plus",
+        "resets_at": 1792346400
+      }
+    },
+    "headersAtLimit": {
+      "x-codex-primary-used-percent": "31",
+      "x-codex-primary-window-minutes": "300",
+      "x-codex-primary-reset-at": "1792249200",
+      "x-codex-secondary-used-percent": "100",
+      "x-codex-secondary-window-minutes": "10080",
+      "x-codex-secondary-reset-at": "1792346400"
+    }
+  }
+}

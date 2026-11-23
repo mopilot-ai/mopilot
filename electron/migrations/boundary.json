@@ -1,0 +1,11 @@
+{
+  "layer": "L2",
+  "public": [
+    "migrate.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1"
+  ],
+  "allow": []
+}

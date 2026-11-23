@@ -1,0 +1,83 @@
+/* Chat-data migration report. */
+/* chat-data migration: the report in Settings (its sidebar banner is src/components/sideBanner.module.css) */
+.migration-report {
+  padding: 12px 16px;
+  font-size: var(--fs-ui);
+}
+.migration-report .compat-table tr.mismatch td {
+  color: var(--red);
+  font-weight: 600;
+}
+.migration-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.home-setup {
+  text-align: center;
+  margin: 12px 0 0;
+}
+.home-setup a {
+  cursor: pointer;
+}
+
+.update-notes {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 10px 16px;
+  font-size: var(--fs-ui);
+  border-bottom: 1px solid var(--divider);
+}
+
+.sidebar-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  transform: translateX(-4px);
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 5;
+  -webkit-app-region: no-drag;
+}
+/* the sidebar edge: hovering and dragging change only the cursor, and the sidebar's own 0.5px
+   border stays the one line; a keyboard focus draws a 1px line on that border, not the whole 8px strip */
+.sidebar-resize:focus-visible {
+  outline: none;
+  background: linear-gradient(var(--text-3), var(--text-3)) center / 1px 100% no-repeat;
+}
+.app:has(.sidebar-resize.resizing) {
+  cursor: col-resize;
+  user-select: none;
+}
+.sidebar-chat-drag.drag-over {
+  box-shadow: inset 0 2px var(--text);
+}
+
+.sidebar-chat-drag.drag-over.drag-after {
+  box-shadow: inset 0 -2px var(--text);
+}
+.side-row.project-row.drag-over {
+  box-shadow: inset 0 2px var(--text);
+}
+.side-row.project-row.drag-over.drag-after {
+  box-shadow: inset 0 -2px var(--text);
+}
+
+.sidebar-resize.collapsed {
+  transform: none;
+}
+/* MoMo's side pane: its handle sits on the pane's left edge, measured from the window's right */
+.sidebar-resize.edge-right {
+  transform: translateX(4px);
+}
+.sidebar-resize.edge-right.collapsed {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar.drag-hidden {
+    transition: none;
+  }
+}

@@ -1,0 +1,12 @@
+// findIndex/indexOf answer -1 for "not found", which slice and splice read as "the last element".
+// docs/bug-prevention/edge-states.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or {
+    `$a.slice($s, $b.findIndex($f))`, `$a.slice($s, $b.indexOf($f))`,
+    `$a.slice($b.findIndex($f))`, `$a.slice($b.indexOf($f))`,
+    `$a.splice($b.findIndex($f), $n)`, `$a.splice($b.indexOf($f), $n)`
+  },
+  register_diagnostic(span=$hit, message="[missing-index] findIndex/indexOf return -1 when nothing matches, and slice/splice read -1 as the last element. Check the index first (docs/bug-prevention/edge-states.md).", severity="warn")
+}

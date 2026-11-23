@@ -1,0 +1,48 @@
+{
+  "id": "autohand",
+  "label": "Autohand",
+  "vendor": "Autohand AI",
+  "bins": [
+    "autohand",
+    "autohand-code"
+  ],
+  "docsUrl": "https://github.com/autohandai/code-cli/blob/main/docs/guides/ACP.md",
+  "install": {
+    "docs": "https://github.com/autohandai/code-cli/blob/main/docs/guides/ACP.md",
+    "methods": [
+      {
+        "via": "npm",
+        "command": "npm install -g autohand-cli",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "autohand-cli"
+      }
+    ]
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "--acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ],
+  "contract": {
+    "npm": "autohand-cli",
+    "bin": "autohand"
+  },
+  "tested": [
+    "0.9.9"
+  ]
+}

@@ -1,0 +1,1069 @@
+{
+  "cli": "2.1.295",
+  "sdk": "0.3.295",
+  "ranAt": "2026-10-10T09:20-09:40Z (local 02:20-02:40 PDT)",
+  "checks": [
+    {
+      "id": "C1",
+      "title": "Startup via SDK like Sage; init system message",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5 (alias haiku)",
+      "observed": "Sage-shaped query() (pathToClaudeCodeExecutable=~/.local/bin/claude, cleanEnv() scrubbing ^(ANTHROPIC_|CLAUDE_CODE_|CLAUDE_AGENT_SDK_|CLAUDECODE$), streaming Channel input, settingSources user/project/local, thinking adaptive/summarized, canUseTool) started CLI 2.1.295 on the user's Max login (apiKeySource none, account.subscriptionType \"Claude Max\"). system/init: claude_code_version 2.1.295, 28 tools (incl. Workflow, EnterPlanMode/ExitPlanMode, Monitor, TaskStop, CronCreate, ToolSearch), 69 slash_commands, terminal_slash_commands [doctor,color,focus,reload-plugins], 33 skills, 3 builtin plugins, permissionMode default, output_style default, capabilities [interrupt_receipt_v1, interrupt_cancel_queued_v1, interrupt_send_now_v1, msg_lifecycle_v1, ...], fast_mode_disabled_reason \"sdk_opt_in_required\". init arrives at the start of every turn (not before the first message). mcp_servers in the first init was [] while 10 claude.ai connectors were still connecting; later inits list them.",
+      "evidence": [
+        "conformance/claude/logs/c1_init_payload.json",
+        "conformance/claude/logs/c1_out.json",
+        "conformance/claude/logs/c1.jsonl",
+        "conformance/claude/lib.mjs",
+        "conformance/claude/c1_c3_c14.mjs"
+      ],
+      "designImpact": "Confirms the agent-sdk channel and Negotiated.cliVersion from init.claude_code_version. fast_mode_disabled_reason is \"sdk_opt_in_required\" unless settings.fastMode is passed (Sage probe() already does this). mcp_servers in the first init can be empty because MCP startup is async, so read MCP state from mcpServerStatus() or later inits."
+    },
+    {
+      "id": "C2",
+      "title": "systemPrompt preset vs Sage default (no preset)",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "Without systemPrompt the SDK sends systemPrompt \"\" (sdk.mjs: s===void 0 -> p=\"\"; initialize sends [\"\"]). The transcript prompt_snapshot.systemPrompt[0] is \"\". getContextUsage \"System prompt\" = 141 tokens without preset vs 3315 with {type:\"preset\",preset:\"claude_code\",append}. The preset is accepted and append is applied (reply ended with the ZEBRA marker). Both runs still knew they were \"Claude Code\" and knew the cwd, because the CLI adds a minimal identity and environment context outside the system prompt.",
+      "evidence": [
+        "conformance/claude/logs/c2_out.json",
+        "conformance/claude/logs/c2_none.jsonl",
+        "conformance/claude/logs/c2_preset.jsonl",
+        "conformance/claude/logs/c4.jsonl (transcript prompt_snapshot shows systemPrompt[0]==\"\")"
+      ],
+      "designImpact": "Design issue #7 is real: Sage sessions lose about 3.2k tokens of Claude Code default instructions. Keep the design branch: always pass {type:\"preset\",preset:\"claude_code\",append}. Also pass snapshot:true (recommended in the d.ts) so a changed append does not invalidate the cached prefix mid-session."
+    },
+    {
+      "id": "C3",
+      "title": "supportedCommands() / init.slash_commands and terminal-only flag",
+      "verdict": "partial",
+      "model": "none (control requests) + haiku for init",
+      "observed": "supportedCommands() equals initializationResult().commands (69 entries; fields name, description, argumentHint, aliases, builtin only; no local-jsx/terminalOriented/type flag). Present: goal, code-review (aliases [\"review\"]; argumentHint \"[low|medium|high|xhigh|max|ultra] [--fix] [--comment] ...\"), init, compact, context, usage (aliases cost, stats), security-review, ultrareview, loop, schedule, effort (incl. \"ultracode [on|off]\"), output-style, mcp, rename, clear (aliases reset,new), model, fast (\"rewind\" is not a command). Absent and answered locally with \"/X isn't available in this environment.\": skills, tasks, status, memory, feedback, plan, permissions, resume (no \"workflows\" either). The only terminal flag is init.terminal_slash_commands = [doctor, color, focus, reload-plugins].",
+      "evidence": [
+        "conformance/claude/logs/c1_out.json (supportedCommands)",
+        "conformance/claude/logs/c13_out.json (local)",
+        "conformance/claude/logs/c13_local.jsonl"
+      ],
+      "designImpact": "\"skills\" is not a command, so the registry must source skills from init.skills / supportedCommands (skills appear there as commands). The \"local-jsx / terminalOriented\" filter the design mentions does not exist on the SDK surface; commands that only have interactive UIs are simply not advertised, so filtering terminal_slash_commands plus Sage UI commands is enough. \"/review\" is only an alias, so the menu should read aliases[]. Unadvertised names (/tasks, /status, /memory, /skills, /plan, /permissions, /feedback, /resume) must be intercepted by Sage (as the design says), or they return the \"isn't available\" text."
+    },
+    {
+      "id": "C4",
+      "title": "'/goal <condition>' passthrough, show, clear, interrupt",
+      "verdict": "partial",
+      "model": "claude-haiku-5-5 (goal evaluator is the CLI's own small model)",
+      "observed": "Plain-string \"/goal <cond>\" (and a one-block content array) is recognized in streaming mode: a synthetic assistant message \"Goal set: <cond>\" (model \"<synthetic>\", local_command_source), then the CLI keeps working INSIDE ONE TURN. Each unmet check arrives as a synthetic user message (isSynthetic:true) \"Stop hook feedback:\\n[<cond>]: <reason>\". With a one-file-per-reply rule it ran a, b, c in one result (num_turns 6) and d to g (num_turns 8), and stopped when met. NO active_goal message was ever emitted to the SDK stream: the CLI forwards active_goal to stdout only when CLAUDE_CODE_REMOTE is set (strings: if(a.CLAUDE_CODE_REMOTE){...enqueue({type:\"active_goal\",...})}). goal_status attachments ({met, condition, reason, sentinel}) are written only to the transcript jsonl. No \"met\" event appears in the stream; the turn just ends. \"/goal\" prints \"Goal active: <cond> (not yet evaluated)\" or \"No goal set. Usage: `/goal <condition>`\"; \"/goal clear\" prints \"Goal cleared: <cond>\" or \"No goal set\" (all are local, num_turns 0, no tokens). interrupt() leaves the goal active (\"not yet evaluated\"). A \"/goal clear\" queued while the loop is running is NOT applied between iterations. It ran only after the loop finished all 6 files (C4c). Usage text is \"[<condition> | clear]\": no pause, resume or budget subcommands. The CLI can pause a goal itself (\"Goal paused · usage limit reached…\", strings only, not observed).",
+      "evidence": [
+        "conformance/claude/logs/c4_out.json",
+        "conformance/claude/logs/c4.jsonl",
+        "conformance/claude/logs/c4b_out.json",
+        "conformance/claude/logs/c4c_out.json",
+        "~/.claude/projects/*/1a01963c-9833-4e29-a457-f382dc66b005.jsonl (goal_status attachments)",
+        "conformance/claude/logs/cli.strings (offset ~48194202 CLAUDE_CODE_REMOTE gate; ~29711856 goal_status/active_goal yields)"
+      ],
+      "designImpact": "Passthrough works, so keep the binding. But the claim \"翻译器读 active_goal 渲染目标条\" is false for a local CLI 2.1.295. Build GoalSnapshot from (a) the synthetic \"Goal set:/Goal cleared:/Goal active:\" texts, (b) the \"Stop hook feedback:\\n[cond]: reason\" synthetic user messages (iterations = count, lastReason), and (c) the transcript goal_status attachments (met/failed), which Sage already watches. Do not set CLAUDE_CODE_REMOTE (broad side effects). Keep controls to clear only. Budget enforcement must be interrupt() then \"/goal clear\". Sending \"/goal clear\" alone does not stop a running loop. After Stop, the goal stays active, which matches the design text \"目标仍在，下一条消息会继续\"."
+    },
+    {
+      "id": "C5",
+      "title": "origin {kind:\"human\"} and the ultracode keyword",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "SDKUserMessage.origin = {kind:\"human\"} is accepted and persisted on the transcript user record. The \"ultracode\" keyword produced a workflow_keyword_request attachment (and auto-loaded the workflow-authoring skill) ONLY with origin human. Without origin, no attachment was produced. CLI gate: isHumanTypedPrompt = isRegularUserPrompt && origin?.kind===\"human\"; the trigger also needs workflows enabled and settings.workflowKeywordTriggerEnabled (default true). No stream/system/status message signals the trigger. The effort level was unchanged. An unknown \"/sage-codex-skill-xyz args\" was NOT a hard \"Unknown command\" error in either case: both got an unknown_command_fallback attachment and the text went to the model (1 turn).",
+      "evidence": [
+        "conformance/claude/logs/c5_out.json",
+        "conformance/claude/logs/c5_human.jsonl",
+        "conformance/claude/logs/c5_noOrigin.jsonl",
+        "conformance/claude/logs/cli.strings (isHumanTypedPrompt:Ae ... lm(e){return e?.kind===\"human\"})"
+      ],
+      "designImpact": "Design issue #6 is real: without origin human, Sage loses the ultracode keyword (and any other isHuman gate). Keep the branch \"用户键入的消息带 origin human，Sage 合成的不带\". The ordering concern in commandLayer.rules[3] (that origin turns unknown commands into a hard \"Unknown command\") is not reproduced on 2.1.295. Unknown commands fall back to the model either way. Removing the Codex-skill rewrite is still right, but it is not forced by origin."
+    },
+    {
+      "id": "C6",
+      "title": "Query.applyFlagSettings / settings.ultracode",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5 and claude-sonnet-5-5",
+      "observed": "applyFlagSettings exists and resolves. Session state was read with q.getSettings(), a runtime method that is in sdk.mjs but NOT declared on Query in sdk.d.ts. Its applied field has {ultracode, ultracodeRequested, ultracodeAvailable}. applyFlagSettings({ultracode:true}) flips applied.ultracode false->true on haiku and sonnet (ultracodeAvailable true for both). query({settings:{ultracode:true}}) also starts with it on. On the next human turn the transcript got an ultra_effort_enter attachment (\"Ultracode is on…\"). applyFlagSettings({effortLevel:\"low\"}) WITHOUT an ultracode key turned ultracode off (applied.ultracode false although the flag layer still held ultracode:true). {ultracode:null} clears it. No stream event announces the change. ModelInfo has no supportsUltracode field.",
+      "evidence": [
+        "conformance/claude/logs/c6_out.json",
+        "conformance/claude/logs/c6_sonnet.jsonl",
+        "conformance/claude/logs/c6_haiku.jsonl",
+        "conformance/claude/logs/c6_startsettings.jsonl"
+      ],
+      "designImpact": "Confirms the \"ultracode=true via applyFlagSettings, re-send it with every effort change\" branch. Sage's current applyFlagSettings({effortLevel, fastMode}) silently turns ultracode off, so the adapter must always include ultracode. To show availability, use getSettings().applied.ultracodeAvailable (undeclared in d.ts, so mark it as a version-gated negotiation) instead of a ModelInfo flag."
+    },
+    {
+      "id": "C7",
+      "title": "Plan mode round trip",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "setPermissionMode(\"plan\") mid-session emitted system/status {status:null, permissionMode:\"plan\"}. The next init had permissionMode \"plan\". The model wrote its plan to ~/.claude/plans/<slug>.md (CLI behavior, outside cwd), loaded ExitPlanMode through ToolSearch (it is a deferred tool), and called it. canUseTool got ExitPlanMode with input {plan, planFilePath}. Allowing with updatedPermissions [{type:\"setMode\",mode:\"acceptEdits\",destination:\"session\"}] emitted system/status permissionMode \"acceptEdits\". The model then executed, and the next init reported acceptEdits. setPermissionMode(\"default\") emitted status permissionMode \"default\".",
+      "evidence": [
+        "conformance/claude/logs/c7_out.json",
+        "conformance/claude/logs/c7.jsonl"
+      ],
+      "designImpact": "Confirms \"批准时返回 updatedPermissions setMode 回到进入前的档位\" and \"读 system/status 的 permissionMode\". Note: plan mode writes plan files to ~/.claude/plans, and planFilePath is available in the ExitPlanMode input for rendering the plan card once."
+    },
+    {
+      "id": "C8",
+      "title": "Background tasks, stopTask, perTaskStopAffordance",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "Background Bash (run_in_background) emitted background_tasks_changed {tasks:[{task_id,task_type:\"local_bash\",description}]} and task_started. q.stopTask(id) stopped only that task (task_updated, then task_notification status \"stopped\", then background_tasks_changed without it; ps confirmed only that sleep died). Background shells survived interrupt() with and without perTaskStopAffordance. A background subagent (local_agent) survived interrupt() WITH perTaskStopAffordance:true, but WITHOUT it the interrupt stopped it (task_notification status \"stopped\", background_tasks_changed []). Closing the query killed all remaining tasks.",
+      "evidence": [
+        "conformance/claude/logs/c8_out.json",
+        "conformance/claude/logs/c8b_out.json",
+        "conformance/claude/logs/c8_affordance.jsonl",
+        "conformance/claude/logs/c8b_noAffordance.jsonl"
+      ],
+      "designImpact": "Confirms #17 and the branch \"perTaskStopAffordance:true + task panel + q.stopTask in the same release\". Today Sage (no affordance) kills background agents on every Stop. Use background_tasks_changed as the level signal for the task table (per d.ts) and task_* events for edges. close() kills everything, so the reaper must skip sessions with tasks (as designed)."
+    },
+    {
+      "id": "C9",
+      "title": "In-process SDK MCP image tool (computer-use channel)",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "createSdkMcpServer({name:\"sage\", tools:[tool(\"sage_screenshot\", ..., {}, handler)]}) in options.mcpServers. init lists mcp_servers sage connected (source sdk) and tool mcp__sage__sage_screenshot. The handler returned {type:\"image\", data:<png b64>, mimeType:\"image/png\"}, and the model read the random word correctly (BOLOMI) in both default mode and dontAsk+allowedTools[\"mcp__sage__sage_screenshot\"]. The tool was DEFERRED: the model had to call ToolSearch first. In default mode canUseTool WAS invoked for mcp__sage__sage_screenshot. In dontAsk+allowedTools it was not, and the SDK warned that canUseTool was shadowed. Handler extra.sessionId is null; extra._meta has \"claudecode/toolUseId\" and requestId only.",
+      "evidence": [
+        "conformance/claude/logs/c9_out.json",
+        "conformance/claude/logs/c9_default.jsonl",
+        "conformance/claude/logs/c9_readOnly.jsonl",
+        "conformance/claude/img/c9.png"
+      ],
+      "designImpact": "Confirms the sdkMcp injection channel and the read-only allowedTools branch. Changes: (1) build one createSdkMcpServer instance per startSession and attribute calls by closure plus _meta[\"claudecode/toolUseId\"], because extra.sessionId is null. (2) Set alwaysLoad:true (server or tool) so Sage tools are not hidden behind ToolSearch. (3) requestPermission must auto-allow mcp__sage__* in default/auto modes, as designed, because canUseTool does fire for them."
+    },
+    {
+      "id": "C10",
+      "title": "persistSession:false",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "Session 228209a3… with persistSession:false wrote no jsonl (not during the session or after close), was absent from listSessions({dir:cwd}) and from the 50 most recent sessions, and getSessionInfo returned undefined.",
+      "evidence": [
+        "conformance/claude/logs/c10_c14_out.json (c10)",
+        "conformance/claude/logs/c10.jsonl"
+      ],
+      "designImpact": "Confirms temporary = persistSession:false (ephemeral:\"native\"). As the design notes, such a session cannot be resumed after its process ends, so account switches must not close-and-resume it."
+    },
+    {
+      "id": "C11",
+      "title": "Block order: slash command last vs not last",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "[handoff text, image, \"/goal …\"] (command last): recognized (\"Goal set:\", goal_status sentinel then met). The transcript stored the handoff and image blocks before the <command-name>/goal</command-name> block. [\"/goal …\", image, handoff] and [handoff, \"/goal …\", image]: NOT recognized. The whole message went to the model as plain text and no goal was set.",
+      "evidence": [
+        "conformance/claude/logs/c11_out.json",
+        "conformance/claude/logs/c11_last.jsonl",
+        "conformance/claude/logs/c11_first.jsonl",
+        "conformance/claude/logs/c11_middle.jsonl"
+      ],
+      "designImpact": "Confirms the adapter rule \"交接、图片、用户文字（以 / 开头的文字放最后一块）\" (#19). A slash command is recognized only when it is the last content block."
+    },
+    {
+      "id": "C12",
+      "title": "'/compact' passthrough",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "\"/compact\" emitted system/status \"compacting\", then status {compact_result:\"success\"}, then compact_boundary {compact_metadata:{trigger:\"manual\", pre_tokens:19311, post_tokens:2603, duration_ms…}}, a summary user message, a replayed \"<local-command-stdout>Compacted </local-command-stdout>\", and a result (num_turns 0). \"/compact keep only the code word\" was parsed as a command (status compacting, compact_result \"failed\", compact_error \"Not enough messages to compact.\"). Recall after compaction worked.",
+      "evidence": [
+        "conformance/claude/logs/c12_out.json",
+        "conformance/claude/logs/c12.jsonl"
+      ],
+      "designImpact": "Confirms the passthrough binding for compact, including \"/compact <args>\". Render compact_boundary (trigger manual) and the status compact_result/compact_error."
+    },
+    {
+      "id": "C13",
+      "title": "'/init' and '/code-review' headless",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "\"/init\" in a temp project created CLAUDE.md headlessly (6 turns, about $0.005). \"/code-review low\" in a temp git repo ran headlessly through a background task (task_started, then task_notification) and returned a finding (\"div now returns a * b…\"). \"/review\" is listed as its alias. Local commands /context (markdown table), /usage (plan windows), /mcp (summary), /output-style and /effort (usage) answer with num_turns 0.",
+      "evidence": [
+        "conformance/claude/logs/c13_out.json",
+        "conformance/claude/logs/c13_init.jsonl",
+        "conformance/claude/logs/c13_review.jsonl",
+        "conformance/claude/logs/c13_local.jsonl"
+      ],
+      "designImpact": "Confirms passthrough for init (generates CLAUDE.md) and review (\"/code-review <target>\"). Note that code-review runs in a background task, so its result arrives via task_notification plus the final result. The review card must accept that, and the reaper/Stop logic applies to it."
+    },
+    {
+      "id": "C14",
+      "title": "Control methods present in 0.3.295",
+      "verdict": "pass",
+      "model": "claude-haiku-5-5",
+      "observed": "typeof Query.getContextUsage, mcpServerStatus, toggleMcpServer, rewindFiles, stopTask, applyFlagSettings, setPermissionMode, backgroundTasks, reinitialize, reloadSkills, setMcpServers, supportedAgents, accountInfo, updateSettings, usage_EXPERIMENTAL… are all functions. getSettings() exists at runtime but is undeclared. Exercised: getContextUsage({detail:\"summary\"}) gives categories and totals. mcpServerStatus() lists the 10 claude.ai connectors. toggleMcpServer(name,false) gives status \"disabled\", then re-enabled. rewindFiles(u2,{dryRun:true}) gives {canRewind:true, filesChanged:[f.txt,g.txt]}. rewindFiles(u2) restored f.txt to \"one\" and removed g.txt (needs enableFileCheckpointing:true and the caller-supplied SDKUserMessage.uuid, which is honored in the transcript). renameSession() sets customTitle. forkSession(sid,{upToMessageId:u1,title}) creates a new session holding exactly 1 message. forkSession and renameSession are top-level functions, not Query methods.",
+      "evidence": [
+        "conformance/claude/logs/c1_out.json",
+        "conformance/claude/logs/c10_c14_out.json (c14)",
+        "conformance/claude/logs/c14.jsonl"
+      ],
+      "designImpact": "Confirms rewind via enableFileCheckpointing+rewindFiles, fork via forkSession(upToMessageId), Status via getContextUsage, and MCP via mcpServerStatus/toggleMcpServer. To rewind, the adapter must stamp its own uuid on each SDKUserMessage, because user messages are not echoed back with uuids in the stream."
+    },
+    {
+      "id": "C15",
+      "title": "Other contradictions with the design",
+      "verdict": "partial",
+      "model": "n/a (d.ts + CLI strings + results above)",
+      "observed": "(1) active_goal is absent from the local stream (C4). (2) Queued \"/goal clear\" does not cut a running loop (C4c). (3) The SDKUserMessage uuid is not echoed, so rewind anchors must be Sage-generated (C14). (4) SDK MCP tools are deferred behind ToolSearch by default (C9). (5) getSettings() is undeclared (C6). (6) --no-chrome exists as a CLI flag (strings: \"--no-chrome Disable Claude in Chrome integration\"), so extraArgs {\"no-chrome\":null} is viable; not exercised. (7) The result message carries fast_mode_state and fast_mode_disabled_reason, as the design assumes. (8) No \"rewind\" slash command in the list; rewind is only via the control API. (9) Every persisted test session lands in ~/.claude/projects (expected).",
+      "evidence": [
+        "conformance/claude/logs/cli.strings",
+        "~/Documents/GitHub/sagecode/.claude/worktrees/sage-settings-harness-matrix-511dfc/node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts"
+      ],
+      "designImpact": "Update risks[3] and conflicts[0]: GoalSnapshot comes from synthetic messages plus the transcript goal_status, and the budget stop is interrupt then \"/goal clear\". Add alwaysLoad for Sage MCP tools. Treat getSettings as version-gated."
+    },
+    {
+      "id": "C16",
+      "title": "MoPilot's tool channel under each billing (sage_debug_echo)",
+      "verdict": "pass",
+      "observed": {
+        "skipped": [
+          "mopilot (no SAGE_MOPILOT_KEY)",
+          "deepseek (no SAGE_DEEPSEEK_KEY)"
+        ],
+        "subscription": {
+          "model": "haiku",
+          "result": {
+            "subtype": "success",
+            "result": "echo: LHUTJ",
+            "num_turns": 2,
+            "cost": 0.00516232,
+            "is_error": false
+          },
+          "readBack": true,
+          "initHasTool": true,
+          "toolUses": [
+            "mcp__sage_92a24ae7eca8__sage_debug_echo"
+          ],
+          "asked": [
+            "mcp__sage_92a24ae7eca8__sage_debug_echo"
+          ]
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-10T13-55-34-809Z/C16-subscription.jsonl"
+      ],
+      "seconds": 5,
+      "ranAt": "2026-10-10T13:55:39.411Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C17",
+      "title": "Goal after restartResume (resumed session)",
+      "verdict": "pass",
+      "observed": {
+        "beforeShow": {
+          "subtype": "success",
+          "result": "Goal active: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text (not yet evaluated)",
+          "num_turns": 0,
+          "cost": 0.00161857,
+          "is_error": false
+        },
+        "afterShow": {
+          "subtype": "success",
+          "result": "Goal active: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text (not yet evaluated)",
+          "num_turns": 0,
+          "cost": 0.00161857,
+          "is_error": false
+        },
+        "hookAfterResume": {
+          "feedbackSeen": true,
+          "filesAdded": 0
+        },
+        "clear": {
+          "subtype": "success",
+          "result": "Goal cleared: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text",
+          "num_turns": 0,
+          "cost": 0.00326448,
+          "is_error": false
+        },
+        "showAfterClear": {
+          "subtype": "success",
+          "result": "No goal set. Usage: `/goal <condition>`",
+          "num_turns": 0,
+          "cost": 0.00326448,
+          "is_error": false
+        },
+        "reattach": {
+          "result": {
+            "subtype": "success",
+            "result": "f.txt is created with one line, so e.txt and f.txt both exist now. I'm ending this reply here, per the session rule, so the stop hook can check the goal.",
+            "num_turns": 4,
+            "cost": 0.007969455,
+            "is_error": false
+          },
+          "goalSet": true,
+          "feedbackMessages": 1,
+          "results": 1,
+          "files": true
+        },
+        "finalShow": {
+          "subtype": "success",
+          "result": "No goal set. Usage: `/goal <condition>`",
+          "num_turns": 0,
+          "cost": 0.007969455,
+          "is_error": false
+        },
+        "overlay": {
+          "result": {
+            "subtype": "success",
+            "result": "I created `k.txt` and `l.txt` in the working directory, each containing one line (`k` and `l`). Both are verified as one line each, so the goal is met.",
+            "num_turns": 3,
+            "cost": 0.0055119850000000005,
+            "is_error": false
+          },
+          "goalSet": true,
+          "results": 1,
+          "files": true,
+          "showAfter": {
+            "subtype": "success",
+            "result": "No goal set. Usage: `/goal <condition>`",
+            "num_turns": 0,
+            "cost": 0.0055119850000000005,
+            "is_error": false
+          }
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-10T17-29-48-259Z/C17-before.jsonl",
+        "conformance/logs/claude@2.1.295/2026-10-10T17-29-48-259Z/C17-after.jsonl",
+        "conformance/logs/claude@2.1.295/2026-10-10T17-29-48-259Z/C17-again.jsonl",
+        "conformance/logs/claude@2.1.295/2026-10-10T17-29-48-259Z/C17-again-resumed.jsonl"
+      ],
+      "seconds": 39,
+      "ranAt": "2026-10-10T17:30:26.903Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C18",
+      "title": "'/goal clear' right after interrupt()",
+      "verdict": "pass",
+      "observed": {
+        "notAwaited": {
+          "clearSentAfterMs": 1,
+          "clearResultAfterMs": 18,
+          "clearResult": {
+            "subtype": "success",
+            "result": "Goal cleared: the current working directory contains a1.txt, a2.txt, a3.txt, a4.txt, each with exactly one line of text",
+            "num_turns": 0,
+            "cost": 0.0016665700000000002,
+            "is_error": false
+          },
+          "interruptedResult": {
+            "subtype": "error_during_execution",
+            "result": "",
+            "num_turns": 3,
+            "cost": 0.0016665700000000002,
+            "is_error": true
+          },
+          "resultOrder": [
+            "",
+            "Goal cleared: the current working direct"
+          ],
+          "filesAtClear": 1,
+          "filesFifteenSecondsLater": 1,
+          "showAfter": {
+            "subtype": "success",
+            "result": "No goal set. Usage: `/goal <condition>`",
+            "num_turns": 0,
+            "cost": 0.0016665700000000002,
+            "is_error": false
+          }
+        },
+        "awaited": {
+          "clearSentAfterMs": 9,
+          "clearResultAfterMs": 16,
+          "clearResult": {
+            "subtype": "success",
+            "result": "Goal cleared: the current working directory contains b1.txt, b2.txt, b3.txt, b4.txt, each with exactly one line of text",
+            "num_turns": 0,
+            "cost": 0.0016665700000000002,
+            "is_error": false
+          },
+          "interruptedResult": {
+            "subtype": "error_during_execution",
+            "result": "",
+            "num_turns": 3,
+            "cost": 0.0016665700000000002,
+            "is_error": true
+          },
+          "resultOrder": [
+            "",
+            "Goal cleared: the current working direct"
+          ],
+          "filesAtClear": 2,
+          "filesFifteenSecondsLater": 2,
+          "showAfter": {
+            "subtype": "success",
+            "result": "No goal set. Usage: `/goal <condition>`",
+            "num_turns": 0,
+            "cost": 0.0016665700000000002,
+            "is_error": false
+          }
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-10T17-25-52-262Z/C18-session.jsonl"
+      ],
+      "seconds": 39,
+      "ranAt": "2026-10-10T17:26:56.038Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C19",
+      "title": "Bash tool result: how the exit code, stdout and stderr arrive, and nothing while it runs",
+      "verdict": "pass",
+      "observed": {
+        "ok": {
+          "command": "echo to-stdout; echo to-stderr 1>&2",
+          "isError": false,
+          "content": "to-stdout\nto-stderr",
+          "toolUseResult": {
+            "stdout": "to-stdout\nto-stderr",
+            "stderr": "",
+            "interrupted": false,
+            "isImage": false,
+            "noOutputExpected": false
+          },
+          "toolUseResultKeys": [
+            "interrupted",
+            "isImage",
+            "noOutputExpected",
+            "stderr",
+            "stdout"
+          ],
+          "topLevelKeys": [
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "timestamp",
+            "tool_result_meta",
+            "tool_use_result",
+            "type",
+            "uuid"
+          ],
+          "betweenToolUseAndResult": [],
+          "toolProgress": [],
+          "seconds": 2
+        },
+        "exit3": {
+          "command": "echo before-fail; sh -c \"exit 3\"",
+          "isError": true,
+          "content": "Exit code 3\nbefore-fail",
+          "toolUseResult": "Error: Exit code 3\nbefore-fail",
+          "toolUseResultKeys": null,
+          "topLevelKeys": [
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "timestamp",
+            "tool_result_meta",
+            "tool_use_result",
+            "type",
+            "uuid"
+          ],
+          "betweenToolUseAndResult": [],
+          "toolProgress": [],
+          "seconds": 1
+        },
+        "slow": {
+          "command": "for i in 1 2 3 4; do echo line$i; sleep 2; done",
+          "isError": false,
+          "content": "line1\nline2\nline3\nline4",
+          "toolUseResult": {
+            "stdout": "line1\nline2\nline3\nline4",
+            "stderr": "",
+            "interrupted": false,
+            "isImage": false,
+            "noOutputExpected": false
+          },
+          "toolUseResultKeys": [
+            "interrupted",
+            "isImage",
+            "noOutputExpected",
+            "stderr",
+            "stdout"
+          ],
+          "topLevelKeys": [
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "timestamp",
+            "tool_result_meta",
+            "tool_use_result",
+            "type",
+            "uuid"
+          ],
+          "betweenToolUseAndResult": [
+            "system/task_started",
+            "system/task_notification"
+          ],
+          "toolProgress": [],
+          "seconds": 10
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-10T19-55-20-583Z/C19-session.jsonl"
+      ],
+      "seconds": 14,
+      "ranAt": "2026-10-10T19:55:34.363Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C20",
+      "title": "Goal after a crash (CLI killed mid-round) and reopen",
+      "verdict": "pass",
+      "observed": {
+        "crash": {
+          "killed": true,
+          "exit": {
+            "code": null,
+            "signal": "SIGKILL"
+          },
+          "streamEnded": true,
+          "streamError": "Claude Code process terminated by signal SIGKILL",
+          "resultAfterKill": false
+        },
+        "transcript": {
+          "records": 28,
+          "lastTypes": [
+            "attachment",
+            "user",
+            "system",
+            "user"
+          ]
+        },
+        "afterShow": {
+          "subtype": "success",
+          "result": "Goal active: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text (not yet evaluated)",
+          "num_turns": 0,
+          "cost": 0,
+          "is_error": false
+        },
+        "hookAfterReopen": {
+          "feedbackSeen": true,
+          "filesAdded": 0
+        },
+        "clear": {
+          "subtype": "success",
+          "result": "Goal cleared: the current working directory contains a.txt, b.txt, c.txt, d.txt, each with exactly one line of text",
+          "num_turns": 0,
+          "cost": 0.001349685,
+          "is_error": false
+        },
+        "showAfterClear": {
+          "subtype": "success",
+          "result": "No goal set. Usage: `/goal <condition>`",
+          "num_turns": 0,
+          "cost": 0.001349685,
+          "is_error": false
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-10T22-20-20-705Z/C20-crashed.jsonl",
+        "conformance/logs/claude@2.1.295/2026-10-10T22-20-20-705Z/C20-reopened.jsonl"
+      ],
+      "seconds": 10,
+      "ranAt": "2026-10-10T22:20:30.628Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C21",
+      "title": "CLI killed mid-turn, then resumed",
+      "verdict": "pass",
+      "observed": {
+        "commandRunningBeforeKill": true,
+        "kill": {
+          "exit": {
+            "code": null,
+            "signal": "SIGKILL"
+          },
+          "streamEnded": true,
+          "streamError": "Claude Code process terminated by signal SIGKILL",
+          "resultAfterKill": false,
+          "toolResultSeen": false
+        },
+        "commandSurvivedKill": true,
+        "transcript": {
+          "records": 19,
+          "toolUseRecorded": true,
+          "toolResultRecorded": false
+        },
+        "resumed": {
+          "result": {
+            "subtype": "success",
+            "result": "ok",
+            "num_turns": 1,
+            "cost": 0.00036113,
+            "is_error": false
+          },
+          "sameSession": true
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-10T22-20-20-705Z/C21-killed.jsonl",
+        "conformance/logs/claude@2.1.295/2026-10-10T22-20-20-705Z/C21-resumed.jsonl"
+      ],
+      "seconds": 11,
+      "ranAt": "2026-10-10T22:20:41.817Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C22",
+      "title": "extraArgs {'no-chrome': null} reaches the CLI's argv",
+      "verdict": "pass",
+      "observed": {
+        "withFlag": {
+          "argv": [
+            "--no-chrome"
+          ],
+          "hasFlag": true,
+          "commands": 69,
+          "chromeNames": [],
+          "mcpServers": []
+        },
+        "without": {
+          "argv": [],
+          "hasFlag": false,
+          "commands": 69,
+          "chromeNames": [],
+          "mcpServers": []
+        }
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-10T22-20-20-705Z/C22-with.jsonl",
+        "conformance/logs/claude@2.1.295/2026-10-10T22-20-20-705Z/C22-without.jsonl"
+      ],
+      "seconds": 2,
+      "ranAt": "2026-10-10T22:20:43.842Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C23",
+      "title": "D-68 passive channels: stream_event, task_progress, hook events and hooks while a foreground Bash runs",
+      "verdict": "pass",
+      "observed": {
+        "windowMs": 3035,
+        "taskStartedLagMs": 3061,
+        "insideWindowByType": {
+          "system/task_notification": 1
+        },
+        "insideWindowMentioningCommandOutput": [],
+        "taskStarted": {
+          "task_type": "local_bash",
+          "is_backgrounded": false,
+          "hasOutputFile": false
+        },
+        "allTypesInTurn": [
+          "assistant",
+          "rate_limit_event",
+          "result/success",
+          "stream_event/content_block_delta:input_json_delta",
+          "stream_event/content_block_delta:text_delta",
+          "stream_event/content_block_start",
+          "stream_event/content_block_stop",
+          "stream_event/message_delta",
+          "stream_event/message_start",
+          "stream_event/message_stop",
+          "system/init",
+          "system/status",
+          "system/task_notification",
+          "system/task_started",
+          "user"
+        ],
+        "hookCalls": [
+          {
+            "ev": "UserPromptSubmit",
+            "tool": null,
+            "relMs": -4078
+          },
+          {
+            "ev": "PreToolUse",
+            "tool": "Bash",
+            "relMs": -3057
+          },
+          {
+            "ev": "PostToolUse",
+            "tool": "Bash",
+            "relMs": 3033
+          },
+          {
+            "ev": "Stop",
+            "tool": null,
+            "relMs": 3621
+          }
+        ],
+        "hookEventSubtypes": []
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-11T01-52-43-309Z/C23-passive.jsonl"
+      ],
+      "seconds": 9,
+      "ranAt": "2026-10-11T01:52:51.893Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C24",
+      "title": "D-68 control channel: getTaskOutput polled while a foreground Bash runs",
+      "verdict": "pass",
+      "observed": {
+        "startedLagMs": 3059,
+        "commandMs": 10110,
+        "pollsWhileRunning": 11,
+        "errors": [],
+        "distinctSizesWhileRunning": [
+          12,
+          18,
+          24,
+          30
+        ],
+        "samples": [
+          {
+            "relMs": 0,
+            "bytes": 12,
+            "output": "line1\nline2\n"
+          },
+          {
+            "relMs": 704,
+            "bytes": 12,
+            "output": "line1\nline2\n"
+          },
+          {
+            "relMs": 1407,
+            "bytes": 18,
+            "output": "line1\nline2\nline3\n"
+          },
+          {
+            "relMs": 2111,
+            "bytes": 18,
+            "output": "line1\nline2\nline3\n"
+          },
+          {
+            "relMs": 2813,
+            "bytes": 18,
+            "output": "line1\nline2\nline3\n"
+          },
+          {
+            "relMs": 3516,
+            "bytes": 24,
+            "output": "line1\nline2\nline3\nline4\n"
+          },
+          {
+            "relMs": 4219,
+            "bytes": 24,
+            "output": "line1\nline2\nline3\nline4\n"
+          },
+          {
+            "relMs": 4925,
+            "bytes": 24,
+            "output": "line1\nline2\nline3\nline4\n"
+          },
+          {
+            "relMs": 5629,
+            "bytes": 30,
+            "output": "line1\nline2\nline3\nline4\nline5\n"
+          },
+          {
+            "relMs": 6333,
+            "bytes": 30,
+            "output": "line1\nline2\nline3\nline4\nline5\n"
+          },
+          {
+            "relMs": 7037,
+            "bytes": 30,
+            "output": "line1\nline2\nline3\nline4\nline5\n"
+          }
+        ],
+        "afterEnd": {
+          "bytes": 0,
+          "output": ""
+        },
+        "finalText": "line1\nline2\nline3\nline4\nline5",
+        "turnMs": 12213,
+        "resultOk": "success"
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-11T01-52-43-309Z/C24-poll.jsonl"
+      ],
+      "seconds": 13,
+      "ranAt": "2026-10-11T01:53:04.726Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C25",
+      "title": "D-68 background shell: output file path, tailing it, getTaskOutput, stream events while it runs",
+      "verdict": "pass",
+      "observed": {
+        "toolResultText": "Command running in background with ID: b6syv55vc. Output is being written to: /private/tmp/claude-501/-private-var-folders-b1-xtvd9wj91xbcnj15vx2xllvw0000gn-T-sage-conf-C25-k6b1KK-bash-1/a05b855a-c3ad-446e-b6ec-2ef4c2dbce42/tasks/b6syv55vc.output. You will be notified when it completes. To check int",
+        "taskStarted": {
+          "task_type": "local_bash",
+          "is_backgrounded": true,
+          "output_file": null
+        },
+        "pathFoundInToolResultText": "/private/tmp/claude-501/-private-var-folders-b1-xtvd9wj91xbcnj15vx2xllvw0000gn-T-sage-conf-C25-k6b1KK-bash-1/a05b855a-c3ad-446e-b6ec-2ef4c2dbce42/tasks/b6syv55vc.output",
+        "taskNotification": {
+          "status": "completed",
+          "output_file": "/private/tmp/claude-501/-private-var-folders-b1-xtvd9wj91xbcnj15vx2xllvw0000gn-T-sage-conf-C25-k6b1KK-bash-1/a05b855a-c3ad-446e-b6ec-2ef4c2dbce42/tasks/b6syv55vc.output",
+          "summary": "Background command \"Run countdown loop in background\" completed (exit code 0)"
+        },
+        "fileSamples": [
+          {
+            "relMs": 0,
+            "size": 8,
+            "text": "bg1\nbg2\n"
+          },
+          {
+            "relMs": 1001,
+            "size": 8,
+            "text": "bg1\nbg2\n"
+          },
+          {
+            "relMs": 2003,
+            "size": 12,
+            "text": "bg1\nbg2\nbg3\n"
+          },
+          {
+            "relMs": 3005,
+            "size": 12,
+            "text": "bg1\nbg2\nbg3\n"
+          },
+          {
+            "relMs": 4007,
+            "size": 16,
+            "text": "bg1\nbg2\nbg3\nbg4\n"
+          },
+          {
+            "relMs": 5008,
+            "size": 16,
+            "text": "bg1\nbg2\nbg3\nbg4\n"
+          },
+          {
+            "relMs": 6009,
+            "size": 20,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n"
+          },
+          {
+            "relMs": 7010,
+            "size": 20,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n"
+          },
+          {
+            "relMs": 8011,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 9013,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 10014,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 11016,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 12018,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          },
+          {
+            "relMs": 13020,
+            "size": 42,
+            "text": "bg1\nbg2\nbg3\nbg4\nbg5\n\n[exited with code 0]\n"
+          }
+        ],
+        "getTaskOutputSamples": [
+          {
+            "relMs": 1,
+            "bytes": 4
+          },
+          {
+            "relMs": 1014,
+            "bytes": 4
+          },
+          {
+            "relMs": 2018,
+            "bytes": 8
+          },
+          {
+            "relMs": 3022,
+            "bytes": 8
+          },
+          {
+            "relMs": 4025,
+            "bytes": 12
+          },
+          {
+            "relMs": 5028,
+            "bytes": 12
+          },
+          {
+            "relMs": 6032,
+            "bytes": 16
+          },
+          {
+            "relMs": 7036,
+            "bytes": 16
+          },
+          {
+            "relMs": 8040,
+            "bytes": 20
+          },
+          {
+            "relMs": 9046,
+            "bytes": 20
+          },
+          {
+            "relMs": 10051,
+            "bytes": 20
+          },
+          {
+            "relMs": 11053,
+            "bytes": 42
+          },
+          {
+            "relMs": 12061,
+            "bytes": 42
+          },
+          {
+            "relMs": 13065,
+            "bytes": 42
+          },
+          {
+            "relMs": 14070,
+            "bytes": 42
+          },
+          {
+            "relMs": 15075,
+            "bytes": 42
+          },
+          {
+            "relMs": 16078,
+            "bytes": 42
+          }
+        ],
+        "typesAfterToolResultUntilNotification_exceptModelReply": [],
+        "toolProgress": 0
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-11T01-52-43-309Z/C25-bg.jsonl"
+      ],
+      "seconds": 19,
+      "ranAt": "2026-10-11T01:53:23.628Z",
+      "model": "haiku",
+      "effort": "low"
+    },
+    {
+      "id": "C26",
+      "title": "D-68 PreToolUse hook rewrites Bash to tee into a file: tail works, result unchanged, cd no longer persists",
+      "verdict": "pass",
+      "observed": {
+        "plain": {
+          "slow": {
+            "command": "for i in 1 2 3; do echo s$i; echo e$i 1>&2; sleep 2; done; sh -c \"exit 3\"",
+            "isError": true,
+            "content": "Exit code 3\ns1\ne1\ns2\ne2\ns3\ne3",
+            "toolUseResult": "Error: Exit code 3\ns1\ne1\ns2\ne2\ns3\ne3"
+          },
+          "sizesWhileRunning": [],
+          "cd": {
+            "command": "cd sub && echo in-sub",
+            "isError": false,
+            "content": "in-sub",
+            "toolUseResult": {
+              "stdout": "in-sub",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          },
+          "pwdAfter": {
+            "command": "basename \"$PWD\"",
+            "isError": false,
+            "content": "sub",
+            "toolUseResult": {
+              "stdout": "sub",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        "hook": {
+          "slow": {
+            "command": "for i in 1 2 3; do echo s$i; echo e$i 1>&2; sleep 2; done; sh -c \"exit 3\"",
+            "isError": true,
+            "content": "Exit code 3\ns1\ne1\ns2\ne2\ns3\ne3",
+            "toolUseResult": "Error: Exit code 3\ns1\ne1\ns2\ne2\ns3\ne3"
+          },
+          "sizesWhileRunning": [
+            6,
+            12,
+            18
+          ],
+          "teeFile": "s1\ne1\ns2\ne2\ns3\ne3\n",
+          "cd": {
+            "command": "cd sub && echo in-sub",
+            "isError": false,
+            "content": "in-sub",
+            "toolUseResult": {
+              "stdout": "in-sub",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          },
+          "pwdAfter": {
+            "command": "basename \"$PWD\"",
+            "isError": false,
+            "content": "bash-hook-3",
+            "toolUseResult": {
+              "stdout": "bash-hook-3",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        "rewrittenCommandSeenByModel": "for i in 1 2 3; do echo s$i; echo e$i 1>&2; sleep 2; done; sh -c \"exit 3\"",
+        "sameText": true
+      },
+      "evidence": [
+        "conformance/logs/claude@2.1.295/2026-10-11T01-52-43-309Z/C26-plain.jsonl",
+        "conformance/logs/claude@2.1.295/2026-10-11T01-52-43-309Z/C26-hook.jsonl"
+      ],
+      "seconds": 32,
+      "ranAt": "2026-10-11T01:53:55.567Z",
+      "model": "haiku",
+      "effort": "low"
+    }
+  ],
+  "costNotes": "All turns used the user's Claude Max login through the SDK, mirroring Sage cleanEnv. Model claude-haiku-5-5 everywhere except one C6 turn on claude-sonnet-5-5. Summed total_cost_usd (API-equivalent, billed against the subscription) across 27 sessions is about $0.33. The largest were c7 plan mode ($0.12) and the c6 sonnet ultracode turn ($0.10). Workflow/agent fan-out was prevented by denying tools or telling the model not to work.",
+  "surprises": [
+    "active_goal is never emitted to a local SDK stream (CLI gates it on CLAUDE_CODE_REMOTE). Goal state is visible only as synthetic messages and transcript goal_status attachments.",
+    "The goal loop runs inside a single turn. A queued \"/goal clear\" waits until the loop ends, so a Sage budget needs interrupt() first.",
+    "perTaskStopAffordance absent (Sage today): interrupt() stops background subagents. Present: they survive. Background shells survive either way.",
+    "The ultracode keyword triggers only with origin {kind:\"human\"}. Effort changes without the ultracode key silently turn ultracode off.",
+    "SDK MCP tools are deferred behind ToolSearch by default, the handler gets no sessionId, and canUseTool fires for them in default mode.",
+    "A slash command is recognized only as the last content block.",
+    "The unknown-command fallback goes to the model with or without origin. The design's ordering concern is not reproduced.",
+    "q.getSettings() works but is missing from sdk.d.ts.",
+    "Plan mode writes ~/.claude/plans/*.md. The test created ~/.claude/plans/task-create-a-file-fuzzy-rainbow.md and test transcripts under ~/.claude/projects/-private-tmp-…-conformance-claude-work-*."
+  ],
+  "kind": "claude",
+  "bin": "claude",
+  "updatedAt": "2026-10-11T01:53:55.569Z"
+}

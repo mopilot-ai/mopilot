@@ -1,0 +1,15 @@
+// A tool call's owner checked by hand against a chat's segments: each copy picks its own form of the segment's id, and
+// a harness whose tool session names the other form is refused everywhere (Claude Code's bare session id against
+// 'claude:<id>' refused update_task_list, wrap_up and every linked-session, peer and scheduled-task tool). Use ownerOf
+// and segmentKey from electron/platform/segmentOwner.cjs. docs/bug-prevention/cross-harness-gaps.md
+language js
+
+or {
+  `$seg === $ctx.segmentId`,
+  `$seg !== $ctx.segmentId`,
+  `$ctx.segmentId === $seg`,
+  `$ctx.segmentId !== $seg`
+} as $hit where {
+  $seg <: or { `toRendererSegment($_).nativeId`, `$_.nativeId`, `rendererNative($...)` },
+  register_diagnostic(span=$hit, message="[segment-owner] A tool call's owner checked by hand against a segment's id: each copy picks its own form of the id, and a harness that names the other form is refused. Use ownerOf (or segmentKey) from electron/platform/segmentOwner.cjs (docs/bug-prevention/cross-harness-gaps.md).", severity="warn")
+}

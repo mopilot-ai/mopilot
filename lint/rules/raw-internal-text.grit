@@ -1,0 +1,25 @@
+// A failure's internals shown to the user: an error's or a result's raw message or stderr, an exit or error code, or a
+// reason code, in a toast, an error setter, main's toast event or an error/reason field of a result for the windows.
+// Say it with userError(e) from shared/userError.mjs (or a reason table such as shared/peerReasons.mjs) and keep the raw
+// text for the log or diagnostics. docs/bug-prevention/misleading-error-text-and-silent-opens.md
+language js
+
+or {
+  // the first argument of toast(…) or of an error-state setter (setError, setLoadError, setFailed …)
+  JsCallExpression(callee=$callee, arguments=JsCallArguments(args=[$msg, ...])) as $hit where {
+    $callee <: or { `toast`, `$_.toast`, r"^set[A-Za-z]*(?:Error|Err|Failed|Failure)$" }
+  },
+  // an error or reason field of a state or result object: { error: … }, { reason: … }, { configError: … }
+  JsPropertyObjectMember(name=$key, value=$msg) as $hit where { $key <: r"^(?:error|reason|[a-z]+Error)$" },
+  // the text of main's toast event: { kind: 'toast', level, text: … }
+  JsPropertyObjectMember(name=$key, value=$msg) as $hit where {
+    $key <: r"^text$",
+    $hit <: within JsObjectExpression() as $toast where { $toast <: r"(?s)^\{.*\bkind:\s*'toast'.*" }
+  }
+} where {
+  $msg <: r"(?s).*(?:(?:[\w$\]]|\))\??\.(?:message|stderr)\b|\$\{\s*(?:error|reason|stderr|code|(?:e|err|error|ex|r|res|result|run|exit|proc)\??\.code)\s*\}).*",
+  // a JSON-RPC or wire error object ({ error: { code, message } }) is data for the other end, not text shown
+  not $msg <: r"(?s)^\{.*",
+  not $msg <: r"(?s).*\b(?:userError|errorText|peerReasonText|capabilityReasonText)\(.*",
+  register_diagnostic(span=$hit, message="[raw-internal-text] This shows a failure's raw message, stderr or code. Say it with userError(e) from shared/userError.mjs or a reason table (shared/peerReasons.mjs), and keep the raw text for the log (docs/bug-prevention/misleading-error-text-and-silent-opens.md).", severity="warn")
+}

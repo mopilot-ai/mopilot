@@ -1,0 +1,435 @@
+/* Settings: extended sections and density. */
+/* ---- Settings: extended sections ---- */
+.settings-title + .settings-sub {
+  margin: -30px 0 34px;
+}
+.settings-sub {
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+  line-height: 1.385;
+  margin: 0;
+}
+.settings-sub a {
+  color: var(--text);
+  cursor: pointer;
+}
+.settings-subrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -30px 0 34px;
+}
+.settings-group-desc {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  margin: -6px 0 12px;
+}
+.settings-path {
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  color: var(--text-2);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+}
+.mode-thumbs {
+  display: flex;
+  gap: 10px;
+}
+.mode-thumb {
+  width: 76px;
+  height: 52px;
+  border-radius: 9px;
+  border: 1px solid var(--hairline-strong);
+  display: flex;
+  overflow: hidden;
+  padding: 0;
+  background: var(--thumb-dark);
+  cursor: pointer;
+}
+.mode-thumb.light {
+  background: var(--thumb-light);
+}
+.mode-thumb.system {
+  background: linear-gradient(90deg, var(--thumb-light) 50%, var(--thumb-dark) 50%);
+}
+.mode-thumb.on {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.mt-side {
+  width: 18px;
+  background: rgba(var(--gray-ink), 0.18);
+}
+.mt-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 8px;
+}
+.mt-lines i {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(var(--gray-ink), 0.45);
+}
+.mt-lines i:nth-child(2) {
+  width: 70%;
+}
+.mt-lines i:nth-child(3) {
+  width: 45%;
+}
+.color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+  box-shadow: inset 0 0 0 0.5px rgba(var(--white-ink), 0.25);
+}
+.color-input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 14px;
+  border: 0.5px solid var(--hairline-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.color-input input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.settings-links {
+  display: flex;
+  justify-content: space-between;
+  margin: -40px 0 40px;
+}
+.link-muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.link-muted:hover {
+  color: var(--text);
+}
+.config-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  font-size: var(--fs-small);
+  line-height: 1.42;
+  color: var(--yellow);
+  background: color-mix(in srgb, var(--yellow) 8%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--yellow) 25%, transparent);
+}
+.config-warning svg {
+  flex: none;
+  margin-top: 1px;
+}
+.config-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.select-btn.static {
+  pointer-events: none;
+}
+.btn-pill.danger {
+  color: var(--red-text);
+}
+.pill-search.wide {
+  flex: 1;
+}
+.kbd-recording {
+  font-size: var(--fs-small);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px dashed currentColor;
+}
+.limit-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  margin: 4px 0 10px;
+}
+.limit-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(var(--gray-ink), 0.2);
+  overflow: hidden;
+}
+.limit-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.count-pill {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: var(--fs-micro);
+  text-align: center;
+  background: rgba(var(--gray-ink), 0.2);
+  color: var(--text);
+}
+.connections-empty {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.center-text {
+  text-align: center;
+}
+.settings-pad.tight {
+  padding: 8px 0;
+}
+.text-input.slim {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: var(--fs-small);
+  width: 160px;
+}
+.text-input.slim.wide {
+  width: 280px;
+}
+.text-input.slim.num {
+  width: 70px;
+}
+.archived-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 26px;
+}
+.archived-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+.archived-group-head span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-weight: 500;
+}
+/* Settings density matched to reference captures */
+.settings-group {
+  margin-bottom: 40px;
+}
+.settings-group:has(+ .settings-group > .settings-card:first-child) {
+  margin-bottom: 14px;
+}
+.settings-row {
+  min-height: 46px;
+  padding: 9px 0;
+}
+.settings-row:has(.settings-row-desc) {
+  min-height: 60px;
+}
+.settings-group-desc {
+  margin: 2px 0 0;
+}
+.settings-group-head {
+  margin-bottom: 10px;
+}
+.settings-pad .text-area,
+.settings-card .text-area {
+  font-family: var(--font-sans);
+}
+.limit-fill {
+  background: var(--text);
+}
+.settings-links {
+  margin: -26px 0 40px;
+}
+.projects-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.projects-head .settings-title {
+  margin-bottom: 0;
+}
+.projects-search {
+  margin: 24px 0 18px;
+}
+.project-row-icon {
+  flex: none;
+  color: var(--text-2);
+  margin-right: -10px;
+}
+.menu-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--text-3);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.menu-pin:hover,
+.menu-pin.on {
+  color: var(--text-2);
+}
+/* Version: the terminal runs a different CLI, or none (OffPathNote) */
+.cli-offpath {
+  display: block;
+  color: var(--orange);
+}
+/* Add machine: the install steps and each step's output */
+.host-install-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 16px;
+  list-style: none;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.host-step.failed .host-step-label {
+  color: var(--red-text);
+}
+.host-step-output {
+  margin: 2px 0 0;
+  max-height: 120px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: var(--fs-small, 12px);
+  color: var(--text-3);
+}
+/* Add machine: the one-line progress and its Details */
+.host-install {
+  padding: 10px 16px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.host-install-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.host-install-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--text-3);
+}
+/* the bytes of an upload under the phase line */
+.host-install-bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 6px;
+  accent-color: var(--accent, currentColor);
+}
+.host-install-details summary {
+  margin-top: 4px;
+  cursor: pointer;
+  color: var(--text-3);
+}
+.host-install-details .host-install-steps {
+  padding: 8px 0 0;
+}
+/* Add machine: the machines found when the picker opens, grouped (network, Tailscale, ssh config) */
+.add-machine-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 16px 10px;
+}
+.add-machine-picker-status,
+.add-machine-picker-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small, 12px);
+  color: var(--text-3);
+}
+.add-machine-picker-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  text-align: left;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.add-machine-picker-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+.add-machine-picker-row > .btn-pill {
+  margin-left: auto;
+}
+.add-machine-picker-row:hover:not(:disabled) {
+  background: var(--menu-hover);
+}
+.add-machine-picker-row:disabled {
+  cursor: default;
+  color: var(--text-3);
+}
+.add-machine-picker-detail,
+.add-machine-picker-added {
+  color: var(--text-3);
+}
+.add-machine-picker-added {
+  margin-left: auto;
+}
+/* Add by command: the line to run on the far machine, and the card's buttons */
+.host-boot-command {
+  display: block;
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small, 12px);
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
+}
+.host-boot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}

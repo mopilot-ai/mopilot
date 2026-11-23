@@ -1,0 +1,14 @@
+[package]
+name = "framing"
+version = "0.1.0"
+description = "Newline-delimited JSON framing of a harness's raw output: complete lines out of the bytes as they arrive, within a size limit."
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+inventory = "0.3"

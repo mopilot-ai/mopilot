@@ -1,0 +1,352 @@
+/* Composer menus: the add panel, permissions menu and effort slider. */
+/* add (+) panel above the composer */
+.composer-icon-btn.add.active {
+  background: rgba(var(--ink), 0.08);
+}
+.add-panel {
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 4px 0 18px;
+  max-height: min(520px, 60vh);
+  overflow-y: auto;
+  box-shadow: 0 -1px 0 rgba(var(--ink), 0.06);
+  margin: 0 5px;
+}
+.add-panel-label {
+  padding: 8px 8px 4px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.add-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 29px;
+  padding: 5px 8px;
+  border-radius: 15px;
+  font-size: var(--fs-ui);
+  color: var(--text);
+  text-align: left;
+  opacity: 0.75;
+}
+.add-panel-error {
+  padding: 2px 8px 6px;
+  font-size: var(--fs-small);
+  color: var(--red-text);
+}
+.add-panel-item.sel {
+  background: rgba(var(--ink), 0.08);
+  opacity: 1;
+}
+.add-panel-item.disabled,
+.add-panel-item.disabled.sel {
+  opacity: 0.45;
+  cursor: default;
+}
+.add-panel-icon {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  margin-right: 0;
+}
+.add-panel-title {
+  margin-left: 0;
+  white-space: nowrap;
+}
+.add-panel-desc {
+  margin-left: 2px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.add-panel-check {
+  margin-left: auto;
+}
+.goal-chip {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  min-height: 28px;
+  height: auto;
+  padding: 4px 9px;
+  white-space: nowrap;
+  line-height: 1.385;
+  border-radius: 9999px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.goal-chip:hover,
+.goal-chip:focus-visible {
+  background: var(--row-hover);
+}
+.goal-chip-icon {
+  display: grid;
+  place-items: center;
+}
+.goal-chip-icon > svg {
+  grid-area: 1 / 1;
+}
+.goal-chip-clear {
+  visibility: hidden;
+}
+.goal-chip-clear path {
+  stroke: var(--composer-bg);
+}
+.goal-chip:hover .goal-chip-target,
+.goal-chip:focus-visible .goal-chip-target {
+  visibility: hidden;
+}
+.goal-chip:hover .goal-chip-clear,
+.goal-chip:focus-visible .goal-chip-clear {
+  visibility: visible;
+}
+.plan-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  height: auto;
+  padding: 4px 8px 4px 9px;
+  white-space: nowrap;
+  line-height: 1.385;
+  border-radius: 9999px;
+  font-size: var(--fs-ui);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* permissions menu */
+.perm-menu {
+  padding: 4px 4px 6px;
+}
+.perm-menu-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px 6px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+.perm-menu-head a {
+  color: var(--text-3);
+  text-decoration: underline;
+}
+.perm-item {
+  padding: 3px 12px 4px 10px !important;
+  gap: 10px !important;
+  align-items: center !important;
+}
+.perm-item .menu-title {
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+}
+.perm-item .menu-desc {
+  font-size: var(--fs-ui);
+  line-height: 1.31;
+  margin-top: 0;
+  display: block;
+  white-space: nowrap;
+}
+.perm-mode-note {
+  margin: 0;
+  padding: 6px 12px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  line-height: 1.4;
+}
+.acp-perm-menu .menu-desc,
+.host-menu .menu-desc {
+  white-space: normal;
+}
+.acp-perm-menu .menu-icon,
+.acp-perm-menu .menu-check,
+.host-menu .menu-icon,
+.host-menu .menu-check {
+  align-self: flex-start;
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  height: 1lh;
+}
+.perm-item.full-access,
+.perm-item.full-access .menu-desc,
+.perm-item.full-access .menu-icon,
+.perm-item.full-access .menu-check {
+  color: var(--orange);
+}
+
+/* effort slider popover */
+.effort-pop {
+  width: 254px;
+  padding: 4px;
+  outline: none;
+}
+.effort-head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  height: 48px;
+}
+.effort-icon-btn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.effort-icon-btn:hover {
+  color: var(--text);
+}
+.effort-icon-btn.on {
+  color: var(--purple);
+}
+.effort-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* the head's middle: it gives way to the two 32px buttons, and its model line truncates instead of wrapping */
+  min-width: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: default;
+}
+.effort-title:hover {
+  background: var(--row-hover);
+}
+.effort-name {
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+  font-weight: 500;
+  color: var(--accent);
+}
+.effort-model {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  gap: 2px;
+  font-size: var(--fs-small);
+  line-height: 1.33;
+  font-weight: 400;
+  color: var(--text-2);
+}
+.effort-model svg {
+  flex: none;
+  color: var(--text-3);
+}
+.effort-model-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.effort-track {
+  position: relative;
+  height: 24px;
+  margin: 8px 8px 8px;
+  border-radius: 12px;
+  background: rgba(var(--ink), 0.1);
+  box-shadow: inset 0 0 0 0.5px rgba(var(--ink), 0.082);
+  touch-action: none;
+}
+.effort-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  transition: width 120ms var(--ease);
+}
+.effort-dot {
+  position: absolute;
+  top: 10px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: rgba(var(--ink), 0.3);
+  pointer-events: none;
+}
+.effort-knob {
+  position: absolute;
+  top: -2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: var(--knob-shadow);
+  transition: left 120ms var(--ease);
+  pointer-events: none;
+}
+/* the account the chat runs on, the picker's last row when there is a choice of accounts: › opens the account list */
+.effort-pop .menu-sep {
+  margin: 4px 4px;
+}
+.hp-account {
+  min-height: 36px;
+}
+.hp-account .profile-avatar {
+  flex: none;
+}
+.hp-account-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-account-note {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.hp-account-chevron {
+  flex: none;
+  color: var(--text-3);
+}
+
+.project-menu .menu-scroll {
+  max-height: 150px;
+  padding-bottom: 6px;
+}
+.project-menu .menu-icon svg {
+  stroke-width: 1.5;
+}
+
+.ap-btn.allow:focus-visible,
+.ap-btn.allow:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 2px var(--focus-ring);
+}
+
+.summary-row.muted {
+  color: var(--text-3);
+}
+
+
+/* the permission chip of a chat on a machine: there, but not openable (HostModeChip.tsx) */
+.host-mode-chip {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 9px;
+  white-space: nowrap;
+  border-radius: 9999px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+  cursor: default;
+}

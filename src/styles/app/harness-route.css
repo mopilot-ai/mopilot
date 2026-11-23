@@ -1,0 +1,62 @@
+/* A harness's route (components/harness/RouteNotice.tsx, harnessPicker/RouteMark.tsx): the note under its row and on its page, and the mark on the model pill */
+.route-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.route-note-row {
+  padding: 0 16px 12px 48px;
+  border-bottom: 0.5px solid var(--hairline-strong);
+}
+.route-note-card {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.04);
+}
+.route-note-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.route-tag {
+  flex: none;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-strong);
+  color: var(--text);
+}
+.route-note.unknown .route-tag {
+  color: var(--text-3);
+}
+.route-details {
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.route-text {
+  margin: 0;
+  color: var(--text-3);
+}
+.route-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.route-actions:empty {
+  display: none;
+}
+.route-usage {
+  flex-direction: row;
+  align-items: baseline;
+  margin: 4px 0 8px;
+}
+.route-mark {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  white-space: nowrap;
+}

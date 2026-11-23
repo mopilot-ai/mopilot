@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- sage-mcp (Contents/Helpers/sage-mcp), signed with the hardened runtime. It only speaks stdio to the
+     harness that launched it and a unix socket to MoPilot: no JIT, no third-party libraries. -->
+<plist version="1.0">
+<dict/>
+</plist>

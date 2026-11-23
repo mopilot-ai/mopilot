@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MoPilot</title>
+    <link rel="stylesheet" href="panel.css" />
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body class="side">
+    <header class="bar">
+      <span class="grow"></span>
+      <button id="side" class="icon" type="button" title="History" aria-label="Show sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7M12 7v5l3 2"/></svg></button>
+      <button id="new" class="icon" type="button" title="New chat" aria-label="New chat" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5H5v14h14v-8M10 14l1-4 8-8 3 3-8 8z"/></svg></button>
+      <button id="more" class="icon" type="button" title="More" aria-label="More" aria-expanded="false" aria-haspopup="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+      <div id="header-menu" class="header-menu" role="menu" hidden>
+        <span id="meta" class="meta" hidden></span>
+        <button id="app" class="menu-item" type="button" role="menuitem" hidden>Open in MoPilot ↗</button>
+        <button id="more-settings" class="menu-item" type="button" role="menuitem">Extension settings</button>
+        <button id="more-tasks" class="menu-item" type="button" role="menuitem">Scheduled tasks</button>
+      </div>
+    </header>
+    <div id="task-title" class="thread-title" hidden><button id="title" class="title" type="button">MoPilot</button><span class="chev" aria-hidden="true"></span></div>
+    <aside id="sidebar" class="sidebar" aria-label="Chats" hidden>
+      <div class="side-head"><img src="icons/icon-32.png" alt="" /><span>MoPilot</span><button id="side-close" class="icon" type="button" aria-label="Hide sidebar" title="Hide sidebar">×</button></div>
+      <input id="search" type="search" placeholder="Search chats" aria-label="Search chats" />
+      <button id="side-new" class="side-item" type="button">＋ New chat</button>
+      <h3>Projects</h3>
+      <div id="projects" class="side-list"></div>
+      <h3>Scheduled</h3>
+      <div id="tasks" class="side-list"></div>
+      <h3 id="pinned-head">Pinned</h3>
+      <div id="pinned" class="side-list"></div>
+      <div class="side-row"><h3>Recents</h3><select id="recents-filter" aria-label="Show"><option value="active">Active</option><option value="archived">Archived</option></select><label class="group"><input id="group" type="checkbox" /> By project</label></div>
+      <div id="recents" class="side-list"></div>
+      <div class="side-foot"><button id="side-all" class="side-item" type="button">View all in MoPilot ↗</button><button id="side-settings" class="side-item" type="button">Extension settings</button></div>
+    </aside>
+    <section id="state" class="center" hidden>
+      <span id="spin" class="spin" hidden></span>
+      <h2 id="state-title"></h2>
+      <p id="state-text"></p>
+      <button id="state-act" class="primary" type="button" hidden></button>
+    </section>
+    <section id="welcome" class="center welcome" hidden>
+      <div id="consent" hidden>
+        <h2>Before you start</h2>
+        <ul id="risks" class="risks"></ul>
+        <button id="consent-ok" class="primary" type="button">I understand</button>
+      </div>
+      <div id="intro" hidden>
+        <h2 id="intro-title"></h2>
+        <p id="intro-text"></p>
+        <p id="intro-dots" class="dots" aria-hidden="true"></p>
+        <button id="intro-next" class="primary" type="button"></button>
+      </div>
+    </section>
+    <section id="empty" class="center" hidden>
+      <img class="empty-mark" src="icons/icon-128.png" alt="MoPilot" />
+    </section>
+    <section id="chat" class="thread" hidden>
+      <p id="loading" class="loading" hidden><span class="spin"></span></p>
+      <p id="load-error" class="load-error" hidden><span>Couldn't load this chat.</span> <button id="load-again" type="button">Try again</button></p>
+      <div id="rows" class="rows"></div>
+      <div id="live" class="reply" hidden></div>
+      <div id="cards" class="cards"></div>
+      <p id="progress" class="progress"><span id="progress-dot" class="dot wait"></span><span id="progress-text"></span><span id="elapsed" title="Elapsed time observed in this panel"></span><span id="activity-count"></span><img id="activity-thumbnail" class="activity-thumbnail" alt="Screenshot from this turn" hidden /></p>
+    </section>
+    <button id="jump" type="button" class="jump icon" aria-label="Scroll to latest message" hidden>↓</button>
+    <form id="composer" class="composer" hidden>
+      <div id="error" class="error banner" role="alert" hidden></div>
+      <div id="refusal" class="refusal banner" role="status" hidden><div class="refusal-text"><strong class="refusal-title"></strong><span class="refusal-body"></span></div><button id="refusal-off" type="button" class="banner-dismiss" aria-label="Dismiss notice"></button></div>
+      <div id="usage" class="usage-banner banner" role="status" hidden><span id="usage-text"></span><button id="usage-off" type="button" class="icon" aria-label="Dismiss usage notice">×</button></div>
+      <p id="notice" class="notice banner" role="status" hidden><span id="notice-text"></span> <button id="notice-act" type="button" hidden></button></p>
+      <div class="composer-card">
+      <div id="attached" class="attached" hidden></div>
+      <div id="skills" class="attached" hidden></div>
+      <div id="slash-menu" class="menu" role="listbox" aria-label="Commands" hidden></div>
+      <div id="mention-menu" class="menu" role="listbox" aria-label="Tabs and chats" hidden></div>
+      <div class="text-wrap"><textarea id="text" rows="2" placeholder="Ask anything" aria-label="Message"></textarea><span id="tip" class="empty-tip" aria-hidden="true" hidden></span></div>
+      <div id="model-menu" class="menu" role="menu" aria-label="Model" hidden><div id="model-rows"></div></div>
+      <select id="harness" aria-label="Harness" hidden></select>
+      <div id="perm-menu" class="menu" role="menu" aria-label="Permissions" hidden></div>
+      <div id="plus-menu" class="menu" role="menu" aria-label="Add" hidden>
+        <button id="shot" class="menu-item" type="button" role="menuitem"><span>Add a screenshot of this tab</span></button>
+        <button id="pick" class="menu-item" type="button" role="menuitem"><span>Add files</span></button>
+        <span id="tab" class="context-option" hidden><img id="tab-icon" alt="" /><span id="tab-title"></span><button id="tab-off" class="menu-item" type="button" aria-label="Don't include this tab">Don't include this tab</button></span>
+      </div>
+      <input id="files" type="file" multiple hidden />
+      <div class="row">
+        <button id="plus" class="icon" type="button" title="Add files and more" aria-label="Add files and more" aria-haspopup="menu">+</button>
+        <button id="perm" class="pick" type="button" aria-haspopup="menu" hidden></button>
+        <span id="project" class="chip" hidden><span id="project-name"></span><button id="project-off" type="button" aria-label="Not in this project">×</button></span>
+        <span class="grow"></span>
+        <button id="model" class="pick" type="button" aria-haspopup="menu" hidden></button>
+        <button id="mic" class="icon mic" type="button" aria-label="Dictate" title="Dictate"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg></button>
+        <button id="send" class="send" type="submit" aria-label="Send">↑</button>
+        <button id="stop" class="send stop" type="button" aria-label="Stop" title="Stop" hidden></button>
+      </div>
+      <p id="copy-notice" class="copy-notice" role="status" aria-live="polite"></p>
+      </div>
+      <p class="footer">MoPilot uses AI and can make mistakes. Please double-check responses.</p>
+    </form>
+    <p id="pin-tip" class="pin-tip" hidden>Pin MoPilot for quick access: open Extensions in the toolbar, then pin it. <button id="pin-off" class="icon" type="button" aria-label="Dismiss">×</button></p>
+    <script type="module" src="sidepanel.mjs"></script>
+  </body>
+</html>

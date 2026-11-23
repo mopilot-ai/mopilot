@@ -1,0 +1,407 @@
+/* Composer footer layout and its permission, model and icon controls adapt to the current font and pane width. */
+.composer-footer {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  min-width: 0;
+  height: auto;
+  margin-top: var(--composer-footer-gap);
+}
+.composer-left,
+.composer-right {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+}
+.composer-left {
+  flex: 0 1 auto;
+  gap: 6px;
+  margin-left: -4px;
+}
+.composer-right {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-left: auto;
+}
+.composer-right .model-btn {
+  flex: 1 1 0%;
+}
+.model-btn .route-mark {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.composer-left .plan-chip {
+  min-width: 0;
+}
+.composer-left .plan-chip > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Dictation's note owns a row above the footer: the footer's controls keep their single row and their places. */
+.composer-footer:has(.composer-right > .dictation-note) {
+  position: relative;
+  margin-top: calc(var(--composer-footer-gap) + var(--dictation-note-row));
+}
+.composer-left > .tooltip-anchor:has(.perm-btn),
+.composer-left > .tooltip-anchor:has(.host-chip) {
+  min-width: 0;
+}
+.composer-right > .tooltip-anchor,
+.composer-icon-btn {
+  flex: none;
+}
+.composer-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--row-radius);
+  display: grid;
+  place-items: center;
+  color: var(--text-ui);
+  transition: background var(--dur);
+}
+.composer-icon-btn:hover,
+.composer-icon-btn.active {
+  background: var(--row-hover);
+}
+.composer-icon-btn.mic {
+  margin-right: 6px;
+}
+/* a dictation recording: the microphone's level, its time and a discard button, beside the mic */
+.dictation-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 4px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+.dictation-wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+}
+.dictation-wave i {
+  display: block;
+  width: 3px;
+  height: 18px;
+  border-radius: 1.5px;
+  background: var(--accent);
+  transform-origin: center;
+  transition: transform 80ms linear;
+}
+.dictation-caption {
+  max-width: 28ch;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+}
+.dictation-time.ending {
+  color: var(--red-text);
+}
+.dictation-meter .dictation-cancel {
+  width: 22px;
+  height: 22px;
+}
+/* what Dictate waits for (macOS's Speech Recognition prompt, #2286), or why a retained recording wasn't transcribed */
+.dictation-note {
+  margin-right: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.dictation-note button {
+  flex: none;
+  margin-left: 8px;
+  color: var(--text-2);
+}
+.dictation-note button:hover {
+  color: var(--text-ui);
+  text-decoration: underline;
+}
+.composer-right > .dictation-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 4px);
+  height: calc(var(--dictation-note-row) - 4px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  margin-right: 0;
+}
+/* a long reason is cut, never the Retry and Discard beside it; its whole text is the tooltip */
+.dictation-why {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@container composer (max-width: 420px) {
+  /* Model details remain in its menu; keep the selected fast mode visible in the tightest panes. */
+  .composer-right > .tooltip-anchor:has(.api-chip),
+  .composer-right .model-btn:has(.fast-icon) > .harness-icon:first-child {
+    display: none;
+  }
+}
+.composer-icon-btn.recording {
+  color: var(--red-text);
+}
+.perm-btn,
+.host-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  height: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding: 4px 8px;
+  white-space: nowrap;
+  line-height: 1.385;
+  border-radius: var(--row-radius);
+  font-size: var(--fs-ui);
+  font-weight: 400;
+  color: var(--text-3);
+}
+.perm-btn.active,
+.host-chip.active {
+  background: var(--row-hover);
+}
+.perm-btn:hover,
+.host-chip:hover {
+  background: var(--row-hover);
+}
+.perm-btn.full-access {
+  color: var(--orange);
+}
+.model-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  height: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding: 4px 8px;
+  white-space: nowrap;
+  line-height: 1.385;
+  border-radius: var(--row-radius);
+  font-size: var(--fs-ui);
+  font-weight: 400;
+  color: var(--text);
+}
+.perm-btn > span,
+.model-name,
+.model-effort {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.perm-btn > svg,
+.model-btn > svg {
+  flex-shrink: 0;
+}
+.model-btn:hover,
+.model-btn.active {
+  background: var(--row-hover);
+}
+.model-effort {
+  flex-shrink: 1;
+  color: var(--text-3);
+}
+.model-chevron {
+  color: var(--text-3);
+  margin-left: 3px;
+}
+.fast-icon {
+  color: var(--yellow);
+}
+/* Model and reasoning labels shrink with their actual space, never disappear at a pane-width cutoff.
+   Other chips fold to icons in narrow panes while the footer keeps its single row on every harness. */
+@container composer (max-width: 520px) {
+  /* dot and laptop icon only: 8 + 2 + 14 fits the 28px square the other chips collapse to */
+  .composer-left .host-chip {
+    min-width: 28px;
+    width: 28px;
+    padding: 0;
+    gap: 2px;
+    justify-content: center;
+  }
+  .composer-left .host-chip > svg {
+    width: 14px;
+    height: 14px;
+  }
+  .composer-left .host-name {
+    display: none;
+  }
+}
+/* a Goal or Plan chip crowds the left side: its chips fold to icons from 640px, so no name is cut to a letter */
+@container composer (max-width: 640px) {
+  .composer-left:has(.goal-chip, .plan-chip) .perm-btn,
+  .composer-left:has(.goal-chip, .plan-chip) .plan-chip,
+  .composer-left:has(.goal-chip, .plan-chip) .goal-chip,
+  .composer-left:has(.goal-chip, .plan-chip) .host-chip {
+    min-width: 28px;
+    width: 28px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+  }
+  .composer-left:has(.goal-chip, .plan-chip) .host-chip {
+    gap: 2px;
+  }
+  .composer-left:has(.goal-chip, .plan-chip) .host-chip > svg {
+    width: 14px;
+    height: 14px;
+  }
+  .composer-left:has(.goal-chip, .plan-chip) .perm-btn > span,
+  .composer-left:has(.goal-chip, .plan-chip) .perm-btn > svg:not(:first-child),
+  .composer-left:has(.goal-chip, .plan-chip) .plan-chip > span,
+  .composer-left:has(.goal-chip, .plan-chip) .plan-chip > svg:not(:first-child),
+  .composer-left:has(.goal-chip, .plan-chip) .goal-chip > span:last-child,
+  .composer-left:has(.goal-chip, .plan-chip) .host-name {
+    display: none;
+  }
+}
+@container composer (max-width: 420px) {
+  .composer-footer {
+    gap: 2px;
+  }
+  .composer-left {
+    flex: none;
+    gap: 1px;
+  }
+  .composer-right {
+    flex: 1 1 0%;
+    gap: 1px;
+  }
+  .composer-left .perm-btn,
+  .composer-left .plan-chip,
+  .composer-left .goal-chip {
+    min-width: 28px;
+    width: 28px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+  }
+  .composer-left .perm-btn > span,
+  .composer-left .perm-btn > svg:not(:first-child),
+  .composer-left .plan-chip > span,
+  .composer-left .plan-chip > svg:not(:first-child),
+  .composer-left .goal-chip > span:last-child,
+  .composer-right .model-btn > svg:last-child {
+    display: none;
+  }
+  .composer-right .model-btn {
+    min-width: 28px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .composer-right .composer-icon-btn.mic {
+    margin-right: 0;
+  }
+}
+/* the host chip's status dot: green online, grey offline, amber needs attention */
+.host-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+.host-dot.online {
+  background: var(--green);
+}
+.host-dot.attention {
+  background: var(--orange);
+}
+.host-name {
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* the Switch host dialog: one row per machine, then the folder on it */
+.switch-host {
+  width: min(420px, calc(100vw - 32px));
+}
+.switch-host .acct-dialog-hint {
+  overflow-wrap: anywhere;
+}
+.switch-host-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* a row's name and cause wrap rather than cut: the cause of a disabled row is only worth showing in full */
+.switch-host-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.switch-host-row[aria-checked='true'] {
+  background: var(--row-hover);
+}
+.switch-host-row:disabled {
+  color: var(--text-3);
+}
+.switch-host-row .host-dot {
+  margin-top: 5px;
+}
+.switch-host-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow-wrap: anywhere;
+}
+.switch-host-note {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-left: auto;
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.switch-host-fix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 4px 2px 0;
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+}
+.switch-host-dir {
+  display: flex;
+  gap: 6px;
+}
+.switch-host-dir .text-input {
+  flex: 1;
+  min-width: 0;
+}
+.switch-host-files ul {
+  margin: 2px 0 0;
+  padding-left: 18px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}

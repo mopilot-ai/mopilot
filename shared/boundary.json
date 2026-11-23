@@ -1,0 +1,22 @@
+{
+  "layer": "L0",
+  "public": [
+    "*"
+  ],
+  "mayImport": [],
+  "files": [
+    "electron/ignored.cjs"
+  ],
+  "allow": [
+    {
+      "path": "shared/acpNumber.mjs",
+      "to": "electron/chrome-extension/src/panelNumbers.mjs",
+      "reason": "The Chrome extension ships its folder as is, with no bundler, so it can import nothing outside it: its number parser is the source, and shared re-exports it for the app."
+    },
+    {
+      "path": "shared/host/methodFiles.mjs",
+      "to": "node:fs",
+      "reason": "A wire method is declared in its own file in shared/host/methods/ and found by listing that folder, so a feature adds no line to schema.mjs; the Mac app and the Host both load schema.mjs in Node."
+    }
+  ]
+}

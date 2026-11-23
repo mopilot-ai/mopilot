@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/harness/claude/adapter.cjs": {
+      "maxLines": 802,
+      "reason": "Owns Claude chat lifecycle and its adapter contract. Goal timing, account-limit handoff and session state share that owner. It also tells main the login each turn starts on (the served hook, #2538) where it emits turnStarting; the rule lives in electron/session/adapterSettings.cjs. MoMo's brain effort (#2139) is pinned with its model: the adapter takes a pinnedEffort hook beside pinnedModel (read in electron/session/adapterSettings.cjs, applied in electron/harness/claude/turnSettings.cjs)."
+    }
+  }
+}

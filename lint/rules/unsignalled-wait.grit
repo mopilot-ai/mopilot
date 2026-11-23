@@ -1,0 +1,19 @@
+// An approval card asked without the tool call's abort signal: ApprovalBroker.ask with no fourth argument, or a site
+// check (grants.require / grants.act) given a context that carries no signal (`this.ctx`, or an object literal
+// without `signal`). The registry stops waiting for an aborted call, but its card stays up, and a late click still
+// applies: a site card still stores a chat or always grant (#1865). Pass `{ signal: ctx.signal }` to broker.ask, and
+// a ctx with `signal` to the site checks; a card that is not a tool call's (a page the user drives) passes
+// `{ signal: null }` and says why. Applied to main's code (biome.json overrides). docs/bug-prevention/stuck-state.md
+language js
+
+JsCallExpression() as $hit where {
+  or {
+    $hit <: or { `$_.broker.ask($_, $_, $_)`, `broker.ask($_, $_, $_)`, `$_.broker.ask($_, $_)`, `broker.ask($_, $_)` },
+    and {
+      $hit <: or { `grants.require($_, $_, $ctx)`, `grants.require($_, $_, $ctx, $_)`, `grants.act($_, $ctx)`, `grants.act($_, $ctx, $_)` },
+      $ctx <: or { `this.ctx`, JsObjectExpression() },
+      $ctx <: not contains `signal`
+    }
+  },
+  register_diagnostic(span=$hit, message="[unsignalled-wait] An approval card asked without the tool call's abort signal stays up after the call is aborted, and a late click still applies. Pass { signal: ctx.signal } to broker.ask (a ctx with signal to grants.require/act), or { signal: null } for a card that is not a tool call's (docs/bug-prevention/stuck-state.md).", severity="warn")
+}

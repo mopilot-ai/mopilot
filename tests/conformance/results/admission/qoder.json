@@ -1,0 +1,50 @@
+{
+  "id": "qoder",
+  "version": "1.1.82",
+  "checkedAt": "2026-11-04T00:38:27.014Z",
+  "platform": "darwin arm64, Node v24.22.1, a clean GitHub Actions macOS runner",
+  "how": "Qoder 1.1.82 was installed with npm install -g @qoder-ai/qodercli and probed on 2026-11-04 with the production admission check and sage-mcp, with no account (https://github.com/mopilot-ai/mopilot-code-release/actions/runs/41747573591): initialize succeeded and session/new required sign-in. No authenticate or prompt call was sent.",
+  "initialize": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "qoder-cli",
+      "title": "Qoder CLI",
+      "version": "1.1.82"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "sessionCapabilities": {
+        "resume": {},
+        "list": {},
+        "close": {},
+        "fork": {}
+      }
+    },
+    "authMethods": [
+      {
+        "id": "qodercli-login",
+        "name": "Use qodercli login",
+        "description": "Use your existing qodercli login for this agent. If needed, sign in from qodercli first."
+      }
+    ]
+  },
+  "sessionNew": {
+    "ok": false,
+    "sageMcpHello": false,
+    "error": "Sign in to Qoder first"
+  },
+  "probeWithQuirksFixes": {
+    "state": "signin",
+    "version": "1.1.82",
+    "reason": "Sign in to Qoder first"
+  }
+}

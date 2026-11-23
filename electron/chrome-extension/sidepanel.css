@@ -1,0 +1,293 @@
+/* The side panel's look (src/sidePanel.mjs), on panel.css's colors: a bar, one state or the chat, and the composer at the bottom.
+   Every colour is a token in a :root block (light here, dark in the prefers-color-scheme block below); tests/chromePanelDarkTokens.invariant.test.ts fails on a colour literal anywhere else. */
+:root { --bg: #fbfcfe; --fg: #181e2a; --soft: #f0f1f3; --card: #fff; --accent: #3b6ff5;
+  /* surfaces and marks that differ per scheme, on the app's own light palette (src/styles/tokens.css, shared/defaultPalette.mjs); dark is below */
+  --bubble: var(--soft); --hover: var(--soft); --info-bg: var(--soft); --code-bg: var(--soft); --code-ic-bg: var(--soft); --code-ic-fg: currentcolor; --link: currentcolor;
+  --menu-bg: var(--bg); --line-strong: var(--line); --danger-bg: #f9edeb; --danger-fg: #c9332a; --rec: #d33; --on-rec: #fff;
+  --shadow-card: 0 2px 10px rgb(0 0 0 / 0.08), 0 0 0 0.5px rgb(0 0 0 / 0.08);
+  --shadow-header-menu: 0 8px 28px rgb(0 0 0 / 0.12); --shadow-row-menu: 0 8px 24px rgba(0, 0, 0, 0.14); --shadow-menu: 0 6px 24px rgb(0 0 0 / 0.14); --shadow-jump: 0 2px 8px rgb(0 0 0 / 0.08);
+  /* the app's chevron (ChevronDown, 2px stroke), drawn in the text's color: a font's ⌄ or ▾ sits below the text's middle */
+  --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+.chev, #perm::after, .steps > summary::after { content: ''; display: inline-block; flex: none; width: 10px; height: 10px; margin-left: 4px; vertical-align: -1px; background: currentColor; -webkit-mask: var(--chev) center / contain no-repeat; mask: var(--chev) center / contain no-repeat; }
+/* Dark, on the app's own dark palette (src/styles/tokens.css): the page is the app's main surface #171a21, the composer card, menus, user bubble, code block and
+   the default info banner its raised surface #22252c, text #eef1f6, hairlines white at .1 and .2, and the hover fill the next step up (#35383f), so a hover still shows on a
+   menu or the card. Links and inline code keep the text colour, as in light. Errors and the danger banner use the app's red text #f06a62 on #361f1e (that red at 16% over the page).
+   The muted grey is panel.css's own dark #a8adb7, 4.5:1 or better on every surface. The accent is the app's blue #3b6ff5. */
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #171a21; --fg: #eef1f6; --soft: #22252c; --card: #22252c; --muted: #a8adb7; --line: rgb(255 255 255 / 0.1); --line-strong: rgb(255 255 255 / 0.2);
+    --bubble: #22252c; --hover: #35383f; --info-bg: #22252c; --code-bg: #22252c; --code-ic-bg: rgb(255 255 255 / 0.06); --code-ic-fg: currentcolor; --link: currentcolor; --menu-bg: #22252c; --danger-bg: #361f1e; --danger-fg: #f06a62;
+    --shadow-card: 0 2px 10px rgb(0 0 0 / 0.24), 0 0 0 0.5px rgb(255 255 255 / 0.1);
+    --shadow-header-menu: 0 8px 24px rgb(0 0 0 / 0.32), 0 2px 6px rgb(0 0 0 / 0.2); --shadow-row-menu: 0 8px 24px rgb(0 0 0 / 0.32), 0 2px 6px rgb(0 0 0 / 0.2); --shadow-menu: 0 8px 24px rgb(0 0 0 / 0.32), 0 2px 6px rgb(0 0 0 / 0.2); --shadow-jump: 0 2px 8px rgb(0 0 0 / 0.24); }
+  /* the banner's Copy sits on the danger fill, where the page's grey is 3.9:1: it takes the banner's text colour (in light the grey is 4.6:1 there, so light is left as B6 drew it) */
+  #error .message-copy { color: inherit; }
+}
+html, body.side { height: 100%; }
+body.side { display: flex; flex-direction: column; position: relative; }
+body.side *, body.side *::before, body.side *::after { box-sizing: border-box; }
+/* a hairline under the toolbar */
+.bar { display: flex; align-items: center; gap: 4px; padding: 8px 12px 4px; position: relative; min-height: 28px; border-bottom: 1px solid var(--line); }
+.bar .grow { flex: 1; }
+.bar img { width: 18px; height: 18px; }
+.title { flex: 1; min-width: 0; text-align: left; border: 0; padding: 4px 6px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.icon { border: 0; width: 28px; height: 28px; padding: 0; color: var(--muted); font-size: 15px; }
+.icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+.thread-title { display: flex; align-items: center; gap: 2px; padding: 2px 14px 8px; max-width: 100%; min-width: 0; }
+.thread-title .title { flex: initial; max-width: calc(100% - 18px); padding: 4px 0; font-size: 14px; font-weight: 500; }
+.thread-title > span { color: var(--muted); }
+body.side:has(#chat[hidden]) .thread-title { display: none; }
+.header-menu { position: absolute; top: 40px; right: 12px; z-index: 8; min-width: 210px; max-width: calc(100vw - 24px); padding: 6px; background: var(--card); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: var(--shadow-header-menu); }
+.header-menu .meta { display: block; padding: 6px 8px; }
+body.side:has(#composer[hidden]) #more { display: none; }
+.title:hover, .icon:hover { background: var(--hover); }
+.sidebar { position: absolute; inset: 0; z-index: 3; background: var(--bg); display: flex; flex-direction: column; gap: 6px; padding: 10px; overflow: auto; }
+.side-head { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.side-head img { width: 18px; height: 18px; }
+.side-head span { flex: 1; }
+.sidebar input[type=search] { font: inherit; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--fg); }
+.sidebar h3 { margin: 8px 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.side-row { display: flex; align-items: center; gap: 8px; }
+.side-row h3 { flex: 1; }
+.side-row select { font: 12px system-ui, sans-serif; color: var(--muted); background: transparent; border: 0; }
+.side-row .group { display: flex; align-items: center; gap: 4px; margin: 0; font-size: 12px; color: var(--muted); }
+.side-list { display: grid; }
+.side-item, .row-chat { display: flex; gap: 8px; align-items: center; width: 100%; border: 0; text-align: left; padding: 6px; border-radius: 6px; }
+.side-item:hover, .row-chat:hover, .row-chat.on { background: var(--hover); }
+.row { display: flex; align-items: center; position: relative; }
+.row .row-chat { flex: 1; min-width: 0; }
+.row-chat .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-chat small, .side-list .none, .group-head { color: var(--muted); font-size: 12px; }
+.side-list .none { padding: 6px; }
+.group-head { padding: 6px 6px 2px; }
+.row-more { border: 0; padding: 2px 6px; color: var(--muted); }
+.row-menu { position: absolute; right: 0; top: 28px; z-index: 4; background: var(--menu-bg); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: var(--shadow-row-menu); padding: 4px; display: grid; min-width: 180px; }
+.row-menu button { border: 0; text-align: left; padding: 6px 8px; border-radius: 6px; }
+.row-menu button:hover { background: var(--hover); }
+.side-foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 6px; display: grid; }
+.center { flex: 1; display: grid; place-content: center; justify-items: center; text-align: center; gap: 10px; padding: 24px; }
+.center h2 { margin: 0; font-size: 15px; }
+.center p { margin: 0; color: var(--muted); max-width: 30ch; }
+.empty-mark { width: 56px; height: 56px; opacity: 0.3; filter: grayscale(1); }
+/* Empty state (B7): the MoPilot mark, about 56px wide, grayscale at 30%, centered, with nothing else. The tip line (class empty-tip: panel.css's .tip is the options page's own, with a margin) is the tip cycle (panelTips.mjs), drawn over the box: it shares the box's grid cell, so it sits exactly where the box's own text starts, takes no clicks and is muted; it leaves y 0 to -6px fading over 0.2s ease-in-out, then enters from y 6px to 0 over 0.2s. Its size is the box's own 13px, so typed text and the tip line up. Under reduced motion the line changes with no animation. */
+.text-wrap { display: grid; min-width: 0; }
+.text-wrap > * { grid-area: 1 / 1; min-width: 0; }
+.empty-tip { align-self: start; padding: 1px 0; line-height: 1.5; color: var(--muted); pointer-events: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#text[data-tips]::placeholder { color: transparent; }
+@keyframes tip-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes tip-in { from { opacity: 0; transform: translateY(6px); } }
+.spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--fg); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+.sugg { display: grid; gap: 6px; width: 100%; max-width: 300px; }
+.sugg button { text-align: left; border-radius: 9px; padding: 7px 10px; }
+.thread { flex: 1; min-height: 0; overflow: hidden auto; padding: 12px 18px 18px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; }
+/* a row never widens the thread: long words wrap, and a wide table or code block scrolls in its own box */
+.thread > *, .rows > * { min-width: 0; max-width: 100%; }
+.you { position: relative; align-self: flex-end; max-width: 85%; background: var(--bubble); border-radius: 14px; padding: 7px 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rows { display: flex; flex-direction: column; gap: 10px; }
+.you .tab { margin-top: 4px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.you .tab::before { content: '↗ '; }
+/* Reply text: a serif at 14px with a 26.4px line; lists indent 28px with 10px between items; quotes a 2px start border and 8px padding; h1 bold at 20px/1.4 with 8px above and below, h2 17px, h3 to h6 the body size, bold */
+.reply { overflow-wrap: anywhere; font-family: Charter, "Iowan Old Style", Georgia, serif; font-size: 14px; line-height: 26.4px; }
+.reply p, .reply ul, .reply ol, .reply pre, .reply blockquote { margin: 0 0 8px; }
+.reply ul, .reply ol { padding-left: 28px; }
+.reply li + li, .reply li > ul, .reply li > ol { margin-top: 10px; }
+.reply li > ul, .reply li > ol { margin-bottom: 0; }
+.reply blockquote { border-left: 2px solid var(--line); padding-left: 8px; }
+.reply blockquote > :last-child { margin-bottom: 0; }
+.reply .h { font-weight: 700; margin: 8px 0; line-height: 1.4; }
+.reply .h[aria-level="1"] { font-size: 20px; }
+.reply .h[aria-level="2"] { font-size: 17px; }
+.reply img { max-width: 100%; height: auto; border-radius: 8px; vertical-align: middle; }
+.reply .img-load { font: 12px system-ui, sans-serif; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+.reply code { font: 12px ui-monospace, monospace; background: var(--code-ic-bg); color: var(--code-ic-fg); border-radius: 4px; padding: 1px 4px; }
+.reply pre { background: var(--code-bg); border-radius: 8px; padding: 8px 10px; overflow: auto; }
+.reply pre code { background: none; color: inherit; padding: 0; }
+.reply a { color: var(--link); }
+.reply .table { overflow-x: auto; margin: 0 0 8px; }
+.reply table { border-collapse: collapse; font-size: 12px; }
+.reply th, .reply td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; overflow-wrap: normal; min-width: 4em; }
+.reply th { font-weight: 600; background: var(--soft); }
+/* the streamed reply has its Copy buttons for room only (so the read that holds it moves nothing); they work once it is a row */
+#live .message-copy { visibility: hidden; }
+.step { color: var(--muted); font-size: 12px; display: flex; gap: 6px; align-items: baseline; overflow-wrap: anywhere; }
+.step::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); flex: none; transform: translateY(-2px); }
+.note { color: var(--muted); font-size: 12px; text-align: center; overflow-wrap: anywhere; }
+.steps { margin: 0; padding: 0; border: 0; font-family: system-ui, sans-serif; }
+.steps > summary { cursor: pointer; list-style: none; }
+.steps > summary::after { transform: rotate(-90deg); }
+.steps[open] > summary::after { transform: none; }
+.steps > summary::-webkit-details-marker { display: none; }
+.steps[open] > summary { margin-bottom: 6px; }
+.steps > .step:not(summary) { margin: 0 0 4px 11px; }
+/* Work timeline (B3): the last 3 steps show while the turn runs; a new step enters over 430ms (from opacity 0, blur 4px, translateY 5px, scale .9, an ease-out-quint curve, done at 30%, origin left center); a step whose state changed fades its new line in over .25s ease-in-out (the old row is replaced in one frame); the working label shimmers over 3s, held 15% at each end, ease-in-out between; a finished turn ends in a check circle in muted text. The shimmer's gradient is muted text with a foreground band; a failed step's dot is the error colour. No animation under prefers-reduced-motion. */
+#chat:is([data-turn="running"], [data-turn="waiting"]) .steps[data-last]:not([open])::details-content { content-visibility: visible; }
+#chat:is([data-turn="running"], [data-turn="waiting"]) .steps[data-last]:not([open]) > [data-older] { display: none; }
+#chat:is([data-turn="running"], [data-turn="waiting"]) .steps[data-last]:not([open]) > summary { margin-bottom: 4px; }
+.step[data-state="failed"]::before { background: var(--error); }
+:root { --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='6.5'/%3E%3Cpath d='m5.3 8.2 1.9 1.9 3.6-3.9'/%3E%3C/svg%3E"); }
+.progress .dot.ok { width: 14px; height: 14px; border-radius: 0; background: currentColor; -webkit-mask: var(--check) center / contain no-repeat; mask: var(--check) center / contain no-repeat; }
+@keyframes shimmer-text { 0% { background-position: 100% 0; } 15% { background-position: 100% 0; animation-timing-function: ease-in-out; } 85%, 100% { background-position: 0 0; } }
+@keyframes step-enter { 0% { opacity: 0; filter: blur(4px); transform: translateY(5px) scale(.9); } 30%, 100% { opacity: 1; filter: none; transform: none; } }
+@keyframes step-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  .step[data-motion="enter"] { transform-origin: left center; animation: step-enter 430ms cubic-bezier(.22, 1, .36, 1) backwards; }
+  .step[data-motion="fade"] { animation: step-fade .25s ease-in-out; }
+  .empty-tip[data-phase="out"] { animation: tip-out 0.2s ease-in-out forwards; }
+  .empty-tip[data-phase="in"] { animation: tip-in 0.2s ease-in-out; }
+  #chat[data-turn="running"] #progress-text, #chat[data-turn="running"] .step[data-state="running"]:not(details), #chat[data-turn="running"] details.step[data-state="running"] > summary { color: transparent; background: linear-gradient(90deg, var(--muted) 0, var(--muted) 35%, var(--fg) 50%, var(--muted) 65%, var(--muted) 100%) 100% 0 / 300% 100%; -webkit-background-clip: text; background-clip: text; animation: shimmer-text 3s linear infinite; }
+}
+.omitted { margin: 0; color: var(--muted); font-size: 12px; text-align: center; }
+.meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cards { display: grid; gap: 8px; }
+.cards:empty { display: none; }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 11px; display: grid; gap: 8px; }
+.card .q { font-weight: 600; overflow-wrap: anywhere; }
+.card pre { margin: 0; max-height: 140px; overflow: auto; font: 12px ui-monospace, monospace; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.card .choices { display: grid; gap: 6px; }
+.card .choices button { font-size: 13px; padding: 8px 10px; border-radius: 8px; text-align: left; }
+.card .choices button:not(.primary) { border-color: var(--line-strong); }
+.card label { font: 13px system-ui, sans-serif; margin: 5px 0; }
+.card input[type=checkbox], .card input[type=radio] { width: auto; margin-right: 8px; accent-color: var(--accent); }
+.card fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.card .holding { box-shadow: inset 0 0 0 2px var(--accent); }
+.card .kicker { font-size: 12px; color: var(--muted); }
+.card .note { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.card kbd { float: right; font: 11px system-ui, sans-serif; color: var(--muted); }
+.card .primary kbd { color: inherit; opacity: .7; }
+.plan-box { display: grid; gap: 4px; min-width: 0; }
+.plan { font-size: 13px; line-height: 1.45; overflow: hidden; max-height: calc(12 * 1.45em); overflow-wrap: anywhere; }
+.plan.open { overflow: auto; max-height: 60vh; }
+.plan p, .plan ul, .plan ol, .plan pre { margin: 0 0 6px; }
+.plan ul, .plan ol { padding-left: 20px; }
+.plan .h { font-weight: 600; }
+.plan a { color: var(--link); }
+.plan code { font: 12px ui-monospace, monospace; background: var(--code-ic-bg); color: var(--code-ic-fg); border-radius: 4px; padding: 1px 4px; }
+.plan pre { max-height: none; color: inherit; background: var(--code-bg); border-radius: 8px; padding: 8px 10px; overflow: auto; }
+.plan pre code { background: none; color: inherit; padding: 0; }
+.plan .table { overflow-x: auto; }
+.plan table { border-collapse: collapse; font-size: 12px; }
+.plan th, .plan td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.plan-more { justify-self: start; font-size: 12px; padding: 2px 8px; border-radius: 6px; }
+.plan-file { font-size: 12px; color: var(--muted); }
+.progress { display: flex; align-items: center; gap: 8px; color: var(--muted); margin: 0; }
+.progress a { color: inherit; }
+.composer { margin: 6px 12px 8px; border: 0; padding: 0; display: grid; gap: 6px; flex: none; }
+.composer-card { min-width: 0; grid-template-columns: minmax(0, 1fr); border-radius: 16px; padding: 12px; display: grid; gap: 8px; background: var(--card); box-shadow: var(--shadow-card); }
+.chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; justify-self: start; border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 6px; font-size: 12px; }
+.chip img { width: 14px; height: 14px; }
+.chip span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip button { border: 0; padding: 0 4px; color: var(--muted); }
+.composer textarea { border: 0; outline: 0; resize: none; background: transparent; color: var(--fg); font: inherit; min-height: 44px; max-height: 180px; min-width: 0; width: 100%; box-sizing: border-box; padding: 1px 0; line-height: 1.5; }
+.composer .row { display: flex; min-width: 0; align-items: center; gap: 6px; }
+.composer .row > .icon { flex: none; }
+.composer .row > .chip { min-width: 0; }
+.composer .grow { flex: 1; }
+.composer select { font: 12px system-ui, sans-serif; color: var(--muted); background: transparent; border: 0; padding: 2px; }
+.send { width: 28px; height: 28px; border-radius: 8px; padding: 0; background: var(--btn); color: var(--btn-fg); border-color: var(--btn); flex: none; }
+.send:disabled { opacity: 0.5; cursor: default; }
+.stop { display: grid; place-items: center; }
+.stop { background: none; border: 1px solid var(--fg); }
+.stop::after { content: ''; width: 9px; height: 9px; border-radius: 1px; background: var(--fg); }
+.error { margin: 0; color: var(--error); font-size: 12px; }
+#error { max-height: 30vh; overflow: auto; overflow-wrap: anywhere; }
+.error p { margin: 0; }
+.message-recovery { padding: 6px 0; }
+.message-recovery pre { max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.error .message-copy { opacity: 1; margin-right: 16px; }
+.copy-notice { margin: 0; color: var(--muted); font-size: 12px; }
+.copy-notice:empty { height: 0; overflow: hidden; }
+.notice { margin: 0; border: 1px solid var(--wait); border-bottom: 0; font-size: 12px; color: var(--fg); }
+.notice button { margin-left: 6px; padding: 1px 8px; font-size: 12px; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+.pick { border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; padding: 4px 6px; border-radius: 6px; cursor: pointer; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick:hover:not(:disabled) { background: var(--hover); color: inherit; }
+.pick:disabled { cursor: default; }
+#perm { position: relative; border: 1px solid var(--line); border-radius: 999px; padding: 4px 22px 4px 8px; max-width: 38%; }
+/* in the padding, so a long label's ellipsis never clips it */
+#perm::after { position: absolute; right: 8px; top: 50%; margin: -5px 0 0; }
+#model { padding-right: 0; font-size: 11px; max-width: 44%; }
+.context-option { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 6px 8px; font-size: 12px; min-width: 0; }
+.context-option > img { width: 14px; height: 14px; }
+.context-option > span { max-width: calc(100% - 22px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.context-option > button { color: var(--muted); }
+.jump { position: absolute; bottom: 156px; left: calc(50% - 16px); width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 50%; background: var(--card); z-index: 2; box-shadow: var(--shadow-jump); }
+.message-copy { opacity: 0; margin-top: 2px; color: var(--muted); background: transparent; border: 0; font: 11px system-ui, sans-serif; padding: 3px 0; }
+.message-copy::before { content: attr(data-copy-state); }
+/* Copy and Retry side by side under the reply, the row as tall as Copy alone was (a float: an inline row would take the reply's 26px line) */
+.reply > .message-copy { display: block; float: left; margin-top: 0; }
+.reply::after { content: ''; display: table; clear: both; }
+.message-retry::before { content: 'Retry'; }
+.reply > .message-retry { display: block; float: left; margin: 0 0 0 12px; }
+/* A message bubble's Copy sits under it on hover and takes no height of its own: a row that is always there, however clear, is blank space inside the bubble. */
+.you > .message-copy { position: absolute; top: 100%; right: 0; margin: 0; padding: 3px 4px; pointer-events: none; }
+.you:hover > .message-copy, .you > .message-copy:focus-visible { pointer-events: auto; }
+.reply pre .message-copy { float: right; }
+.you:hover .message-copy, .reply:hover .message-copy, .message-copy:focus-visible { opacity: 1; }
+.reply .message-retry:disabled { cursor: default; opacity: 0.35; }
+.message-fold { border: 0; margin: 0; padding: 0; }
+.message-fold summary { color: inherit; white-space: pre-wrap; }
+.message-fold[open] summary { margin-bottom: 8px; }
+#elapsed { white-space: nowrap; }
+#activity-count { margin-left: auto; font-size: 11px; }
+.composer { position: relative; }
+.menu { position: absolute; bottom: calc(100% + 6px - var(--menu-shift, 0px)); left: 8px; right: 8px; max-height: min(360px, 60vh, var(--menu-space, 60vh)); overflow: auto; overscroll-behavior: contain; overflow-wrap: anywhere; background: var(--menu-bg); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: var(--shadow-menu); padding: 6px; z-index: 5; }
+#model-menu, #perm-menu, #plus-menu { width: 300px; max-width: calc(100% - 16px); right: auto; }
+#model-menu { left: auto; right: 8px; }
+.menu h4 { margin: 6px 8px 4px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.menu-item { display: flex; flex-direction: column; align-items: flex-start; width: 100%; border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.menu-item:hover:not(:disabled) { background: var(--hover); }
+.menu-item.on > span::after { content: ' ✓'; }
+.menu-item small { color: var(--muted); font-size: 11px; }
+.menu-item:disabled { opacity: 0.55; cursor: default; }
+.menu-item.more { color: var(--muted); }
+.attached { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.chip.file { max-width: 100%; }
+.chip.file > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip.file.busy { color: var(--muted); }
+.menu .none { margin: 6px 8px; color: var(--muted); }
+.chip.skill > span { font-family: ui-monospace, monospace; }
+.mic.recording { color: var(--on-rec); background: var(--rec); border-radius: 999px; }
+.mic.transcribing { opacity: 0.55; }
+.welcome { padding: 24px 20px; }
+.risks { list-style: none; padding: 0; margin: 12px 0 20px; display: grid; gap: 12px; text-align: left; }
+.risks li { display: grid; gap: 2px; }
+.risks span { color: var(--muted); font-size: 13px; }
+.dots { color: var(--muted); letter-spacing: 4px; }
+.tasks { display: grid; gap: 6px; margin: 8px 0 16px; width: 100%; max-width: 360px; }
+.tasks .task { display: flex; justify-content: space-between; gap: 8px; border: 1px solid var(--line); border-radius: 8px; background: none; color: inherit; font: inherit; padding: 8px 10px; cursor: pointer; text-align: left; }
+.tasks .task small { color: var(--muted); white-space: nowrap; }
+.loading { display: flex; justify-content: center; padding: 24px 0; }
+.load-error { color: var(--muted); text-align: center; padding: 16px 0; }
+.footer { margin: 2px 4px 0; font-size: 10px; line-height: 1.4; color: var(--muted); text-align: center; }
+.pin-tip { margin: 0 12px 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+.usage-banner { display: flex; align-items: center; gap: 8px; background: var(--info-bg); font-size: 12px; }
+.usage-banner span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.step > summary { cursor: pointer; list-style-position: inside; }
+details.step { display: block; }
+details.step::before { display: none; }
+.step > pre { max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; }
+.step-thumbnail { display: block; max-width: 100%; max-height: 200px; border-radius: 6px; }
+.activity-thumbnail { width: 32px; height: 24px; object-fit: cover; border-radius: 4px; }
+/* The banner above the composer card: 14px top corners, 8px by 16px padding, 12px text; its height and opacity move over 0.15 s ease-out. The card overlaps its bottom 16px, so its rounded top corners sit on the banner. The danger colours are the --danger-* tokens above. */
+.banner { box-sizing: border-box; height: auto; margin: 0 0 -22px; padding: 8px 16px 24px; border-radius: 14px 14px 0 0; font-size: 12px; opacity: 1; overflow: hidden; interpolate-size: allow-keywords; transition: height 0.15s ease-out, padding 0.15s ease-out, margin 0.15s ease-out, opacity 0.15s ease-out, display 0.15s ease-out allow-discrete; }
+@starting-style { .banner { height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; } }
+.banner[hidden], .banner[data-yielded] { display: none; height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .banner { transition: none; } }
+#error { background: var(--danger-bg); color: var(--danger-fg); }
+#refusal { background: var(--danger-bg); color: var(--danger-fg); }
+/* The refusal card sits in the banner slot, with the danger colours of the error: title and body stacked, the X on the right. The composer stays open under it (a new message continues the chat). */
+.refusal { display: flex; align-items: flex-start; gap: 8px; }
+.refusal-text { flex: 1; min-width: 0; display: grid; gap: 2px; overflow-wrap: anywhere; }
+.refusal-title { font-weight: 500; }
+.banner-line { display: flex; align-items: flex-start; gap: 8px; }
+.banner-line p { flex: 1; min-width: 0; }
+.banner-retry, .banner-dismiss { flex: none; border: 0; padding: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.banner-retry { text-decoration: underline; }
+.banner-dismiss::before { content: '×'; font-size: 16px; line-height: 14px; }
+/* The model menu's first level, as the app's picker: the effort name over the harness and model, which opens the list. */
+.menu-item.effort-title { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 8px; }
+.menu-item.effort-title .effort-name { flex: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.menu-item.effort-title .effort-model { min-width: 0; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menu-item.effort-title .effort-model::after { content: ' ›'; }
+.menu-item.hp-back { color: var(--muted); font-weight: 600; }
+.menu .hp-note { display: block; padding: 4px 8px 6px; color: var(--muted); font-size: 11px; }

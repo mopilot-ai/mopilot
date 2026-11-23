@@ -1,0 +1,12 @@
+// A caret placed on the next frame after the program changed the text the user is typing in (a picked @ file, a / command,
+// a skill): keys typed before that frame use the old caret and land inside the inserted text (#1719). Insert through
+// the editor's replaceRange, which moves the caret in the same step, or setCaretAfter(text, position) on
+// ComposerInputElement, which places it in the render that draws the text. A frame-deferred caret is fine only where
+// no key can follow (a draft restored on a chat switch). docs/bug-prevention/keyboard-and-focus.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or { `$_.setSelectionRange($...)`, `$_?.setSelectionRange($...)` },
+  $hit <: within `requestAnimationFrame($...)`,
+  register_diagnostic(span=$hit, message="[deferred-caret] a caret placed on the next frame after the text changed: keys typed before that frame land at the old caret, inside the inserted text (#1719). Insert with the editor's replaceRange, or call setCaretAfter(text, position) so the render that draws the text places it (docs/bug-prevention/keyboard-and-focus.md).", severity="warn")
+}

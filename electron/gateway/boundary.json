@@ -1,0 +1,33 @@
+{
+  "layer": "L2",
+  "public": [
+    "auth.cjs",
+    "catalog.cjs",
+    "client.cjs",
+    "credentials.cjs",
+    "durableWrite.cjs",
+    "fileLock.cjs",
+    "names.cjs",
+    "native.cjs",
+    "oauth.cjs",
+    "oauthCredential.cjs",
+    "oauthSignIn.cjs",
+    "oauthTokens.cjs",
+    "offer.cjs",
+    "policy.cjs",
+    "rules.cjs",
+    "sanitize.cjs",
+    "sealedFile.cjs",
+    "servers.cjs",
+    "service.cjs",
+    "tools.cjs",
+    "upstream.cjs",
+    "vault.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2"
+  ],
+  "allow": []
+}

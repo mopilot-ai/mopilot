@@ -1,0 +1,7 @@
+{
+  "iosId": "ai.mopilot.phone.source",
+  "androidId": "ai.mopilot.remote.source",
+  "name": "MoPilot Source",
+  "slug": "mopilot-remote-source",
+  "scheme": "mopilot-remote-source"
+}

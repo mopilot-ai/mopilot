@@ -1,0 +1,22 @@
+// A CLI the user installed (gh, git, rg, node, npm, ...) run from main by bare name without an env: it gets the app's
+// own PATH, which is launchd's (/usr/bin:/bin:/usr/sbin:/sbin) when MoPilot is opened from the Dock or Finder,
+// so a Homebrew gh is never found and PR status shows nothing (#1580). Pass `env: shellEnv.childEnv()` (the login
+// shell's, electron/platform/env.cjs), or run it through `run` in electron/app/commands.cjs, which does. It sees a
+// literal command only: a helper taking the command as a parameter is the shared runner's job, not this rule's.
+// docs/bug-prevention/external-contracts.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or {
+    `$_.execFile($cmd, $...)`, `execFile($cmd, $...)`,
+    `$_.spawn($cmd, $...)`, `spawn($cmd, $...)`,
+    `$_.exec($cmd, $...)`, `exec($cmd, $...)`
+  },
+  $cmd <: r"['\"](?:gh|git|rg|node|npm|npx|pnpm|yarn|bun|brew|python3?|uv|codex|claude|copilot|gemini)['\"]",
+  // an env that is the app's own (process.env, or none) is the PATH this rule is about
+  not $hit <: contains or {
+    `env: $v` where { not $v <: or { `process.env`, `undefined` } },
+    JsShorthandPropertyObjectMember() as $m where { $m <: r"env" }
+  },
+  register_diagnostic(span=$hit, message="[login-env] A user-installed CLI run by name without an env gets launchd's PATH when the app is opened from the Dock, where it is not found. Pass env: shellEnv.childEnv(), or use run() in electron/app/commands.cjs (docs/bug-prevention/external-contracts.md).", severity="warn")
+}

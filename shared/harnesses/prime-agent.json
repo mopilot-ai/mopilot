@@ -1,0 +1,33 @@
+{
+  "id": "prime-agent",
+  "label": "Prime Agent",
+  "vendor": "Prime Intellect",
+  "bins": [
+    "prime-agent"
+  ],
+  "docsUrl": "https://github.com/PrimeIntellect-ai/prime-agent",
+  "install": {
+    "docs": "https://github.com/PrimeIntellect-ai/prime-agent",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [
+      "--mode",
+      "acp"
+    ],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true,
+      "blockedVersions": [
+        "0.10.0"
+      ]
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration.",
+    "Versions without load/resume or with global model-setting writes remain unsupported."
+  ]
+}

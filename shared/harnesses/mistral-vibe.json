@@ -1,0 +1,26 @@
+{
+  "id": "mistral-vibe",
+  "label": "Mistral Vibe",
+  "vendor": "Mistral AI",
+  "bins": [
+    "vibe-acp"
+  ],
+  "docsUrl": "https://github.com/mistralai/mistral-vibe",
+  "install": {
+    "docs": "https://github.com/mistralai/mistral-vibe",
+    "methods": []
+  },
+  "enabled": true,
+  "acp": {
+    "args": [],
+    "env": {},
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000,
+      "requireResume": true
+    }
+  },
+  "dataNotes": [
+    "Native ACP integration."
+  ]
+}

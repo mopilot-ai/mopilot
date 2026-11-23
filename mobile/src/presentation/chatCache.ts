@@ -1,0 +1,96 @@
+// The last rows of each chat, kept sealed on the phone so a chat opened before paints from disk at once; bounded, and gone with the account or the computer.
+import { fromHex, toHex } from '../../../shared/remote/envelope.mjs';
+import type { CachedRow } from './threadCache';
+import { CACHE_CHATS, CACHE_ROWS } from './threadCache';
+
+/** One sealed row per chat, oldest use first from `keys`; nothing but ciphertext reaches the store. */
+export type ChatStore = {
+  read(key: string): Promise<string | null>;
+  write(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
+  /** Every key, least recently written first. */
+  keys(): Promise<string[]>;
+  clear(): Promise<void>;
+};
+export type ChatCrypto = {
+  key(): Promise<Uint8Array>;
+  randomBytes(n: number): Uint8Array;
+  seal(key: Uint8Array, nonce: Uint8Array, plain: Uint8Array, aad: string): Uint8Array;
+  open(key: Uint8Array, nonce: Uint8Array, box: Uint8Array, aad: string): Uint8Array | null;
+};
+
+/** A row's text is cut here and one chat's rows stay under CACHE_BYTES, so the cache is at most CACHE_CHATS x CACHE_BYTES on disk. */
+export const CACHE_ROW_CHARS = 4000;
+export const CACHE_BYTES = 120_000;
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+/** The newest rows that fit: at most CACHE_ROWS rows, each cut to CACHE_ROW_CHARS, and CACHE_BYTES of text in all. */
+export function boundRows(rows: CachedRow[]): CachedRow[] {
+  const kept: CachedRow[] = [];
+  let bytes = 0;
+  for (const r of rows.slice(-CACHE_ROWS).reverse()) {
+    const row = {
+      key: r.key,
+      role: r.role,
+      text: r.text.slice(0, CACHE_ROW_CHARS),
+    };
+    bytes += row.text.length + row.key.length + row.role.length;
+    if (bytes > CACHE_BYTES) break;
+    kept.push(row);
+  }
+  return kept.reverse();
+}
+
+export function createChatCache({ store, crypto }: { store: ChatStore; crypto: ChatCrypto }) {
+  // bound to the key it is stored under (the account, computer and chat), so a sealed row moved to another key does not open
+  const aad = (key: string) => `chat-rows:${key}`;
+  // bumped by every removal: a save that began before one (a chat left as its account signs out) must not write after it
+  let epoch = 0;
+  return {
+    async save(key: string, rows: CachedRow[]): Promise<void> {
+      const began = epoch;
+      const kept = boundRows(rows);
+      // a chat with nothing to show keeps no old rows either
+      if (!kept.length) return store.remove(key);
+      const secret = await crypto.key();
+      const nonce = crypto.randomBytes(24);
+      const box = crypto.seal(secret, nonce, encoder.encode(JSON.stringify(kept)), aad(key));
+      if (began !== epoch) return;
+      await store.write(key, JSON.stringify({ nonce: toHex(nonce), box: toHex(box) }));
+      const keys = await store.keys();
+      for (const old of keys.slice(0, Math.max(0, keys.length - CACHE_CHATS))) await store.remove(old);
+    },
+    /** The rows saved under `key`, or none when there are none, they are another key's, or they cannot be opened. */
+    async load(key: string): Promise<CachedRow[]> {
+      const raw = await store.read(key);
+      if (raw === null) return [];
+      try {
+        const saved = JSON.parse(raw) as { nonce: string; box: string };
+        const plain = crypto.open(await crypto.key(), fromHex(saved.nonce), fromHex(saved.box), aad(key));
+        if (!plain) return [];
+        const rows = JSON.parse(decoder.decode(plain)) as unknown;
+        return Array.isArray(rows)
+          ? boundRows(
+              rows.filter(
+                (r): r is CachedRow => !!r && typeof r.key === 'string' && typeof r.text === 'string' && typeof r.role === 'string',
+              ),
+            )
+          : [];
+      } catch {
+        return [];
+      }
+    },
+    /** The chat is gone from the computer. */
+    remove: (key: string) => (epoch++, store.remove(key)),
+    /** Keeps only the chats `keep` says still exist (the computer's list is the truth). */
+    async prune(keep: (key: string) => boolean): Promise<void> {
+      epoch++;
+      for (const key of await store.keys()) if (!keep(key)) await store.remove(key);
+    },
+    /** Signed out or unpaired: every saved chat goes. */
+    clear: () => (epoch++, store.clear()),
+  };
+}
+export type ChatCache = ReturnType<typeof createChatCache>;

@@ -1,0 +1,16 @@
+{"t":"turn","id":"turn-1","text":"Explore the repo in the background and run a long command"}
+{"t":"msg","m":{"type":"assistant","uuid":"a1","parent_tool_use_id":null,"message":{"id":"m1","model":"claude-x","content":[{"type":"tool_use","id":"toolu_a","name":"Agent","input":{"description":"Explore the repo","prompt":"Explore the repo","run_in_background":true}}]}}}
+{"t":"msg","m":{"type":"system","subtype":"background_tasks_changed","uuid":"s1","session_id":"s","tasks":[{"task_id":"task-a","task_type":"local_agent","description":"Explore the repo"}]}}
+{"t":"msg","m":{"type":"system","subtype":"task_started","uuid":"s2","session_id":"s","task_id":"task-a","tool_use_id":"toolu_a","description":"Explore the repo","task_type":"local_agent","is_backgrounded":true}}
+{"t":"msg","m":{"type":"system","subtype":"task_progress","uuid":"s3","session_id":"s","task_id":"task-a","tool_use_id":"toolu_a","description":"Explore the repo","usage":{},"summary":"Reading the auth module"}}
+{"t":"msg","m":{"type":"assistant","uuid":"a2","parent_tool_use_id":"toolu_a","message":{"id":"m2","model":"claude-x","content":[{"type":"tool_use","id":"toolu_g","name":"Grep","input":{"pattern":"auth"}}]}}}
+{"t":"msg","m":{"type":"assistant","uuid":"a3","parent_tool_use_id":null,"message":{"id":"m3","model":"claude-x","content":[{"type":"tool_use","id":"toolu_b","name":"Bash","input":{"command":"sleep 300","run_in_background":true}}]}}}
+{"t":"msg","m":{"type":"system","subtype":"background_tasks_changed","uuid":"s4","session_id":"s","tasks":[{"task_id":"task-a","task_type":"local_agent","description":"Explore the repo"},{"task_id":"task-b","task_type":"local_bash","description":"sleep 300"}]}}
+{"t":"msg","m":{"type":"user","uuid":"r1","parent_tool_use_id":null,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b","content":"Command running in background with ID: task-b"}]}}}
+{"t":"msg","m":{"type":"assistant","uuid":"a4","parent_tool_use_id":null,"message":{"id":"m4","model":"claude-x","content":[{"type":"text","text":"Both are running in the background."}]}}}
+{"t":"msg","m":{"type":"result","subtype":"success","is_error":false,"usage":{"input_tokens":50,"output_tokens":30}}}
+{"t":"snapshot","name":"running"}
+{"t":"msg","m":{"type":"system","subtype":"task_updated","uuid":"s5","session_id":"s","task_id":"task-b","patch":{"status":"killed"}}}
+{"t":"msg","m":{"type":"system","subtype":"task_notification","uuid":"s6","session_id":"s","task_id":"task-b","status":"stopped","output_file":"","summary":"stopped"}}
+{"t":"msg","m":{"type":"system","subtype":"background_tasks_changed","uuid":"s7","session_id":"s","tasks":[{"task_id":"task-a","task_type":"local_agent","description":"Explore the repo"}]}}
+{"t":"snapshot","name":"after-stop"}

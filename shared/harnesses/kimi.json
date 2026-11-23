@@ -1,0 +1,67 @@
+{
+  "id": "kimi",
+  "label": "Kimi Code",
+  "vendor": "Moonshot AI",
+  "bins": [
+    "kimi"
+  ],
+  "docsUrl": "https://moonshotai.github.io/kimi-code/en/reference/kimi-acp",
+  "install": {
+    "docs": "https://github.com/MoonshotAI/kimi-code",
+    "methods": [
+      {
+        "via": "script",
+        "command": "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash",
+        "os": [
+          "darwin",
+          "linux"
+        ]
+      },
+      {
+        "via": "npm",
+        "command": "npm install -g @moonshot-ai/kimi-code",
+        "os": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "needs": "node",
+        "npm": "@moonshot-ai/kimi-code"
+      },
+      {
+        "via": "powershell",
+        "command": "irm https://code.kimi.com/kimi-code/install.ps1 | iex",
+        "os": [
+          "win32"
+        ],
+        "note": "Needs Git for Windows"
+      }
+    ]
+  },
+  "enabled": true,
+  "order": 3,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "args": [
+      "acp"
+    ],
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "plan": {
+      "configOption": "mode",
+      "value": "plan"
+    },
+    "anchors": {
+      "default": "ask",
+      "plan": "readOnly",
+      "auto": "auto",
+      "yolo": "full"
+    }
+  },
+  "instructionsFiles": [
+    "AGENTS.md"
+  ]
+}

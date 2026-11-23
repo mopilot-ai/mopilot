@@ -1,0 +1,4 @@
+<!doctype html><html><body><button onclick="parent.postMessage('x','*')">Frame button</button>
+<closed-host></closed-host>
+<script>customElements.define('closed-host',class extends HTMLElement{constructor(){super();const r=this.attachShadow({mode:'closed'});r.innerHTML='<button>Frame closed button</button>';r.querySelector('button').onclick=()=>parent.postMessage('closed','*')}})</script>
+</body></html>

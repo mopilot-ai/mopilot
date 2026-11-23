@@ -1,0 +1,4 @@
+{
+  "//": "Node reads shared/*.ts (imported by scripts/*.mjs) as ES modules without the MODULE_TYPELESS_PACKAGE_JSON warning; every other file here is .mjs, .cjs, .mts or .cts.",
+  "type": "module"
+}

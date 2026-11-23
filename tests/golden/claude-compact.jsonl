@@ -1,0 +1,8 @@
+{"t":"turn","id":"turn-1","text":"/compact"}
+{"t":"msg","m":{"type":"system","subtype":"status","uuid":"s1","session_id":"s","status":"compacting"}}
+{"t":"msg","m":{"type":"system","subtype":"compact_boundary","uuid":"cb1","session_id":"s","compact_metadata":{"trigger":"manual","pre_tokens":19311,"post_tokens":2603}}}
+{"t":"msg","m":{"type":"result","subtype":"success","is_error":false,"usage":{}}}
+{"t":"turn","id":"turn-2","text":"Keep going"}
+{"t":"msg","m":{"type":"system","subtype":"compact_boundary","uuid":"cb2","session_id":"s","compact_metadata":{"trigger":"auto","pre_tokens":180000,"post_tokens":9000}}}
+{"t":"msg","m":{"type":"assistant","uuid":"a1","parent_tool_use_id":null,"message":{"id":"m1","model":"claude-x","content":[{"type":"text","text":"Continuing."}]}}}
+{"t":"msg","m":{"type":"result","subtype":"success","is_error":false,"usage":{}}}

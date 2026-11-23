@@ -1,0 +1,263 @@
+/* Browser site permissions, the credential sheet, address bar suggestions, bookmarks and import. */
+/* Settings → Browser → Site permissions: one line per always-allowed site, with Remove */
+.web-permission-sites { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.web-permission-sites li { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.web-permission-sites li span { min-width: 0; overflow-wrap: anywhere; }
+/* browser_request_credentials: the login sheet above the composer (BrowserCredentialSheet.tsx) */
+.credential-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+.credential-head { display: flex; align-items: flex-start; gap: 8px; }
+.credential-icon { color: var(--accent); margin-top: 2px; }
+.credential-title { font-weight: 600; }
+.credential-origin { font-size: var(--fs-small); opacity: 0.75; word-break: break-all; }
+.credential-reason, .credential-note { font-size: var(--fs-small); opacity: 0.85; }
+.credential-saved { display: flex; gap: 8px; align-items: center; }
+.credential-field { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-small); }
+.credential-field input, .credential-saved select {
+  font: inherit;
+  font-size: var(--fs-ui);
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  color: inherit;
+}
+.credential-save { display: flex; gap: 6px; align-items: center; font-size: var(--fs-small); }
+.credential-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.credential-actions .btn-pill.primary { color: var(--on-color); background: var(--accent); border-color: transparent; }
+.credential-actions .btn-pill.primary:disabled { opacity: 0.5; }
+
+/* Address bar suggestions, the bookmark star and menu, and importing from another browser (docs/iab-browser-import.md) */
+.browser-addr {
+  position: relative;
+}
+.browser-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 4px;
+  border-radius: 14px;
+}
+.browser-suggest-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+.browser-suggest-row.on {
+  background: rgba(var(--ink), 0.08);
+}
+.browser-suggest-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.browser-suggest-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browser-suggest-url {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.browser-star[data-on='true'] {
+  color: var(--accent);
+}
+.browser-bookmarks-menu {
+  max-height: min(420px, calc(100vh - 24px));
+}
+.browser-bookmarks-search {
+  width: calc(100% - 8px);
+  margin: 4px 4px 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 0.5px solid var(--hairline-strong);
+  background: rgba(var(--ink), 0.04);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-ui);
+}
+/* a bookmark and its remove action sit side by side; the action shows over the row's right end */
+.browser-bookmark-row {
+  position: relative;
+}
+.browser-bookmark-row > .menu-item {
+  padding-right: 34px;
+}
+.browser-bookmark-remove {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+}
+.browser-bookmark-row:hover > .browser-bookmark-remove,
+.browser-bookmark-remove.kbd-active {
+  opacity: 1;
+}
+.browser-bookmark-remove.kbd-active {
+  background: var(--menu-hover);
+}
+.browser-bookmark-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.import-dialog {
+  width: min(520px, calc(100vw - 80px));
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+.import-subtitle {
+  margin: -4px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-ui);
+}
+.import-from {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.import-from select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 0.5px solid var(--hairline-strong);
+  background: var(--card-bg);
+  color: var(--text);
+  font: inherit;
+}
+.import-muted {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.import-rows {
+  display: flex;
+  flex-direction: column;
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 14px;
+  padding: 0 14px;
+}
+.import-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  font-size: var(--fs-ui);
+  border-bottom: 0.5px solid var(--hairline-strong);
+}
+.import-row:last-child {
+  border-bottom: 0;
+}
+.import-row .import-error {
+  grid-column: 2 / 4;
+  margin-top: -8px;
+  padding-bottom: 10px;
+}
+.import-row-icon {
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+}
+.import-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.import-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.import-result.failed {
+  color: var(--red-text);
+}
+.import-spin {
+  color: var(--text-3);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .import-spin {
+    animation: import-spin 1s linear infinite;
+  }
+}
+@keyframes import-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.import-note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.import-note-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.import-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.import-error {
+  margin: 0;
+  color: var(--red-text);
+  font-size: var(--fs-small);
+}
+.import-data {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 0;
+}
+.import-data-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}

@@ -1,0 +1,16 @@
+{
+  "layer": "L5",
+  "public": [
+    "src/adminBlocks.mjs",
+    "src/panelErrors.mjs",
+    "src/protocol.mjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4"
+  ],
+  "allow": []
+}

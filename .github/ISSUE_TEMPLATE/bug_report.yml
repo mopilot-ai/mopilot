@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in MoPilot does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Report security problems privately as the repository's security policy (`.github/SECURITY.md`) describes, not in an issue.
+        Leave credentials, tokens and chat contents out of the report.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Include the exact message if there was one.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a chat with Claude Code in a Git folder
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: MoPilot version or commit
+      description: Settings → About in the app, or `git rev-parse --short HEAD` for a source build.
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      multiple: true
+      options: [macOS, Windows, Linux, iOS, Android]
+    validations:
+      required: true
+  - type: input
+    id: agent
+    attributes:
+      label: Agent and version
+      description: For example Codex 0.162.1 or Claude Code 2.1.0. Write "not agent-specific" if it happens with every agent.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where it runs
+      multiple: true
+      options: [This computer, A remote Host, The phone app, The built-in browser, Your Chrome (extension)]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: Paste relevant log lines or attach screenshots. Remove anything private first.

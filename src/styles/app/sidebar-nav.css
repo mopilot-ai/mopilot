@@ -1,0 +1,209 @@
+/* The sidebar's app rows, update row and account footer, and the column around a page's own nav. */
+/* ================================================================== */
+/* Sidebar nav and footer                                              */
+/* ================================================================== */
+.sidebar-nav {
+  padding-bottom: 6px;
+}
+.sidebar-footer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px 8px;
+  border-top: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--sidebar) 65%, var(--main));
+}
+.sidebar-footer .side-row {
+  margin: 0;
+}
+.account-row .account-btn {
+  width: auto;
+  height: 32px;
+  min-height: calc(var(--fs-chat) + 16px);
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: 6px;
+  padding: 0 6px;
+  font-size: var(--fs-ui);
+}
+/* the account button and, at its right, Report a bug */
+.account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.account-btn .side-row-label {
+  flex: 0 1 auto;
+  color: var(--text-ui);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  -webkit-mask-image: none;
+}
+.account-chevron {
+  flex: none;
+  color: var(--text-3);
+}
+.account-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.account-avatar {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--avatar-bg);
+  color: var(--avatar-text);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+.account-avatar.colored {
+  color: var(--on-color);
+}
+.account-btn:hover .account-avatar {
+  filter: brightness(1.08);
+}
+.account-avatar-warn {
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 0 2px var(--sidebar);
+}
+/* A quiet update strip: an action and trailing arrow, or muted progress. */
+.sidebar-update {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  gap: 8px;
+  margin: 4px 0 6px;
+  padding: 0 10px;
+  border-radius: var(--row-radius);
+  background: var(--row-hover);
+  color: var(--text-ui);
+  font-size: var(--fs-ui);
+  text-align: left;
+}
+.sidebar-update-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.sidebar-update-arrow,
+.sidebar-update-spinner {
+  display: flex;
+  flex: none;
+  color: var(--text-3);
+}
+.sidebar-update:hover {
+  background: var(--row-active);
+}
+.sidebar-update.busy {
+  cursor: default;
+  color: var(--text-3);
+}
+.sidebar-update.busy .sidebar-update-label {
+  font-weight: 400;
+}
+.sidebar-update.busy:hover {
+  background: var(--row-hover);
+}
+.sidebar-update:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* Computer History's row (#1363): a red dot while recording, a hollow one otherwise; it opens its settings */
+.sidebar-history {
+  color: var(--text-ui);
+}
+.sidebar-history-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-3);
+}
+.sidebar-history[data-status='recording'] .sidebar-history-dot {
+  background: var(--red);
+  border-color: var(--red);
+}
+.sidebar-history[data-status='needs-permission'] .sidebar-history-dot,
+.sidebar-history[data-status='unavailable'] .sidebar-history-dot,
+.sidebar-history[data-status='store-unavailable'] .sidebar-history-dot {
+  border-color: var(--orange);
+}
+.sidebar-history:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* a page's own nav (Scheduled, Plugins, Code Review) between a way back and the account footer */
+.page-nav-column {
+  width: var(--sidebar-w);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: var(--titlebar-h);
+  background: var(--sidebar);
+  border-right: 0.5px solid var(--divider);
+}
+.page-nav-column > .sidebar {
+  flex: 1;
+  width: auto;
+  padding-top: 0;
+  border-right: 0;
+}
+/* a sidebar holds its children at its full width while it opens (motion.css); a page's nav in this column never
+   animates, and the column's own border leaves it a hair narrower, so its rows and search fit the column instead */
+.page-nav-column > .sidebar > *:not(.sidebar-resize) {
+  min-width: 0;
+}
+.page-nav-back {
+  flex: none;
+}
+/* the sidebar toggle's dot while the sidebar, and its account button, are hidden */
+.tb-btn .tb-attention {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--orange);
+}
+
+/* A single identity line keeps the hover target compact; long names and plans truncate independently. */
+.account-btn-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-direction: row;
+  gap: 6px;
+  line-height: 1.25;
+}
+.account-btn-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.account-btn-meta::before {
+  content: '·';
+  margin-right: 6px;
+}

@@ -1,0 +1,8 @@
+{
+  "name": "mopilot-startup",
+  "version": "0.1.0",
+  "description": "Creates Expo's shared native services once at module registration, before JS can reach them from concurrent async functions.",
+  "license": "UNLICENSED",
+  "author": "MoPilot",
+  "homepage": "https://mopilot.ai"
+}

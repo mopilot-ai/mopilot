@@ -1,0 +1,29 @@
+// A click that acts on a turn, tab, task or app by the id it showed, and drops the answer: by the click that one may have
+// ended or been replaced (a queued message started the next turn), so the action stops the wrong one or does nothing,
+// and the button says nothing. Pass the id the button showed and read the answer with liveAction / liveClick
+// (src/store/liveAction.ts). Applied to the renderer (biome.json overrides). docs/bug-prevention/stale-async-results.md
+language js
+
+JsCallExpression(callee=$callee) as $call where {
+  $callee <: or {
+    `interrupt`,
+    `retryStalledTurn`,
+    `stopBackgroundTask`,
+    `terminateBackgroundTerminal`,
+    `$_.takeOver`,
+    `$_.handBack`,
+    `native.computer.$act` where { $act <: or { `resume`, `stop` } }
+  },
+  or {
+    // discarded by void, its .catch(…) included
+    $call <: within `void $x` where { $x <: or { $call, `$c.catch($_)` where { $c <: $call } } },
+    // a click handler's arrow that hands the answer back to React, which drops it
+    $call <: within JsxAttribute(name=$name, initializer=$value) where {
+      $name <: r"on[A-Z]\w*",
+      $value <: contains JsArrowFunctionExpression(body=$body) where {
+        $body <: or { $call, `$c.catch($_)` where { $c <: $call }, `$_ && $c` where { $c <: $call } }
+      }
+    }
+  },
+  register_diagnostic(span=$call, message="[detached-action] This click drops the answer of an action bound to the turn, tab, task or app it showed; by the click that one may have ended or been replaced. Pass the id it showed and read the answer with liveAction or liveClick (src/store/liveAction.ts, docs/bug-prevention/stale-async-results.md).", severity="warn")
+}

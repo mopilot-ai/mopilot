@@ -1,0 +1,301 @@
+/* MoMo's channels on the Mac (A2): the rail's channel rows, the dialogs, the first row's chips and the Everything feed. A CSS Module: its classes are local; colours come from the app's tokens. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 16px 16px;
+  min-width: 340px;
+}
+.hint {
+  margin: 0;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.field {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 0.5px solid var(--surface-border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+.field:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.count {
+  margin: 0;
+  text-align: right;
+  font-size: var(--fs-small, 12px);
+  color: var(--text-3);
+}
+.count[data-over] {
+  color: var(--red-text);
+}
+.error {
+  margin: 0;
+  font-size: var(--fs-ui);
+  color: var(--red-text);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.primary,
+.secondary,
+.danger {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: var(--fs-ui);
+}
+.primary {
+  background: var(--accent);
+  color: var(--main);
+}
+.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.danger {
+  background: var(--red);
+  color: var(--main);
+}
+.primary:disabled,
+.secondary:disabled,
+.danger:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.underEverything {
+  margin: 0;
+  padding: 0 0 0 12px;
+  list-style: none;
+}
+.railGroup {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px;
+  font-size: var(--fs-small, 12px);
+  color: var(--text-3);
+}
+.groupHead[data-over] {
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+.groupName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  color: inherit;
+}
+.empty {
+  margin: 0;
+  padding: 4px 10px 4px 22px;
+  font-size: var(--fs-small, 12px);
+  color: var(--text-3);
+}
+.row {
+  display: flex;
+  align-items: center;
+}
+.rowLink {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+.rowName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nested {
+  padding-left: 12px;
+}
+.row .small,
+.hoverActions {
+  opacity: 0;
+}
+.row:hover .small,
+.row:focus-within .small,
+.row .small[aria-expanded='true'],
+.row:hover .hoverActions,
+.row:focus-within .hoverActions {
+  opacity: 1;
+}
+.danger,
+.danger:hover {
+  color: var(--red-text);
+}
+.small {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--text-3);
+}
+.small:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.menu {
+  position: absolute;
+  z-index: 20;
+  min-width: 170px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--main);
+  box-shadow: 0 0 0 0.5px var(--surface-border), 0 6px 18px color-mix(in srgb, var(--text) 14%, transparent);
+}
+.menuItem {
+  transition: background-color var(--dur) ease, color var(--dur) ease;
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-align: left;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.menuItem:hover {
+  background: var(--surface-2);
+}
+.menuItem[aria-checked='true'] {
+  font-weight: 600;
+}
+.menuSep {
+  margin: 4px 6px;
+  border-top: 0.5px solid var(--surface-border);
+}
+.welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 auto;
+  max-width: 520px;
+  padding: 0 24px;
+  color: var(--text);
+}
+.welcomeText {
+  margin: 0;
+}
+.chips {
+  display: flex;
+  gap: 8px;
+}
+.chip {
+  padding: 5px 14px;
+  border-radius: 9999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-ui);
+}
+.chip:hover {
+  background: var(--surface-border);
+}
+.chip:disabled {
+  opacity: 0.45;
+}
+.feed {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 56px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.feedBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 8px;
+  width: 100%;
+  max-width: 640px;
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+}
+.feedList {
+  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+  max-width: 640px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.feedRow {
+  transition: background-color var(--dur) ease, color var(--dur) ease;
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+}
+.feedRow:hover {
+  background: var(--surface-2);
+}
+.feedMeta {
+  display: flex;
+  gap: 8px;
+  font-size: var(--fs-small, 12px);
+  color: var(--text-3);
+}
+.feedName {
+  font-weight: 600;
+  color: var(--text-2);
+}
+.feedUser {
+  margin: 2px 0 0;
+  color: var(--text);
+}
+.feedAssistant {
+  margin: 2px 0 0;
+  color: var(--text-2);
+}
+.note {
+  margin: 0 auto;
+  max-width: 640px;
+  color: var(--text-3);
+}
+
+/* Everything's two small actions (the design's), shown on hover or focus like a channel's ⋯ */
+.hoverActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* the channel's name in the content header: plain text beside its icon, not the identity's pill */
+.headGap {
+  gap: 8px;
+}
+.headName {
+  font-weight: 600;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+
+.row [data-held] {
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1.5px var(--accent);
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

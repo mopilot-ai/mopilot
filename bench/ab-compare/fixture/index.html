@@ -1,0 +1,21 @@
+<!doctype html><html><head><title>fixture</title><style>.overlay{position:absolute;left:0;top:0;width:300px;height:60px;background:rgba(0,0,0,.4)}</style></head><body>
+<h1>Fixture</h1>
+<p id="count">clicks: none</p>
+<div style="position:relative;height:60px"><button onclick="hit('covered')">Covered button</button><div class="overlay"></div></div>
+<button style="display:none">Hidden button</button>
+<div onclick="hit('divclick')" onkeydown="" style="cursor:pointer">Clickable div</div>
+<x-btn role="button" tabindex="0" onclick="hit('aria')">ARIA button</x-btn>
+<div contenteditable="true">Editable area</div>
+<open-host></open-host>
+<closed-host></closed-host>
+<iframe src="http://localhost:8802/child.html" title="Cross-origin child" width="300" height="80"></iframe>
+<div id="swap"><button onclick="hit('save-old')">Save</button></div>
+<div id="swap2"><button onclick="hit('submit')">Submit</button></div>
+<script>
+function hit(n){document.getElementById('count').textContent='clicks: '+n}
+addEventListener('message',(e)=>hit(e.data==='closed'?'frame-closed':'frame'));
+customElements.define('open-host',class extends HTMLElement{constructor(){super();const r=this.attachShadow({mode:'open'});r.innerHTML='<button>Open shadow button</button>';r.querySelector('button').onclick=()=>hit('open-shadow')}});
+customElements.define('closed-host',class extends HTMLElement{constructor(){super();const r=this.attachShadow({mode:'closed'});r.innerHTML='<button>Closed shadow button</button>';r.querySelector('button').onclick=()=>hit('closed-shadow')}});
+window.swapSame=()=>{document.getElementById('swap').innerHTML='';const b=document.createElement('button');b.textContent='Save';b.onclick=()=>hit('save-new');document.getElementById('swap').append(b)};
+window.swapOther=()=>{document.getElementById('swap2').innerHTML='';const b=document.createElement('button');b.textContent='Delete account';b.onclick=()=>hit('DELETE');document.getElementById('swap2').append(b)};
+</script></body></html>

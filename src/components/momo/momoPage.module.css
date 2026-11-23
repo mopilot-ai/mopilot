@@ -1,0 +1,20 @@
+/* MoMo's Memory page (MomoPage.tsx), as Muse lays out its own: a large bold title at the top of one
+   centered column; the tab styles its own contents. A CSS Module: its classes are local. */
+.page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 40px 32px 80px;
+}
+.column {
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+.title {
+  margin: 0 0 20px;
+  font-size: var(--fs-display);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}

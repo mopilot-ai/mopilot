@@ -1,0 +1,418 @@
+/* Plugin detail page and the Add plugin marketplace dialog. */
+/* ---------- plugin detail page (official layout) ---------- */
+.pd {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pd-crumbs {
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+}
+.pd-crumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 12.5px;
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+button.pd-crumb:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.pd-crumb.current {
+  color: var(--text);
+}
+.pd-crumb-sep {
+  color: var(--text-3);
+}
+.pd-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+}
+.pd-col {
+  width: min(720px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 20px 0 64px;
+}
+.pd-col > .plugin-logo {
+  border-radius: 16px;
+  border: 1px solid rgba(var(--ink), 0.082);
+  padding: 1px;
+  box-sizing: border-box;
+}
+.pd-head {
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pd-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.33;
+}
+.pd-sub {
+  margin-top: 6px;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.pd-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.pd-more {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.pd-more:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.pd-btn {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-ui);
+  background: rgba(var(--ink), 0.05);
+  color: var(--text);
+  border: 1px solid transparent;
+}
+.pd-btn:hover {
+  background: rgba(var(--ink), 0.09);
+}
+.pd-btn.primary {
+  background: var(--text);
+  color: var(--main);
+  border-color: rgba(var(--ink), 0.082);
+}
+.pd-btn.primary:hover {
+  opacity: 0.88;
+}
+.pd-btn:disabled {
+  opacity: 0.5;
+}
+.pd-preview {
+  position: relative;
+  margin-top: 24px;
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 32px;
+  display: flex;
+  justify-content: center;
+}
+.pd-preview-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--plugin-preview);
+}
+.pd-prompts {
+  position: relative;
+  width: 640px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.pd-prompt {
+  width: 493px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px 8px 8px;
+  border-radius: 16px;
+  background: var(--menu-bg);
+  text-align: left;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  color: var(--text);
+}
+.pd-prompt-text {
+  flex: 1;
+  min-width: 0;
+  text-wrap: pretty;
+}
+.pd-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 500;
+  color: var(--text-3);
+  vertical-align: top;
+}
+.pd-mention .plugin-logo {
+  border-radius: 2.5px;
+}
+.pd-prompt-body {
+  margin-left: 4px;
+}
+.pd-arrow {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(var(--ink), 0.1);
+}
+.pd-prompt:hover .pd-arrow {
+  background: rgba(var(--ink), 0.18);
+}
+.pd-long {
+  margin: 24px 0 0;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.pd-section {
+  margin: 24px -8px 0;
+}
+.pd-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 2px 8px 8px;
+  border-bottom: 1px solid rgba(var(--ink), 0.043);
+}
+.pd-section-head h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  line-height: 1.75;
+}
+.pd-count {
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  color: var(--text-3);
+}
+.pd-apps {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pd-app {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 8px;
+  border-radius: 12.5px;
+}
+.pd-app-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12.5px;
+  border: 1px solid rgba(var(--ink), 0.082);
+  color: var(--icon);
+}
+.pd-app-icon img {
+  width: 24px;
+  height: 24px;
+  border-radius: 2.5px;
+  object-fit: contain;
+}
+.pd-app-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pd-app-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+}
+.pd-app-info {
+  color: var(--text-3);
+}
+.pd-app-desc {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-prose);
+  color: var(--text-2);
+}
+.pd-app.template .pd-app-icon,
+.pd-app.template .pd-app-text {
+  opacity: 0.6;
+}
+.pd-app-lock {
+  color: var(--text-3);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+}
+.pd-info {
+  margin: 21px 0 0;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pd-info > div {
+  display: flex;
+  gap: 12px;
+  font-size: var(--fs-chat);
+  line-height: 1.43;
+}
+.pd-info dt {
+  width: 120px;
+  flex-shrink: 0;
+  color: var(--text-3);
+}
+.pd-info dd {
+  margin: 0;
+  min-width: 0;
+}
+.pd-link {
+  color: var(--text-2);
+  display: inline-grid;
+  place-items: center;
+  height: 20px;
+}
+.pd-link:hover {
+  color: var(--text);
+}
+.pd-mention-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 2.5px;
+  object-fit: contain;
+}
+
+/* ---------- Add plugin marketplace dialog ---------- */
+.mk-dialog {
+  position: relative;
+  width: 600px;
+  max-width: calc(100vw - 48px);
+  padding: 20px 20px 20px;
+  border-radius: 25px;
+  background: var(--menu-bg);
+  box-shadow: 0 0 0 0.5px rgba(var(--ink), 0.082), 0 4px 8px -2px rgba(var(--shadow-ink), 0.1);
+  backdrop-filter: blur(24px);
+  display: flex;
+  flex-direction: column;
+}
+.mk-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  color: rgba(var(--ink), 0.8);
+}
+.mk-close:hover {
+  background: var(--row-hover);
+}
+.mk-title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.mk-sub {
+  margin-top: 6px;
+  font-size: var(--fs-chat);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.mk-sub a {
+  color: var(--accent);
+  cursor: pointer;
+}
+.mk-field {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-ui);
+  line-height: 1.43;
+  color: var(--text-3);
+}
+.mk-sub + .mk-field {
+  margin-top: 10px;
+}
+.mk-field input,
+.mk-field textarea {
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ink), 0.157);
+  background: var(--composer-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-ui);
+  outline: none;
+}
+.mk-field textarea {
+  height: 96px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+.mk-field input:focus,
+.mk-field textarea:focus {
+  border-color: var(--accent);
+}
+.mk-field input::placeholder,
+.mk-field textarea::placeholder {
+  color: var(--text-3);
+}
+.mk-foot {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.mk-btn {
+  min-height: 32px;
+  padding: 6px 16px;
+  border-radius: 12.5px;
+  font-size: var(--fs-chat);
+  line-height: 1.286;
+  color: var(--text);
+  background: rgba(var(--ink), 0.03);
+  border: 1px solid rgba(var(--ink), 0.082);
+}
+.mk-btn:hover {
+  background: rgba(var(--ink), 0.07);
+}
+.mk-btn.primary {
+  background: var(--text);
+  color: var(--main);
+}
+.mk-btn.primary:disabled {
+  opacity: 0.5;
+}
+

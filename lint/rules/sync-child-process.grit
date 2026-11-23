@@ -1,0 +1,13 @@
+// A child process run synchronously in main (execFileSync, execSync, spawnSync): main's event loop waits for it,
+// so every window and every chat stalls until it exits, up to its timeout. Converting an attached image with sips
+// on the send path did this. Run it with execFile or spawn and await it. docs/bug-prevention/overlapping-operations.md
+language js
+
+JsCallExpression() as $hit where {
+  $hit <: or {
+    `$_.execFileSync($...)`, `execFileSync($...)`,
+    `$_.execSync($...)`, `execSync($...)`,
+    `$_.spawnSync($...)`, `spawnSync($...)`
+  },
+  register_diagnostic(span=$hit, message="[sync-child-process] A synchronous child process stops main's event loop, and every window with it, until it exits. Use execFile or spawn and await it (docs/bug-prevention/overlapping-operations.md).", severity="warn")
+}

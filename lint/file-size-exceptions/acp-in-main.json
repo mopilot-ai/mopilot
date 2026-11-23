@@ -1,0 +1,12 @@
+{
+  "exceptions": {
+    "tests/support/electron-main-harness.ts": {
+      "maxLines": 636,
+      "reason": "Provides the shared Electron startup fixture and service fakes. It wires the ACP CLI discovery fake alongside the legacy resolver so startup and IPC tests can exercise either policy through main. The socket.cjs fake includes preloadedFor (G11)."
+    },
+    "electron/app/windows.cjs": {
+      "maxLines": 505,
+      "reason": "Constructs app windows and wires harness events to their senders. Item translation remains in the harness modules."
+    }
+  }
+}

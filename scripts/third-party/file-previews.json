@@ -1,0 +1,34 @@
+{
+  "direct": [
+    { "name": "pdfjs-dist", "use": "Local PDF page and text rendering.", "ships": "Renderer, worker, CMaps, standard fonts, ICC and image-decoder resources.", "license": "Apache-2.0 and resource notices below", "lockLicense": "Apache-2.0", "url": "https://github.com/mozilla/pdf.js" },
+    { "name": "docx-preview", "use": "Local paginated Word preview.", "ships": "Browser renderer bundled into the app.", "license": "Apache-2.0", "lockLicense": "Apache-2.0", "url": "https://github.com/VolodymyrBaydalka/docxjs" },
+    { "name": "@office-kit/pptx", "use": "Local PowerPoint parsing.", "ships": "Browser parser; bundled third-party material is noticed below.", "license": "MIT with third-party notices", "lockLicense": "MIT", "url": "https://github.com/office-kit/pptx" },
+    { "name": "@office-kit/pptx-preview", "use": "PowerPoint slides rendered as SVG.", "ships": "Browser SVG renderer; Node rasterizer and native dependencies are not bundled.", "license": "MIT", "lockLicense": "MIT", "url": "https://github.com/office-kit/pptx" },
+    { "name": "xlsx", "use": "Local XLS/XLSX worksheet parsing.", "ships": "Browser parser bundled into the app.", "license": "Apache-2.0", "lockLicense": "Apache-2.0", "url": "https://sheetjs.com" },
+    { "name": "cfb", "use": "Legacy PowerPoint compound-file reading.", "ships": "JavaScript in the main process.", "license": "Apache-2.0", "lockLicense": "Apache-2.0", "url": "https://github.com/SheetJS/js-cfb" },
+    { "name": "word-extractor", "use": "Legacy Word text reading.", "ships": "JavaScript in the main process.", "license": "MIT", "lockLicense": "MIT", "url": "https://github.com/morungos/node-word-extractor" },
+    { "name": "jszip", "use": "ZIP reading used by the Word renderer.", "ships": "Browser ZIP implementation.", "license": "MIT (selected from the dual license)", "lockLicense": "(MIT OR GPL-3.0-or-later)", "url": "https://github.com/Stuk/jszip" }
+  ],
+  "runtimeRoots": ["cfb", "word-extractor", "docx-preview", "@office-kit/pptx", "xlsx", "jszip"],
+  "notices": [
+    { "title": "PDF.js LICENSE", "path": "node_modules/pdfjs-dist/LICENSE" },
+    { "title": "PDF.js CMaps", "path": "node_modules/pdfjs-dist/cmaps/LICENSE" },
+    { "title": "PDF.js Foxit fonts", "path": "node_modules/pdfjs-dist/standard_fonts/LICENSE_FOXIT" },
+    { "title": "PDF.js Liberation fonts", "path": "node_modules/pdfjs-dist/standard_fonts/LICENSE_LIBERATION" },
+    { "title": "PDF.js ICC profiles", "path": "node_modules/pdfjs-dist/iccs/LICENSE" },
+    { "title": "JBIG2 decoder", "path": "node_modules/pdfjs-dist/wasm/LICENSE_JBIG2" },
+    { "title": "PDF.js JBIG2 glue", "path": "node_modules/pdfjs-dist/wasm/LICENSE_PDFJS_JBIG2" },
+    { "title": "OpenJPEG decoder", "path": "node_modules/pdfjs-dist/wasm/LICENSE_OPENJPEG" },
+    { "title": "PDF.js OpenJPEG glue", "path": "node_modules/pdfjs-dist/wasm/LICENSE_PDFJS_OPENJPEG" },
+    { "title": "QCMS decoder", "path": "node_modules/pdfjs-dist/wasm/LICENSE_QCMS" },
+    { "title": "PDF.js QCMS glue", "path": "node_modules/pdfjs-dist/wasm/LICENSE_PDFJS_QCMS" },
+    { "title": "DOCX renderer", "path": "node_modules/docx-preview/LICENSE" },
+    { "title": "PowerPoint parser", "path": "node_modules/@office-kit/pptx/LICENSE" },
+    { "title": "PowerPoint parser third-party notices", "path": "node_modules/@office-kit/pptx/THIRD_PARTY_NOTICES.md" },
+    { "title": "PowerPoint SVG renderer", "path": "node_modules/@office-kit/pptx-preview/LICENSE" },
+    { "title": "SheetJS spreadsheet parser", "path": "node_modules/xlsx/LICENSE" },
+    { "title": "Compound-file parser", "path": "node_modules/cfb/LICENSE" },
+    { "title": "Legacy Word reader", "path": "node_modules/word-extractor/LICENSE" },
+    { "title": "JSZip", "path": "node_modules/jszip/LICENSE.markdown" }
+  ]
+}

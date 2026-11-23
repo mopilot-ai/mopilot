@@ -1,0 +1,10 @@
+// A chat read's failure written as a bare runtime error: nothing takes it away when a later read succeeds (Codex came
+// back, Retry), so the chat keeps "Codex isn't connected" over the history it now shows. Use readFailed / readSucceeded
+// from src/store/chatReads.ts.
+// docs/bug-prevention/stuck-state.md
+language js
+
+`patchRuntime($_, $fn)` as $call where {
+  $fn <: contains JsPropertyObjectMember(name=$n, value=$v) where { $n <: `error`, $v <: `errorText($_)` },
+  register_diagnostic(span=$call, message="[read-error] A chat read's error set here is never cleared by the next read that succeeds, so the chat keeps showing it. Use readFailed(e) and spread readSucceeded(r) into the success patch (src/store/chatReads.ts, docs/bug-prevention/stuck-state.md).", severity="warn")
+}

@@ -1,0 +1,14 @@
+{"dir":"s2c","msg":{"method":"thread/started","params":{"thread":{"id":"t1","cwd":"/repo","name":null,"preview":"","ephemeral":false}}}}
+{"dir":"s2c","msg":{"method":"thread/goal/updated","params":{"threadId":"t1","turnId":null,"goal":{"threadId":"t1","objective":"make the unit tests pass","status":"active","tokenBudget":null,"tokensUsed":0,"timeUsedSeconds":0,"createdAt":1760090000,"updatedAt":1760090000}}}}
+{"dir":"s2c","msg":{"method":"turn/started","params":{"threadId":"t1","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"item/started","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"commandExecution","id":"c1","command":"npm test","cwd":"/repo","status":"inProgress","aggregatedOutput":null,"exitCode":null}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"commandExecution","id":"c1","command":"npm test","cwd":"/repo","status":"completed","aggregatedOutput":"1 failing","exitCode":1}}}}
+{"dir":"s2c","msg":{"method":"thread/goal/updated","params":{"threadId":"t1","turnId":"turn-1","goal":{"threadId":"t1","objective":"make the unit tests pass","status":"paused","tokenBudget":null,"tokensUsed":900,"timeUsedSeconds":4,"createdAt":1760090000,"updatedAt":1760090004}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"agentMessage","id":"m1","text":"Stopped before the fix.","phase":null}}}}
+{"dir":"s2c","msg":{"method":"turn/completed","params":{"threadId":"t1","turn":{"id":"turn-1","status":"interrupted","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"thread/goal/updated","params":{"threadId":"t1","turnId":null,"goal":{"threadId":"t1","objective":"make the unit tests pass","status":"active","tokenBudget":null,"tokensUsed":900,"timeUsedSeconds":4,"createdAt":1760090000,"updatedAt":1760090010}}}}
+{"dir":"s2c","msg":{"method":"turn/started","params":{"threadId":"t1","turn":{"id":"turn-2","status":"inProgress","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-2","item":{"type":"fileChange","id":"f1","status":"completed","changes":[{"path":"/repo/src/add.ts","kind":{"type":"update","move_path":null},"diff":"@@ -1 +1 @@\n-return a - b;\n+return a + b;"}]}}}}
+{"dir":"s2c","msg":{"method":"thread/goal/updated","params":{"threadId":"t1","turnId":"turn-2","goal":{"threadId":"t1","objective":"make the unit tests pass","status":"complete","tokenBudget":null,"tokensUsed":2400,"timeUsedSeconds":9,"createdAt":1760090000,"updatedAt":1760090019}}}}
+{"dir":"s2c","msg":{"method":"turn/completed","params":{"threadId":"t1","turn":{"id":"turn-2","status":"completed","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"thread/goal/cleared","params":{"threadId":"t1"}}}

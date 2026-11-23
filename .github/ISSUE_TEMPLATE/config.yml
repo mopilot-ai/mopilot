@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://mopilot.ai/discord
+    about: Ask the team and other users on Discord.
+  - name: Get help with the official app
+    url: https://mopilot.ai/support
+    about: Account, pairing and download problems with the MoPilot app.

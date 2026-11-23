@@ -1,0 +1,22 @@
+{
+  "layer": "R1",
+  "public": [
+    "*"
+  ],
+  "mayImport": [
+    "L0",
+    "R0"
+  ],
+  "allow": [
+    {
+      "path": "src/lib/native/speech.ts",
+      "to": "src/store/session/capsTypes.ts",
+      "reason": "Type-only, like the other src/lib/native/<ns>.ts declarations: the port's signatures name the store's attachment and the window's capability hint until those types move below R1."
+    },
+    {
+      "path": "src/lib/native/speech.ts",
+      "to": "src/store/types.ts",
+      "reason": "Type-only, like the other src/lib/native/<ns>.ts declarations: the port's signatures name the store's attachment and the window's capability hint until those types move below R1."
+    }
+  ]
+}

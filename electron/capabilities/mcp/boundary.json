@@ -1,0 +1,16 @@
+{
+  "layer": "L3",
+  "public": [
+    "peerWindows.cjs",
+    "sageMcpReady.cjs",
+    "sdkMcp.cjs",
+    "socket.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1",
+    "L2",
+    "L3"
+  ],
+  "allow": []
+}

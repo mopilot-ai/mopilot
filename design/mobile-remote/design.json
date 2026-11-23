@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "type": "design",
+  "title": "MoPilot Mobile Remote",
+  "pages": ["index.html", "protocol.html", "milestones.html"],
+  "designSystems": []
+}

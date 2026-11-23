@@ -1,0 +1,50 @@
+/* ACP composer controls: compact current selections, full details in menus, and bounded labels at narrow widths. */
+.acp-model-trigger {
+  min-width: 56px;
+  max-width: 260px;
+  white-space: nowrap;
+  gap: 6px;
+}
+.acp-model-trigger .model-name,
+.acp-mode-trigger > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.acp-model-trigger > svg,
+.acp-mode-trigger > svg {
+  flex: none;
+}
+.acp-mode-trigger {
+  min-width: 48px;
+  max-width: 160px;
+  white-space: nowrap;
+  background: var(--row-hover);
+  border-radius: 999px;
+  padding: 0 9px;
+}
+.acp-permission-info {
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+  flex: none;
+}
+.acp-picker-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  font-size: var(--fs-ui);
+  font-weight: 500;
+}
+.acp-picker-heading .hp-badge {
+  margin-left: auto;
+}
+.acp-mode-menu .perm-list {
+  max-height: min(360px, 55vh);
+  overflow-y: auto;
+}
+.acp-mode-section {
+  padding-top: 8px;
+}

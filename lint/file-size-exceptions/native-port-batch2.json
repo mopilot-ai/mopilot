@@ -1,0 +1,24 @@
+{
+  "exceptions": {
+    "tests/composerVoice.test.ts": {
+      "maxLines": 870,
+      "reason": "Voice-composer scenarios share microphone, recording and native-service fakes. Capture, transcription and failure outcomes use the same mounted composer."
+    },
+    "tests/filesPanelUI.test.ts": {
+      "maxLines": 547,
+      "reason": "Files-panel and file-preview cases share the mounted panel, store and native bridge. Preview-menu actions belong with the preview's existing interaction tests."
+    },
+    "tests/mentionPopup.test.ts": {
+      "maxLines": 681,
+      "reason": "Mention-popup interactions share the mounted menu, store and installed native fake. Keyboard and selection cases exercise the same fixture."
+    },
+    "tests/nativeAvailabilityUI.test.ts": {
+      "maxLines": 728,
+      "reason": "Native-availability surfaces share the store and installed native fake. Capability, recovery and unavailable-state cases use that environment."
+    },
+    "tests/peerMessagesUi.test.ts": {
+      "maxLines": 1088,
+      "reason": "Peer-message surfaces share a rendered chat, store and native bridge. Keep delivery, window-readiness and refusal-copy cases on that fixture."
+    }
+  }
+}

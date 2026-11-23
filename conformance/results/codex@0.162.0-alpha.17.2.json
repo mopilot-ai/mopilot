@@ -1,0 +1,371 @@
+{
+  "cli": "codex-cli 0.162.0-alpha.17.2 (/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex)",
+  "ranAt": "2026-10-10T09:40:13+00:00",
+  "harnessNotes": "Every app-server ran with -c notify=[] and -c features.memories=false, to avoid running the user's Sky notify hook and writing memories. Login is the default CODEX_HOME ChatGPT login (plan prolite). Temp cwds are under conformance/codex/cwd. Sandbox workspace-write (read-only for X6), approvalPolicy never, serviceTier default. The 25 persisted test threads were archived afterwards with thread/archive. No config writes. auth.json was never read.",
+  "checks": [
+    {
+      "id": "X1",
+      "title": "initialize, model/list efforts, service tiers, default model",
+      "verdict": "pass",
+      "model": "n/a",
+      "observed": "initialize returns {userAgent, codexHome, platformFamily, platformOs}; there is no separate version field, and the version appears only inside userAgent (\"sage_conformance/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) ...\"). model/list (includeHidden) returns 11 models. Default (isDefault) is gpt-6.1-sol, which matches config.toml. \"ultra\" is in supportedReasoningEfforts for gpt-6.1-sol, gpt-6-astra, gpt-6-sol, gpt-5.6-sol, gpt-5.6-terra and gpt-daybreak-blue-latest. It is missing on gpt-6-luna, gpt-5.6-luna, gpt-reserve (hidden), gpt-5.5 (hidden) and codex-auto-review (hidden). Ultra models report multiAgentVersion v2. Every model except daybreak lists exactly one serviceTier, {id:\"priority\", name:\"Fast\"}, with defaultServiceTier null; daybreak lists none. thread/start accepted serviceTier:\"default\" and echoed it. ThreadStartParams/TurnStartParams.multiAgentMode is @deprecated: \"Use effort: \"ultra\" for proactive multi-agent behavior\". collaborationMode/list returns Plan (mode plan, reasoning_effort medium) and Default. features.goals is stage \"stable\" with defaultEnabled true.",
+      "evidence": [
+        "conformance/codex/out/x1.json",
+        "conformance/codex/logs/x1.jsonl"
+      ],
+      "designImpact": "Confirms the multiAgent binding \"Codex effort=ultra\". Ultra must be gated per model, because the luna models have no ultra. The speed control is binary: priority (\"Fast\") or \"default\". To read the version, parse userAgent."
+    },
+    {
+      "id": "X2",
+      "title": "Goals: set/get/pause/resume/clear, flag off, ephemeral",
+      "verdict": "partial",
+      "model": "gpt-6-luna (effort low, serviceTier default)",
+      "observed": "ThreadGoalSetParams = {threadId, origin?: \"user\"|\"automatic\", objective?, status?, tokenBudget?}. appendTranscriptItem is not in the schema, and the server silently ignores it. thread/goal/set on a fresh thread with no prior turn starts a turn by itself: goal/updated(active, turnId null), then turn/started, and the goal reached \"complete\" in 1 turn after about 6.6 s, with a.txt, b.txt and c.txt created. The goal-driven turn has no userMessage item and no goal item in the transcript. The model marks completion itself: its tool list contains create_goal, get_goal and update_goal. Statuses seen: active, paused, complete, budgetLimited (the enum also has blocked and usageLimited). Pausing (set status:\"paused\") mid-turn does NOT stop the running turn. The model finished and moved the goal paused→complete inside that same turn. No new turn starts while the goal is paused. Resume (set status:\"active\") starts a new turn immediately, even on a goal that was already complete, which re-ran it. thread/goal/clear returns {cleared:true} and emits thread/goal/cleared {threadId}; afterwards thread/goal/get returns {goal:null}. tokenBudget:100 made the goal budgetLimited during the first turn, but the turn kept running (tokensUsed rose 7496→8937) and no further turn started. With --disable goals, set, get and clear all return -32600 \"goals feature is disabled\". On an ephemeral thread, set and get return -32600 \"ephemeral thread does not support goals: <id>\". The goals feature is on by default, so -c features.goals=true is accepted but not needed.",
+      "evidence": [
+        "conformance/codex/out/x2a.json",
+        "conformance/codex/out/x2b.json",
+        "conformance/codex/out/x2c.json",
+        "conformance/codex/logs/x2b-goal-run.jsonl",
+        "conformance/codex/logs/x2c-goal-pause.jsonl",
+        "conformance/codex/logs/x2a-disabled.jsonl"
+      ],
+      "designImpact": "Selects the rpc goal binding, with these corrections. (1) Drop appendTranscriptItem:false: it does not exist. Drop \"send the first turn, then set\" for a new conversation: set alone starts the turn. Sage must render the user's \"/goal X\" itself, because no userMessage item is produced. (2) Pause is not a stop. The current \"interrupt with a 500ms timeout after setting paused\" sequence is required, and the UI must expect a late paused→complete. (3) The budget is soft: it is enforced at turn boundaries and can be overshot. The GoalBar copy should say so. (4) The model can create or update goals itself, so Sage must always subscribe to thread/goal/updated and not only after its own set. (5) Goals are on by default, so the \"enable goals\" fix action appears only when the user turned goals off. The error is -32600 \"goals feature is disabled\". Detect it from experimentalFeature/list (goals.enabled) and do not wait for the error. (6) The ephemeral grey-out is confirmed. Verdict is partial only because appendTranscriptItem is absent; everything else passes."
+    },
+    {
+      "id": "X3",
+      "title": "Plan collaboration mode",
+      "verdict": "pass",
+      "model": "gpt-6-luna and gpt-6.1-sol (effort low)",
+      "observed": "turn/start.collaborationMode {mode:\"plan\", settings:{model, reasoning_effort, developer_instructions:null}} emits thread/settings/updated with collaborationMode.mode \"plan\" and the built-in plan developer_instructions. The mode then switches back via mode \"default\", which also emits thread/settings/updated. thread/settings/update (experimental) can set the mode without a turn and also emits thread/settings/updated. With gpt-6.1-sol, a \"plan\" ThreadItem arrived, streamed via item/plan/delta (33 deltas). turn/plan/updated did not fire; it is for the update_plan checklist. gpt-6-luna gave a plain agentMessage plan with no plan item. In plan mode the model ran a read-only command and made no file changes. The default turn then created hello.txt.",
+      "evidence": [
+        "conformance/codex/out/x3.json",
+        "conformance/codex/out/x11.json#planDefaultModel",
+        "conformance/codex/logs/x3-plan.jsonl",
+        "conformance/codex/logs/x11-12.jsonl"
+      ],
+      "designImpact": "Confirms the config binding and the Plan chip driven by thread/settings/updated. The plan item depends on the model, so the UI must handle a plan that arrives only as an agentMessage. thread/settings/update can drive the chip without sending a turn."
+    },
+    {
+      "id": "X4",
+      "title": "review/start inline",
+      "verdict": "pass",
+      "model": "gpt-6-luna",
+      "observed": "review/start {threadId, target:{type:\"uncommittedChanges\"}, delivery:\"inline\"} returns {turn (inProgress), reviewThreadId === threadId}. Items in order: enteredReviewMode(review:\"current changes\"), userMessage, commandExecution x2 (git diff), agentMessage, exitedReviewMode(review: full text with \"[P1] ...\" comment), agentMessage (the same text). It correctly flagged the a+b→a-b bug. ReviewTarget variants: uncommittedChanges, baseBranch{branch}, commit{sha,title}, custom{instructions}. \"detached\" delivery is deprecated and emits deprecationNotice.",
+      "evidence": [
+        "conformance/codex/out/x4to10.json#X4",
+        "conformance/codex/logs/x4to10.jsonl"
+      ],
+      "designImpact": "Confirms the rpc binding. Render from exitedReviewMode.review and de-duplicate the following agentMessage with the same text."
+    },
+    {
+      "id": "X5",
+      "title": "thread/compact/start",
+      "verdict": "pass",
+      "model": "gpt-6-luna",
+      "observed": "thread/compact/start {threadId} returns {}. It then emits thread/status/changed, turn/started, item/started and item/completed {type:\"contextCompaction\"}, then turn/completed. The turn holds only the contextCompaction item and no userMessage. The deprecated thread/compacted notification was NOT emitted. No field marks the compaction as manual or automatic.",
+      "evidence": [
+        "conformance/codex/out/x4to10.json#X5"
+      ],
+      "designImpact": "Confirms that \"Sage records that the user started it\": the protocol has no manual marker. A heuristic is possible: a turn whose only item is contextCompaction is manual, while automatic compaction shows up inside a normal turn. Recording the request id or turn id remains the reliable approach."
+    },
+    {
+      "id": "X6",
+      "title": "thread/shellCommand",
+      "verdict": "pass",
+      "model": "n/a (no model call)",
+      "observed": "The method exists and returns {}. On a thread with sandbox read-only, the command \"echo hi > shell_out.txt\" succeeded and the file was written, so it runs unsandboxed, as the schema doc says. It produces a turn (turn/started → commandExecution item with source \"userShell\" and outputDelta → turn/completed).",
+      "evidence": [
+        "conformance/codex/out/x4to10.json#X6"
+      ],
+      "designImpact": "Confirms the \"!\" binding and the \"not sandboxed\" notice. Expect a separate turn in the transcript."
+    },
+    {
+      "id": "X7",
+      "title": "Tool injection channel for computer use",
+      "verdict": "partial",
+      "model": "gpt-6-luna, gpt-6.1-sol (effort low)",
+      "observed": "thread/start.dynamicTools accepts both {type:\"function\"} and {type:\"namespace\", name, tools:[{type:\"function\"...}]} (also deferLoading). The model's call arrives as server→client item/tool/call {threadId, turnId, callId, namespace, tool, arguments}, and the client answers {contentItems:[{type:\"inputImage\", imageUrl:\"data:...\"}], success:true}. The resulting ThreadItem is dynamicToolCall. IMPORTANT: on this version all tools are called through \"code mode\" (the model writes a JS exec script). In exec, a dynamic tool resolves to a bare data-URL string, not an MCP-shaped {content:[...]}. With a plain description the models wrote \"r.content.forEach(...image...)\", so the image never reached the model (raw custom_tool_call_output had text only) and the answer was NOIMAGE on both luna and sol. When the description says \"resolves to an image data-URL string; pass it to image()\", the model called image(await tools.sage_screenshot({})) and the image reached the model as input_image (sol read TWHWD for TWNWD; the miss is N/H ambiguity in the test font). Code mode cannot be turned off: features.code_mode_host=false per thread had no effect, and --disable code_mode_host made every exec fail with \"code-mode host is disabled\". In code mode a namespace tool is exposed as tools.sage_computer__sage_screenshot. MCP alternative: per-thread config mcp_servers.sage.{command,args} works in both dotted and nested forms, on thread/start and on thread/resume of an unloaded thread (startup sage:ready). However, with approvalPolicy \"never\" every call failed with \"MCP tool call requires approval, but approval policy is never\". Fix by either the tool annotation readOnlyHint:true or mcp_servers.sage.default_tools_approval_mode=\"approve\" (AppToolApproval = auto|prompt|writes|approve). Then the MCP image content is forwarded to the model automatically as input_image, and luna read the word correctly with readOnlyHint. dynamicTools passed on thread/resume of a loaded thread is silently ignored. The design's \"namespaceTools\" flag does not exist in this schema.",
+      "evidence": [
+        "conformance/codex/out/x7.json",
+        "conformance/codex/out/x7b.json",
+        "conformance/codex/out/x7c.json",
+        "conformance/codex/out/x7d.json",
+        "conformance/codex/logs/x7b-tools.jsonl",
+        "conformance/codex/logs/x7c-tools.jsonl",
+        "conformance/codex/logs/x7d-desc.jsonl",
+        "conformance/codex/logs/mcp-start.log",
+        "conformance/codex/logs/mcp-approve.log",
+        "conformance/codex/logs/mcp-ro.log"
+      ],
+      "designImpact": "Both channels work, with caveats that change the binding. (a) dynamicTools: each image tool description must tell the model that the result is a data-URL to pass to image(), or Sage must return a text hint, or the image is silently lost. Even then delivery depends on the model's script. (b) per-thread mcp_servers (start or resume config): images are forwarded natively, but Sage must set default_tools_approval_mode (or per-tool approval_mode / readOnlyHint), or must not run with approvalPolicy never. Otherwise every call fails. Recommendation: make per-thread stdio MCP the primary Codex CU channel, because it is more robust for images and the same server serves ACP and dsh. Keep dynamicTools for non-image tools such as goal_report. Drop the namespaceTools fallback."
+    },
+    {
+      "id": "X8",
+      "title": "revert vs rollback, fork, name, archive, search",
+      "verdict": "pass",
+      "model": "gpt-6-luna",
+      "observed": "thread/rollback does not exist: -32600 \"unknown variant `thread/rollback`\". thread/revert {threadId, beforeTurnId} works. It emits thread/reverted {threadId}, the response has thread.turns empty plus a turnsBackwardsCursor, and turns/list afterwards keeps only turn A. Per the schema it changes history only, not files. thread/fork {threadId, lastTurnId:A, excludeTurns:true} returns a new thread with forkedFromId=parent, and turns/list on the fork returns only A. Fork also has beforeTurnId, deferGoalContinuation, ephemeral and experimentalPredictionMode. thread/name/set returns {} and emits thread/name/updated {threadId, threadName}. thread/archive returns {} and emits thread/archived; unarchive works. thread/search (experimental, searchTerm required) returned [] right after the name was set and the turns ran. A later process found the same threads (n=2 and n=5), so the index lags. thread/list {searchTerm} matched the new name immediately.",
+      "evidence": [
+        "conformance/codex/out/x4to10.json#X8",
+        "conformance/codex/out/x11.json#searchRetry"
+      ],
+      "designImpact": "Confirms revert, fork with lastTurnId, name/set and archive. For Cmd+K, thread/search is eventually consistent: merge it with thread/list(searchTerm) for recent threads."
+    },
+    {
+      "id": "X9",
+      "title": "Per-thread model_providers + modelProvider",
+      "verdict": "pass",
+      "model": "n/a (no turns sent; no traffic to 127.0.0.1:9)",
+      "observed": "thread/start {modelProvider:\"sagetest\", config:{model_providers:{sagetest:{name, base_url:\"http://127.0.0.1:9/v1\", wire_api:\"responses\"}}}} is accepted and the response modelProvider is \"sagetest\". This holds for the nested form, the dotted keys (\"model_providers.x.base_url\"), selection via config.model_provider, and with auth.command. An undefined provider gives -32600 \"failed to load configuration: Model provider `nosuchprovider` not found\". Definitions at launch time via -c also work. auth.command runs EAGERLY at thread/start for both thread-level and launch-level definitions: a marker script ran, and with /usr/bin/false stderr logged \"Failed to resolve external auth\".",
+      "evidence": [
+        "conformance/codex/out/x9.json",
+        "conformance/codex/out/x9b.json",
+        "conformance/codex/logs/x9-thread.jsonl",
+        "conformance/codex/logs/x9b-thread.jsonl",
+        "conformance/codex/logs/authcmd-thread.marker"
+      ],
+      "designImpact": "openQuestions[11]: take the main branch. Thread config accepts model_providers, so the launch-arg fallback and the restart on definition change are unnecessary. Note that auth.command runs at thread/start, not lazily, so the MoPilot key helper must be fast and must not prompt."
+    },
+    {
+      "id": "X10",
+      "title": "backgroundTerminals list/terminate/clean",
+      "verdict": "pass",
+      "model": "gpt-6-luna",
+      "observed": "All three methods exist (experimental). After the model started \"sleep 300\", list returned [{itemId, processId:\"86937\", command:\"sleep 300\", cwd, osPid:null, cpuPercent:null, rssKb:null}]. terminate {threadId, processId} returned {terminated:true}; list was then empty, and no \"sleep 300\" process remained (pgrep). clean returned {}.",
+      "evidence": [
+        "conformance/codex/out/x4to10.json#X10"
+      ],
+      "designImpact": "Confirms conflicts[10]: Sage can list and kill these. osPid and cpu fields may be null."
+    },
+    {
+      "id": "X11",
+      "title": "skills/list, rateLimits, mcpServerStatus/list, feedback/upload",
+      "verdict": "pass",
+      "model": "n/a",
+      "observed": "skills/list {cwds} returned 12 skills (plugin skills such as documents:documents). account/rateLimits/read returns keys ordinaryUsageAllowed, rateLimits, rateLimitsByLimitId, rateLimitResetCredits, accountId and rateLimitUpsell (primary window 10080 min, credits present). mcpServerStatus/list (global, and per thread via threadId) lists code-review, codex_app, codex_apps, cua_repl, node_repl and, per thread, dataAnalyticsWidgets. feedback/upload exists: a call with a bogus field returned \"Invalid request: missing field `classification`\". Nothing was uploaded.",
+      "evidence": [
+        "conformance/codex/out/x11.json"
+      ],
+      "designImpact": "No change. feedback/upload stays Codex-only, as decided."
+    },
+    {
+      "id": "X12",
+      "title": "Native computer use present in a plain thread?",
+      "verdict": "pass",
+      "model": "gpt-6-luna, gpt-6.1-sol (asked to list tools, made 0 tool calls)",
+      "observed": "Yes. Every plain app-server thread on this machine loads cua_repl (tools js, js_reset, turn_ended) from the plugin unified-computer-use@openai-bundled in ~/.codex/config.toml. Both models listed mcp__cua_repl.js and mcp__cua_repl.js_reset among their tools. Also present: node_repl (the user's own mcp_servers entry, whose env points at the Sky CUA service and browser-use), codex_apps (302 ChatGPT connector tools, including e.g. doordash.doordash_checkout and github.*), dataAnalyticsWidgets, and the goal tools create_goal, get_goal and update_goal. It CAN be turned off: per-thread config {plugins:{\"unified-computer-use@openai-bundled\":{enabled:false}}}, or per process -c plugins.unified-computer-use@openai-bundled.enabled=false, removes cua_repl. Disabling computer-use@openai-bundled alone does not. --disable computer_use and features.computer_use=false do not. Per-thread \"mcp_servers.cua_repl.enabled=false\" is rejected (\"invalid transport in mcp_servers.cua_repl\").",
+      "evidence": [
+        "conformance/codex/out/x11.json#tools_*",
+        "conformance/codex/out/x12b.json",
+        "conformance/codex/out/x12c.json"
+      ],
+      "designImpact": "This contradicts the premise \"native CU cannot be turned off\" in conflicts[26] and the playbook. Sage can disable cua_repl per thread through config.plugins, so the elicitation-denial fallback is needed only as defence in depth. node_repl (user-configured, wired to Sky CUA and browser-use) and codex_apps (302 connector tools, some with side effects) remain. If \"Sage tools are the only effective CU and browser channel\" is a requirement, Sage must also handle node_repl, for example by not loading the user's mcp_servers, which this test did not verify."
+    },
+    {
+      "id": "X13",
+      "title": "Other schema contradictions with the design",
+      "verdict": "partial",
+      "model": "n/a",
+      "observed": "(1) thread/goal/set has no appendTranscriptItem. (2) The design names no \"namespaceTools\" capability flag, and none exists. Namespaced dynamic tools are accepted and appear as <ns>__<tool> in code mode. (3) thread/search, thread/settings/update, collaborationMode/list, thread/backgroundTerminals/*, memory/* and thread/realtime/* are experimental-only (they need capabilities.experimentalApi:true, which store.ts and accounts.cjs already send). (4) The deprecated thread/compacted notification is not emitted; use the contextCompaction item. (5) review delivery \"detached\" is deprecated. (6) Codex models carry their own create_goal and update_goal tools. (7) code mode is mandatory and shapes how tool results reach the model. (8) MCP tool approval semantics: approvalPolicy never makes unapproved MCP tools fail and does not auto-approve them. (9) thread/start accepts serviceTier \"default\". (10) experimentalFeature/list exposes the goals flag state. Consistent with the design: thread/revert (no rollback), fork deferGoalContinuation, ephemeral rejection of goals, the review/start shape, multiAgentMode deprecated in favour of effort ultra, and thread/realtime/listVoices exists.",
+      "evidence": [
+        "conformance/codex/ts (generate-ts --experimental)",
+        "conformance/codex/schema (generate-json-schema --experimental)",
+        "conformance/codex/exp.txt",
+        "conformance/codex/stable.txt"
+      ],
+      "designImpact": "See X2, X7 and X12 for the binding changes. Everything else matches."
+    },
+    {
+      "id": "X14",
+      "title": "node_repl and codex_apps switched off per thread?",
+      "verdict": "pass",
+      "observed": {
+        "baseline": {
+          "codex_apps": 302,
+          "dataAnalyticsWidgets": 5,
+          "node_repl": 4
+        },
+        "thread_node_repl_off": {
+          "codex_apps": 302,
+          "dataAnalyticsWidgets": 5,
+          "node_repl": 0
+        },
+        "thread_codex_apps_mcp_off": {
+          "startError": "failed to load configuration: invalid transport\nin `mcp_servers.codex_apps`\n"
+        },
+        "thread_features_apps_off": {
+          "dataAnalyticsWidgets": 5,
+          "node_repl": 4
+        },
+        "thread_features_connectors_off": {
+          "dataAnalyticsWidgets": 5,
+          "node_repl": 4
+        },
+        "thread_apps_default_off": {
+          "codex_apps": 302,
+          "dataAnalyticsWidgets": 5,
+          "node_repl": 4
+        },
+        "proc_disable_apps": {
+          "dataAnalyticsWidgets": 5,
+          "node_repl": 4
+        },
+        "thread_both_off": {
+          "dataAnalyticsWidgets": 5,
+          "node_repl": 0
+        }
+      },
+      "evidence": [
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X14-baseline.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X14-thread_node_repl_off.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X14-thread_codex_apps_mcp_off.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X14-thread_features_apps_off.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X14-thread_features_connectors_off.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X14-thread_apps_default_off.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X14-proc_disable_apps.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X14-thread_both_off.jsonl"
+      ],
+      "seconds": 37,
+      "ranAt": "2026-10-10T17:23:26.072Z",
+      "model": "gpt-6-luna",
+      "effort": "low"
+    },
+    {
+      "id": "X15",
+      "title": "MoPilot's tools on a new and a resumed thread",
+      "verdict": "pass",
+      "observed": {
+        "newServers": [
+          "codex_apps",
+          "dataAnalyticsWidgets",
+          "node_repl",
+          "sage_871002a1b2c5"
+        ],
+        "newReply": "echo: UAYGX",
+        "resumeError": null,
+        "resumedServers": [
+          "codex_apps",
+          "dataAnalyticsWidgets",
+          "node_repl",
+          "sage_871002a1b2c5"
+        ],
+        "resumedReply": "echo: CGZDS"
+      },
+      "evidence": [
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T22-13-30-470Z/X15-new.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T22-13-30-470Z/X15-resumed.jsonl"
+      ],
+      "seconds": 18,
+      "ranAt": "2026-10-10T22:13:48.884Z",
+      "model": "gpt-6-luna",
+      "effort": "low"
+    },
+    {
+      "id": "X16",
+      "title": "App-server killed mid-turn, then resumed",
+      "verdict": "pass",
+      "observed": {
+        "start": {
+          "ok": true
+        },
+        "turnStart": {
+          "ok": true
+        },
+        "commandStarted": true,
+        "childrenBeforeKill": 1,
+        "killed": {
+          "signal": "SIGKILL",
+          "turnCompletedSeen": false
+        },
+        "childrenAfterKill": 1,
+        "resume": {
+          "ok": true,
+          "turns": 1,
+          "status": {
+            "type": "idle"
+          }
+        },
+        "read": {
+          "ok": true,
+          "turnStatuses": [
+            "interrupted"
+          ],
+          "lastItemTypes": [
+            "userMessage"
+          ]
+        },
+        "nextTurn": {
+          "status": "completed",
+          "reply": "ok"
+        }
+      },
+      "evidence": [
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X16-killed.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T17-22-49-503Z/X16-resumed.jsonl"
+      ],
+      "seconds": 24,
+      "ranAt": "2026-10-10T17:23:50.429Z",
+      "model": "gpt-6-luna",
+      "effort": "low"
+    },
+    {
+      "id": "X17",
+      "title": "Goal paused before exit stays paused after a restart",
+      "verdict": "pass",
+      "observed": {
+        "before": {
+          "firstTurn": "completed",
+          "turns": 1,
+          "goalStatus": "paused",
+          "fileWritten": false
+        },
+        "activeBefore": {
+          "goalStatus": "active",
+          "turns": 1
+        },
+        "after": {
+          "paused": {
+            "resumeError": null,
+            "goalOnResume": "paused",
+            "goalAfterWindow": "paused",
+            "turnsStarted": 0,
+            "fileWritten": false
+          },
+          "active": {
+            "resumeError": null,
+            "goalOnResume": "active",
+            "goalAfterWindow": "active",
+            "turnsStarted": 2,
+            "fileWritten": false
+          },
+          "goalMethods": [
+            "thread/goal/updated"
+          ]
+        }
+      },
+      "evidence": [
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T22-24-51-815Z/X17-before.jsonl",
+        "conformance/logs/codex@0.162.0-alpha.17.2/2026-10-10T22-24-51-815Z/X17-after.jsonl"
+      ],
+      "seconds": 78,
+      "ranAt": "2026-10-10T22:26:09.888Z",
+      "model": "gpt-6-luna",
+      "effort": "low"
+    }
+  ],
+  "costNotes": "About 30 model turns, mostly gpt-6-luna at effort low, plus about 9 on gpt-6.1-sol at effort low (tool listing, plan item, image tests). Summed thread totalTokens are about 1.14M, mostly cached input (each turn carries a ~17k-token tool and system prefix). The weekly primary rate limit showed usedPercent 4 before and after.",
+  "surprises": [
+    "thread/goal/set on a fresh thread starts work by itself, and no userMessage item is written. appendTranscriptItem does not exist (it is silently ignored).",
+    "Pausing a goal does not stop the in-flight turn: the model marked the paused goal complete in the same turn. Resuming a completed goal re-runs it. tokenBudget is soft and was overshot about 90x within one turn.",
+    "The models have native create_goal, get_goal and update_goal tools, so goals can appear without Sage calling set.",
+    "All tool use goes through mandatory \"code mode\" (a JS exec tool). A dynamicTools image result is a bare data-URL in JS and is lost unless the model calls image() on it. A tool-description hint fixes it.",
+    "Per-thread MCP tools fail under approvalPolicy never (\"requires approval\") unless default_tools_approval_mode=\"approve\" or readOnlyHint is set. Once that is set, images are forwarded natively.",
+    "Native cua_repl CAN be disabled per thread with config.plugins[\"unified-computer-use@openai-bundled\"].enabled=false. node_repl (Sky/browser-use) and codex_apps (302 connector tools, some with side effects such as checkout) remain in every plain thread.",
+    "thread-level model_providers works, and its auth.command runs eagerly at thread/start.",
+    "thread/search lags behind writes; thread/list(searchTerm) is immediate.",
+    "gpt-6-luna read single letters wrong in images even from direct user input (the control test failed). Use a sol-class model for vision checks."
+  ],
+  "kind": "codex",
+  "bin": "codex",
+  "updatedAt": "2026-10-10T22:26:09.889Z"
+}

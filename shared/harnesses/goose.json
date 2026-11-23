@@ -1,0 +1,58 @@
+{
+  "id": "goose",
+  "label": "Goose",
+  "vendor": "AAIF",
+  "bins": [
+    "goose"
+  ],
+  "docsUrl": "https://goose-docs.ai/docs/guides/acp-providers",
+  "install": {
+    "docs": "https://goose-docs.ai/docs/getting-started/installation",
+    "methods": [
+      {
+        "via": "script",
+        "command": "curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash",
+        "os": [
+          "darwin",
+          "linux"
+        ]
+      },
+      {
+        "via": "brew",
+        "command": "brew install block-goose-cli",
+        "os": [
+          "darwin",
+          "linux"
+        ],
+        "needs": "brew",
+        "brew": {
+          "name": "block-goose-cli",
+          "cask": false
+        }
+      }
+    ]
+  },
+  "enabled": true,
+  "order": 8,
+  "runtimeQuirks": true,
+  "acp": {
+    "env": {},
+    "args": [
+      "acp"
+    ],
+    "privacyDefaults": [],
+    "admission": {
+      "handshakeTimeoutMs": 10000
+    },
+    "loginCommand": [
+      "goose",
+      "configure"
+    ],
+    "anchors": {
+      "chat": "readOnly",
+      "approve": "ask",
+      "smart_approve": "ask",
+      "auto": "full"
+    }
+  }
+}

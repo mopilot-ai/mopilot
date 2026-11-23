@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/desktopCardsUI.test.ts": {
+      "maxLines": 843,
+      "reason": "Desktop and terminal approval cards share the rendered broker and native fixture. Folder, command and trusted-input decisions use that environment."
+    }
+  }
+}

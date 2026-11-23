@@ -1,0 +1,14 @@
+{
+  "layer": "L2",
+  "public": [
+    "inputGuard.cjs",
+    "prewarm.cjs",
+    "reconcile.cjs",
+    "route.cjs"
+  ],
+  "mayImport": [
+    "L0",
+    "L1"
+  ],
+  "allow": []
+}

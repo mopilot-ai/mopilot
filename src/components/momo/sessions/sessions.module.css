@@ -1,0 +1,71 @@
+/* MoMo's Sessions pane (SessionsPane.tsx): the pane itself opens in one frame; only a row's hover eases, on the shell's motion tokens (shared/momoMotion.mjs, declared on .shell), and stands still with Reduce Motion. */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 0.5px solid var(--surface-border);
+}
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  font-size: var(--fs-ui);
+  color: var(--text-1);
+}
+.controlText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hint {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.group {
+  margin-top: 16px;
+}
+.groupTitle {
+  margin: 0 0 4px 4px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text-3);
+}
+.row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+  transition: background-color var(--momo-dur-s) var(--momo-ease-out);
+}
+.row:hover {
+  background: var(--surface-2);
+}
+.title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-ui);
+  color: var(--text-1);
+}
+.meta {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.empty {
+  margin: 16px 4px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none;
+  }
+}

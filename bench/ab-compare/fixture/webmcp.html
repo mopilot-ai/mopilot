@@ -1,0 +1,15 @@
+<!doctype html><html><head><title>webmcp fixture</title></head><body>
+<h1>WebMCP fixture</h1>
+<p id="count">clicks: none</p>
+<form toolname="search_catalog" tooldescription="Search the catalog" toolautosubmit onsubmit="event.preventDefault();hit('search-'+this.q.value)"><input name="q" toolparamdescription="What to search for"><button>Search</button></form>
+<script>
+function hit(n){document.getElementById('count').textContent='clicks: '+n}
+const mc = document.modelContext || navigator.modelContext;
+if (mc) {
+  mc.registerTool({ name: 'add_to_cart', description: 'Add an item to the cart by SKU',
+    inputSchema: { type: 'object', properties: { sku: { type: 'string' } }, required: ['sku'] },
+    async execute(input) { hit('cart-' + input.sku); return { content: [{ type: 'text', text: 'Added ' + input.sku }] }; } });
+  // registered after load: a catalog must still see it
+  setTimeout(() => mc.registerTool({ name: 'later_tool', description: 'Registered after load', execute: () => 'late' }), 400);
+}
+</script></body></html>

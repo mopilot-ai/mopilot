@@ -1,0 +1,8 @@
+{"dir":"s2c","msg":{"method":"turn/started","params":{"threadId":"t1","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null}}}}
+{"dir":"s2c","msg":{"method":"item/started","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"commandExecution","id":"c1","command":"rm -rf build","cwd":"/repo","status":"inProgress","aggregatedOutput":null,"exitCode":null}}}}
+{"dir":"s2c","msg":{"id":"srv-1","method":"item/commandExecution/requestApproval","params":{"threadId":"t1","turnId":"turn-1","itemId":"c1","command":"rm -rf build","cwd":"/repo","reason":null}}}
+{"dir":"c2s","id":"srv-1","result":{"decision":"decline"}}
+{"dir":"s2c","msg":{"method":"serverRequest/resolved","params":{"threadId":"t1","requestId":"srv-1"}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"commandExecution","id":"c1","command":"rm -rf build","cwd":"/repo","status":"declined","aggregatedOutput":null,"exitCode":null}}}}
+{"dir":"s2c","msg":{"method":"item/completed","params":{"threadId":"t1","turnId":"turn-1","item":{"type":"agentMessage","id":"m1","text":"Understood, I left the build folder alone.","phase":null}}}}
+{"dir":"s2c","msg":{"method":"turn/completed","params":{"threadId":"t1","turn":{"id":"turn-1","status":"completed","items":[],"error":null}}}}

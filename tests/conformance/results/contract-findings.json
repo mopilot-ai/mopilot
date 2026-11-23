@@ -1,0 +1,33 @@
+{
+  "about": "What each failing harness version contract item means to a user, read by scripts/gen-matrix.mjs for the harness checks in Copy diagnostics (Settings → About), for support. Key: the item key from tests/conformance/results/contract/*.json (conformance:X4, edge:codex:checkout), or a scenario on any cell (edge:tls). says: one plain sentence, no CM row ids or probe output. issue: the open issue that tracks it; fixedBy: the pull request that fixed it (the text then says the version waits for a re-check). A failing item without an entry stops the generator.",
+  "findings": {
+    "conformance:X4": {
+      "says": "Codex wrote a trust entry for the chat's folder into its config.toml.",
+      "issue": 1346
+    },
+    "conformance:X7": {
+      "says": "The model misread one letter of a test image; the check was too strict and now allows it.",
+      "fixedBy": 1348
+    },
+    "conformance:X16": {
+      "says": "This version stops a running command when Codex stops; the check expected the older behavior and now accepts both.",
+      "fixedBy": 1348
+    },
+    "edge:crash": {
+      "says": "After an in-app browser tab crashed, the agent waited instead of reloading it.",
+      "fixedBy": 1348
+    },
+    "edge:tls": {
+      "says": "On a page with an untrusted certificate, \"Open in your browser\" didn't visibly do anything.",
+      "fixedBy": 1348
+    },
+    "edge:deep-link": {
+      "says": "The agent said the in-app browser can't open the Zoom app, but the check missed it because of a curly apostrophe; the check now reads it.",
+      "fixedBy": 1427
+    },
+    "mgb:switch:f2-onboarding": {
+      "says": "In a chat that switched from Claude Code to Codex, the onboarding task did not file the signed copy under the folder's naming pattern with its confirmation number.",
+      "issue": 1426
+    }
+  }
+}

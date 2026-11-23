@@ -1,0 +1,18 @@
+// An app-store selector that reads a chat's session through sessionOf, which holds the session patches of the coming
+// frame (src/store/session/useSession.ts): the component renders the committed session (useSession, useSessionField) and no
+// session change re-runs the selector, so one render can see a switch both pending and done (#2847). Read the session
+// with a session hook and pass it in (useComposerFamily, useComposerFirstTier in src/session/harness/select.ts;
+// the pending switch the ownership checks take). It matches these helpers by name, not every function that reads sessionOf below it.
+// docs/bug-prevention/stale-async-results.md
+language js
+
+`useStore($select)` where {
+  $select <: contains or {
+    `sessionOf($...)`,
+    `composerFamily($...)`,
+    `composerFirstTier($...)`,
+    `isClaudeComposer($...)`,
+    `heldSwitch($...)`
+  },
+  register_diagnostic(span=$select, message="[held-session-selector] This app-store selector reads the chat's session through sessionOf, which can be a frame ahead of the session the component renders and does not re-run the selector. Read it with a session hook (useComposerFamily, useComposerFirstTier, useSessionField) (docs/bug-prevention/stale-async-results.md).", severity="warn")
+}

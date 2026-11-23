@@ -1,0 +1,9 @@
+{
+  "direct": [
+    { "name": "sucrase", "use": "Parse standalone canvas TSX into JavaScript without executing it in MoPilot's renderer.", "ships": "Lazy browser parser; authored JavaScript executes only in an opaque iframe.", "license": "MIT", "lockLicense": "MIT", "url": "https://github.com/alangpierce/sucrase" }
+  ],
+  "runtimeRoots": ["sucrase"],
+  "notices": [
+    { "title": "Sucrase canvas parser", "path": "node_modules/sucrase/LICENSE" }
+  ]
+}

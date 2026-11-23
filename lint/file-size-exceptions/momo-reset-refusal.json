@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/momo/mainChat.cjs": {
+      "maxLines": 577,
+      "reason": "Owns MoMo's current and previous main chats. Creation, replacement, reset exclusion and retirement share the same saved chat records."
+    }
+  }
+}

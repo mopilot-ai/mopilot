@@ -1,0 +1,264 @@
+/* The tracked PR's rows in the summary panel's Changes card, as Claude Desktop shows them on its session rail: one row
+   per open PR in the stack, as tall as the card's other rows, merged and closed ones under "earlier pull requests"; a
+   row lightens on hover and shows its menu button; an anchored parent picker. A CSS Module: every class here is local
+   to these components, so it never meets another component's class of the same name (the Review list's rows); the
+   app's own classes it sits among are named with :global(), and a row's states are data attributes. */
+.prPanel {
+  margin: 0 -6px;
+}
+.prPanelBody {
+  font-size: var(--fs-ui);
+  color: var(--text-3);
+}
+/* motion.css fades hover feedback on `[class*='-row']`, which a hashed class never matches: the same fade, here */
+.prRows,
+.prRow,
+.prRowState,
+.prRowLink,
+.prRowNum,
+.prRowTitle,
+.prRowCi,
+.prRowMore,
+.prRowsMore {
+  transition: background-color var(--dur) ease, color var(--dur) ease, border-color var(--dur) ease, opacity var(--dur) ease, box-shadow var(--dur) ease;
+}
+/* a long stack scrolls inside half the window, never pushing the rest of the card away */
+.prRows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 50vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.prRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 2px 0 6px;
+  border-radius: 6px;
+}
+.prRow:hover,
+.prRow[data-menu-open] {
+  background: rgba(var(--ink), 0.04);
+}
+.prRowState {
+  flex: none;
+}
+.prRowState[data-state='open'] {
+  color: var(--green-text);
+}
+.prRowState[data-state='merged'] {
+  color: var(--purple);
+}
+.prRowState[data-state='closed'] {
+  color: var(--red-text);
+}
+.prRowLink {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 26px;
+  margin-left: -4px;
+  padding: 0 4px;
+  border-radius: 5px;
+  color: var(--text-ui);
+  text-align: left;
+}
+.prRowLink:hover .prRowNum {
+  color: var(--text);
+}
+.prRowNum {
+  flex: none;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.prRowTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prRow[data-ended] .prRowTitle {
+  color: var(--text-3);
+}
+.prRowCi {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-3);
+}
+.prRowCi[data-tone='ok'] {
+  color: var(--green-text);
+}
+.prRowCi[data-tone='failed'] {
+  color: var(--red-text);
+}
+/* a row's menu button shows on hover, on focus, or while its menu is open; the tracked row's always shows */
+.prRow .prRowMore {
+  flex: none;
+  color: var(--text-3);
+}
+.prRow:not([data-tracked]) .prRowMore {
+  opacity: 0;
+}
+.prRow:hover .prRowMore,
+.prRow[data-menu-open] .prRowMore,
+.prRow .prRowMore:focus-visible {
+  opacity: 1;
+}
+.prRowsMore {
+  align-self: flex-start;
+  min-height: 22px;
+  margin: 2px 0 0 4px;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.prRowsMore:hover,
+.prEarlier:hover {
+  background: rgba(var(--ink), 0.04);
+  color: var(--text);
+}
+.prEarlier {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 30px;
+  margin-top: 2px;
+  padding: 0 6px;
+  border-radius: 6px;
+  text-align: left;
+}
+.prEarlierCaret {
+  flex: none;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.prEarlier[aria-expanded='true'] .prEarlierCaret {
+  transform: rotate(90deg);
+}
+.prEarlierLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+.prEarlierMerged {
+  flex: none;
+  font-size: var(--fs-small);
+}
+.prBarNote {
+  padding: 4px 6px 0 27px;
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+.prBarNote[role='alert'],
+.prStackError {
+  color: var(--red-text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .prEarlierCaret {
+    transition: none;
+  }
+}
+.prStackPicker {
+  width: min(360px, calc(100vw - 24px));
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--menu-bg);
+  box-shadow: var(--menu-shadow);
+  font-size: var(--fs-ui);
+}
+.prStackHeading {
+  font-weight: 500;
+  color: var(--text);
+}
+.prStackHelp {
+  margin: 6px 0 10px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.prStackSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 0.5px solid var(--surface-border);
+  border-radius: 6px;
+  color: var(--text-3);
+}
+.prStackSearch input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+}
+.prStackOptions {
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 6px -4px 0;
+}
+.prStackOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  text-align: left;
+}
+.prStackOption:hover {
+  background: var(--row-hover);
+}
+.prStackOption > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--green-text);
+}
+.prStackOption > span {
+  min-width: 0;
+}
+.prStackTitle,
+.prStackBranch {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prStackTitle {
+  color: var(--text-ui);
+}
+.prStackBranch {
+  margin-top: 3px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.prStackEmpty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.prStackError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-small);
+}
+.prStackCancel {
+  margin-top: 8px;
+  font-size: var(--fs-small);
+}

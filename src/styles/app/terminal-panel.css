@@ -1,0 +1,73 @@
+/* Bottom terminal panel. */
+/* ================================================================== */
+/* Bottom terminal panel                                               */
+/* ================================================================== */
+.bottom-panel {
+  flex: none;
+  border-top: 0.5px solid var(--divider);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--main);
+}
+.bottom-resize {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: row-resize;
+  touch-action: none;
+  z-index: 2;
+}
+.bottom-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 8px;
+  flex: none;
+}
+.bottom-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 4px 0 9px;
+  border-radius: 7px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.bottom-tab.active {
+  background: var(--row-active);
+  color: var(--text);
+}
+.bottom-tab .icon-btn {
+  width: 20px;
+  height: 20px;
+}
+.bottom-tab-exit {
+  font-size: var(--fs-micro);
+  color: var(--text-4);
+}
+.bottom-tabs-spacer {
+  flex: 1;
+}
+.bottom-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0 0 4px 12px;
+}
+.term-view {
+  height: 100%;
+}
+/* a chat on a machine this Mac has no ssh to: the line that stands where its shell would be */
+.bottom-note {
+  padding: 12px 12px 0 0;
+  font-size: var(--fs-ui);
+  color: rgba(var(--ink), 0.6);
+}
+.term-view .xterm-viewport {
+  background: transparent !important;
+}
+

@@ -1,0 +1,9 @@
+// An id or key built in a template from a value asserted non-null (`acp:${basic!}`): in the frame where the value
+// hasn't resolved it becomes 'acp:null' or 'x:undefined', a real-looking id that names nothing (#2862). Return null
+// until the value is known, or fall back to a known id. docs/bug-prevention/edge-states.md
+language js
+
+JsTemplateExpression() as $t where {
+  $t <: contains JsTemplateElement(expression=TsNonNullAssertionExpression()),
+  register_diagnostic(span=$t, message="[asserted-template-id] A template built from a value asserted non-null makes 'x:null' or 'x:undefined' while that value is unresolved. Keep the result nullable until the value is known, or fall back to a known value (docs/bug-prevention/edge-states.md).", severity="warn")
+}

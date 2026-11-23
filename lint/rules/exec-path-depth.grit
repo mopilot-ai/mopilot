@@ -1,0 +1,12 @@
+// A path counted with `..` from the running executable (process.execPath). The count is a guess about the app's layout,
+// not a module path, so a file move that rewrote every `..` by one depth also rewrote it: the updater asked codesign
+// about /Applications instead of the app, saw no signature and turned updates off. Find the bundle by name instead.
+// docs/bug-prevention/strings-paths-and-keys.md
+language js
+
+JsCallExpression() as $call where {
+  $call <: or { `$_.resolve($...)`, `$_.join($...)`, `resolve($...)`, `join($...)` },
+  $call <: contains `process.execPath`,
+  $call <: contains r"^['\"`](?:\.\./)*\.\.(?:/.*)?['\"`]$",
+  register_diagnostic(span=$call, message="[exec-path-depth] A path counted with .. from process.execPath depends on the app's layout and breaks silently when it changes (a file move rewrote one to read /Applications). Find the folder by name, as appBundleOf in electron/updates/signature.cjs does (docs/bug-prevention/strings-paths-and-keys.md).", severity="warn")
+}

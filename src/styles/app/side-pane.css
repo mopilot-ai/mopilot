@@ -1,0 +1,498 @@
+/* Side pane and the changes view. */
+/* side pane + changes view */
+.side-pane {
+  position: relative;
+  flex: none;
+  border-left: 0.5px solid var(--divider);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--main);
+}
+.pane-resize {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 3;
+}
+/* a panel edge under a drag (src/lib/edgeDrag.ts): its cursor everywhere, and no text selected on the way */
+html[data-edge-drag] {
+  user-select: none;
+}
+html[data-edge-drag='column'] * {
+  cursor: col-resize !important;
+}
+html[data-edge-drag='row'] * {
+  cursor: row-resize !important;
+}
+.tb-tabs {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px 0 6px;
+  /* the pane's own header: its left hairline runs on into the pane's border below */
+  background: var(--main);
+  border-left: 0.5px solid var(--divider);
+  box-sizing: border-box;
+}
+.tb-tabs button {
+  -webkit-app-region: no-drag;
+}
+/* Tabs take only their label's room; overflow belongs to this list so the panel controls stay in reach. */
+.tb-tab-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-app-region: no-drag;
+}
+.tb-tabs > :not(.tb-tab-list):not(.flex1) {
+  flex: none;
+}
+.tb-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  min-width: 0;
+  /* Cap the intrinsic contribution first; a percentage inside that cap leaves phantom space before New tab. */
+  width: calc-size(max-content, min(size, 180px));
+  max-width: 100%;
+  height: max(28px, calc(var(--fs-ui) * 1.5));
+  padding: 0 4px 0 7px;
+  border-radius: var(--row-radius);
+  font-size: var(--fs-ui);
+  color: var(--text-2);
+  -webkit-app-region: no-drag;
+}
+/* a tab opened while the strip shows grows in from nothing and a closed one shrinks away: max-width, opacity and
+   scale over .15s ease, from the strip's side; a new tab's icon pops in from .8 over .3s ease-out. TitleBar's TAB_MOTION_MS keeps a closed tab that long. */
+.tb-tab.tab-enter {
+  transform-origin: left center;
+  animation: tab-in 150ms ease backwards;
+}
+.tb-tab.tab-enter > svg:first-child {
+  animation: favicon-in 300ms ease-out backwards;
+}
+@keyframes tab-in {
+  from {
+    max-width: 0;
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+@keyframes favicon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+.tb-tab-list > .tb-tab.tab-leaving {
+  max-width: 0;
+  margin-right: 0;
+  padding: 0;
+  opacity: 0;
+  transform: scale(0.8);
+  transform-origin: left center;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    max-width 150ms ease,
+    margin 150ms ease,
+    padding 150ms ease,
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tb-tab.tab-enter,
+  .tb-tab.tab-enter > svg:first-child {
+    animation: none;
+  }
+}
+.tb-tab:hover {
+  background: var(--row-hover);
+}
+.tb-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+.tb-tab.active {
+  background: var(--control-active);
+  color: var(--text);
+}
+.tb-tab span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.tb-tab-rename {
+  flex: 1;
+  min-width: 60px;
+  min-height: 20px;
+  padding: 0 4px;
+  border: 0.5px solid var(--surface-border);
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-ui);
+  outline: none;
+}
+.tb-tab > svg {
+  flex: none;
+}
+.tb-tab > svg.tb-tab-muted {
+  color: var(--text-3);
+}
+.tb-tab-close {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.tb-tab-close:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+/* only the tab in front, or the one under the pointer or keyboard, shows its close button */
+.tb-tab:not(.active):not(:hover):not(:focus-within) .tb-tab-close {
+  visibility: hidden;
+}
+.changes-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* the toolbar carries labels now, so it wraps under the scope pill rather than overflowing the pane
+   at its minimum width (PANE_MIN_WIDTH, src/lib/splitClamp.ts) or at the largest Chat font size */
+.cp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 8px 7px 8px;
+  border-bottom: 0.5px solid var(--hairline-strong);
+}
+.cp-scope {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px 0 14px;
+  border-radius: 16px;
+  background: rgba(var(--ink), 0.05);
+  box-shadow: inset 0 0 0 0.5px rgba(var(--ink), 0.1);
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.cp-scope svg {
+  color: var(--text-2);
+}
+.cp-scope .diff-stat {
+  margin-left: 8px;
+  font-size: var(--fs-chat);
+}
+.cp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 3px;
+  border-radius: 16px;
+  background: rgba(var(--ink), 0.05);
+  box-shadow: inset 0 0 0 0.5px rgba(var(--ink), 0.1);
+}
+.cp-tool {
+  width: 30px;
+  height: 26px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+}
+.cp-tool:hover {
+  color: var(--text);
+  background: var(--row-hover);
+}
+.cp-tool.on {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+/* Unified | Split, in the toolbar: the toolbar pill is already the track, so the control adds none of
+   its own and only lifts the chosen mode onto the surface colour, at the icon buttons' height */
+.cp-mode {
+  padding: 0;
+  gap: 1px;
+}
+.cp-mode button {
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 13px;
+}
+.cp-mode button.on {
+  background: var(--surface);
+}
+/* the toolbar is a tint of the pane, so the lift has to be lighter than it. In the dark theme --surface (45)
+   clears the toolbar (29) well; in the light one it is 247 against a 242 toolbar over a white pane, five
+   levels, so the pane's own --main (255) is the lift there. */
+[data-theme='light'] .cp-mode button.on {
+  background: var(--main);
+}
+.cp-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.cp-diffs {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  user-select: text;
+}
+.cp-diffs.wrap .idiff-code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.cp-diffs.wrap .idiff-row {
+  min-width: 0;
+}
+.cp-file + .cp-file {
+  border-top: 0.5px solid var(--hairline-strong);
+}
+.cp-file-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 8px 0 16px;
+  background: var(--main);
+  border-bottom: 0.5px solid var(--hairline-strong);
+  font-size: var(--fs-chat);
+  cursor: pointer;
+}
+.cp-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.cp-file-actions {
+  display: flex;
+}
+.idiff.bare {
+  border: 0;
+  border-radius: 0;
+}
+.idiff.split .split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.idiff.split .split-row .idiff-row {
+  min-width: 0;
+  overflow: hidden;
+}
+.idiff.split .split-row .idiff-row + .idiff-row {
+  border-left: 0.5px solid var(--hairline-strong);
+}
+.idiff-row.empty {
+  background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(var(--ink), 0.03) 4px 8px);
+}
+.cp-files {
+  width: 240px;
+  flex: none;
+  border-left: 0.5px solid var(--hairline-strong);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+.cp-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 0.5px solid var(--hairline-strong);
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+.cp-filter input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  font-size: var(--fs-chat);
+  color: var(--text);
+}
+.cp-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 9px;
+  font-size: var(--fs-chat);
+  color: var(--text);
+  text-align: left;
+}
+.cp-file-row:hover {
+  background: var(--row-hover);
+}
+.cp-file-row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cp-commit {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+}
+.lang-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--on-color);
+  letter-spacing: -0.2px;
+}
+.lang-icon.plain {
+  color: var(--text-2);
+}
+
+
+.side-pane[hidden] {
+  display: none;
+}
+
+/* diff comments (src/components/diff/DiffComments.tsx): the gutter's add button, the picked range and the comment box */
+.diff-comment-add {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  display: inline-flex;
+  opacity: 0;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: var(--accent);
+  color: var(--on-color);
+  cursor: pointer;
+}
+/* hidden by opacity, not display, so keyboard focus still reaches it */
+.idiff-row:hover .diff-comment-add,
+.idiff-row.commenting .diff-comment-add,
+.diff-comment-add:focus-visible {
+  opacity: 1;
+}
+.diff-selection-add {
+  position: fixed;
+  z-index: 999;
+  width: 24px;
+  height: 24px;
+  opacity: 1;
+  box-shadow: var(--shadow-card);
+}
+.idiff-row.commenting,
+.idiff-row.commenting .idiff-ln {
+  box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.diff-comment-wrap {
+  position: sticky;
+  left: 0;
+  max-width: 720px;
+  padding: 6px 12px;
+  white-space: normal;
+  font-family: var(--font-sans);
+}
+.diff-comment-box,
+.diff-comment-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.diff-comment-box textarea {
+  width: 100%;
+  min-height: 44px;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-ui);
+}
+.diff-comment-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.diff-comment-state {
+  margin-left: auto;
+}
+.diff-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.diff-comment-text {
+  font-size: var(--fs-ui);
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.cp-file-line {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cp-file-line .cp-file-row {
+  flex: 1;
+  min-width: 0;
+}
+.cp-file-pick {
+  flex: none;
+  margin: 0 0 0 4px;
+}

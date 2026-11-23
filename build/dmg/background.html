@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- The DMG window's background (600 × 400 points): scripts/make-dmg-background.mjs renders it to background.png and
+     background@2x.png. Finder draws the two icons on top at the points in LAYOUT (scripts/dmg.mjs): the app at
+     (160, 212), Applications at (440, 212), 128 px each, with their names under them. Keep the art clear of them. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Geist'; src: url('../../web/public/fonts/Geist-Variable.woff2') format('woff2'); font-weight: 100 900; }
+  html, body { margin: 0; width: 600px; height: 400px; overflow: hidden; }
+  body {
+    position: relative;
+    background: #f6f3ee;
+    font-family: 'Geist', -apple-system, sans-serif;
+    color: #1b1a18;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* a faint dot grid that fades out toward the edges */
+  .grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(27, 26, 24, 0.13) 1px, transparent 1.2px);
+    background-size: 20px 20px;
+    background-position: 10px 10px;
+    -webkit-mask-image: radial-gradient(ellipse 72% 70% at 50% 52%, #000 20%, transparent 78%);
+  }
+  h1 {
+    position: absolute; top: 44px; left: 0; right: 0; margin: 0;
+    text-align: center; font-size: 25px; line-height: 1.28; font-weight: 450; letter-spacing: -0.02em;
+    color: rgba(27, 26, 24, 0.5);
+  }
+  h1 b { font-weight: 560; color: #1b1a18; }
+  svg { position: absolute; left: 0; top: 0; }
+  .foot {
+    position: absolute; bottom: 30px; left: 0; right: 0; margin: 0;
+    text-align: center; font-size: 12.5px; letter-spacing: -0.005em; color: rgba(27, 26, 24, 0.45);
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <h1>To install, drag <b>MoPilot</b><br>to <b>Applications</b></h1>
+  <svg width="600" height="400" viewBox="0 0 600 400" fill="none" stroke="#ee8a58" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M254 214 C 278 186, 318 182, 344 204" />
+    <path d="M330 206 L 345 205 L 343 190" />
+  </svg>
+  <p class="foot">Then open MoPilot from your Applications folder.</p>
+</body>
+</html>

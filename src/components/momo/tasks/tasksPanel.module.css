@@ -1,0 +1,62 @@
+/* MoMo's Tasks panel (TasksPanel.tsx): no transition anywhere, so the panel is there in one frame. */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 16px;
+  flex-wrap: wrap;
+}
+.stale {
+  opacity: 0.5;
+}
+.why {
+  margin: 0 16px 12px;
+  font-size: var(--fs-small);
+  line-height: var(--lh-prose);
+  color: var(--text-3);
+}
+/* an added suggestion lands in its group by sliding up (dur.l, ease.snap): 300 ms */
+.slideUp {
+  animation: slideUp 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slideUp {
+    animation: none;
+  }
+}
+/* View history (RoutineHistory.tsx): the dialog's body, its summary line and one run per line */
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  min-width: 320px;
+}
+.historyLine {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+.runs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.run {
+  padding: 8px 12px;
+  border-radius: var(--radius-m, 8px);
+  background: var(--surface-2, var(--bg-2));
+  font-size: var(--fs-body, 14px);
+}
