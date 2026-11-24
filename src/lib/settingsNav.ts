@@ -39,8 +39,8 @@ export const NAV: NavItem[] = [
   { id: 'browser', label: 'Browser', group: 'Built-in tools' },
   { id: 'voice', label: 'Voice & dictation', group: 'Built-in tools' },
   { id: 'connections', label: 'Connections', group: 'Workspace' },
+  { id: 'connectors', label: 'Connectors', group: 'Workspace' },
   { id: 'git', label: 'Git', group: 'Workspace' },
-  { id: 'worktrees', label: 'Worktrees', group: 'Workspace' },
   { id: 'archived', label: 'Archived chats', group: 'Workspace' },
   { id: 'about', label: 'About', group: 'System' },
 ];
@@ -306,6 +306,8 @@ const ALIAS: Record<string, (tab: string | undefined) => Target> = ownTable({
   plugins: (tab) => ({ section: 'codex', tab: tab ? `extensions:${tab}` : 'extensions' }),
   hooks: () => ({ section: 'codex', tab: 'extensions' }),
   import: () => ({ section: 'codex', tab: 'extensions' }),
+  // Worktrees sit on the Git page: both are about the repository a chat works in
+  worktrees: () => ({ section: 'git' }),
 });
 
 /** Old tab ids of a section and the tab each became: the Codex page's from before its tabs were renamed, and the

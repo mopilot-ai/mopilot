@@ -16,6 +16,7 @@ import { ActionButton, CheckButton, SigninRunning, currentSignin, type InstallAg
 import { UpdateButton } from '../../host/UpdateButton';
 import { KEEP_RUNNING, KeepRunningSheet } from './KeepRunningSheet';
 import { RemoveSheet } from './RemoveSheet';
+import { MachineDetails } from './MachineDetails';
 import { CloudMachineSheet } from './CloudMachineSection';
 import { cloudOn } from '../../../lib/hostCloud';
 import { GIT_HOST, GIT_SIGNIN_HINT, gitSignInRowNote, type GitSignIn } from '../../../lib/hostGitSignIn';
@@ -113,7 +114,7 @@ export function MachineRow({
   gitSignIn?: GitSignIn;
 }) {
   const menu = useAnchor<HTMLButtonElement>();
-  const [sheet, setSheet] = useState<'rename' | 'install' | 'keep-running' | 'remove' | 'cloud' | 'page' | null>(null);
+  const [sheet, setSheet] = useState<'rename' | 'install' | 'keep-running' | 'remove' | 'cloud' | 'page' | 'details' | null>(null);
   // with `host.machinePage` the row opens the machine's page
   const hasPage = useMachinePageFlag();
   const online = machine.status !== 'offline';
@@ -175,6 +176,8 @@ export function MachineRow({
         </button>
       </div>
       <Menu anchor={menu.anchor} open={menu.open} onClose={menu.close} placement="bottom-end" width={210}>
+        <MenuItem onSelect={() => setSheet('details')}>Details</MenuItem>
+        <MenuItem onSelect={() => setSheet('rename')}>Rename</MenuItem>
         {otherSignins.map((a) => (
           <MenuItem key={a.id} onSelect={() => void startSignin(machine.id, a.id).catch(fail)}>
             Sign in to {a.label}
@@ -190,13 +193,13 @@ export function MachineRow({
           </MenuItem>
         )}
         {machine.cloud && cloudOn() && <MenuItem onSelect={() => setSheet('cloud')}>Cloud…</MenuItem>}
-        <MenuItem onSelect={() => setSheet('rename')}>Rename</MenuItem>
         <MenuSeparator />
         <MenuItem danger onSelect={() => setSheet('remove')}>
           Remove
         </MenuItem>
       </Menu>
       {sheet === 'page' && <MachinePage machine={machine} now={now} onClose={() => setSheet(null)} />}
+      {sheet === 'details' && <MachineDetails machine={machine} now={now} onClose={() => setSheet(null)} />}
       {sheet === 'remove' && <RemoveSheet machine={machine} onClose={() => setSheet(null)} />}
       {sheet === 'cloud' && <CloudMachineSheet machine={machine} onClose={() => setSheet(null)} />}
       {sheet === 'rename' && <RenameSheet machine={machine} onClose={() => setSheet(null)} />}

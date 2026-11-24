@@ -1,4 +1,6 @@
-// How every context display writes its numbers (the composer ring, the context panel and dialog, the summary card, Status): token counts as 840, 9.5k, 83.4k, 200k, 1.2M, and the share of the window as 42%, <1% or 100%+.
+// How context displays describe the window: the token count, share, tone and state before the first report.
+
+export const CONTEXT_UNREPORTED = 'No context usage reported yet.';
 
 /**
  * A token count: whole below a thousand, else thousands or millions to one decimal with a trailing .0 dropped. The unit

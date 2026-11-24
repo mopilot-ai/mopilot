@@ -71,6 +71,25 @@ export function readEditor(root: Node, fragment = false) {
   return { text, mentions };
 }
 
+/** Map ordered command spans to editable text, omitting chips and generated list markers. */
+export function editorTextRanges(el: HTMLElement, spans: readonly { start: number; end: number }[]): Range[] {
+  const { points } = editorDocument(el, false);
+  const ranges: Range[] = [];
+  let firstSpan = 0;
+  for (const { node, at, length } of points) {
+    if (node.nodeType !== Node.TEXT_NODE || !length) continue;
+    while (firstSpan < spans.length && spans[firstSpan].end <= at) firstSpan++;
+    for (let i = firstSpan; i < spans.length && spans[i].start < at + length; i++) {
+      const { start, end } = spans[i];
+      const range = el.ownerDocument.createRange();
+      range.setStart(node, Math.max(start - at, 0));
+      range.setEnd(node, Math.min(end - at, length));
+      ranges.push(range);
+    }
+  }
+  return ranges;
+}
+
 function offsetAt(el: HTMLElement, node: Node, offset: number) {
   const range = document.createRange();
   range.selectNodeContents(el);

@@ -59,11 +59,12 @@ for (const theme of THEMES) {
     });
 
     test('one row per machine, agents by name, and a failed install is one line', async ({ page }) => {
-      await openConnections(page);
+      await openConnections(page, 'ssh');
       const ssh = page.locator('.settings-group', { hasText: 'SSH connections from this Mac' });
-      const mine = page.getByRole('region', { name: 'Machines' });
       await expect(ssh).toContainText('plain@other');
       await expect(ssh).not.toContainText('me@box');
+      await openConnections(page);
+      const mine = page.getByRole('region', { name: 'Machines' });
       await expect(mine.locator('[aria-label="My machines"] .machine-name')).toHaveText(['me@box']);
       await expect(mine.locator('.machine-status')).toHaveText('Online · Claude Code, Gemini', { timeout: 45_000 });
       await expect(mine.locator('.machine-dot')).toHaveClass(/\bok\b/);

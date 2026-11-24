@@ -11,6 +11,7 @@ export const realPaths = [
   'src/components/composer/ComposerModeChips.tsx',
   'src/components/composer/SendButton.tsx',
   'src/components/composer/useComposerDraft.ts',
+  'src/components/composer/useBusyRelease.ts',
   'src/components/composer/useComposerPlan.ts',
   'src/components/composer/useComposerAttachments.ts',
   'src/components/composer/useComposerReferences.ts',

@@ -52,8 +52,15 @@ export async function sidebarRowKit() {
     },
   });
   mock.module('../../src/components/thread/GoalBar.tsx', { namedExports: { GoalMark: () => null } });
+  const sideView = { queue: [], children: {} };
   mock.module('../../src/lib/sideSessions.ts', {
-    namedExports: { useOrchestration: () => ({ queue: [], children: {} }), linkedChildren: () => [] },
+    namedExports: {
+      useOrchestration: () => sideView,
+      useOrchestrationSelect: (select: any) => select(sideView),
+      orchestrationNow: () => sideView,
+      subscribeOrchestration: () => () => {},
+      linkedChildren: () => [],
+    },
   });
   mock.module('../../src/session/sidebarShortcuts.tsx', { namedExports: { SidebarChatShortcut: () => null } });
   mock.module('../../src/session/voice.ts', { namedExports: { useVoice: () => kit.speaking } });

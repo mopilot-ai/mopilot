@@ -1,4 +1,4 @@
-// Settings → Worktrees → a project whose environment comes from Conductor's files: what is in use, and converting it to environment.toml.
+// Settings → Git → a project whose environment comes from Conductor's files: what is in use, and converting it to environment.toml.
 
 import { useState } from 'react';
 import { Group } from './Controls';

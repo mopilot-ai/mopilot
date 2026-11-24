@@ -154,3 +154,57 @@ test("the pairing's record of an audit line: a refused request is coalesced, any
   wired({ kind: 'client.refused' });
   assert.deepEqual(seen, ['governed controller.connected', 'note client.added', 'note client.refused']);
 });
+
+test("a controller keeps the relay link it brought, a revoke tells the listeners of it, and only a controller's link is told; a link that is not a host id is not kept", (t) => {
+  const w = world(t);
+  const told: any[] = [];
+  w.pairing.onForgotten((fingerprint: string, kind: string, link: string | undefined) => told.push([fingerprint, kind, link]));
+  const withLink = w.pairing.add(w.key('c1'), { name: 'A', kind: 'controller', link: 'h_abcdefghijklmnop' });
+  const noLink = w.pairing.add(w.key('c2'), { name: 'B', kind: 'controller' });
+  const desktop = w.pairing.add(w.key('d1'), { name: 'D', kind: 'desktop', link: 'h_abcdefghijklmnop' });
+  assert.equal(readControllers(w.configDir)[withLink].link, 'h_abcdefghijklmnop');
+  assert.equal(readControllers(w.configDir)[noLink].link, undefined);
+  assert.equal(readPairing(w.configDir).clients[desktop].link, undefined, 'only a controller keeps one');
+  assert.equal(w.pairing.remove(withLink), true);
+  assert.equal(w.pairing.remove(noLink), true);
+  assert.equal(w.pairing.remove(desktop), true);
+  assert.deepEqual(told, [
+    [withLink, 'controller', 'h_abcdefghijklmnop'],
+    [noLink, 'controller', undefined],
+    [desktop, 'desktop', undefined],
+  ]);
+  const file = path.join(w.configDir, 'controllers.json');
+  const bad = w.pairing.add(w.key('c3'), { name: 'C', kind: 'controller', link: 'h_abcdefghijklmnop' });
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('h_abcdefghijklmnop', 'not a link'));
+  assert.equal(readControllers(w.configDir)[bad].link, undefined);
+});
+
+test("a controller's proof is kept with its record (bounded), and when the Host believes only records with a proof, a record without one is no controller anywhere", (t) => {
+  const w = world(t);
+  const proof = { text: 'mopilot-code-pair-approval-v1|h', sig: 'AAAA' };
+  const proven = w.pairing.add(w.key('p'), { name: 'Proven', kind: 'controller', approval: proof });
+  const bare = w.pairing.add(w.key('q'), { name: 'Bare', kind: 'controller' });
+  const desk = w.pairing.add(w.key('d'), { name: 'Desk', kind: 'desktop', approval: proof });
+  assert.deepEqual(readControllers(w.configDir)[proven].approval, proof);
+  assert.equal(readPairing(w.configDir).clients[desk].approval, undefined, 'only a controller keeps one');
+  const file = path.join(w.configDir, 'controllers.json');
+  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+  saved.controllers[proven].approval = { text: 'x'.repeat(5000), sig: 3 };
+  fs.writeFileSync(file, JSON.stringify(saved));
+  assert.equal(readControllers(w.configDir)[proven].approval, undefined, 'a proof that is not bounded text is none');
+  saved.controllers[proven].approval = proof;
+  fs.writeFileSync(file, JSON.stringify(saved));
+  assert.equal(w.pairing.controllerRecords(), 2);
+  assert.equal(w.pairing.stillKnows(bare), true, 'until the Host believes only proofs');
+  w.pairing.believeControllers((record: any) => record.approval?.text === proof.text);
+  assert.equal(w.pairing.controllerRecords(), 2, 'a record that is not believed is still in the file');
+  assert.equal(w.pairing.stillKnows(proven), true);
+  assert.equal(w.pairing.stillKnows(bare), false);
+  assert.deepEqual(
+    w.pairing
+      .list()
+      .filter((c: any) => c.kind === 'controller')
+      .map((c: any) => c.fingerprint),
+    [proven],
+  );
+});

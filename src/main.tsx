@@ -11,6 +11,7 @@ import './store/devHooks';
 import { boot } from './store/boot';
 import { toast, useStore } from './store/core';
 import { installPerfProbe, reactCommit } from './session/perf';
+import { installRendererRecord } from './session/rendererRecord';
 import { installErrorHandlers, reportError } from './lib/telemetry';
 import { errorText } from './lib/ignored';
 import { native } from './lib/native';
@@ -38,6 +39,7 @@ export function start() {
   window.addEventListener('drop', (e) => e.preventDefault());
   // the streaming performance probe, while its switch is on (docs/performance/measurement.md)
   installPerfProbe(native, useStore);
+  installRendererRecord(native, useStore);
 
   if (location.hash === '#mini') {
     // Quick Chat shares session state, but never writes the main window’s UI state.

@@ -1,4 +1,5 @@
 // The chat's sign-in card above the composer: shown only when the chat's agent is signed out on the machine the chat runs on (or the new chat was pointed at), it signs in from this Mac (the page opens in this Mac's browser, any code shows here with Copy and Open page), says how it went in plain words, names the agent new chats start on meanwhile (so no second line repeats it), and goes away once the agent is ready. Every harness reaches it the same way; the menu never signs in.
+import { connectionsRoute } from '../../lib/connectionsRoute';
 import { useState } from 'react';
 import { LogIn } from 'lucide-react';
 import { userError } from '../../../shared/userError.mjs';
@@ -29,7 +30,7 @@ export function HostSigninCard({ threadId, agent }: { threadId: string | null; a
   const fail = (e: unknown) => toast(userError(e), 'error');
   const act = (action: SigninAction) => {
     if (action === 'cancel') return void cancelSignin(machine.id, there.id).catch(fail);
-    if (action === 'api-key') return navigate({ name: 'settings', section: 'connections' });
+    if (action === 'api-key') return navigate(connectionsRoute('other'));
     void startSignin(machine.id, there.id).catch(fail);
   };
   const submit = () => {

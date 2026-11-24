@@ -11,7 +11,7 @@ import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures/app';
 import { openHarnessList } from './fixtures/harnessPicker';
 import { SYSTEM_THEME, shootBoth } from './fixtures/shoot';
-import { openSettingsSection, settingsEntry } from './fixtures/settings';
+import { openConnections } from './fixtures/settings';
 import { withPath } from './fixtures/nodeCommand';
 import { FAKE_SSH, FAKE_SSH_BIN } from './fixtures/fakeSsh';
 
@@ -125,9 +125,7 @@ test('the machine row and the Host chat say git has no sign-in', async ({ harnes
   await expect(note.locator('.fa-title')).toHaveText('Git isn’t signed in to github.com on box', { timeout: 30_000 });
   await shootBoth(page, harness.app, 'git-signin-chat');
   // the row: read once when the page opens, with the same line
-  await page.locator('.sidebar-title').first().click();
-  await settingsEntry(page).click();
-  await openSettingsSection(page, 'connections');
+  await openConnections(page);
   const row = page.locator('.machine-list[aria-label="My machines"] .machine-item', { hasText: 'box' });
   await expect(row.locator('.machine-git')).toHaveText('Git isn’t signed in to github.com', { timeout: 45_000 });
   // the row sits below the fold of the page: scrolled to the middle so the picture shows it

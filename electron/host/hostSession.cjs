@@ -13,7 +13,7 @@ const refusal = (message, code, extra = {}) => Object.assign(new Error(message),
  * @param {object} o
  * @param {string} o.socketPath
  * @param {import('./pairingClient.cjs').Identity} o.identity
- * @param {(event: Record<string, any>) => void} [o.onEvent] told each `event` message the Host sends
+ * @param {(event: Record<string, any>) => void} [o.onEvent] told each `event` message the Host sends, and `{ event: 'connection.closed', reason }` once when the connection ends (a request still waiting fails then too)
  * @param {(socketPath: string) => import('node:net').Socket} [o.connect]
  * @param {number} [o.helloMs]
  * @param {number} [o.callMs] how long a `call` may take unless it says otherwise; 0 waits as long as the connection lasts
@@ -44,6 +44,12 @@ function openSession({
       pending.delete(id);
       clock.clearTimeout(p.timer);
       p.settle({ error: refusal(why) });
+    }
+    // a listener that keeps something from this connection (a chat list) learns it ended, however it ended
+    try {
+      onEvent({ event: 'connection.closed', reason: why });
+    } catch (e) {
+      report(e);
     }
   }
   socket.on('error', (e) => end(e.message));

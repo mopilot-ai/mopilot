@@ -19,6 +19,7 @@ import { harnessKindOf } from '../harness/registry';
 import { setSession } from './session/useSession';
 import { segmentAliases } from '../../shared/segmentAlias.mjs';
 import { get, set, setPrefs, toast, toastFailure, patchTurn } from './core';
+import { openMachines, openSettings } from './settingsLink';
 import { isMomoChat } from '../lib/momoChats';
 import { dispatchComposerCommand } from '../lib/shortcutFocus';
 import { modelLabel } from '../lib/format';
@@ -335,8 +336,7 @@ interface LimitWayForward {
 }
 
 /** A Settings page, opened from a note (loaded on use: the panes module reads the store). */
-export const openSettings = (section: string) => () =>
-  void import('./panes').then(({ navigate }) => navigate({ name: 'settings', section }), toastFailure("Couldn't open Settings"));
+export { openSettings, openMachines };
 
 /** A first-tier chat switches in place to the other first-tier harness (automatic handoff, with the next message). */
 function inPlaceWayForward(chatId: string, from: HarnessId): LimitWayForward {
@@ -404,7 +404,7 @@ function wayForward(chatId: string, from: HarnessFamily): LimitWayForward {
   // not known yet (the chats on machines are still being read) is offered nothing of this Mac's either, and is not said to be on a machine
   if (onMachineNow(chatId)) {
     const where = hostOfChatNow(chatId) ? " on this chat's machine" : '';
-    return { text: `${chatHarnessLabel(chatId)} limit reached${where}.`, action: { label: 'Machines', run: openSettings('connections') } };
+    return { text: `${chatHarnessLabel(chatId)} limit reached${where}.`, action: { label: 'Machines', run: openMachines } };
   }
   if (!isMomoChat(get().momoChats, chatId)) return LIMIT_WAY_FORWARD[from](chatId);
   const text = `${chatHarnessLabel(chatId)} limit reached. Change MoMo's brain to continue.`;

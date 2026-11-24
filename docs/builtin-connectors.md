@@ -1,6 +1,6 @@
 # Quick Actions and built-in connectors
 
-Two optional integrations, both off until the user turns them on in Settings → Connections. Neither writes outside
+Two optional integrations, both off until the user turns them on in Settings → Connectors. Neither writes outside
 the app's own folders, or downloads anything, before that switch.
 
 ## macOS Quick Actions

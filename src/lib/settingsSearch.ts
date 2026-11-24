@@ -180,9 +180,20 @@ export const KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'Full CDP access',
   ],
   voice: ['Dictation engine', 'Microphone', 'Speech', 'Language', 'Voice input hotkey', 'Recent recordings', 'Delete all recordings'],
-  connections: ['SSH', 'Remote hosts', 'Built-in connectors', 'GitHub', 'Linear', 'Quick Actions', 'Services menu'],
-  git: ['Commits', 'Branch prefix', 'Pull requests', 'Diffs', 'Show only last turn changes'],
-  worktrees: ['Worktree root', 'Delete old worktrees', 'Delete branch on archive', 'Worktrees to keep', 'Branches'],
+  connections: ['SSH', 'Remote hosts', 'Control this Mac', 'Control other devices', 'Allow connections'],
+  connectors: ['Built-in connectors', 'GitHub', 'Linear', 'Quick Actions', 'Services menu'],
+  git: [
+    'Commits',
+    'Branch prefix',
+    'Pull requests',
+    'Diffs',
+    'Show only last turn changes',
+    'Worktree root',
+    'Delete old worktrees',
+    'Delete branch on archive',
+    'Worktrees to keep',
+    'Branches',
+  ],
   archived: ['Archive', 'Restore chats'],
   about: [
     'Version',
@@ -198,6 +209,20 @@ export const KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'CLI path',
   ],
 };
+
+/** The tab of a page that has tabs which a matched word lives on, so a hit opens the tab that shows it (Connections: Control this Mac, Control other devices, SSH). */
+const WORD_TAB: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  connections: {
+    SSH: 'ssh',
+    'Remote hosts': 'other',
+    'Control other devices': 'other',
+    'Control this Mac': 'this-mac',
+    'Allow connections': 'this-mac',
+  },
+};
+
+/** The tab a search hit on `word` of `section` opens, or undefined when the page has none for it. */
+export const tabOfWord = (section: string, word: string | null): string | undefined => (word ? WORD_TAB[section]?.[word] : undefined);
 
 export interface SearchHit<T> {
   item: T;

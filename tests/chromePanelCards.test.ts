@@ -5,8 +5,23 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { cardOf, answerOf } = require('../electron/capabilities/browser/chromePanelCards.cjs');
+const { placed } = require('../electron/remote/phoneCards.cjs');
 
 const keys = (c: any) => c.choices.map((x: any) => `${x.key}:${x.label}${x.deny ? ':deny' : ''}`);
+
+test('a Remote Run control request tells a phone to check MoPilot on the Mac and can only be answered there', () => {
+  const request = {
+    id: 'sage-hostAsk-1',
+    method: 'sage/hostAsk',
+    params: { kind: 'hostAsk', title: 'Use Chrome on this Mac', macOnly: true, choices: [{ id: 'once', label: 'Allow once' }] },
+  };
+  const card = placed(cardOf(request, 'Codex'));
+  assert.equal(card.title, 'Use Chrome on this Mac');
+  assert.equal(card.where, 'mac-only');
+  assert.equal(card.waitingCopy, 'Approve this Mac action in MoPilot.');
+  assert.equal(card.choices, undefined);
+  assert.equal(answerOf(request, 'once', 'Codex'), null);
+});
 
 test('Codex commands and file edits: allow once, for this session, or deny, as the app’s cards answer them', () => {
   const run = { id: 7, method: 'item/commandExecution/requestApproval', params: { command: 'npm test' } };

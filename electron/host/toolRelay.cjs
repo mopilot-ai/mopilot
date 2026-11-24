@@ -5,6 +5,8 @@
 // or whose connection went. A call's answer is fitted to what one message may carry before it is sent.
 const { localBrowserData } = require('../capabilities/contract/localBrowserData.cjs');
 const { MAX_FRAME } = require('../../shared/host/frames.mjs');
+const { isToolCallId } = require('../../shared/host/toolRelay.mjs');
+const { identityKey } = require('../../shared/identityKey.mjs');
 
 const MAX_BLOCKS = 64;
 const MAX_TEXT = 1024 * 1024;
@@ -16,6 +18,11 @@ const MAX_MESSAGE = 16 * 1024;
 const CUT = '\n[cut: too long to pass on]';
 /** What a message that is too big in bytes (the budgets above count characters) is answered with, so the harness is not left waiting for its timeout. */
 const TOO_BIG = { ok: false, content: [], error: { code: 'too_large', message: 'The result was too large to pass on.' } };
+const UNAVAILABLE = {
+  ok: false,
+  content: [],
+  error: { code: 'unavailable', message: 'This app does not offer that tool for the chat now.' },
+};
 const IMAGE_TYPE = /^image\/[\w.+-]{1,40}$/;
 
 const isRecord = (/** @type {unknown} */ v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -83,15 +90,16 @@ function answerOf(res) {
  * @param {{ tools: { request: (method: string, params: object) => Promise<any>, onEvent: (fn: (event: any) => void) => () => void },
  *           hostInfo: () => { state: string }, onState: (fn: (s: string) => void) => () => void }} o.host a remote Host (remote.cjs)
  * @param {{ list: () => { name: string, description?: string, inputSchema?: object, policy: string }[],
- *           invoke: (chatId: string, segmentId: string, name: string, args: unknown, o: { callId: string, signal: AbortSignal }) => Promise<any>,
+ *           invoke: (chatId: string, segmentId: string, name: string, args: unknown, o: { callId: string, epoch: number, signal: AbortSignal }) => Promise<any>,
  *           abortChat?: (chatId: string, why: 'stopped') => unknown }} o.registry the app's tools
  * @param {(tool: { name: string }) => boolean} [o.include] which of the app's tools a harness on the Host is told about, and the only ones it may call
- * @param {(chatId: string) => boolean} [o.owns] whether the chat runs on this Host; a call for any other chat (one of this Mac's own, another machine's) is refused. Without it nothing runs
+ * @param {(chatId: string, epoch: number) => boolean} [o.owns] whether the chat runs on this Host at this epoch. Without it nothing runs
+ * @param {(name: string) => boolean} [o.cancelsChat] whether cancelling a tool also stops the chat's other registry work
  * @param {(what: string, error: unknown) => void} [o.report] a failure nobody else is told of
  */
-function createToolRelay({ host, registry, include = () => true, owns = () => false, report = () => undefined }) {
+function createToolRelay({ host, registry, include = () => true, owns = () => false, cancelsChat = () => true, report = () => undefined }) {
   let disposed = false;
-  /** The calls under way: `${chatId}\n${callId}` -> the abort that ends the run. @type {Map<string, AbortController>} */
+  /** Chat, ownership epoch and call id -> the pending call. @type {Map<string, { ac: AbortController, stopChat: boolean }>} */
   const running = new Map();
 
   /** The app's tools, announced to the Host (replacing what an earlier connection said). */
@@ -106,46 +114,44 @@ function createToolRelay({ host, registry, include = () => true, owns = () => fa
 
   /** The connection went: what was running has no one to answer to. */
   function releaseAll() {
-    for (const ac of running.values()) ac.abort();
+    for (const { ac } of running.values()) ac.abort();
     running.clear();
   }
 
   /** @param {any} event */
   async function onTool(event) {
     const { chatId, segmentId, callId, name, epoch } = event;
-    if (![chatId, segmentId, callId, name].every(isId) || !Number.isSafeInteger(epoch))
+    if (![chatId, segmentId, name].every(isId) || !isToolCallId(callId) || !Number.isSafeInteger(epoch))
       return report('read a tool call from a Host', new Error('The call names no chat, segment, call, tool or epoch.'));
     // the Host is another machine's output: it may call only what this app announced to it, and only for a chat that runs on it (never one of this Mac's own, whose grants and approvals are not the Host's to use)
-    if (!registry.list().some((t) => t.name === name && include(t)) || !owns(chatId)) {
+    if (!registry.list().some((t) => t.name === name && include(t)) || !owns(chatId, epoch)) {
       report(
         'refuse a tool call from a Host',
         new Error(`The Host asked for ${String(name).slice(0, 64)}, which it may not call for that chat.`),
       );
       // a Host that was told of the tool (the list changed since) or of the chat waits for an answer: it gets a refusal, not a silence until its timeout
       return void (await host.tools
-        .request('host.toolResult', {
-          chatId,
-          callId,
-          epoch,
-          ok: false,
-          content: [],
-          error: { code: 'unavailable', message: 'This app does not offer that tool for the chat now.' },
-        })
+        .request('host.toolResult', { chatId, callId, epoch, ...UNAVAILABLE })
         .catch((error) => report('answer a refused tool call from a Host', error)));
     }
-    const key = `${chatId}\n${callId}`;
+    const key = identityKey(chatId, String(epoch), callId);
     if (running.has(key)) return;
     const ac = new AbortController();
-    running.set(key, ac);
+    const call = { ac, stopChat: cancelsChat(name) };
+    running.set(key, call);
     let res;
     try {
-      res = await registry.invoke(chatId, segmentId, name, isRecord(event.arguments) ? event.arguments : {}, { callId, signal: ac.signal });
+      res = await registry.invoke(chatId, segmentId, name, isRecord(event.arguments) ? event.arguments : {}, {
+        callId,
+        epoch,
+        signal: ac.signal,
+      });
     } finally {
-      if (running.get(key) === ac) running.delete(key);
+      if (running.get(key) === call) running.delete(key);
     }
     // cancelled, or the connection went, while it ran: the Host has already ended the call
     if (ac.signal.aborted || disposed) return;
-    const body = answerOf(res);
+    const body = owns(chatId, epoch) && res?.canDeliver?.() !== false ? answerOf(res) : UNAVAILABLE;
     const answer = Buffer.byteLength(JSON.stringify(body)) > MAX_RESULT ? TOO_BIG : body;
     await host.tools
       .request('host.toolResult', { chatId, callId, epoch, ...answer })
@@ -153,22 +159,22 @@ function createToolRelay({ host, registry, include = () => true, owns = () => fa
   }
 
   /**
-   * The Host cancelled a call (the user's Stop reached the Host, the harness gave up on it, or it timed out). The call ends, and the chat's tabs are stopped
-   * as a Stop here would stop them (the registry's abort listeners tell the Host browser to cancel what it is loading); without that the page keeps
-   * loading on the Host and the next turn's first commands wait behind it.
-   * @param {unknown} chatId @param {unknown} callId
+   * The Host cancelled a call. For tools that stop the chat, registry listeners also cancel loading in its Host tabs so
+   * the next turn can use them. This Mac calls use their own signal for the approval and the local handler.
+   * @param {unknown} chatId @param {unknown} callId @param {unknown} epoch
    */
-  function cancel(chatId, callId) {
-    const ac = running.get(`${chatId}\n${callId}`);
-    if (!ac) return;
-    ac.abort();
-    registry.abortChat?.(String(chatId), 'stopped');
+  function cancel(chatId, callId, epoch) {
+    if (typeof chatId !== 'string' || !isToolCallId(callId) || !Number.isSafeInteger(epoch)) return;
+    const call = running.get(identityKey(chatId, String(epoch), callId));
+    if (!call) return;
+    call.ac.abort();
+    if (call.stopChat && owns(chatId, Number(epoch))) registry.abortChat?.(chatId, 'stopped');
   }
 
   const offEvent = host.tools.onEvent((event) => {
     if (disposed) return;
     if (event?.event === 'tool') return void onTool(event).catch((error) => report('run a tool call from a Host', error));
-    if (event?.event === 'toolCancel') cancel(event.chatId, event.callId);
+    if (event?.event === 'toolCancel') cancel(event.chatId, event.callId, event.epoch);
   });
   const offState = host.onState((s) => (s === 'online' ? announce() : releaseAll()));
   if (host.hostInfo().state === 'online') announce();

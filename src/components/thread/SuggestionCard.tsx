@@ -10,7 +10,7 @@ import { toast, useStore } from '../../store/core';
 import { setPrefs } from '../../store/core';
 import { native } from '../../lib/native';
 import { errorText, ignoring } from '../../lib/ignored';
-import { useOrchestration } from '../../lib/sideSessions';
+import { useOrchestrationSelect } from '../../lib/sideSessions';
 import type { SessionToolCall } from '../../lib/sessionToolCall';
 import type { OrchestrationView, SideSessionProposal } from '../../../shared/orchestration';
 import { useOfferKeys } from './offerKeys';
@@ -148,9 +148,9 @@ function SuggestionRow({
   always: boolean;
   onAlways: (always: boolean) => void;
 }) {
-  const view = useOrchestration();
-  const taskId = taskOf(call, threadId, view.proposals);
-  const proposal = taskId ? view.proposals[taskId] : undefined;
+  const proposals = useOrchestrationSelect((v) => v.proposals);
+  const taskId = taskOf(call, threadId, proposals);
+  const proposal = taskId ? proposals[taskId] : undefined;
   const foreign = !!proposal && proposal.parentId !== threadId;
   readOnly = readOnly || foreign;
   const status = proposal?.status ?? 'open';
@@ -366,14 +366,14 @@ export function TurnSuggestions({
   /** a chat shown read-only: its proposals show what became of them, with nothing to click */
   readOnly?: boolean;
 }) {
-  const view = useOrchestration();
+  const proposals = useOrchestrationSelect((v) => v.proposals);
   const [all, setAll] = useState(false);
   const [starting, setStarting] = useState(false);
   // a lone offer's "Don't ask again" (in the header) turns its row's answers into the choices to remember
   const [always, setAlways] = useState(false);
   const rows = calls.map((call) => {
-    const taskId = taskOf(call, threadId, view.proposals);
-    return { call, taskId, proposal: taskId ? view.proposals[taskId] : undefined };
+    const taskId = taskOf(call, threadId, proposals);
+    return { call, taskId, proposal: taskId ? proposals[taskId] : undefined };
   });
   // a screen reader hears each row's change, as Claude Desktop announces "{title}: {status}"
   const [heard, setHeard] = useState('');

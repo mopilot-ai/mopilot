@@ -66,7 +66,7 @@ test('a relay Host gets update guidance and a new unreachable result supersedes 
   });
   const ui = await render(h(RemoteGitSignin, { machine: relay, host: 'github.com' }));
   t.after(() => ui.unmount());
-  assert.match(ui.host.textContent!, /My machines for update options/);
+  assert.match(ui.host.textContent!, /Control other devices for update options/);
   assert.deepEqual(api.callsTo('host.update'), []);
   await click(byText(ui.host, 'Try sign-in after updating'));
   assert.match(ui.host.textContent!, /Couldn’t contact the machine/);

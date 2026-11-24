@@ -4,7 +4,16 @@ import path from 'node:path';
 import { CLIENT_KINDS, clientNameOf as cleanName } from '../../shared/host/clients.mjs';
 import { writePrivateDurable } from '../../electron/platform/durableFile.cjs';
 
-/** @typedef {{ key: string, name: string, kind: 'desktop' | 'phone' | 'cli' | 'home' | 'controller' | 'unknown', addedAt: number, addedBy: string }} ClientRecord */
+/** The relay link a controller's credential made (`host.relayEnroll`'s host id): kept with the controller so revoking it can forget the link. */
+const LINK = /^h_[A-Za-z0-9_-]{16,64}$/;
+
+/** The person's proof a controller's record carries (the text approved and its signature), as strings of a sane size: judged when the record is read for use, not here. @param {any} v @returns {{ text: string, sig: string } | undefined} */
+const approvalOf = (v) =>
+  typeof v?.text === 'string' && v.text.length <= 1000 && typeof v?.sig === 'string' && v.sig.length <= 300
+    ? { text: v.text, sig: v.sig }
+    : undefined;
+
+/** @typedef {{ key: string, name: string, kind: 'desktop' | 'phone' | 'cli' | 'home' | 'controller' | 'unknown', addedAt: number, addedBy: string, link?: string, approval?: { text: string, sig: string } }} ClientRecord */
 /** @typedef {{ codeHash: string | null, expires: number, wrong: number, clients: Record<string, ClientRecord> }} PairingState */
 /** @typedef {{ added: { id: string, pem: string }[], revoked: string[], seen: Record<string, number> }} UpdateKeyState */
 
@@ -67,7 +76,12 @@ export function readControllers(configDir) {
     const out = {};
     for (const [fingerprint, v] of Object.entries(parsed.controllers)) {
       try {
-        out[fingerprint] = { ...clientOf(v), kind: 'controller' };
+        out[fingerprint] = {
+          ...clientOf(v),
+          kind: 'controller',
+          ...(LINK.test(v?.link) ? { link: v.link } : {}),
+          ...(approvalOf(v?.approval) ? { approval: approvalOf(v.approval) } : {}),
+        };
       } catch {
         // one record that is not a client is no client; the rest stand
         continue;

@@ -50,7 +50,10 @@ const child = (o: any) => ({
   lastReport: null,
   ...o,
 });
-const show = (children: any) => act(async () => notify({ children, deliveries: {}, proposals: {}, queue: [], plans: {}, wrapUps: {} }));
+// these tests change what the rows read outside the view; an equal view wakes nobody (#5398), so each broadcast carries a new revision
+let rev = 0;
+const show = (children: any) =>
+  act(async () => notify({ children, deliveries: {}, proposals: {}, queue: [], plans: {}, wrapUps: {}, rev: ++rev }));
 const text = (el: Element | null) => el?.textContent ?? '';
 
 test('each child request is expanded by default, keeps its child owner and disappears when resolved', async () => {

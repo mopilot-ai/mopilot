@@ -215,7 +215,7 @@ test('failures: Google’s retired sign-in offers an API key with Details; any o
     assert.ok($('.host-signin-details').textContent!.includes(said), 'the vendor’s words only behind Details');
     assert.equal(button().textContent, 'Use an API key');
     await click(button());
-    assert.deepEqual(navigations, [{ name: 'settings', section: 'connections' }]);
+    assert.deepEqual(navigations, [{ name: 'settings', section: 'connections', tab: 'other' }]);
     await act(async () => fake.emit('host.onSignin', view({ state: 'failed', reason: 'no_page' })));
     assert.equal($('.host-signin-line').textContent, "Gemini didn't open a sign-in page");
     assert.equal(button().textContent, 'Try again');

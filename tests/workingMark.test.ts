@@ -1,9 +1,8 @@
-// The working mark (src/components/thread/workingMark): its sprite sheets, the stage machine and the playhead
+// The working mark (src/components/thread/workingMark): its sprite sheets, Claude Code's stage machine and the playhead
 // that hands one activity to the next. The strips it steps on the compositor: workingMarkView.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import './support/dom.ts';
-import { readAppCssPart } from './support/app-css.ts';
 import { MARK_SHEETS } from '../src/components/thread/workingMark/markSheets.ts';
 import {
   CROSSFADE_MS,
@@ -21,8 +20,6 @@ import { GHOST_MS, MarkPlayer, RESUME_MS, forgetLeftMark, type MarkFrame } from 
 
 const ACTIVITIES = ['think', 'search', 'read', 'code', 'write', 'default', 'blocked'] as const;
 const INTRO_MS = stageDuration({ kind: 'grow' });
-
-const sheetSvg = (key: string) => Buffer.from(MARK_SHEETS[key].url.split(',')[1], 'base64').toString('utf8');
 
 /** The sheet and frame a player shows at `now`. */
 function at(p: MarkPlayer, now: number): string {
@@ -44,7 +41,7 @@ test('an activity changed during the entrance starts the latest requested motion
   assert.equal(at(player, INTRO_MS), 'code.in:0');
 });
 
-test('the half-second handoff window includes its boundary and expires immediately after it', () => {
+test('Claude’s half-second handoff window includes its boundary and expires immediately after it', () => {
   forgetLeftMark();
   const first = new MarkPlayer('think', 0);
   first.frame(1_000);
@@ -54,47 +51,20 @@ test('the half-second handoff window includes its boundary and expires immediate
   assert.deepEqual(new MarkPlayer('think', 1_501).stage, { kind: 'grow' });
 });
 
-test('every activity has its in, loop and out sheets, each an SVG strip of its frames', () => {
+test('every activity has its in, loop and out sheets, each a WebP strip of its frames', () => {
   for (const a of ACTIVITIES)
     for (const kind of ['in', 'loop', 'out']) {
       const key = `${a}.${kind}`;
       const sheet = MARK_SHEETS[key];
       assert.ok(sheet.frames > 0, key);
       assert.equal(sheet.speed, 33.3333);
-      assert.ok(sheet.url.startsWith('data:image/svg+xml;base64,'), key);
-      assert.match(sheetSvg(key), new RegExp(`^<svg [^>]*height="${48 * sheet.frames}"`), key);
+      assert.ok(sheet.url.startsWith('data:image/webp;base64,'), key);
+      const bytes = Buffer.from(sheet.url.replace('data:image/webp;base64,', ''), 'base64');
+      assert.equal(bytes.toString('latin1', 0, 4), 'RIFF', key);
+      assert.equal(bytes.toString('latin1', 8, 12), 'WEBP', key);
     }
   assert.equal(MARK_SHEETS.grow.frames, 10);
   assert.equal(MARK_SHEETS['think.loop'].frames, 110);
-});
-
-test('each working-mark frame draws a core and four rounded rays', () => {
-  for (const [key, sheet] of Object.entries(MARK_SHEETS)) {
-    const svg = sheetSvg(key);
-    const cores = svg.match(/<circle [^>]*fill="#[\da-f]{6}"[^>]*\/>/g);
-    assert.equal(cores?.length, sheet.frames, key);
-    const rayPaths = [...svg.matchAll(/<path d="([^"]+)"[^>]*stroke-linecap="round"[^>]*\/>/g)];
-    assert.equal(rayPaths.length, sheet.frames, key);
-    for (const [, rays] of rayPaths) assert.equal(rays.match(/M/g)?.length, 4, key);
-  }
-});
-
-test('working-mark sprites match the startup dot in every activity, with amber reserved for blocked work', () => {
-  const clay = /--brand-claude:\s*(#[\da-f]{6});/.exec(readAppCssPart('tokens.css'))?.[1];
-  assert.ok(clay);
-  assert.match(readAppCssPart('app/motion.css'), /\.working-mark\s*\{[^}]*\bcolor:\s*var\(--brand-claude\);/);
-
-  const colors = (key: string) => [...sheetSvg(key).matchAll(/(?:fill|stroke)="(#[\da-f]{6})"/g)].map(([, color]) => color);
-  for (const key of Object.keys(MARK_SHEETS).filter((key) => !key.startsWith('blocked.'))) {
-    assert.deepEqual([...new Set(colors(key))], [clay], key);
-  }
-
-  const amber = '#e2b341';
-  const entering = colors('blocked.in');
-  const leaving = colors('blocked.out');
-  assert.deepEqual([entering[0], entering.at(-1)], [clay, amber]);
-  assert.deepEqual([...new Set(colors('blocked.loop'))], [amber]);
-  assert.deepEqual([leaving[0], leaving.at(-1)], [amber, clay]);
 });
 
 test('stages name their sheet, frames and length; a tail is the last frames of the loop', () => {
@@ -116,7 +86,7 @@ test('stages name their sheet, frames and length; a tail is the last frames of t
   assert.equal(restFrame('think'), 95);
 });
 
-test('each stage hands on to the next', () => {
+test('each stage hands on as Claude Code does', () => {
   assert.deepEqual(nextStage({ kind: 'grow' }, 'read'), { kind: 'in', body: 'read' });
   assert.deepEqual(nextStage({ kind: 'in', body: 'think' }, 'read'), { kind: 'loop', body: 'think' });
   const loop = { kind: 'loop', body: 'think' } as const;
@@ -298,44 +268,4 @@ test('a loop without seams plays out before the next activity enters', () => {
   p.want('code', loopStart);
   assert.equal(at(p, loopStart + 30 * 33.3334), 'read.loop:30');
   assert.equal(at(p, loopStart + 60 * 33.3334), 'read.out:0');
-});
-
-test('the committed sheets are what scripts/gen-working-mark.mjs generates', async (t) => {
-  const { OUTPUT, source, generate } = await import('../scripts/gen-working-mark.mjs');
-  const { readFileSync } = await import('node:fs');
-  const artifact = new URL('../src/components/thread/workingMark/markSheets.ts', import.meta.url);
-  assert.equal(OUTPUT, 'src/components/thread/workingMark/markSheets.ts');
-  const committed = readFileSync(artifact, 'utf8');
-  assert.equal(committed, source());
-  const { mkdtempSync, mkdirSync, cpSync, rmSync } = await import('node:fs');
-  const { spawnSync } = await import('node:child_process');
-  const { fileURLToPath } = await import('node:url');
-  const dir = mkdtempSync(`${(await import('node:os')).tmpdir()}/mark-`);
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const out = `${dir}/sheets.ts`;
-  const script = fileURLToPath(new URL('../scripts/gen-working-mark.mjs', import.meta.url));
-  assert.equal(spawnSync(process.execPath, [script, out]).status, 0);
-  assert.equal(readFileSync(out, 'utf8'), committed);
-  generate(out);
-  assert.equal(readFileSync(out, 'utf8'), committed);
-  generate('', (destination, text) => {
-    assert.equal(destination, fileURLToPath(artifact));
-    assert.equal(text, committed);
-  });
-  const failure = new Error('The output cannot be written');
-  assert.throws(
-    () =>
-      generate(undefined, () => {
-        throw failure;
-      }),
-    (error) => error === failure,
-  );
-  assert.throws(() => generate(`${dir}/missing/sheets.ts`), { code: 'ENOENT' });
-  assert.equal(readFileSync(artifact, 'utf8'), committed);
-  // The CLI default is relative to its own repository, even when invoked from another working directory.
-  const { dirname } = await import('node:path');
-  for (const file of ['scripts/gen-working-mark.mjs', OUTPUT]) mkdirSync(dirname(`${dir}/${file}`), { recursive: true });
-  cpSync(script, `${dir}/scripts/gen-working-mark.mjs`);
-  assert.equal(spawnSync(process.execPath, [`${dir}/scripts/gen-working-mark.mjs`], { cwd: dir }).status, 0);
-  assert.equal(readFileSync(`${dir}/${OUTPUT}`, 'utf8'), committed);
 });

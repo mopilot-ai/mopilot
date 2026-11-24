@@ -4,10 +4,10 @@
 // default. @host-portable: no Electron.
 
 /**
- * The app tools always listed: only the e2e fixtures' echo tools (tests/e2e/echo.spec.ts). The task list and wrap-up wait in
- * the `turn` group (G11: browse-only turns need neither, and they were 1.6k tokens on every request).
+ * The app tools always listed: the e2e fixtures' echo tools and the Host relay's explicit route to this Mac.
+ * The task list and wrap-up wait in the `turn` group (browse-only turns need neither).
  */
-const APP_CORE = Object.freeze(['sage_debug_echo', 'sage_debug_poke']);
+const APP_CORE = Object.freeze(['sage_debug_echo', 'sage_debug_poke', 'this_mac_control']);
 
 /** The app surface: its more tool and its groups (Registry names); `other` takes every app tool no group names. */
 const APP_SURFACE = Object.freeze({

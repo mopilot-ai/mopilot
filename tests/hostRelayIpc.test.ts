@@ -6,46 +6,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { tick } from './support/host-wire-kit.ts';
+import { fakeHost, setup } from './support/host/relayIpcKit.ts';
 
 const require = createRequire(import.meta.url);
 const { register } = require('../electron/app/ipc/host.cjs');
 const { OwnershipStore } = require('../electron/host/ownership.cjs');
-
-function setup(live: any, dir = '/ud', rows: Record<string, any> = {}) {
-  const handlers = new Map<string, any>();
-  let opts: any;
-  register(
-    { handle: (c: string, fn: any) => handlers.set(c, fn) },
-    { app: { getPath: () => dir }, shellEnv: { childEnv: () => ({}) }, broadcastAll: () => undefined, live },
-    {
-      create: (o: any) => (
-        (opts = o), { list: () => ({ machines: [], resolved: true }), row: (id: string) => rows[id], onRowChange: () => () => undefined }
-      ),
-      createFolders: () => ({}),
-      allowed: () => true,
-    },
-  );
-  // the service is made when a window first asks
-  handlers.get('host:machines')!({});
-  return opts;
-}
-
-function fakeHost() {
-  const sent: any[] = [];
-  const events = new Set<(e: any) => void>();
-  return {
-    sent,
-    events,
-    host: {
-      tools: {
-        request: async (method: string, params: any) => (sent.push([method, params]), {}),
-        onEvent: (fn: (e: any) => void) => (events.add(fn), () => void events.delete(fn)),
-      },
-      hostInfo: () => ({ state: 'online' }),
-      onState: () => () => undefined,
-    },
-  };
-}
 
 test('a new connection gets the app’s browser tools, only those, and the relay is taken off with the connection', async () => {
   const registry = {

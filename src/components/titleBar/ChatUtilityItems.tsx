@@ -3,11 +3,11 @@ import type { Thread } from '../../store/types';
 import { toastFailure } from '../../store/core';
 import { native } from '../../lib/native';
 import { revealPath } from '../../session/open';
-import { useOrchestration } from '../../lib/sideSessions';
+import { useOrchestrationSelect } from '../../lib/sideSessions';
 import { MenuItem, SubMenu } from '../ui/Popover';
 
 export function ChatUtilityItems({ thread }: { thread: Thread }) {
-  const child = useOrchestration().children[thread.id];
+  const child = useOrchestrationSelect((v) => v.children[thread.id]);
   const detachable = child && !child.detached;
   if (!thread.path && !detachable) return null;
   return (

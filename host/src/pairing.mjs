@@ -55,7 +55,7 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
   const idFile = path.join(configDir, 'host-id');
   /** @type {string | null} */
   let ownId = null;
-  /** Told when a client is forgotten, whichever way it happened (the owner, the CLI, a signed revocation). @type {((fingerprint: string, kind: string) => void)[]} */
+  /** Told when a client is forgotten, whichever way it happened (the owner, the CLI, a signed revocation). @type {((fingerprint: string, kind: string, link: string | undefined) => void)[]} */
   const forgotten = [];
   /** Told when a client is registered new, with the key it says it succeeds (a MoMo home key the owner's device registers as the old one's successor). @type {((fingerprint: string, kind: string, succeeds: string | undefined) => Promise<unknown> | undefined | void)[]} */
   const added = [];
@@ -67,8 +67,12 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
   const refusals = createRefusalAudit({ write: (e) => audit(e), now });
   const load = () => readPairing(configDir);
   /** The Macs paired by a code, from their own file (see trustState.readControllers). A key in both tables is the owner's client: the controller record is the one that gives way. */
+  /** Whether a controller's record is one this Host believes (set when pairing by code is on: the record must carry the person's proof). @type {(record: import('./trustState.mjs').ClientRecord) => boolean} */
+  let believed = () => true;
+  /** @param {Record<string, import('./trustState.mjs').ClientRecord>} all */
+  const believedOf = (all) => Object.fromEntries(Object.entries(all).filter(([, record]) => believed(record)));
   const controllers = () => {
-    const mine = readControllers(configDir);
+    const mine = believedOf(readControllers(configDir));
     const clients = load().clients;
     return Object.fromEntries(Object.entries(mine).filter(([fingerprint]) => !Object.hasOwn(clients, fingerprint)));
   };
@@ -130,9 +134,9 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
     /**
      * Register a client key without a code: a signed update that adds a key (key rotation) says this app's next key is trusted, and an app that can replace the Host's code may as well connect. A key already registered stays as it is (one record per key, its kind never changed by a later add). Answers its fingerprint.
      * @param {unknown} publicKey base64 SPKI DER of an Ed25519 key
-     * @param {{ name?: unknown, kind?: 'desktop' | 'phone' | 'cli' | 'home' | 'controller', addedBy?: string, succeeds?: string }} [o]
+     * @param {{ name?: unknown, kind?: 'desktop' | 'phone' | 'cli' | 'home' | 'controller', addedBy?: string, succeeds?: string, link?: string, approval?: { text: string, sig: string } }} [o] `link`: the relay link a controller's credential made, kept with its record so that revoking it forgets the link
      */
-    add(publicKey, { name = '', kind = 'desktop', addedBy = 'code', succeeds } = {}) {
+    add(publicKey, { name = '', kind = 'desktop', addedBy = 'code', succeeds, link, approval } = {}) {
       const { fingerprint } = keyOf(publicKey);
       const state = load();
       const mine = controllers();
@@ -143,6 +147,8 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
         kind,
         addedAt: now(),
         addedBy,
+        ...(kind === 'controller' && link ? { link } : {}),
+        ...(kind === 'controller' && approval ? { approval } : {}),
       };
       if (kind === 'controller') writeControllers(configDir, { ...mine, [fingerprint]: record });
       else save({ ...state, clients: { ...state.clients, [fingerprint]: record } });
@@ -194,15 +200,20 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
         const { [fingerprint]: gone, ...rest } = mine;
         writeControllers(configDir, rest);
         audit({ kind: 'client.removed', by: { fingerprint, name: gone.name, kind: gone.kind } });
+        for (const tell of forgotten) tell(fingerprint, gone.kind, gone.link);
         return true;
       }
       if (!Object.hasOwn(state.clients, fingerprint)) return false;
       const { [fingerprint]: _gone, ...clients } = state.clients;
       save({ ...state, clients });
       audit({ kind: 'client.removed', by: { fingerprint, name: _gone.name, kind: _gone.kind } });
-      for (const tell of forgotten) tell(fingerprint, _gone.kind);
+      for (const tell of forgotten) tell(fingerprint, _gone.kind, undefined);
       return true;
     },
+    /** From now on a controller's record is believed only when this says so (the proof the person gave): a record written by hand is no controller. @param {(record: import('./trustState.mjs').ClientRecord) => boolean} fn */
+    believeControllers: (fn) => void (believed = fn),
+    /** How many controller records the file holds, believed or not (a key is not enrolled while any is there). */
+    controllerRecords: () => Object.keys(readControllers(configDir)).length,
     /** Hear every client that is registered new from now on. @param {(fingerprint: string, kind: string, succeeds: string | undefined) => Promise<unknown> | undefined | void} fn */
     onAdded: (fn) => void added.push(fn),
     /** What the listeners of a client just added were doing, once (so a request that adds a key can wait for it); none when they had nothing to do. @param {string} fingerprint */
@@ -211,7 +222,7 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
       settling.delete(fingerprint);
       return done;
     },
-    /** Hear every client that is forgotten from now on. @param {(fingerprint: string, kind: string) => void} fn */
+    /** Hear every client that is forgotten from now on (a controller's relay link, when it had one, is the third thing told). @param {(fingerprint: string, kind: string, link: string | undefined) => void} fn */
     onForgotten: (fn) => void forgotten.push(fn),
     /** How many clients are registered. */
     paired: () => Object.keys(load().clients).length,
@@ -304,7 +315,7 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
     /** Whether `fingerprint` is still registered, read without the write lock: every write replaces the file whole, so a read sees one state or the other. Used on each request of a live connection. @param {string} id */
     stillKnows: (id) => {
       try {
-        return Object.hasOwn(readPairing(configDir).clients, id) || Object.hasOwn(readControllers(configDir), id);
+        return Object.hasOwn(readPairing(configDir).clients, id) || Object.hasOwn(believedOf(readControllers(configDir)), id);
       } catch {
         return false;
       }

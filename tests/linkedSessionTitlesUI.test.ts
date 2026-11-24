@@ -32,8 +32,20 @@ m('../src/lib/chatMachine.ts', {
   movedOnMachine: () => false,
 });
 m('../src/session/openChat.ts', { openChat: () => {}, openChatWhere: () => 'here' });
-m('../src/lib/sideSessions.ts', { useOrchestration: () => ({ queue: [], children: {} }) });
-m('../src/session/harness/claude/desktopLineage.ts', { useSidebarLineage: () => ({}) });
+const sideView = { queue: [], children: {} };
+m('../src/lib/sideSessions.ts', {
+  useOrchestration: () => sideView,
+  useOrchestrationSelect: (select: any) => select(sideView),
+  orchestrationNow: () => sideView,
+  subscribeOrchestration: () => () => {},
+});
+m('../src/session/harness/claude/desktopLineage.ts', {
+  useSidebarLineage: () => ({}),
+  useFamilyLineage: () => ({}),
+  sidebarLineageNow: () => ({ children: {} }),
+  familyLineageNow: () => ({ children: {} }),
+  useLineageStamp: () => '',
+});
 m('../src/lib/sidebarFamilyIndex.ts', { familiesOf: () => ({ descendants: new Map() }) });
 m('../src/lib/nestedHidden.ts', { setNestedHidden: () => {}, useNestedHidden: () => false });
 m('../src/session/useChatRowState.ts', { useChatRowState: () => ({ state: 'idle' }) });

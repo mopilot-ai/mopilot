@@ -10,6 +10,7 @@ import {
 } from '../../shared/pullRequest.mjs';
 import { pullRequestReplies, responsePullRequests, type ResponseTurn } from './responsePullRequest';
 import { GATE_STATUS, pullRequestDetails, type PullRequestDetails } from './pullRequestIndicator';
+import { findVerifiedMergeUrls, githubMergeOid, type MergeCandidate } from './verifiedMergeReport';
 export { pullRequestUrl } from '../../shared/pullRequest.mjs';
 
 export type PullRequestState = 'open' | 'draft' | 'merged' | 'closed' | 'unknown';
@@ -156,8 +157,8 @@ export interface RepliesStore {
 }
 
 /** Names how pullRequestReplies picks the replies a store keeps: a change to what it keeps makes every saved chat read again. */
-// 3: keep a reply's completion time so historical repository names can be disambiguated.
-const REPLIES_FORMAT = 3;
+// 4: retain parsed merge withdrawals, including replies with a code-formatted PR number.
+const REPLIES_FORMAT = 4;
 
 /**
  * A chat's saved replies, kept while its version (historyVersion) stays the same: every visible row refreshes
@@ -257,6 +258,7 @@ export function createPullRequestReader(deps: Dependencies) {
   let active = 0;
   const waiting: (() => void)[] = [];
   const missing = new WeakSet<ThreadPullRequest>();
+  const mergeCommits = new WeakMap<ThreadPullRequest, string>();
   const read = async (url: string | null, cwd: string, head?: string): Promise<ThreadPullRequest | null> => {
     const unavailable = url ? { url, number: Number(url.split('/').at(-1)), state: 'unknown' as const } : null;
     try {
@@ -299,6 +301,8 @@ export function createPullRequestReader(deps: Dependencies) {
       if (additions !== undefined && deletions !== undefined) Object.assign(result, { additions, deletions });
       const mergedAt = result.state === 'merged' && typeof pr.mergedAt === 'string' ? Date.parse(pr.mergedAt) : NaN;
       if (Number.isFinite(mergedAt)) result.mergedAt = mergedAt;
+      const mergeOid = githubMergeOid(pr.mergeCommit?.oid);
+      if (answeredUrl === link && mergeOid) mergeCommits.set(result, mergeOid);
       const open = result.state === 'open' || result.state === 'draft';
       // the gate's words only while its status on this head is unsettled (a green one has nothing to say): one more
       // read, for this repository's PRs alone
@@ -336,10 +340,10 @@ export function createPullRequestReader(deps: Dependencies) {
       else active--;
     }
   };
-  // a chat lists up to MAX_ENTRIES PRs, most of them merged long ago: a merged PR is read once (#1581)
+  // A merged PR stays cached once GitHub has supplied the commit needed for verification.
   const status = cache(
     (url) => limitedRead(url, ''),
-    (pr) => pr?.state === 'merged',
+    (pr) => pr?.state === 'merged' && mergeCommits.has(pr),
   );
   const headOf = cache((cwd) => deps.head(cwd), undefined, HEAD_TTL);
   // Resolve the branch again on each refresh: a worktree can change branches between turns.
@@ -431,13 +435,13 @@ export function createPullRequestReader(deps: Dependencies) {
       noteIgnored("read a chat's responses for its pull request", error);
     }
     const attachments = [...attached.sort((a, b) => b.at - a.at).map((a) => a.url), ...legacyLinks];
-    const reports = responsePullRequests(responses, url, attachments);
-    // the chat's other PRs: its attachments, newest first, then the ones its replies said something happened to (opened,
-    // merged, ...); a PR a reply only links, such as one it cites, is not the chat's
+    const mergeCandidates: MergeCandidate[] = [];
+    const reports = responsePullRequests(responses, url, attachments, mergeCandidates);
     const reportedUrls = reports.filter((r) => r.state !== 'unknown').map((r) => r.url);
     const others = [...attachments, ...(url ? [url] : []), ...reportedUrls];
-    // The binding or attachment retains identity precedence. Text supplies identity when the old worktree is gone.
-    const primaryUrl = url ?? reports[0]?.url;
+    const verified = await findVerifiedMergeUrls(mergeCandidates, others, limit, (link) => status(link, fresh), mergeCommits);
+    others.push(...verified);
+    const primaryUrl = url ?? reports[0]?.url ?? verified[0];
     if (primaryUrl) {
       // a read of a known link always answers, with unknown status at worst
       const result = (await status(primaryUrl, fresh))!;
@@ -460,7 +464,6 @@ export function createPullRequestReader(deps: Dependencies) {
     }
     if (!cwd) return null;
     try {
-      // shared with the other rows reading the same folder's branch right now (HEAD_TTL)
       const head = await headOf(cwd);
       const result = head ? await branch(JSON.stringify([cwd, head]), fresh) : null;
       return withReport(result, responsePullRequests(responses, result?.url));

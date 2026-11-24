@@ -3,7 +3,7 @@
 import { ratingEvent } from './ratings';
 import { sendRating } from '../lib/telemetry';
 import { errorText } from '../lib/ignored';
-import { chatFamily, openSettings, usageHarnessOf } from '../store/chats';
+import { chatFamily, openMachines, usageHarnessOf } from '../store/chats';
 import { onMachineNow } from '../lib/hostChats';
 import { machineSignInAsked } from './machineAuthBox';
 import { get as getState, toast } from '../store/core';
@@ -56,8 +56,7 @@ const AUTH_RECOVERY: Record<HarnessFamily, (chatId: string, message: string | nu
 export function authRecovery(chatId: string, message: string | null | undefined): AuthRecovery | null {
   // a chat on a machine failed on that machine's sign-in: this Mac's logins are not what to fix, so the way on is the machine's row.
   // While it is not known where the chat runs nothing is offered: a sign-in started on this Mac for a chat that is not here would be the wrong one
-  if (onMachineNow(chatId))
-    return machineSignInAsked(chatId, message) ? { label: 'Sign in on machine', signIn: openSettings('connections') } : null;
+  if (onMachineNow(chatId)) return machineSignInAsked(chatId, message) ? { label: 'Sign in on machine', signIn: openMachines } : null;
   return AUTH_RECOVERY[chatFamily(chatId)](chatId, message);
 }
 

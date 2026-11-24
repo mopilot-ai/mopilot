@@ -35,10 +35,10 @@ test('the modified-Enter preference sends with its primary chord and queues with
 });
 
 test('send and queue labels describe both preferences on macOS and Ctrl platforms', () => {
-  assert.deepEqual(composerSendShortcuts('enter', true), { send: '↵', queue: '⌘↵' });
-  assert.deepEqual(composerSendShortcuts('cmdEnter', true), { send: '⌘↵', queue: '⇧⌘↵' });
-  assert.deepEqual(composerSendShortcuts('enter', false), { send: '↵', queue: 'Ctrl+↵' });
-  assert.deepEqual(composerSendShortcuts('cmdEnter', false), { send: 'Ctrl+↵', queue: 'Ctrl+Shift+↵' });
+  assert.deepEqual(composerSendShortcuts('enter', true), { send: '⏎', queue: '⌘⏎' });
+  assert.deepEqual(composerSendShortcuts('cmdEnter', true), { send: '⌘⏎', queue: '⇧⌘⏎' });
+  assert.deepEqual(composerSendShortcuts('enter', false), { send: '⏎', queue: 'Ctrl+⏎' });
+  assert.deepEqual(composerSendShortcuts('cmdEnter', false), { send: 'Ctrl+⏎', queue: 'Ctrl+Shift+⏎' });
   assert.ok(composerSendShortcuts('enter').send);
 });
 

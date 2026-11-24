@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { savedReplies, type RepliesStore } from '../src/lib/threadPullRequest.ts';
 
 const reply = (text: string) => ({ status: 'completed', items: [{ type: 'agentMessage', text }] });
-const key = (version: string) => JSON.stringify([3, version]);
+const key = (version: string) => JSON.stringify([4, version]);
 const settle = () => new Promise((r) => setImmediate(r));
 
 /** A store over a map, which counts its calls and can be made to fail. */

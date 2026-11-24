@@ -8,7 +8,7 @@ import { prefersReducedMotion } from '../../lib/paneMotion';
 import { giveBackToComposer, removeQueued, sendQueuedNow } from '../../store/send';
 import { toast, useStore } from '../../store/core';
 import { isUserQueued, peerQueued, queuedLabel, sideQueued } from '../../lib/queued';
-import { sideSessionForItem, useOrchestration } from '../../lib/sideSessions';
+import { sideSessionForItem, useOrchestrationSelect } from '../../lib/sideSessions';
 import { useChatName } from '../markdown/useChatName';
 import { authoredFor } from '../../lib/authoredInput';
 import { userError } from '../../lib/ignored';
@@ -119,7 +119,7 @@ function QueuedRow({
   // one no human wrote (MoMo's routine result) shows as its author's, and isn't the user's to edit
   const shown = useStore((st) => (q.authored ? authoredFor(st.authoredInputs, threadId, { clientId: q.authored.id }) : null));
   // one another session sent shows as who sent it (Claude Desktop's "Received message from"), with its body to preview
-  const delivery = sideSessionForItem(useOrchestration(), { clientId: q.sideSession?.id });
+  const delivery = useOrchestrationSelect((v) => sideSessionForItem(v, { clientId: q.sideSession?.id }));
   const senderName = useChatName(delivery && 'from' in delivery ? delivery.from : (q.peer?.sourceChatId ?? ''));
   const side = delivery ? sideQueued(delivery, senderName) : q.peer ? peerQueued(q.peer, senderName) : null;
   const label = queuedLabel(q, shown, side);

@@ -29,12 +29,12 @@ test('Manage opens the devices page: a code pairs a device, which is listed and 
   await card(page).getByRole('button', { name: 'Manage' }).click();
 
   const link = page.getByRole('switch', { name: 'Allow this computer to be controlled' });
-  await expect(page.getByRole('heading', { name: 'Control from ChatGPT' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Other settings' })).toBeVisible();
   await expect(link).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByText('No devices added yet')).toBeVisible();
 
   // Add shows a code; the fake pairs a device as soon as it is asked whether the code was used
-  await page.getByRole('button', { name: 'Add', exact: true }).first().click();
+  await page.locator('.settings-row', { hasText: 'Add a ChatGPT device' }).getByRole('button', { name: 'Add', exact: true }).click();
   // one read of the dialog: the fake pairs right after the code shows, which closes it
   await expect(page.getByRole('dialog', { name: 'Add a device' })).toContainText(
     /Enter this code in ChatGPT on the device you want to connect\.[\s\S]*AB12-CD34/,
@@ -43,7 +43,8 @@ test('Manage opens the devices page: a code pairs a device, which is listed and 
   await expect(page.getByText('Test Phone')).toBeVisible();
 
   // revoke takes it off the list
-  await page.getByRole('button', { name: 'Revoke access' }).click();
+  await page.getByRole('button', { name: 'Revoke access for Test Phone' }).click();
+  await dialog(page, 'Revoke access for Test Phone?').getByRole('button', { name: 'Revoke access' }).click();
   await expect(page.getByText('Test Phone')).toHaveCount(0);
   await expect(page.getByText('No devices added yet')).toBeVisible();
 

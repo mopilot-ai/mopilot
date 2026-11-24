@@ -30,7 +30,15 @@ installNativeStub({ app: { installed: async () => ({ finder: true }), icon: asyn
 mock.module('../src/session/pullRequestReader.ts', {
   namedExports: { readPullRequest: Object.assign(async () => null, { known: () => undefined }) },
 });
-mock.module('../src/lib/sideSessions.ts', { namedExports: { useOrchestration: () => ({ queue: [], children: {} }) } });
+const sideView = { queue: [], children: {} };
+mock.module('../src/lib/sideSessions.ts', {
+  namedExports: {
+    useOrchestration: () => sideView,
+    useOrchestrationSelect: (select: any) => select(sideView),
+    orchestrationNow: () => sideView,
+    subscribeOrchestration: () => () => {},
+  },
+});
 mock.module('../src/components/sidebar/ThreadMachineLine.tsx', {
   namedExports: { useRowMachineLine: () => null, ThreadMachineLine: () => null },
 });

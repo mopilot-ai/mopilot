@@ -214,7 +214,7 @@ class Registry {
    */
   servesChat(tool, chatId) {
     if (typeof chatId === 'string' && chatId && this.isApart(chatId) && !this.apartAllows(tool.name, chatId)) return false;
-    if (typeof chatId === 'string' && chatId && this.hostScope?.lacks(chatId, toolNeedsOf(tool))) return false;
+    if (typeof chatId === 'string' && chatId && this.hostScope?.lacks(chatId, toolNeedsOf(tool), tool.name)) return false;
     if (typeof tool.visibleTo !== 'function') return true;
     if (typeof chatId !== 'string' || !chatId) return false;
     try {
@@ -387,7 +387,7 @@ class Registry {
       }
       return fail('unavailable', message || `${toolName} is unavailable`);
     }
-    if (this.hostScope?.lacks(chatId, toolNeedsOf(tool)))
+    if (this.hostScope?.lacks(chatId, toolNeedsOf(tool), toolName))
       return fail('capability_missing', `${toolName} isn't available on this chat's host`);
     if (!this.servesChat(tool, chatId)) return fail('unavailable', `${toolName} is unavailable in this chat`);
     const bad = checkArgs(tool.schema, args);

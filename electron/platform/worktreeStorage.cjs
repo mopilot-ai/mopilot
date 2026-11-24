@@ -51,7 +51,7 @@ async function dirSize(/** @type {string} */ dir, max = MAX_ENTRIES) {
 
 /**
  * @param {object} d
- * @param {() => string | null} d.root the managed worktrees' folder (Settings → Worktrees)
+ * @param {() => string | null} d.root the managed worktrees' folder (Settings → Git)
  * @param {(root: string) => { path: string, repo: string | null, branch: string | null, createdAt: number }[]} d.list the managed worktrees under it
  * @param {(wt: { path: string, repo: string }) => Promise<boolean>} d.remove removes one (its branch stays)
  * @param {(args: string[], cwd: string) => Promise<{ ok: boolean, stdout: string }>} d.git

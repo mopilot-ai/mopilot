@@ -2,6 +2,7 @@
 // supportedCommands with aliases and skills, without terminal-only ones, and follows
 // commands_changed; typed native commands go out as typed; MCP elicitations, multiSelect questions
 // and denial notes reach the CLI; native hook feedback stays visible. Runs against fake-claude.mjs.
+// e2e-covers: src/components/composer/ComposerInput.tsx
 import type { Page } from '@playwright/test';
 import { test, expect, type Harness } from './fixtures/app';
 import { claudeAllUserTexts, claudeChatMessages, claudeTextOf } from './fixtures/claudeChat';
@@ -44,6 +45,38 @@ test("the / menu is Claude's catalog; typed native commands pass through; comman
   await expect(transcript(page).getByText('fake-claude: learn CMDCHANGE', { exact: true })).toBeVisible();
   await composer(page).fill('/found');
   await expect(slash(page).getByText('/found-skill')).toBeVisible();
+});
+
+test('clicking a Claude command leaves it ready to edit and shows only its own argument hint', async ({ page, harness }) => {
+  await send(page, 'warm up');
+  await expect(transcript(page).getByText('fake-claude: warm up', { exact: true })).toBeVisible();
+
+  const input = composer(page);
+  await input.fill('/code-r');
+  await slash(page).getByText('/code-review (/review)', { exact: true }).click();
+  await expect(input).toBeFocused();
+  await expect(slash(page)).toHaveCount(0);
+  await expect(input).toHaveText('/code-review ', { useInnerText: false });
+  await expect(input).toHaveAttribute('data-command-hint', '[low|medium|high]');
+  expect(await input.evaluate((node) => getComputedStyle(node, '::after').content)).toBe('"[low|medium|high]"');
+  expect(
+    await page.evaluate(() => Array.from(CSS.highlights.get('composer-slash-command')?.values() ?? [], (range) => range.toString())),
+  ).toContain('/code-review');
+  expect(userTexts(harness)).toEqual(['warm up']);
+
+  await page.keyboard.type('low');
+  await expect(input).toHaveText('/code-review low');
+  await expect(input).not.toHaveAttribute('data-command-hint');
+  await page.keyboard.press('Enter');
+  await expect(transcript(page).locator('.review-result')).toContainText('review low');
+  expect(userTexts(harness)).toContain('/code-review low');
+
+  await input.fill('/us');
+  await slash(page).getByText('/usage', { exact: true }).click();
+  await expect(input).toHaveText('/usage ');
+  await expect(input).not.toHaveAttribute('data-command-hint');
+  await page.keyboard.press('Enter');
+  await expect(transcript(page).getByText(/Current session: 12% used/)).toBeVisible();
 });
 
 test('elicitations, multiSelect questions and denial notes reach Claude; native hook feedback stays visible', async ({ page, harness }) => {

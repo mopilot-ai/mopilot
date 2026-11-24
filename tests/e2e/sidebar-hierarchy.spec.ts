@@ -1,6 +1,6 @@
 // The thread sidebar's tiers in the real app: sessions are the brightest text, only a session takes the selected pill, and a name its row cuts short fades.
 // e2e-covers: src/styles/app/sidebar.css src/styles/app/sidebar-families.css src/styles/app/sidebar-metrics.css
-// e2e-covers: src/components/sidebar/ProjectGroup.tsx src/components/sidebar/ThreadRow.tsx
+// e2e-covers: src/components/sidebar/ProjectGroup.tsx src/components/sidebar/ThreadRow.tsx src/styles/app/thread-metrics.css
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from './fixtures/app';
@@ -44,6 +44,8 @@ for (const fontSize of [14, 24]) {
       const row = (at: number) => group.locator(`[data-sidebar-chat="${ids[at]}"]`);
       const foot = group.locator('.show-more');
       const projects = sidebar.locator('.side-label', { hasText: /^Projects$/ });
+      // capitals set the section label apart from the headings under it
+      await expect(projects).toHaveCSS('text-transform', 'uppercase');
       const style = (target: ReturnType<typeof page.locator>, property: string) =>
         target.evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property);
       const away = () => page.mouse.move(700, 400);
@@ -106,6 +108,34 @@ for (const fontSize of [14, 24]) {
       expect(short.fade).toBe('0px');
       await testInfo.attach('tiers', { body: JSON.stringify({ ink, long, short }), contentType: 'application/json' });
       await page.screenshot({ path: testInfo.outputPath(`tiers-chat-font${fontSize}.png`) });
+
+      // a renamed session: while the old name crossfades out, the shorter name coming in fits and keeps its last letters
+      await row(1).evaluate((element) => {
+        const frames: { fade: string; clipped: boolean }[] = [];
+        (window as unknown as { leavingFrames: typeof frames }).leavingFrames = frames;
+        const sample = () => {
+          const label = element.querySelector('.side-row-label');
+          if (label?.querySelector('.morph-out'))
+            frames.push({
+              fade: getComputedStyle(label).getPropertyValue('--label-fade').trim(),
+              clipped: label.scrollWidth > label.clientWidth,
+            });
+          requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      await row(1).dblclick();
+      const input = row(1).getByRole('textbox');
+      await input.fill('Tiny');
+      await input.press('Enter');
+      await expect(row(1).locator('.side-row-label')).toHaveText('Tiny');
+      await expect(row(1).locator('.morph-out')).toHaveCount(0);
+      const leaving = await page.evaluate(
+        () => (window as unknown as { leavingFrames: { fade: string; clipped: boolean }[] }).leavingFrames,
+      );
+      await testInfo.attach('rename crossfade', { body: JSON.stringify(leaving), contentType: 'application/json' });
+      expect(leaving.length, 'the crossfade was seen').toBeGreaterThan(0);
+      expect(leaving.filter((frame) => frame.clipped || frame.fade !== '0px')).toEqual([]);
     });
   });
 }

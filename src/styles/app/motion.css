@@ -111,7 +111,7 @@
   transform: rotate(90deg);
   opacity: 1;
 }
-/* The working mark (workingMark/WorkingMark.tsx): a 20px mark, 12px before the words. */
+/* The working mark (workingMark/WorkingMark.tsx): Claude Code's 20px clay mark, 12px before the words. */
 .claude-activity-mark {
   display: flex;
   flex: none;
@@ -120,7 +120,7 @@
   margin-right: 2px;
 }
 /* The mark's sheets are strips of frames (workingMark/markView.ts): one layer per sheet in the 20px window, each strip
-   stepped by a transform the compositor runs. */
+   Claude's own sprite (clay, blocked fading to amber), stepped by a transform the compositor runs. */
 .working-mark {
   position: relative;
   display: block;
@@ -183,7 +183,7 @@
     pointer-events: none;
   }
 }
-/* a 120deg band 30% toward white crosses the words every 3s, held 15% at each end and eased between */
+/* a 120deg band 30% toward white crosses the words every 3s, held 15% at each end and eased between as Claude's shimmer is */
 .shimmer-band::after {
   content: '';
   position: absolute;
@@ -196,7 +196,7 @@
   0%,
   15% {
     translate: -62.5%;
-    animation-timing-function: ease-in-out;
+    animation-timing-function: cubic-bezier(0.714, 0.121, 0.211, 0.888);
   }
   85%,
   100% {

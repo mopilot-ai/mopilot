@@ -48,7 +48,7 @@ test('missing window size shows tokens without inventing a percentage; empty and
     assert.equal(one(r.host, '.ctx-summary-value').textContent, '—');
     assert.equal(r.host.querySelector('[role="meter"]'), null);
     assert.equal(r.host.querySelector('.ctx-retry'), null);
-    assert.match(r.host.textContent!, state === 'none' ? /Usage appears after the next turn/ : /Context unavailable/);
+    assert.match(r.host.textContent!, state === 'none' ? /No context usage reported yet/ : /Context unavailable/);
     await r.unmount();
   }
 });

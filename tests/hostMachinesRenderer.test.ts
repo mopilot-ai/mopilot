@@ -42,6 +42,8 @@ const ROW = {
   waitingForLogin: null,
   startsAtBoot: 'unknown',
   fileVault: 'unknown',
+  address: '',
+  hostVersion: '',
   platform: '',
 };
 let pushAccess: (v: unknown) => void = () => undefined;

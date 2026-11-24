@@ -4,6 +4,7 @@
 // a card nobody answers pauses the run on the third timeout (the timeout is shortened for the spec), and the machine is told to stop it.
 // e2e-covers: src/components/panels/SummaryPanel.tsx src/components/panels/SummaryEnvironment.tsx src/lib/hostRepo.ts src/store/sideChat.ts src/session/composerAttach.ts
 // e2e-covers: src/components/sidebar/repositoryGroups.ts src/components/sidebar/ProjectGroup.tsx src/store/repositoryDraft.ts
+// e2e-covers: src/components/composer/ContextRing.tsx src/components/context/ContextSummary.tsx
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { connectSocket } from '../support/connectSocket';
@@ -16,6 +17,7 @@ import { openHarnessList } from './fixtures/harnessPicker';
 import { SYSTEM_THEME, shootBoth } from './fixtures/shoot';
 import { withPath } from './fixtures/nodeCommand';
 import { FAKE_SSH, FAKE_SSH_BIN } from './fixtures/fakeSsh';
+import { AGENT_LABEL, pickMachineModel, testHostUsageRing } from './fixtures/hostComposer';
 import { selectCompletedReply } from './fixtures/replySelection';
 import { parseUserText } from '../../shared/userText.mjs';
 
@@ -30,6 +32,7 @@ fs.writeFileSync(path.join(FOLDER, 'README.md'), '# remote readme\nread through 
 fs.writeFileSync(path.join(FOLDER, 'src', 'index.ts'), 'export const where = "on the machine";\n');
 const LOG = path.join(ROOT, 'host-calls.log');
 const OFFLINE = path.join(ROOT, 'offline');
+const CONTEXT_RELEASE = path.join(ROOT, 'context-release');
 // a unix socket path is short: the resident Host's lives in the temp folder itself
 const RESIDENT = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'hc-')));
 const SOCK = path.join(RESIDENT, 'h.sock');
@@ -60,7 +63,7 @@ const MACHINE = {
 let resident: ChildProcess | null = null;
 test.beforeAll(async () => {
   resident = spawn(process.execPath, [path.join(FAKE_SSH, 'host-chats.cjs')], {
-    env: { ...process.env, FAKE_HOST_CHATS_SOCK: SOCK, FAKE_HOST_LOG: LOG },
+    env: { ...process.env, FAKE_HOST_CHATS_SOCK: SOCK, FAKE_HOST_LOG: LOG, FAKE_HOST_CONTEXT_RELEASE: CONTEXT_RELEASE },
     stdio: 'ignore',
   });
   (await connectSocket(SOCK, 'the resident Host to accept a connection', { timeoutMs: 10_000 })).destroy();
@@ -363,18 +366,13 @@ test.describe('a card nobody answers', () => {
   });
 });
 
-/** The names the machine's agents go by in the picker's first level. */
-const AGENT_LABEL: Record<string, string> = { kimi: 'Kimi Code', claude: 'Claude Code', codex: 'Codex' };
+testHostUsageRing(test, { pickTarget, send, calls, releaseFile: CONTEXT_RELEASE });
 
 for (const agent of ['kimi', 'claude', 'codex']) {
   test(`machine composer picks ${agent} model and effort for new and started chats`, async ({ harness }) => {
     const page = harness.page;
     await pickTarget(page);
-    await page.getByRole('button', { name: 'Select model', exact: true }).click();
-    await page.getByRole('button', { name: 'Select harness and model', exact: true }).click();
-    // the picker is This Mac's two-level one: the machine's agents first, the models of the one pointed at beside them
-    await page.locator('.hp-row', { hasText: AGENT_LABEL[agent] }).hover();
-    await page.getByRole('menuitemradio', { name: `${agent} Remote other`, exact: true }).click();
+    await pickMachineModel(page, agent);
     await expect(page.locator('.effort-pop')).toBeVisible();
     await page.locator('.effort-pop').press('ArrowRight');
     await shootBoth(page, harness.app, `host-${agent}-model-effort`);

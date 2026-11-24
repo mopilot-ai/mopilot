@@ -7,14 +7,14 @@ import { adapterTasksOf, useAdapterTasksRevision } from '../../../store/backgrou
 import { familiesOf } from '../../../lib/sidebarFamilyIndex';
 import { machineOfChat, useHostChats } from '../../../lib/hostChats';
 import { useHostMachines } from '../../../lib/hostMachines';
-import { useSidebarLineage } from '../../../session/harness/claude/desktopLineage';
+import { useFamilyLineage } from '../../../session/harness/claude/desktopLineage';
 import { sessionRows, type SessionRow } from './sessionRows';
 
 const NONE: readonly string[] = [];
 
 /** The chats with something open, and none at all while `show` is off (nothing is read then). */
 export function useSessionRows(show: boolean): SessionRow[] {
-  const lineage = useSidebarLineage();
+  const lineage = useFamilyLineage();
   const threads = useStore((s) => s.threads);
   const initialTitles = useStore((s) => s.chatInitialTitles);
   const listed = useStore((s) => s.threadOrder);

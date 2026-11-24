@@ -1,5 +1,6 @@
 // A chat on a machine uses that machine's own desktop, in the real app (G8 #3903), against the real Host wire on a fake desktop helper (fixtures/fake-ssh/host-wire.mjs with FAKE_HOST_DESKTOP=1: the Host's lease, grants and call-id code; only the helper and the model are fake).
 // A message "desktop Notes" makes the chat's turn ask for Notes and look at the screen. The call goes to this app over the tool relay, the app's own card asks the person, and the screenshot is taken by the machine's helper: the Host's log shows the lease and the helper's screenshot, and this Mac's own computer-use helper (a fake on a socket) is never asked to do anything.
+// e2e-covers: electron/app/hostCapabilityRelay.cjs
 import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { connectSocket } from '../support/connectSocket';
@@ -153,6 +154,36 @@ test("a Host chat looks at the machine's own desktop; this Mac's computer-use he
   await expect(page.locator('.settings-group', { hasText: 'Allowed in a chat' })).not.toContainText('Notes');
   await onBox.getByRole('button', { name: 'Remove Notes' }).click();
   await expect(page.locator('.settings-group', { hasText: 'On box' })).toHaveCount(0);
+});
+
+test('a Host chat needs an approval on this Mac for each read and desktop action', async ({ harness }) => {
+  const page = harness.page;
+  showIgnored(harness);
+  await pickTarget(page);
+  const card = page.locator('.approval-card[data-kind="hostAsk"]');
+  const approve = async (tool: string, button: string) => {
+    await expect(card).toContainText('Use apps on this Mac', { timeout: 60_000 });
+    await expect(card).toContainText('This chat on box');
+    await expect(card).toContainText(tool);
+    await card.getByRole('button', { name: new RegExp(`^${button}`) }).click();
+  };
+  const local = () => (harness.helper?.log ?? []).map((l) => l.method);
+  await send(page, 'use this Mac');
+  await approve('desktop_list_granted_applications', 'Deny');
+  await expect(main(page).getByText('fake-host: this Mac denied')).toBeVisible({ timeout: 60_000 });
+  expect(local()).not.toContain('apps.open');
+
+  await send(page, 'open Notes on this Mac');
+  await approve('desktop_list_granted_applications', 'Allow once');
+  await approve('desktop_request_access', 'Allow once');
+  const appGrant = page.locator('.sage-approval[data-kind="computerAccessSet"]');
+  await expect(appGrant).toContainText('Notes');
+  await pickScope(appGrant, /Allow in this chat/);
+  await approve('desktop_open_application', 'Allow once');
+  await expect(main(page).getByText('fake-host: this Mac ok')).toBeVisible({ timeout: 60_000 });
+  expect(local()).toContain('apps.open');
+  await expect(card).toHaveCount(0);
+  expect(asked('desktop.lease')).toBe(0);
 });
 
 test.describe('the older computer_* tools', () => {

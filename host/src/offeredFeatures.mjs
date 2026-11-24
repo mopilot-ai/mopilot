@@ -4,6 +4,6 @@ import { SIDE_CHAT_FEATURE } from '../../shared/host/sideChats.mjs';
 /** Features that need a data directory. */
 const NEEDS_DATA_DIR = ['journalLifecycle', 'historyPages', 'chatList', 'chatPaging', 'chatEvents', SIDE_CHAT_FEATURE];
 
-/** @param {string[]} features @param {{ dataDir?: string, commands?: unknown }} has */
-export const offeredFeatures = (features, { dataDir, commands }) =>
-  features.filter((f) => (dataDir || !NEEDS_DATA_DIR.includes(f)) && (commands || f !== 'commands'));
+/** @param {string[]} features @param {{ dataDir?: string, commands?: unknown, codePair?: unknown }} has */
+export const offeredFeatures = (features, { dataDir, commands, codePair }) =>
+  features.filter((f) => (dataDir || !NEEDS_DATA_DIR.includes(f)) && (commands || f !== 'commands') && (codePair || f !== 'codePair'));

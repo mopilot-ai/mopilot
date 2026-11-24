@@ -1,4 +1,5 @@
 // What the home's state asks of the user, above the page (design W1.1–W1.4, W1.6): moving, move failed or finished late, asleep, out of date, agent signed out or missing. Each says the real cause and carries its one-click fix.
+import { connectionsRoute } from '../../../lib/connectionsRoute';
 import { useState } from 'react';
 import {
   MOMO_MOVE_STEPS,
@@ -122,7 +123,7 @@ export function HomeBanner({ home, onMove }: Props) {
       `MoMo moved to ${home.movedAway.machine.name} at ${clock(home.movedAway.at)}.`,
       'This Mac holds no MoMo data.',
       undefined,
-      <button type="button" key="open" className={styles.btn} onClick={() => navigate({ name: 'settings', section: 'connections' })}>
+      <button type="button" key="open" className={styles.btn} onClick={() => navigate(connectionsRoute('other'))}>
         Open {home.movedAway.machine.name}
       </button>,
     );

@@ -77,6 +77,7 @@ const INTERRUPTED = 'The host stopped while this turn was running.';
  * @param {(p: { harness: string, cwd?: string }) => Promise<unknown>} [o.commands] the slash commands and skills an agent offers for a folder (`host.commands`, ./hostCommands.mjs); without it the feature is not offered
  * @param {ReturnType<typeof import('./credentialLease.mjs').createCredentialLeases>} [o.leases] the model keys the app lends (`host.modelKey`); without it that request is unsupported
  * @param {ReturnType<typeof import('./momoHome.mjs').createMomoHome>} [o.momo] MoMo's home on this Host (its grant, record, ledger and chat rules); without it no `host.momo*` request is served and the `momo` feature is never offered @param {ReturnType<typeof import('./homeGate.mjs').createHomeGate>} [o.homeGate] what MoMo's home on another machine may do here (its allow-list, lease and modes); without it a `home` client is served nothing
+ * @param {ReturnType<typeof import('./codePairService.mjs').createCodePairService>} [o.codePair] pairing by code (R2b of #5576): without it no `host.codePair.*` request is served and the feature `codePair` is never offered
  */
 export function createProtocol(options) {
   const {

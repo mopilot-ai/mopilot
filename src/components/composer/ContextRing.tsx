@@ -12,10 +12,12 @@ import { useStore } from '../../store/core';
 import { useChatAccountView } from '../../session/harness/chatAccountView';
 import { useSessionField } from '../../store/session/useSession';
 import { useChatContext } from '../../session/useChatContext';
+import { useComposerLocation } from '../../session/useComposerLocation';
 import { useContextOwner, useContextSnapshot } from '../../session/useContextSnapshot';
 import { Popover, Tooltip, useAnchor } from '../ui/Popover';
 import { useFocusWhileOpen } from '../ui/MenuList';
 import { LazyContextPanel } from '../context/LazyContextPanel';
+import { ContextSummary } from '../context/ContextSummary';
 import {
   ComposerPlanLimits,
   type ComposerPlanUsage,
@@ -40,10 +42,15 @@ export function ContextRing({
   const context = useChatContext(threadId, "read a chat's context use for the composer");
   const auto = useContextSnapshot(threadId, "read a chat's context use for the composer")?.autoCompact;
   const owner = useContextOwner(threadId)?.owner ?? null;
+  const { machineId, pending: locating } = useComposerLocation(threadId);
   // Plan limits belong to the harness the picker beside the ring names: the next message spends its login's plan, also
   // before a switched chat's session changes. Context stays the open session's. Until the picker resolves, the session's.
   const servingHarness = useStore((s) =>
-    momo ? null : selection || !threadId ? firstTierKind(selection) : firstTierOf(currentFamily(s.segments[threadId], threadId)),
+    momo || machineId || locating
+      ? null
+      : selection || !threadId
+        ? firstTierKind(selection)
+        : firstTierOf(currentFamily(s.segments[threadId], threadId)),
   );
   // a switch that waits for the next message may name the login it moves the chat to
   const pending = useSessionField(threadId, (s) => s.pendingSwitch);
@@ -56,10 +63,19 @@ export function ContextRing({
     (view.windows.length || (account?.kind === 'subscription' && account.status === 'ok'))
       ? { ...view, harness: servingHarness }
       : null;
-  if (!context && !plan) return null;
+  const hasChatTarget = !momo && (threadId || selection || machineId);
+  if (!hasChatTarget && !context && !plan) return null;
   return (
     <UsageRing
-      key={identityKey(owner, selection, servingHarness, account?.id ?? null, account?.email ?? null, account?.kind ?? null)}
+      key={identityKey(
+        owner,
+        machineId ?? null,
+        selection,
+        servingHarness,
+        account?.id ?? null,
+        account?.email ?? null,
+        account?.kind ?? null,
+      )}
       threadId={threadId}
       context={context}
       autoThreshold={auto?.enabled ? auto.threshold : null}
@@ -94,6 +110,8 @@ function UsageRing({
   const contextLabel =
     context &&
     `Context: ${contextShare(context.used, context.window)} used, ${contextTokens(context.used)} of ${contextTokens(context.window)} tokens`;
+  const readingLabel = [contextLabel, planLabel].filter(Boolean).join('. ');
+  const label = readingLabel || 'Usage details';
   const contextTone = contextLevel(contextUsed);
   const level = planUsed === null ? contextTone : limitLevel(planUsed);
   const ring = (
@@ -102,8 +120,9 @@ function UsageRing({
       type="button"
       className="composer-icon-btn context-ring"
       data-level={level}
-      aria-label={[contextLabel, planLabel].filter(Boolean).join('. ')}
+      aria-label={label}
       data-usage={planUsed === null ? undefined : 'plan'}
+      data-empty={planUsed === null && !context ? '' : undefined}
       aria-haspopup="dialog"
       aria-controls={open ? panelId : undefined}
       aria-expanded={open}
@@ -146,6 +165,7 @@ function UsageRing({
               </>
             )}
             {planLabel && <span>{planLabel}</span>}
+            {!readingLabel && <span>{label}</span>}
           </span>
         }
       >
@@ -164,5 +184,12 @@ function UsageRing({
 
 function UsagePanel({ threadId, plan, onDone }: { threadId: string | null; plan: ComposerPlanUsage | null; onDone: () => void }) {
   const limits = plan && <ComposerPlanLimits usage={plan} threadId={threadId} onDone={onDone} />;
-  return threadId ? <LazyContextPanel threadId={threadId} onDone={onDone} compact planLimits={limits} /> : limits;
+  if (threadId) return <LazyContextPanel threadId={threadId} onDone={onDone} compact planLimits={limits} />;
+  return (
+    limits ?? (
+      <div className="ctx-panel">
+        <ContextSummary used={null} window={null} state="none" />
+      </div>
+    )
+  );
 }

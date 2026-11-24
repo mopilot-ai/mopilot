@@ -2,7 +2,8 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import './support/dom.ts';
-import { $$, mouse } from './support/composer-kit.ts';
+import { commandEntry } from '../shared/host/hostCommandsWire.mjs';
+import { $, $$, mouse } from './support/composer-kit.ts';
 import { fx, mountComposer, reset, settle, store } from './support/composer-setup.ts';
 beforeEach(() => reset());
 const rows = () => $$('.slash-panel .add-panel-item');
@@ -34,6 +35,46 @@ test('a chat on a machine lists what its agent offers there, says where from, an
     await mouse(row('review'), 'mousedown');
     await settle();
     assert.equal(m.text, '$review ');
+  } finally {
+    await m.unmount();
+  }
+});
+
+test('an inline skill from a machine replaces only the query and keeps the caret next to the skill', async () => {
+  store.set({ basicOf: { c1: 'host-claude' } });
+  fx.location = { machine: 'box', pending: false };
+  fx.machineCommands = ready(deploy);
+  const m = await mountComposer({ threadId: 'c1' });
+  try {
+    await m.type('Use /dep for this change', 'Use /dep'.length);
+    await mouse(row('/deploy-notes'), 'mousedown');
+    await settle();
+    assert.equal(m.text, 'Use /deploy-notes for this change');
+    assert.equal(m.editor().selectionStart, 'Use /deploy-notes '.length);
+  } finally {
+    await m.unmount();
+  }
+});
+
+test('a restored machine command shows its hint without opening the picker', async () => {
+  store.set({ basicOf: { c1: 'host-claude' }, drafts: { c1: { text: '/équipe/révision ', attachments: [] } } });
+  fx.location = { machine: 'box', pending: false };
+  const command = commandEntry({ name: 'équipe/révision', description: 'Review a project', hint: '<topic>' });
+  assert.ok(command);
+  const requests = new Set<boolean | 'draft'>();
+  fx.machineCommands = (threadId: string | null, wanted: boolean | 'draft') => {
+    if (threadId === 'c1' && wanted) requests.add(wanted);
+    return requests.size ? ready(command) : { machine: box, answer: { state: 'loading' } };
+  };
+  const m = await mountComposer({ threadId: 'c1' });
+  try {
+    assert.deepEqual([...requests], ['draft']);
+    assert.equal($('.slash-panel'), null);
+    assert.equal(m.text, '/équipe/révision ');
+    assert.equal(m.editor().dataset.commandHint, '<topic>');
+    await m.type('/');
+    assert.ok(titles().includes('/équipe/révision'));
+    assert.deepEqual([...requests], ['draft', true]);
   } finally {
     await m.unmount();
   }

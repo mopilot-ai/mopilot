@@ -395,7 +395,7 @@ test('a failed GitHub clone keeps the form while giving Host update instructions
   assert.match(ui.host.querySelector('[data-git-signin-note]')?.textContent ?? '', /github.com on Build box/);
   await click(button(ui.host, 'Sign in to GitHub')!);
   const card = ui.host.querySelector('[data-git-signin-note]')!;
-  assert.match(card.textContent!, /Build box in Settings › Connections › My machines/);
+  assert.match(card.textContent!, /Build box in Settings › Connections › Control other devices/);
   assert.ok(button(card, 'Try sign-in after updating'));
   assert.equal(button(card, 'My machines'), undefined, 'the clone form stays open');
   assert.deepEqual(api.callsTo('host.update'), []);

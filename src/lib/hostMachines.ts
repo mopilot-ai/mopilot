@@ -6,6 +6,7 @@ import { native } from './native';
 import { ignoring } from './ignored';
 import { createLatestLoader } from './latestLoader';
 import { useHostAccess } from './host';
+import { shareDeep } from './structuralShare';
 
 /** One agent as a machine's row reports it; `state` is null when the row did not say. */
 export type MachineAgent = {
@@ -53,6 +54,9 @@ export type HostMachineRow = {
   localNetwork: 'allowed' | 'denied' | 'unknown';
   /** an offline machine nobody is signed in on: it restarted since it last answered, or was signed out; `locked`: FileVault holds its disk */
   waitingForLogin: 'restarted' | 'signed-out' | 'locked' | null;
+  /** where this Mac reaches the machine ('' for this Mac and a machine added by command) and the app version that built its Host ('' when it names none) */
+  address?: string;
+  hostVersion?: string;
   /** whether the machine's Host starts at boot, before anyone signs in (Keep running after restart; Linux lingering) */
   startsAtBoot: 'yes' | 'no' | 'unknown';
   /** a Mac's FileVault, as its Host last said */
@@ -109,7 +113,10 @@ let stop: (() => void) | null = null;
 const listeners = new Set<() => void>();
 
 const publish = (next: HostMachineList) => {
-  list = next;
+  // a list equal to the held one (main sends it again whenever a machine or a key changes) wakes no reader, and a row that did not change keeps its object
+  const shared = shareDeep(list, next);
+  if (shared === list) return;
+  list = shared;
   for (const l of listeners) l();
 };
 
@@ -174,6 +181,8 @@ export function parseMachineList(v: unknown): HostMachineList | null {
       ...(row.hostStopped === true && { hostStopped: true }),
       localNetwork: row.localNetwork === 'allowed' || row.localNetwork === 'denied' ? row.localNetwork : 'unknown',
       waitingForLogin: WAITS.has(row.waitingForLogin as string) ? (row.waitingForLogin as HostMachineRow['waitingForLogin']) : null,
+      address: typeof row.address === 'string' ? row.address : '',
+      hostVersion: typeof row.hostVersion === 'string' ? row.hostVersion : '',
       startsAtBoot: oneOf(row.startsAtBoot, ['yes', 'no'], 'unknown'),
       fileVault: oneOf(row.fileVault, ['on', 'off'], 'unknown'),
       platform: oneOf(row.platform, ['darwin', 'linux'], ''),

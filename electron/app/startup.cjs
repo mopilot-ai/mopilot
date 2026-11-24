@@ -2,6 +2,7 @@
 const { messageOf, noteIgnored } = require('../ignored.cjs');
 const { currentSmokeLaunch } = require('./smokeLaunch.cjs');
 const { startStallLogger } = require('../perf/stalls.cjs');
+const { startRendererLog } = require('../perf/rendererLog.cjs');
 const { installUserTurns } = require('../capabilities/browser/userTurn.cjs');
 const { openMobileRemote } = require('./mobileRemote.cjs');
 const { openRoutines } = require('./routines.cjs');
@@ -90,6 +91,7 @@ function startApp({
       lifecycle.onReady();
       // always on, whatever shared.perf.probe says (electron/perf/stalls.cjs)
       startStallLogger({ dir: app.getPath('userData') });
+      startRendererLog({ dir: app.getPath('userData') });
       browserTools.setupGuests();
       markStartup('guestsReady');
       // The lightweight renderer entry waits on app:ready before importing the full app or using its IPC.

@@ -4,6 +4,7 @@ import {
   composerPopup,
   composerSlashItems,
   applyComposerSlashItem,
+  slashCommandPresentation,
   slashPickRest,
   type ComposerSlashItem,
 } from '../src/lib/composerSkills.ts';
@@ -75,7 +76,7 @@ test('skill-only menus exclude commands and keep both attachment and native skil
     { skill: true, id: 'pdf' },
     { id: 'model' },
     { skill: false, id: 'review' },
-    { skill: true, nativeSkill: 'native', id: 'native' },
+    { skill: true, completion: { text: '/native', keepTrigger: true }, id: 'native' },
   ];
   assert.deepEqual(composerSlashItems(items, composerPopup('$', 1)!), [items[0], items[3]]);
   assert.deepEqual(composerSlashItems(items, composerPopup('Use /', 5)!), [items[0], items[3]]);
@@ -111,10 +112,36 @@ test('selecting a Codex skill attaches it once and preserves the prefix, suffix,
 });
 
 test('native skill selection retains the trigger and leaves the rest of the draft intact', () => {
-  const item = { skill: true, nativeSkill: 'pdf', run: () => assert.fail('must not replace the whole draft with a command') };
-  assert.deepEqual(pick('Use $p then summarize', 6, item), [['text', 'Use $pdf  then summarize'], ['caret', 9], 'close']);
+  const item = { skill: true, completion: { text: '/pdf', keepTrigger: true }, run: () => assert.fail('completion has no action') };
+  assert.deepEqual(pick('Use $p then summarize', 6, item), [['text', 'Use $pdf then summarize'], ['caret', 9], 'close']);
   assert.deepEqual(pick('/p', 2, item), [['text', '/pdf '], ['caret', 5], 'close']);
   assert.deepEqual(pick('Use /p', 6, item), [['text', 'Use /pdf '], ['caret', 9], 'close']);
+});
+
+test('only available command tokens are highlighted and only a bare leading command shows argument guidance', () => {
+  const items = [
+    { completion: { text: '/review', hint: '[focus]' }, aliases: ['rev'] },
+    { completion: { text: '/team:notes', keepTrigger: true, hint: '<topic>' }, skill: true },
+    { completion: { text: '/offline', hint: '<text>' }, disabled: 'Unavailable' },
+  ];
+  assert.deepEqual(slashCommandPresentation('/review ', items), { ranges: [{ start: 0, end: 7 }], hint: '[focus]' });
+  assert.deepEqual(slashCommandPresentation('/review', items), { ranges: [{ start: 0, end: 7 }], hint: '[focus]' });
+  assert.deepEqual(slashCommandPresentation('/review\u00a0', items), { ranges: [{ start: 0, end: 7 }], hint: '[focus]' });
+  assert.deepEqual(slashCommandPresentation('/rev ', items), { ranges: [{ start: 0, end: 4 }], hint: '[focus]' });
+  assert.deepEqual(slashCommandPresentation('/review src', items), { ranges: [{ start: 0, end: 7 }], hint: undefined });
+  assert.deepEqual(slashCommandPresentation('/review\n', items), { ranges: [{ start: 0, end: 7 }], hint: undefined });
+  assert.deepEqual(slashCommandPresentation('/team:notes ', items), { ranges: [{ start: 0, end: 11 }], hint: '<topic>' });
+  assert.deepEqual(slashCommandPresentation('$team:notes ', items), { ranges: [{ start: 0, end: 11 }], hint: undefined });
+  assert.deepEqual(slashCommandPresentation('Use $team:notes then /team:notes', items), {
+    ranges: [
+      { start: 4, end: 15 },
+      { start: 21, end: 32 },
+    ],
+    hint: undefined,
+  });
+  for (const value of ['Use /review', ' /review ', '/offline ', '/reviewed ', '/review/file', 'file/review', '$rev ', '']) {
+    assert.deepEqual(slashCommandPresentation(value, items), { ranges: [], hint: undefined }, value);
+  }
 });
 
 test('a command picked in front of a draft takes only its /name, and the draft stays without its separator', () => {

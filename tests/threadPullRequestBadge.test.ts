@@ -55,7 +55,7 @@ noteOwner('claude-chat', 'claude');
 const { ThreadPullRequestBadge } = await import('../src/components/sidebar/ThreadPullRequestBadge.tsx');
 const prUrl = 'https://github.com/org/repo/pull/42';
 const FIELDS = // what the reader asks `gh pr view` for (src/session/pullRequestReader.ts)
-  'url,state,isDraft,title,mergeable,mergeStateStatus,statusCheckRollup,additions,deletions,labels,autoMergeRequest,mergedAt,headRefOid,reviewRequests';
+  'url,state,isDraft,title,mergeable,mergeStateStatus,statusCheckRollup,additions,deletions,labels,autoMergeRequest,mergedAt,mergeCommit,headRefOid,reviewRequests';
 
 for (const state of ['open', 'draft', 'merged', 'closed', 'unknown'])
   test(`badge renders ${state} accessibly and opens its PR without navigating the chat`, async () => {

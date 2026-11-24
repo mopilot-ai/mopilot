@@ -1,4 +1,5 @@
 // The machine composer's model picker: This Mac's two-level picker (chip, effort panel, harness list, models beside it) fed by that machine's report and chat-scoped choices.
+import { connectionsRoute } from '../../lib/connectionsRoute';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useHostAgentChoice } from '../../session/useHostAgentChoice';
 import { useHostMachines } from '../../lib/hostMachines';
@@ -296,7 +297,7 @@ function MachinePicker({ threadId, hostId }: PickerOwner) {
           <MenuRow
             onClick={() => {
               a.close();
-              navigate({ name: 'settings', section: 'connections' });
+              navigate(connectionsRoute('other'));
             }}
           >
             <span className="menu-label">

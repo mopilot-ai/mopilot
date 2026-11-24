@@ -18,7 +18,7 @@ import { Popover } from '../ui/Popover';
 import { Check, ChevronRight, FileText, Folder, MessageCircle } from '../ui/icons';
 import { BrowserTabRows, useBrowserTabMentions, type BrowserTabOption } from './BrowserTabMentions';
 import { errorText } from '../../lib/ignored';
-import { composerPopup, type ComposerPopup } from '../../lib/composerSkills';
+import { composerPopup, type ComposerPopup, type ComposerSlashItem } from '../../lib/composerSkills';
 import { byActivity } from '../../lib/chatActivity';
 
 export function usePopupKeys(
@@ -48,22 +48,14 @@ export function usePopupKeys(
 }
 
 /** Entries of the "/" menu, in the official order. Items with `sub` open a list in the same panel. */
-export interface SlashItem {
+export interface SlashItem extends ComposerSlashItem {
   id: string;
   title: string;
   desc?: string;
   icon?: React.ReactNode;
   sub?: () => Promise<SlashItem[]> | SlashItem[];
-  run?: () => unknown;
   checked?: boolean;
   scope?: string;
-  /** Skills can be selected within prose as well as at the beginning. */
-  skill?: boolean;
-  nativeSkill?: string;
-  /** other names that match when typing */
-  aliases?: string[];
-  /** greyed out, with the reason */
-  disabled?: string;
 }
 
 export function SlashPopup({

@@ -256,9 +256,14 @@ async function launch(
     fs.writeFileSync(path.join(userData, name), JSON.stringify(body));
   }
   for (const s of seed?.claudeSessions ?? []) claudeTranscript(home, claudeHome, s);
-  const seedEnv: Record<string, string> = seed?.codexThreads
-    ? { FAKE_CODEX_THREADS: JSON.stringify(seed.codexThreads.map((t) => ({ ...t, cwd: t.cwd ? path.join(home, t.cwd) : home }))) }
-    : {};
+  const seedEnv: Record<string, string> = {};
+  if (seed?.codexThreads) {
+    const threads = JSON.stringify(seed.codexThreads.map((t) => ({ ...t, cwd: t.cwd ? path.join(home, t.cwd) : home })));
+    // thousands of seeded threads are past what an environment variable holds (spawn E2BIG): the fake reads `@<file>`
+    const file = path.join(dir, 'codex-threads.json');
+    if (threads.length > 64 * 1024) fs.writeFileSync(file, threads);
+    seedEnv.FAKE_CODEX_THREADS = threads.length > 64 * 1024 ? `@${file}` : threads;
+  }
   // folders under HOME that the fake Codex already lists as projects
   const seeded = codexProjects.map((rel) => {
     const p = path.join(home, rel);

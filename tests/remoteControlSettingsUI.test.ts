@@ -3,7 +3,7 @@
 import { test, mock, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import './support/dom.ts';
-import { act, createElement as h } from 'react';
+import { act, createElement as h, Fragment } from 'react';
 import { fakeStore, one, render } from './support/shell-panels-kit.ts';
 import { stubStore } from './support/stubs.ts';
 
@@ -29,7 +29,12 @@ mock.module('../src/session/harness/codexRemoteControl.ts', {
     useRemoteControlPairing: (cb: () => void) => ((onClaimed = cb), { pairing, restart: () => void restarts++ }),
   },
 });
-const { ControlThisComputer } = await import('../src/components/pages/settings/RemoteControl.tsx');
+const { CodexClientRows, CodexSwitchRows, useCodexControl } = await import('../src/components/pages/settings/RemoteControl.tsx');
+// the two halves the Control this Mac tab places apart: the switch rows in Other settings, the client rows in the one device list
+function ControlThisComputer() {
+  const control = useCodexControl();
+  return h(Fragment, null, h(CodexSwitchRows, { control }), h(CodexClientRows, { control }));
+}
 
 const phone = { clientId: 'a', name: 'Phone', platform: 'iOS', lastSeenAt: Math.floor(Date.now() / 1000) - 7200 };
 const status = (s: string, error: string | null = null, extra: object = {}) => ({
@@ -40,7 +45,9 @@ const status = (s: string, error: string | null = null, extra: object = {}) => (
 });
 const toggle = (host: HTMLElement) => one(host, '[role="switch"]') as HTMLButtonElement;
 const button = (host: ParentNode, text: string) =>
-  [...host.querySelectorAll('button')].find((b) => b.textContent === text) as HTMLButtonElement | undefined;
+  [...host.querySelectorAll('button')].find((b) => b.textContent === text || b.getAttribute('aria-label') === text) as
+    | HTMLButtonElement
+    | undefined;
 beforeEach(() => {
   usable = true;
   view = status('disabled');
@@ -103,12 +110,12 @@ test('with the link up, the devices are listed, an empty list and a failed read 
   const r = await render(h(ControlThisComputer));
   assert.match(r.host.textContent!, /Authorized devices on your ChatGPT account can discover and control this computer/);
   assert.equal(toggle(r.host).getAttribute('aria-checked'), 'true');
-  assert.match(r.host.textContent!, /Devices that can control this computer/);
-  // not read yet: no list and no empty state
-  assert.doesNotMatch(r.host.textContent!, /No devices added yet/);
+  // not read yet: no list
+  assert.equal(r.host.querySelector('.settings-row-desc[data-client]'), null);
   clientsState = { clients: [], error: null };
   await r.rerender(h(ControlThisComputer));
   assert.match(r.host.textContent!, /No devices added yet/);
+  assert.doesNotMatch(r.host.textContent!, /Revoke access/);
   clientsState = { clients: null, error: 'Sign in to ChatGPT again' };
   await r.rerender(h(ControlThisComputer));
   assert.match(r.host.textContent!, /Couldn't load the devices/);
@@ -121,14 +128,25 @@ test('with the link up, the devices are listed, an empty list and a failed read 
   assert.match(r.host.textContent!, /iOS · Last connected 2h/);
   assert.match(r.host.textContent!, /Device/);
   assert.match(r.host.textContent!, /Authorized device/);
-  await act(async () => button(r.host, 'Revoke access')!.click());
+  // revoking asks first, naming the device and what it costs; Cancel changes nothing
+  await act(async () => button(r.host, 'Revoke access for Phone')!.click());
+  assert.match(r.host.textContent!, /must be added again to control this computer/);
+  await act(async () => button(r.host.querySelector('[role=alertdialog]')!, 'Cancel')!.click());
+  assert.deepEqual(revoked, []);
+  await act(async () => button(r.host, 'Revoke access for Phone')!.click());
+  await act(async () => button(r.host.querySelector('[role=alertdialog]')!, 'Revoke access')!.click());
   assert.deepEqual(revoked, ['a']);
+  // a device that never gave a name is named in the question too
+  await act(async () => button(r.host, 'Revoke access for Device')!.click());
+  assert.match(r.host.textContent!, /Revoke access for This device\?/);
+  await act(async () => button(r.host.querySelector('[role=alertdialog]')!, 'Cancel')!.click());
   assert.deepEqual(store.calls.at(-1), ['toast', 'Revoked device access']);
   assert.equal(refreshes, 2);
   // a revoke that failed says so through its own toast (not this page's) and still reads again
   revokeOk = false;
   store.calls.length = 0;
-  await act(async () => button(r.host, 'Revoke access')!.click());
+  await act(async () => button(r.host, 'Revoke access for Phone')!.click());
+  await act(async () => button(r.host.querySelector('[role=alertdialog]')!, 'Revoke access')!.click());
   assert.equal(store.calls.length, 0);
   assert.equal(refreshes, 3);
   await r.unmount();

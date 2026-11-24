@@ -19,9 +19,10 @@ test("a home's entry is the home gate's allow-list and nothing else; the line pr
   assert.doesNotThrow(() => refuseByKind({ kind: 'home' }, 'chat.start'));
 });
 
-test("host.homeLinkRepair is classified for every kind: the owner's desktop, phone and the CLI reach it, a controller, a home and any other kind are refused", () => {
-  for (const kind of ['desktop', 'phone', 'cli']) assert.equal(kindAllows(kind, 'host.homeLinkRepair'), true, kind);
-  for (const kind of ['controller', 'home', 'unknown', 'guest']) assert.equal(kindAllows(kind, 'host.homeLinkRepair'), false, kind);
+test("host.homeLinkRepair is classified for every kind: the owner's desktop and the CLI reach it, a phone (it sends none), a controller, a home and any other kind are refused", () => {
+  for (const kind of ['desktop', 'cli']) assert.equal(kindAllows(kind, 'host.homeLinkRepair'), true, kind);
+  for (const kind of ['phone', 'controller', 'home', 'unknown', 'guest'])
+    assert.equal(kindAllows(kind, 'host.homeLinkRepair'), false, kind);
   assert.ok(CONTROLLER_DENIED.includes('host.homeLinkRepair') && !CONTROLLER_ALLOWED.includes('host.homeLinkRepair'));
 });
 

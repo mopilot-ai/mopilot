@@ -58,7 +58,10 @@ test("the words' glyphs mask the band, which only the compositor moves", () => {
   assert.equal(decls('.shimmer-band').display, 'none');
   const shine = decls('.shimmer-band::after');
   assert.equal(shine.animation, 'shimmer-band 3s linear var(--shimmer-delay, 0s) infinite');
-  assert.equal(keyframes('shimmer-band'), '0%,15%{translate:-62.5%;animation-timing-function:ease-in-out}85%,100%{translate:-12.5%}');
+  assert.equal(
+    keyframes('shimmer-band'),
+    '0%,15%{translate:-62.5%;animation-timing-function:cubic-bezier(0.714, 0.121, 0.211, 0.888)}85%,100%{translate:-12.5%}',
+  );
 });
 
 test('with reduced motion the label holds still', () => {

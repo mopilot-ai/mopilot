@@ -65,6 +65,7 @@ test("a chat request before hello is refused; hello answers with this Host's ver
           'chatPaging',
           'chatEvents',
           'commands',
+          'codePair',
           SIDE_CHAT_FEATURE,
         ].includes(f),
     ),

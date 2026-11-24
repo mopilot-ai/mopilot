@@ -1,4 +1,4 @@
-// The working mark: MoPilot's 20px spark beside a running activity line, with a different motion per kind of work.
+// The working mark: Claude Code's 20px clay animation beside a running activity line, a different motion per kind of work.
 import { useLayoutEffect, useRef, useState } from 'react';
 import { MarkPlayer, markClock } from './markPlayer';
 import { restFrame, type MarkActivity } from './markStages';
@@ -44,7 +44,7 @@ export function WorkingMark({ activity, standalone = false }: { activity: MarkAc
     };
     look.current = tick;
     tick();
-    // a fresh mark starts as a dot: keep one under it until its strip has painted (two frames)
+    // a fresh mark starts as a dot: keep one under it until its strip has painted (two frames, as Claude does)
     let dotGone: () => void = () => undefined;
     if (player.fresh) {
       shown.setDot(true);

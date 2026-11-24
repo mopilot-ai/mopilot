@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { siteTables } = require('../electron/app/browserSiteTables.cjs');
+const { onThisMac } = require('../electron/capabilities/contract/thisMacControl.cjs');
 
 function tables({ then = 'auto' as string | null, remote = false } = {}) {
   const sessions = new Map<string, any>([['c1', { permission: 'default', activeTurn: { id: 't' } }]]);
@@ -67,4 +68,20 @@ test('an answer without the switch keeps its scope, and a remote owner of comput
   await t.browserGrants.require('https://a.test/', 'write', ctx);
   await t.browserGrants.require('https://b.test/', 'write', ctx);
   assert.deepEqual(t.asked, ['https://a.test', 'https://b.test']);
+});
+
+test('Remote Run Chrome calls use the Mac’s site prompts even if the chat is in Auto or the site has a saved grant', async () => {
+  const t = tables();
+  await t.browserGrants.require('https://auto.test/', 'write', ctx);
+  // Set the in-memory table directly so this test does not write site rules to disk.
+  t.chromeGrants.grants.set('https://saved.test', 'write');
+  await onThisMac('c1', 'chrome_navigate', async () => {
+    await t.chromeGrants.require('https://saved.test/', 'read', ctx);
+    t.sessions.set('c1', { permission: 'full-access', activeTurn: { id: 't' } });
+    await t.chromeGrants.require('https://one.test/', 'write', ctx);
+    await t.chromeGrants.require('https://two.test/', 'write', ctx);
+    t.sessions.set('c1', { permission: 'read-only', activeTurn: { id: 't' } });
+    await assert.rejects(t.chromeGrants.require('https://three.test/', 'write', ctx), { code: 'read_only' });
+  });
+  assert.deepEqual(t.asked, ['https://auto.test', 'https://saved.test', 'https://one.test', 'https://two.test']);
 });
