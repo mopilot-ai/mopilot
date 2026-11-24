@@ -7,6 +7,7 @@ import { navigate } from '../../../store/panes';
 import { editBlockedFor } from '../../../store/actions';
 import { giveBackToComposer } from '../../../store/send';
 import { SkillLink } from '../../markdown/SkillLink';
+import { openSkillClick } from '../../../session/openSkill';
 import { SkillGlyph } from '../../markdown/SkillGlyph';
 import { useSentSkill } from './sentSkill';
 import { refusalText, runSemantic } from '../../../store/session/runSemantic';
@@ -184,10 +185,25 @@ export function UserMessage({
             <FoldedText text={text}>
               {skill ? (
                 <>
-                  <span className="bubble-skill" title={`Skill /${skill.name}`}>
-                    <SkillGlyph size={14} />
-                    <span>/{skill.name}</span>
-                  </span>
+                  {skill.file ? (
+                    <a
+                      className="bubble-skill open"
+                      href={skill.file.path}
+                      title={skill.file.description || `Skill /${skill.name}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openSkillClick(skill.file!.path, e);
+                      }}
+                    >
+                      <SkillGlyph size={14} />
+                      <span>/{skill.name}</span>
+                    </a>
+                  ) : (
+                    <span className="bubble-skill" title={`Skill /${skill.name}`}>
+                      <SkillGlyph size={14} />
+                      <span>/{skill.name}</span>
+                    </span>
+                  )}
                   {linkify(skill.rest, cwd)}
                 </>
               ) : (

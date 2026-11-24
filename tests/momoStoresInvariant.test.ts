@@ -79,6 +79,8 @@ const OWNERS: Record<string, string> = {
   'electron/momo/channelChats.cjs': 'chats',
   // a draft card's Send keeps how far it got in the draft's own note in the MoMo chat's history, erased with the chats
   'electron/momo/draftSend.cjs': 'chats',
+  // this Mac's unsent messages to MoMo's home and the newest lease it has seen (userData/momo/outbox.json, home-client.json), erased with the chats by Reset MoMo
+  'electron/momo/homeService.cjs': 'chats',
   'electron/momo/sentinelStore.cjs': 'approvals',
   'electron/momo/trustGate.cjs': 'audit',
   // the E2E runs' test tool: each change it makes goes through the trust gate's audit log

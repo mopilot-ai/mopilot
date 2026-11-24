@@ -1,7 +1,7 @@
 // Claude Code's slash-command catalog per account and folder (design commandLayer rules[10]), kept from what sessions report and sent to the windows.
 const path = require('node:path');
 const os = require('node:os');
-const { scanSkills, skillRoots } = require('./skills.cjs');
+const { scanSkills, skillRoots, skillFilesFor } = require('./skills.cjs');
 const { noteIgnored } = require('../../ignored.cjs');
 
 // Claude's commands for a folder and account (design commandLayer rules[10]): supportedCommands()
@@ -17,18 +17,24 @@ const slashCommand = (c) => ({
   builtin: !!c.builtin,
 });
 
-/** Merge what the CLI reported into the folder's catalog; null when nothing changed. */
-function mergeCatalog(prev, m) {
+/**
+ * Merge what the CLI reported into the folder's catalog; null when nothing changed.
+ * `where` ({ configDir, cwd }) lets the catalog find its skills' SKILL.md files; without it `skillFiles` is kept as it was.
+ */
+function mergeCatalog(prev, m, where) {
   const next = {
     commands: prev?.commands ?? [],
     skills: prev?.skills ?? [],
     plugins: prev?.plugins ?? [],
+    // additive: name -> { path, description, scope } for the listed skills whose SKILL.md is on this Mac
+    skillFiles: prev?.skillFiles ?? {},
     terminalSlash: prev?.terminalSlash ?? null,
     live: !!prev?.live,
   };
   if (m.commands) next.commands = m.commands.map(slashCommand);
   if (m.skills) next.skills = m.skills.map((x) => (typeof x === 'string' ? x : x?.name)).filter(Boolean);
   if (m.plugins) next.plugins = m.plugins.map((x) => ({ name: x.name, path: x.path ?? null }));
+  if (where && (m.skills || m.plugins)) next.skillFiles = skillFilesFor(next.skills, where.configDir, where.cwd, next.plugins);
   if (m.terminalSlash) next.terminalSlash = m.terminalSlash;
   if (m.live) next.live = true;
   return JSON.stringify(next) === JSON.stringify(prev) ? null : next;
@@ -41,9 +47,11 @@ function mergeCatalog(prev, m) {
 function createCatalog(state, { auth, queries }) {
   const catalogs = new Map();
 
+  const configDirOf = (account) => auth.cleanEnv(account).CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+
   function setCatalog(account, cwd, m) {
     const k = catalogKey(account, cwd);
-    const next = mergeCatalog(catalogs.get(k), m);
+    const next = mergeCatalog(catalogs.get(k), m, { configDir: configDirOf(account), cwd });
     if (!next) return catalogs.get(k);
     catalogs.set(k, next);
     state.broadcastCatalog({ account, cwd, catalog: next });
@@ -77,8 +85,7 @@ function createCatalog(state, { auth, queries }) {
     if (have) return have;
     const x = await queries.extras(bin, cwd, account);
     // skills only arrive with a session's init message; until one runs, read them from disk
-    const configDir = auth.cleanEnv(account).CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-    return setCatalog(account, cwd, { commands: x.commands, skills: scanSkills(skillRoots(configDir, cwd)) });
+    return setCatalog(account, cwd, { commands: x.commands, skills: scanSkills(skillRoots(configDirOf(account), cwd)) });
   }
 
   return { setCatalog, noteCatalog, catalog };

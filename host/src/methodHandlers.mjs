@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { codeFilesIn, defaultOf } from '../../shared/host/methodFiles.mjs';
 import { SchemaError } from '../../shared/host/schema.mjs';
 import { createChatVeil } from './chatVeil.mjs';
+import { HostRefusal } from './hostFs.mjs';
 
 const req = createRequire(import.meta.url);
 
@@ -42,7 +43,8 @@ export function collectHandlers(names, load, deps) {
       for (const [method, run] of Object.entries(made[kind] ?? {})) {
         if (Object.hasOwn(handlers, method) || Object.hasOwn(effects, method))
           throw new Error(`methods/${name} serves ${method}, which is already served.`);
-        into[method] = run;
+        // a file may guard its handlers (MoMo's run only at the running home): the guard wraps each one
+        into[method] = made.guard ? made.guard(method, run) : run;
       }
   }
   /** What a veil or feature check says, or no when it cannot say: it then hides, and the Host's own report says why. @param {(principal: unknown) => boolean} check @param {unknown} principal @param {string} what */
@@ -61,9 +63,17 @@ export function collectHandlers(names, load, deps) {
     effects,
     /** The methods that are veiled (a test checks that every open one is). */
     veiled: Object.keys(veils),
-    /** Throws what a request no Host knows gets, for a veiled method this caller may not see. @param {string} method @param {unknown} principal */
-    veil(method, principal) {
+    /**
+     * Throws what a request no Host knows gets, for a veiled method this caller may not see; and holds a `home` client (MoMo's home on another machine) to its allow-list, lease and modes, which also rewrites its request. A Host with no gate serves a `home` nothing.
+     * @param {string} method @param {unknown} principal @param {any} [raw] the request's parameters, as they came
+     */
+    veil(method, principal, raw) {
       if (Object.hasOwn(veils, method) && !decided(veils[method], principal, method)) throw new SchemaError(`Unknown request: ${method}`);
+      const homeGate = /** @type {any} */ (deps).homeGate;
+      if (homeGate) return homeGate.admit(principal, method, raw);
+      if (/** @type {any} */ (principal)?.kind === 'home')
+        throw new HostRefusal('home_not_allowed', 'MoMo may not do that on this machine.');
+      return raw;
     },
     /** What each connection's requests, results and events pass: the chats a feature keeps apart are asked for and told of only to those who may see them. */
     chatVeil: chatRules

@@ -155,6 +155,9 @@ test('through the server, a connection that presented the home’s account sets 
   const a = await host.paired('a', 'A');
   await a.conn.request('host.momoGrant', { account: 'a1', features: MOMO });
   await a.conn.request('host.hello', helloParams());
+  // prefs belong to the running home: before one starts here they are refused like a turn is
+  await assert.rejects(a.conn.request('host.momoPrefs', {}), /home is not running/);
+  await a.conn.request('host.momoHomeStart', { homeId: 'home-aaaa-1111', name: 'A' });
   assert.deepEqual(await a.conn.request('host.momoPrefs', {}), {
     proactivity: 'default',
     paused: false,

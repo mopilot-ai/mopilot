@@ -88,6 +88,11 @@ export type LimitInput = {
   /** `catch_up`: the home slept, so tell-nows are one summary. `first_connect`: old mail is never pushed, it waits for the brief. */
   mode?: DeliveryMode;
   fromDomain?: string;
+  fromAddress?: string;
+  /** An accepted quiet rule for this sender kept a would-be tell-now out of it: the matter is held for the brief and says why. */
+  quietRule?: { ruleId: string; label: string };
+  /** False when the owner turned the brief off: a held matter then waits in Watching, where it is seen. */
+  briefOn?: boolean;
   expiresAt?: string;
   /** The first request or question in the item (`askOf`). */
   ask?: string;
@@ -98,7 +103,11 @@ export type LimitInput = {
 /** What the pipeline does with an item once the limits ran. */
 export type Outcome =
   | { action: 'tell_now'; matterKey: string }
-  | { action: 'hold'; matterKey: string; why: 'quiet_hours' | 'daily_cap' | 'snoozed' | 'already_told' | 'dismissed' | 'first_connect' }
+  | {
+      action: 'hold';
+      matterKey: string;
+      why: 'quiet_hours' | 'daily_cap' | 'snoozed' | 'quiet_rule' | 'quiet_rule_watching' | 'already_told' | 'dismissed' | 'first_connect';
+    }
   | { action: 'catch_up'; matterKey: string }
   | { action: 'watch'; matterKey: string; nextCheck: string }
   | { action: 'quiet'; matterKey: string };
@@ -111,8 +120,9 @@ function withSource(existing: Matter | undefined, input: LimitInput, now: Date):
     (source) => !(source.sourceId === input.source.sourceId && source.id === input.source.id),
   );
   const fromDomain = existing?.fromDomain ?? input.fromDomain;
+  const fromAddress = existing?.fromAddress ?? input.fromAddress;
   // built from the record that is there, so a field added to a matter later is carried by default; only what a new mail resets is left out (a held delivery, the flag of an earlier mail)
-  const { pendingDelivery: _held, suspect: _flag, ...kept } = existing ?? ({} as Partial<Matter>);
+  const { pendingDelivery: _held, suspect: _flag, quietRule: _rule, quietShownAt: _shown, ...kept } = existing ?? ({} as Partial<Matter>);
   return {
     ...kept,
     matterKey: input.matterKey,
@@ -124,6 +134,7 @@ function withSource(existing: Matter | undefined, input: LimitInput, now: Date):
     // the flag belongs to the mail that earned it, on a matter it started: a later genuine mail does not inherit it
     ...(input.suspect && !existing ? { suspect: true } : {}),
     ...(fromDomain ? { fromDomain } : {}),
+    ...(fromAddress ? { fromAddress } : {}),
     ...((input.expiresAt ?? existing?.expiresAt) ? { expiresAt: (input.expiresAt ?? existing?.expiresAt) as string } : {}),
     updatedAt: iso(now),
   };
@@ -175,6 +186,18 @@ export async function applyLimits(store: NoticeStore, settings: NoticeSettings, 
   if (existing?.notifiedAt && existing.state !== 'resolved' && !snoozeEnded && !isMaterialChange(existing, input))
     return hold('already_told');
 
+  // an accepted quiet rule: nothing is told, and the matter waits in the brief, where it says so (it is never silently dropped)
+  if (input.quietRule) {
+    const summary = `Kept quiet by your rule for ${input.quietRule.label}: ${input.answer.reason}`;
+    // held for the brief; with the brief off nobody would see it, so it waits in Watching instead
+    if (input.briefOn === false) {
+      const nextCheck = iso(new Date(now.getTime() + settings.trackRecheckMs));
+      await store.putMatter({ ...open, state: 'watching', nextCheck, summary, quietRule: input.quietRule });
+      return { action: 'hold', matterKey, why: 'quiet_rule_watching' };
+    }
+    await store.putMatter({ ...open, summary, quietRule: input.quietRule, pendingDelivery: 'quiet_rule' });
+    return { action: 'hold', matterKey, why: 'quiet_rule' };
+  }
   if (input.mode === 'first_connect') return hold('first_connect', 'first_connect');
   if (inQuietHours(settings, now)) return hold('quiet_hours', 'quiet_hours');
 
@@ -185,6 +208,7 @@ export async function applyLimits(store: NoticeStore, settings: NoticeSettings, 
     delivered.notifiedAsk = input.ask;
   }
   delete delivered.snoozedUntil;
+  delete delivered.quietShownAt;
   delete delivered.nextCheck;
   if (input.deadline && (!existing?.notifiedDeadline || input.deadline < existing.notifiedDeadline))
     delivered.notifiedDeadline = input.deadline;

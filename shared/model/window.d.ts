@@ -171,6 +171,8 @@ export interface AppState {
     id: string;
     name: string;
     path: string;
+    /** Registration that owns the checkout picked from a project row. */
+    scope?: string;
     /** Restored from preferences, so the first resolved registry list can confirm the device is still registered. */
     remembered?: true;
     /** the agent picked for this folder; unset: the saved default */

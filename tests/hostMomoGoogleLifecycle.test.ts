@@ -30,7 +30,7 @@ test('remove with Google unreachable: the owner is told, the live token is kept 
   assert.equal(fs.existsSync(path.join(w.momoDir, 'google', 'google-account.sealed')), false, 'the account is gone here');
   // the owed token is sealed with the Host's own key, never in the clear
   const kept = fs.readFileSync(owedPath(w), 'utf8');
-  assert.ok(!kept.includes('rt1'));
+  assert.ok(!kept.includes('"rt1"'), 'a quote never occurs in base64, so this cannot match ciphertext by chance');
   assert.equal(JSON.parse(kept).enc, 'safe');
 
   // still down: it stays owed; up again: Google is asked with that token and the file goes

@@ -4,11 +4,16 @@ import { useFolderHere } from '../../../lib/chatMachine';
 import { useStore } from '../../../store/core';
 import { useCommandProvider } from '../../../session/harness/claude';
 import { sentSkill } from '../../../harness/commands';
+import { useSkillFile } from '../../../session/harness/skillPath';
+import type { ClaudeSkillFile } from '../../../../shared/model/native';
 
-export function useSentSkill(threadId: string, text: string): { name: string; rest: string } | null {
+/** `file`: where its SKILL.md is on this Mac when the chat's harness can say (its name then opens the skill pane). */
+export function useSentSkill(threadId: string, text: string): { name: string; rest: string; file: ClaudeSkillFile | null } | null {
   const cwd = useFolderHere(
     threadId,
     useStore((st) => st.threads[threadId]?.cwd ?? ''),
   );
-  return sentSkill(text, useCommandProvider(threadId, cwd));
+  const sent = sentSkill(text, useCommandProvider(threadId, cwd));
+  const file = useSkillFile(threadId, sent?.name ?? '');
+  return sent && { ...sent, file };
 }

@@ -7,6 +7,9 @@ import { native, type ClaudeCatalog } from '../../../lib/native';
 import { useHarnessStatus } from '../../../session/harness/select';
 import { Group, Row } from '../../pages/Settings';
 import { ClaudePlugins, type LoadError } from './Extensions';
+import { SkillDetailDialog } from '../../skills/SkillDetailDialog';
+import { mergeSkills, type SkillRow } from '../../skills/mergeSkills';
+import { ownGet } from '../../../../shared/ownTable.mjs';
 import { errorText } from '../../../lib/ignored';
 
 export function ClaudeCustomize({ tab }: { tab: string }) {
@@ -15,6 +18,8 @@ export function ClaudeCustomize({ tab }: { tab: string }) {
   const [catalog, setCatalog] = useState<ClaudeCatalog | null>(null);
   // a catalog that couldn't be read: said with Retry (which reads again for this folder and CLI), not shown as none
   const [error, setError] = useState<LoadError | null>(null);
+  // the skill whose definition is open: the same detail the Skills page shows
+  const [detail, setDetail] = useState<SkillRow | null>(null);
   const bin = st.bin;
   useEffect(() => {
     if (!bin) return;
@@ -57,7 +62,17 @@ export function ClaudeCustomize({ tab }: { tab: string }) {
               error
                 ? error.message
                 : catalog?.skills.length
-                  ? catalog.skills.join('  ')
+                  ? catalog.skills.map((n, i) => (
+                      <SkillName
+                        key={n}
+                        name={n}
+                        first={i === 0}
+                        open={
+                          ownGet(catalog.skillFiles, n) &&
+                          (() => setDetail(mergeSkills({ codex: [], claude: [n], claudeFiles: catalog.skillFiles, plugins: [] })[0]))
+                        }
+                      />
+                    ))
                   : catalog
                     ? 'Start a chat to load skills, or add one to ~/.claude/skills.'
                     : undefined
@@ -73,6 +88,23 @@ export function ClaudeCustomize({ tab }: { tab: string }) {
       ) : (
         <ClaudePlugins bin={bin} plugins={catalog?.plugins ?? null} error={error} />
       )}
+      {detail && <SkillDetailDialog row={detail} onClose={() => setDetail(null)} />}
     </div>
+  );
+}
+
+/** A listed skill's name: it opens the skill's detail when its SKILL.md was found (`open`), else it is plain text. */
+function SkillName({ name, open, first }: { name: string; open?: () => void; first: boolean }) {
+  return (
+    <>
+      {first ? null : '  '}
+      {open ? (
+        <button type="button" className="skill-link" onClick={open}>
+          {name}
+        </button>
+      ) : (
+        name
+      )}
+    </>
   );
 }

@@ -18,6 +18,11 @@ export const AUDIT_KINDS = Object.freeze([
   'credential.expired',
   'client.added',
   'client.removed',
+  'controller.connected',
+  'client.refused',
+  'lease.handed',
+  'lease.floor',
+  'lease.repaired',
   'policy.changed',
   'schedule.run',
   'git.write',
@@ -37,6 +42,9 @@ export const WHAT_KEYS = Object.freeze([
   'kind',
   'taskId',
   'harness',
+  'count',
+  'addedBy',
+  'succeeds',
   'summary',
 ]);
 export const SUMMARY_MAX = 160;

@@ -29,7 +29,14 @@ function flag(on: boolean) {
 }
 
 const old = (id: string, more: Record<string, unknown> = {}) => ({ id, status: 'online', hostStale: true, ...more });
-const ADDRESSES: Record<string, string> = { ssh: 'me@box', ssh2: 'me@other', ssh3: 'me@third', rel: 'relay:abc', mac: 'local:this' };
+const ADDRESSES: Record<string, string> = {
+  ssh: 'me@box',
+  ssh2: 'me@other',
+  ssh3: 'me@third',
+  unpaired: 'me@unpaired',
+  rel: 'relay:abc',
+  mac: 'local:this',
+};
 
 function setup(t: any, over: Record<string, any> = {}) {
   const clock = installFakeClock(t, 1_000);
@@ -40,7 +47,9 @@ function setup(t: any, over: Record<string, any> = {}) {
   const gate = { allowed: true, on: true };
   let builds = 0;
   const auto = createAutoUpdate({
-    registry: { list: () => Object.entries(ADDRESSES).map(([id, address]) => ({ id, address })) },
+    registry: {
+      list: () => Object.entries(ADDRESSES).map(([id, address]) => ({ id, address, hostKey: id === 'unpaired' ? '' : 'ab'.repeat(16) })),
+    },
     rows: () => rows,
     allowed: () => gate.allowed,
     on: () => gate.on,
@@ -82,6 +91,7 @@ test('an older Host reached over ssh is updated once; a Host that is current, ne
     old('ssh', { update: 'running' }),
     old('ssh', { update: 'waiting' }),
     old('ssh', { update: 'failed', updateNeedsPair: true }),
+    old('unpaired'),
     old('rel'),
     old('mac'),
     old('gone'),
@@ -207,24 +217,53 @@ test('at most two machines are sent a build at once; the rest wait for one to en
   releases[2]();
 });
 
-test('a refusal before anything was sent does not use up a try or its backoff; a removed machine starts from nothing', async (t) => {
+test('a refusal before upload waits for the next check without spending a try', async (t) => {
   flag(true);
-  const s = setup(t);
-  s.setFail(Object.assign(new Error('Already updating this machine.'), { code: 'busy' }));
-  s.look([old('ssh')]);
-  await waitFor(() => s.sent.length === 1, 'the refused try');
-  s.setFail(false);
-  s.look([old('ssh')]);
-  await waitFor(() => s.sent.length === 2, 'a try right after the refusal');
-  // a refusal after a real try puts that try's record back, not nothing
+  const calls: string[] = [];
+  const s = setup(t, {
+    update: async (id: string) => {
+      calls.push(id);
+      if (calls.length === 1 || calls.length === 3) throw Object.assign(new Error('The Host changed.'), { code: 'host_newer' });
+    },
+  });
+  const rows = [old('ssh')];
+  s.look(rows);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(calls, ['ssh'], 'the stale heartbeat cannot trigger a synchronous loop');
+  s.clock.advance(29_000);
+  s.look(rows);
+  s.clock.advance(999);
+  assert.equal(calls.length, 1);
+  s.clock.advance(1);
+  await waitFor(() => calls.length === 2, 'a new check after the deferral');
   s.clock.advance(BACKOFF_MS[0]);
-  s.setFail(Object.assign(new Error('busy'), { code: 'busy' }));
-  s.look([old('ssh')]);
-  await waitFor(() => s.sent.length === 3, 'the refused retry');
-  s.setFail(false);
+  await waitFor(() => calls.length === 3, 'the first sent try still had its full budget');
   s.auto.forget('ssh');
+  s.look(rows);
+  await waitFor(() => calls.length === 4, 'a removed and re-added machine starts from nothing');
+});
+
+test('a refused preflight cannot restore tries after removal or retry after disposal', async (t) => {
+  flag(true);
+  const written: Record<string, unknown>[] = [];
+  const calls: string[] = [];
+  let refuse!: (error: Error) => void;
+  const s = setup(t, {
+    store: { load: () => ({}), save: (next: Record<string, unknown>) => written.push(next) },
+    update: (id: string) => {
+      calls.push(id);
+      return new Promise((_, reject) => (refuse = reject));
+    },
+  });
   s.look([old('ssh')]);
-  await waitFor(() => s.sent.length === 4, 'a try for a machine that was removed and added again');
+  s.auto.forget('ssh');
+  s.auto.dispose();
+  refuse(Object.assign(new Error('The Host changed.'), { code: 'host_newer' }));
+  await new Promise((resolve) => setImmediate(resolve));
+  s.clock.advance(30_000);
+  s.look([old('ssh')]);
+  assert.deepEqual(written.at(-1), {});
+  assert.deepEqual(calls, ['ssh']);
 });
 
 test('a Host that turns out newer after an attempt began is never sent the app’s build again', async (t) => {
@@ -253,7 +292,7 @@ test('two Macs of different builds on one Host: the older app leaves the Host al
   assert.deepEqual([older.sent.length, newer.sent.length], [1, 1]);
 });
 
-test('a build another app staged on a Host is waited for, for half an hour, or for ever when it is this app’s own; the row says it updates when idle', (t) => {
+test('a staged build shows that it updates when idle and offers recovery after half an hour', (t) => {
   flag(true);
   const s = setup(t);
   const at = s.clock.now();
@@ -272,9 +311,20 @@ test('a build another app staged on a Host is waited for, for half an hour, or f
     'a staged build that never restarts stops hiding the row',
   );
   assert.deepEqual(
-    s.auto.decorate({ id: 'ssh', hostPending: { build: 'b2', since: at } }, {}),
-    { update: 'waiting' },
-    'this app’s own staged build is waited for however long',
+    s.auto.decorate({ id: 'ssh', hostPending: { build: 'b2', since: at } }, { hostStale: true }),
+    { hostStale: true },
+    'the same build also leaves a manual recovery action',
   );
   assert.deepEqual(s.auto.decorate({ id: 'ssh', hostPending: null }, { hostStale: true }), { hostStale: true });
+});
+
+test('a known pending archive prevents an automatic upload even when manual recovery is available', (t) => {
+  flag(true);
+  const s = setup(t, {
+    registry: {
+      list: () => [{ id: 'ssh', address: 'me@box', hostKey: 'ab'.repeat(16), hostPending: { build: 'b2', since: 0 } }],
+    },
+  });
+  s.look([old('ssh')]);
+  assert.deepEqual(s.sent, []);
 });

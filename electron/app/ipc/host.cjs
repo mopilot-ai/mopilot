@@ -26,6 +26,8 @@ const { CARRY_CODES } = require('../../../shared/host/codeCarry.mjs');
 const { CODE_CODES } = require('../../../shared/host/codeTransfer.mjs');
 const { remoteChatsFor, remoteSendFor, devApprovalMs, laneOf, keepAgent, kindOfChat } = require('../../host/wiring.cjs');
 const { queueItem } = require('../../session/queueItem.cjs');
+const { attachMomoHome } = require('../../momo/homeService.cjs');
+const { sayHello } = require('../../host/helloFirst.cjs');
 const { createMachineChatStart } = require('../../host/machineChatStart.cjs');
 const { machineSideChat } = require('../../host/machineSideChat.cjs');
 const { sideChatUuid } = require('../../../shared/host/sideChats.mjs');
@@ -98,6 +100,7 @@ function register(
   });
   const apiKeys = { forHarness: (/** @type {string} */ h) => keys().forHarness(h), hasFor: (/** @type {string} */ h) => keys().hasFor(h) };
   let /** @type {ReturnType<typeof createMachines> | null} */ machines = null;
+  let /** @type {(() => void) | null} */ stopHome = null;
   let /** @type {ReturnType<typeof createContinueAssembly> | null} */ continuing = null;
   // the continue service is made on the first continue, or when a machine answers (a chat may have been continued without it): only once the gate is open
   const continueService = () => {
@@ -133,10 +136,12 @@ function register(
   const sshDir = path.join(os.tmpdir(), `mopilot-ssh-${process.getuid?.() ?? 0}`);
   let /** @type {ReturnType<typeof createAskpass> | null} */ askpass = null;
   // made when a window first asks, which it does only once the gate is open: no registry, heartbeat or ssh exists before that
+  const wakeMachine = (/** @type {string} */ id) => hostCloud.wake(id); // the cloud service is made below: a chat's send and MoMo's home (over the machines, absent unless allowed and `momo.home` is on) wake through it
   const service = () => {
     const d = /** @type {NonNullable<typeof deps>} */ (deps);
     const env = () => d.shellEnv.childEnv();
-    return (machines ??= create({
+    const first = !machines;
+    const made = (machines ??= create({
       dir: d.app.getPath('userData'),
       env,
       autoUpdateOn: () => d.readState?.()?.prefs?.autoUpdate !== false,
@@ -219,6 +224,13 @@ function register(
         };
       },
     }));
+    if (first)
+      stopHome = attachMomoHome(made, d, {
+        hello: sayHello,
+        wake: wakeMachine,
+        safeStorage: safeStorage ?? require('electron').safeStorage,
+      });
+    return made;
   };
   // the tool registry asks which surfaces a chat's owner Host has (electron/capabilities/contract/hostScope.cjs)
   if (deps?.live) deps.live.hostCapabilitiesOf = chatCapabilities({ dir: deps.app.getPath('userData'), allowed, machines: service });
@@ -237,7 +249,7 @@ function register(
     selectionOf: (chatId) => deps?.live.chats?.get(chatId)?.meta?.config?.hostSelection,
     paused: (chatId) => deps?.live.notifier?.notify('approval', chatId, { title: 'Run paused: no one answered its approvals', body: '' }),
     approvalMs: devApprovalMs(process.env, deps?.app.isPackaged !== false),
-    wake: (id) => hostCloud.wake(id),
+    wake: wakeMachine,
     // a chat continued back to this Mac: what was kept for the machine goes to the controller
     localSend: (chatId, item) => deps?.live.host.send(chatId, item, { waitForDelivery: true }),
     // a message to a chat on a machine that came back goes once the chat listens there again
@@ -271,6 +283,7 @@ function register(
     chats.get()?.dispose();
     remote()?.dispose();
     local.dispose();
+    stopHome?.();
     machines?.dispose();
     orgAccess.dispose();
     askpass?.close();

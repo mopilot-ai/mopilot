@@ -58,9 +58,9 @@ export function clampToCeiling(config, max) {
   return unchanged ? config : { ...own, permission, ...(base == null ? {} : { planBasePermission: base }) };
 }
 
-/** The mode a caller of this kind may set at most, given the effective ceiling. */
+/** The mode a caller of this kind may set at most, given the effective ceiling: a computer of the owner's own (a desktop, the CLI) and a Mac paired by a code (a controller: the owner chose to do what Codex does, so a remote chat has the same pickers and the controlled Mac's own ceiling as a local one) get it whole, every other kind (a phone, one added later) the phone's lower one until someone widens it here on purpose. */
 export const ceilingFor = (/** @type {string} */ max, /** @type {string} */ kind) =>
-  kind === 'phone' ? stricterMode(max, PHONE_PERMISSION_MAX) : max;
+  kind === 'desktop' || kind === 'cli' || kind === 'controller' ? max : stricterMode(max, PHONE_PERMISSION_MAX);
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const isObj = (/** @type {unknown} */ v) => !!v && typeof v === 'object' && !Array.isArray(v);

@@ -1,6 +1,7 @@
 // The Host's handler for `host.momoTasks` (shared/host/methods/momoTasks.mjs): thin calls into the tasks service, read with `momo.service('tasks')` inside each call (never at load). Like every MoMo method it is veiled, and what a task does is the owner's: only a paired desktop or phone may start, stop or retry one, never the local command line, which any process on this machine can reach.
 import { HostRefusal } from '../hostFs.mjs';
 import { isOwner } from '../momoOwner.mjs';
+import { onlyAtHome } from '../momoHomeGuard.mjs';
 import { TaskRefusal } from '../../../shared/momoTasks/core.ts';
 
 /** @param {{ momo?: ReturnType<typeof import('../momoHome.mjs').createMomoHome> }} deps */
@@ -17,6 +18,7 @@ export default ({ momo }) => {
     }
   };
   return {
+    guard: onlyAtHome(momo),
     veils: { 'host.momoTasks': (/** @type {unknown} */ principal) => !!momo && !!principal && isOwner(principal) && !!momo.granted() },
     handlers: {
       'host.momoTasks': (/** @type {any} */ p) =>

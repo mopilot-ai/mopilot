@@ -2,6 +2,7 @@
 import { ask, chat, expect, hostUp, replyOf, session, until } from '../steps.mjs';
 import { eventOf, framesOf, killApp, later, pending, waitCard } from './common.mjs';
 import { dropScratch, planS1 } from './harness.mjs';
+import { workFolder } from '../workFolder.mjs';
 
 /** The tool the driving client announces in S2, and what it answers with. */
 const TOOL = 'accept_echo';
@@ -106,7 +107,7 @@ export const M1_STEPS = [
           key: `accept-${id}`,
           harness: 'acp:fake',
           text: `MCPTOOL ${TOOL} {}`,
-          cwd: ctx.state.dataDir,
+          cwd: workFolder(ctx.state),
         });
         const call = await driver.waitFor((e) => e.event === 'tool' && e.chatId === id, 30_000);
         const next = later(driver, replyOf(id));

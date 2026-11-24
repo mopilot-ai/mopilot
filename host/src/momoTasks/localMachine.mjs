@@ -6,6 +6,9 @@ import { appIdPrefix, hostChatId, agentOfKind } from '../../../shared/host/chatI
 import { MOMO_FORM } from '../momoChats.mjs';
 import { holdFor } from './modes.mjs';
 import { START_CODE } from '../../../shared/momoTasks/types.ts';
+import { createTurnReader, endOf } from './sessionEvents.mjs';
+
+export { endOf };
 
 /**
  * What this machine tells MoMo about itself: its display name and how its agents stand. Given by the home's wiring (the Host's `harnesses()` knows readiness), because the services' own dependencies do not carry it.
@@ -14,18 +17,6 @@ import { START_CODE } from '../../../shared/momoTasks/types.ts';
 
 /** The turn states of a chat that is still working. */
 const WORKING = new Set(['running', 'awaitingUser']);
-
-/**
- * A Host chat's end, as the task manager reads it. A restart's end says what was cut off; a person's Stop (cancelled, no error) is the manager's own Stop and says nothing; an error carries the typed code the Host gave it (`rate_limit`, `auth`, ...); anything else is the reply.
- * @param {any} end the `turnEnd` event @param {string} text the turn's reply
- * @returns {import('../../../shared/momoTasks/types.ts').SessionEvent | null}
- */
-export function endOf(end, text) {
-  if (end.interrupted) return { kind: 'lost', reason: end.interrupted.by === 'host_restart' ? 'machine_restarted' : 'session_gone' };
-  if (end.error) return { kind: 'failed', signal: end.error.code, message: String(end.error.message ?? end.error) };
-  if (end.stopReason === 'cancelled') return null;
-  return { kind: 'finished', report: text };
-}
 
 /**
  * @param {object} o
@@ -42,8 +33,7 @@ export function endOf(end, text) {
 export function createLocalMachine({ sessions, home, workDir, keys, ends, emit, report, nameOf, newId = () => crypto.randomUUID() }) {
   /** @type {MachineInfoSource | null} */
   let info = null;
-  /** The chats of tasks that are working, with the reply of the turn running now. @type {Map<string, string>} */
-  const texts = new Map();
+  const reader = createTurnReader();
   /** The tracked chats that wait on the person's approval now. @type {Set<string>} */
   const waiting = new Set();
   let attached = false;
@@ -59,26 +49,22 @@ export function createLocalMachine({ sessions, home, workDir, keys, ends, emit, 
   /** This machine's name: the wiring's, else the home record's, else plain words. */
   const label = () => info?.name ?? nameOf() ?? 'this machine';
   /** @param {string} chatId */
-  const track = (chatId) => void (texts.has(chatId) || texts.set(chatId, ''));
+  const track = (chatId) => reader.track(chatId);
 
   /** @param {any} e */
   const onEvent = (e) => {
     const chatId = typeof e?.key === 'string' ? e.key : e?.chatId;
-    if (typeof chatId !== 'string' || !texts.has(chatId)) return;
+    if (typeof chatId !== 'string') return;
+    const read = reader.read(chatId, e);
+    if (!read) return;
     const id = /** @type {string} */ (machineId());
-    if (e.kind === 'turnStart') texts.set(chatId, '');
-    else if (e.kind === 'update' && e.update?.sessionUpdate === 'agent_message_chunk')
-      texts.set(chatId, /** @type {string} */ (texts.get(chatId)) + String(e.update.content?.text ?? ''));
-    else if (e.kind === 'turnEnd') {
-      const event = endOf(e, /** @type {string} */ (texts.get(chatId)));
-      texts.set(chatId, '');
-      waiting.delete(chatId);
-      // kept first, so a home that is not listening now still finds how the session ended
-      if (event)
-        Promise.resolve(ends.set(chatId, event))
-          .then(() => emit(id, chatId, event))
-          .catch((error) => report(`MoMo task event for ${chatId}: ${said(error)}`));
-    }
+    waiting.delete(chatId);
+    const event = read.end;
+    // kept first, so a home that is not listening now still finds how the session ended
+    if (event)
+      Promise.resolve(ends.set(chatId, event))
+        .then(() => emit(id, chatId, event))
+        .catch((error) => report(`MoMo task event for ${chatId}: ${said(error)}`));
   };
 
   return {
@@ -95,16 +81,16 @@ export function createLocalMachine({ sessions, home, workDir, keys, ends, emit, 
     detach() {
       attached = false;
       sessions.events.off('event', onEvent);
-      texts.clear();
+      reader.clear();
       waiting.clear();
     },
     /** A chat of a task that is working now (found again after a restart, or just started). @param {string} chatId */
     track,
     /** How many chats are followed. */
-    size: () => texts.size,
+    size: () => reader.size(),
     /** @param {string} chatId */
     untrack(chatId) {
-      texts.delete(chatId);
+      reader.untrack(chatId);
       waiting.delete(chatId);
     },
     /**
@@ -114,7 +100,7 @@ export function createLocalMachine({ sessions, home, workDir, keys, ends, emit, 
     async poll() {
       const id = machineId();
       if (!id) return;
-      for (const chatId of [...texts.keys()]) {
+      for (const chatId of reader.ids()) {
         const turn = sessions.state.has(chatId) ? sessions.state.get(chatId).turn : null;
         if (turn === 'awaitingUser' && !waiting.has(chatId)) {
           waiting.add(chatId);
@@ -166,10 +152,10 @@ export function createLocalMachine({ sessions, home, workDir, keys, ends, emit, 
           try {
             // the mode is set before the first message and always, so a task never inherits a looser mode of the machine
             await sessions.chatRuntime.setMode({ chatId, value: hold.mode });
-            texts.set(chatId, '');
+            reader.track(chatId);
             await sessions.chatRuntime.send({ key: chatId, text: req.brief, cwd });
           } catch (error) {
-            texts.delete(chatId);
+            reader.untrack(chatId);
             await keys.delete(req.key);
             return { ok: false, code: /** @type {any} */ (error)?.code ?? 'refused', message: said(error) };
           }

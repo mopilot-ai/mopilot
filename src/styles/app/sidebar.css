@@ -203,9 +203,6 @@
   color: var(--text-3);
   font-size: var(--fs-small);
 }
-.side-row.indent {
-  padding-left: 32px;
-}
 .side-row.empty-note {
   padding-left: 32px;
   color: var(--text-4);
@@ -219,14 +216,33 @@
   padding-bottom: 4px;
   white-space: normal;
 }
+/* Every project has one heading: a quiet label over session rows that start on its edge, as Claude Code groups sessions.
+   Three tiers share that edge, each dimmer than the sessions: a section's label, a project's heading, a list's foot. */
+.project-group > .project-row {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+.project-group > .project-row:is(:hover, .menu-open, :focus-visible) {
+  color: var(--text-ui);
+}
+/* The home page's project is marked by its ink alone: the selected pill belongs to sessions. */
+.project-group > .project-row.selected {
+  background: transparent;
+  color: var(--text);
+}
+.project-group > .project-row.selected:is(:hover, .menu-open) {
+  background: var(--row-hover);
+}
 .project-group + .project-group {
   margin-top: 8px;
 }
 .show-more {
   padding-left: 32px;
-  color: var(--text-3);
+  color: var(--text-4);
+  font-size: var(--fs-small);
 }
-.show-more:hover {
+.show-more:is(:hover, :focus-visible) {
   color: var(--text-ui);
 }
 .row-status {
@@ -262,17 +278,13 @@
   flex: none;
   place-items: center;
 }
-.thread-row > .host-mark {
-  width: var(--row-location-width);
+/* Where a session runs follows its name, as on a project heading: the PR and status columns stay on one line in every row. */
+.thread-row .side-row-name > .host-mark {
+  margin-inline-start: 6px;
+  color: var(--text-3);
 }
-.thread-row > .host-mark,
 .priority-heading > .host-mark {
   color: var(--text-2);
-}
-/* Keep PR glyphs aligned in a sidebar with machine chats, even on rows without a location mark. */
-.thread-sidebar:has(.thread-row > .host-mark)
-  .thread-row:not(:has(> .host-mark)) > .tooltip-anchor:has(> .thread-pr-badge) {
-  margin-inline-end: calc(var(--row-location-width) + var(--side-row-gap));
 }
 /* A crowded row can shorten a PR count while keeping the 16px glyph, 8px padding and 3px gap. */
 .thread-row > .tooltip-anchor:has(.thread-pr-count) {
@@ -413,19 +425,19 @@
   display: flex;
 }
 /* Hold the disclosure in place while hover or keyboard focus reveals the project actions. */
-.project-group.with-location > .project-row > .row-actions {
+.project-group > .project-row > .row-actions {
   display: flex;
 }
-.project-group.with-location > .project-row:not(:hover, .menu-open, :focus-visible, :has(:focus-visible)) > .row-actions {
+.project-group > .project-row:not(:hover, .menu-open, :focus-visible, :has(:focus-visible)) > .row-actions {
   visibility: hidden;
 }
 .thread-row:has(.chat-shortcut-hint) .row-actions {
   display: none;
 }
-/* A chat's menu sits right of its PR badge and, while shown, takes the status dot's place:
+/* A chat's menu sits right of its PR badge and, while shown, takes the status dot's place (a Cloud row has no menu and keeps its dot):
    its 22px button overhangs the 16px slot by 3px a side so the PR column does not move. */
 .thread-row .row-actions { margin: 0 -3px; }
-.thread-row:is(:hover, .menu-open, :focus-visible, :has(:focus-visible)):not(:has(.chat-shortcut-hint)) .row-status {
+.thread-row:is(:hover, .menu-open, :focus-visible, :has(:focus-visible)):has(> .row-actions):not(:has(.chat-shortcut-hint)) .row-status {
   display: none;
 }
 .project-row .row-actions .icon-btn,

@@ -28,7 +28,7 @@ test('a client record keeps its name and kind; the old string form is read as a 
     addedBy: 'code',
   });
   // a kind this Host does not know is never promoted to an update key
-  assert.equal(clientOf({ key: 'K', kind: 'robot' }).kind, 'phone');
+  assert.equal(clientOf({ key: 'K', kind: 'robot' }).kind, 'unknown');
   assert.deepEqual(clientOf({ key: 'K', name: 'a', kind: 'cli', addedAt: 5, addedBy: 'f' }), {
     key: 'K',
     name: 'a',

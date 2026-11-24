@@ -3,6 +3,7 @@
 import { HostRefusal } from '../hostFs.mjs';
 import { deviceOf } from '../momoDevice.mjs';
 import { isOwner } from '../momoOwner.mjs';
+import { onlyAtHome } from '../momoHomeGuard.mjs';
 
 /** The steps that change what MoMo can do with Google (a client, a sign-in, a send grant, a removal): each is in the audit log, with the device that asked, before it runs. */
 const AUDITED = new Set(['configure', 'begin', 'complete', 'disconnect']);
@@ -12,6 +13,7 @@ export default ({ momo }) => {
   /** The service the home holds, read when asked: the home may be wired after this file loads. */
   const google = () => /** @type {import('../momoGoogle.mjs').MomoGoogle} */ (momo?.service('google'));
   return {
+    guard: onlyAtHome(momo),
     veils: { 'host.momoGoogle': (/** @type {unknown} */ principal) => !!momo && isOwner(principal) && momo.granted() && !!google() },
     handlers: {
       'host.momoGoogle': async (

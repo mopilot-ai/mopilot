@@ -3,9 +3,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   OWNER_RULES_MAX,
+  currentRun,
   declineRule,
   emptyLearning,
+  ignoreSignal,
   ownerRule,
+  record,
+  ruleFromSignal,
   suggestRule,
   toGateRules,
   turnOnRule,
@@ -176,4 +180,28 @@ test('rules turned down or undone do not count against the owner’s hundred and
   assert.equal(back.rules[0].status, 'proposed');
   assert.deepEqual(toGateRules(back), [], 'nothing is allowed until the owner accepts it');
   assert.equal(turnOnRule(emptyLearning(), 'nope', now).rules.length, 0);
+});
+
+test('"Make it a rule" and "Ignore" on a signal: a quiet rule is on at once, any other waits for Accept and keeps its action and lesson; a signal that is gone or already has a rule does nothing', () => {
+  const d = { newId: ids(), now: () => 7 };
+  const tap = (kind: any, extra: object = {}) => record(emptyLearning(), { pattern: `p:${kind}`, label: 'Acme', kind, ...extra }, d).state;
+  const quiet = ruleFromSignal(tap('not_needed'), 'p:not_needed', d);
+  assert.equal(quiet.rule?.status, 'on');
+  assert.deepEqual(currentRun(quiet.state, 'p:not_needed'), undefined, 'the signal is answered');
+  const allow = ruleFromSignal(
+    tap('always_allow', { action: { tool: 'gmail.send', effect: 'send', scope: 'a@example.com' } }),
+    'p:always_allow',
+    d,
+  );
+  assert.deepEqual([allow.rule?.status, allow.rule?.action?.tool], ['proposed', 'gmail.send']);
+  const lesson = ruleFromSignal(tap('draft_edit', { detail: 'shorter' }), 'p:draft_edit', d);
+  assert.deepEqual([lesson.rule?.status, lesson.rule?.detail], ['proposed', 'shorter']);
+  assert.equal(ruleFromSignal(emptyLearning(), 'p:none', d).rule, undefined);
+  // a rule that is already there is not made twice
+  const again = record(quiet.state, { pattern: 'p:not_needed', label: 'Acme', kind: 'not_needed' }, { newId: ids(), now: () => 20 }).state;
+  assert.equal(ruleFromSignal(again, 'p:not_needed', d).rule, undefined);
+  // Ignore: the signal goes; nothing happens to a pattern with no signal
+  assert.equal(currentRun(ignoreSignal(tap('keep'), 'p:keep', 9), 'p:keep'), undefined);
+  const none = emptyLearning();
+  assert.equal(ignoreSignal(none, 'p:none', 9), none);
 });

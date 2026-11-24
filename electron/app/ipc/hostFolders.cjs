@@ -23,15 +23,21 @@ function registerHostFolders({ handle, folders, app, machine }) {
   handle('host:sidebarRepository', (id, q) => {
     const owner = machine(id);
     if (!app || !owner || typeof q?.path !== 'string' || !q.path) return null;
-    const key = JSON.stringify([id, owner.hostKey, q.path]);
+    const { hostKey } = owner;
+    const expected = q.fresh === true ? (q.expectedHostKey ?? '') : q.expectedHostKey;
+    if (expected !== undefined && expected !== hostKey) return null;
+    const checkout = q.checkout === true;
+    const key = JSON.stringify(checkout ? ['checkout', id, hostKey, q.path] : [id, hostKey, q.path]);
     const probe = async () => {
-      if (owner.status === 'offline') return undefined;
-      const origin = await folders().repository(id, { path: q.path });
-      if (origin === undefined || machine(id)?.hostKey !== owner.hostKey) return undefined;
-      return sidebarRepository(origin);
+      const current = machine(id);
+      if (current?.hostKey !== hostKey || current.status === 'offline') return undefined;
+      const value = await folders()[checkout ? 'checkout' : 'repository'](id, { path: q.path });
+      if (value === undefined || machine(id)?.hostKey !== hostKey) return undefined;
+      // A definitive negative keeps this folder separate. An unavailable probe preserves the last verified value.
+      return checkout ? (value ?? q.path) : sidebarRepository(value);
     };
-    if (q.fresh === true) return (q.expectedHostKey ?? '') === owner.hostKey ? probe().then((value) => value ?? null) : null;
-    return sidebarRepositories(app.getPath('userData'))(key, probe);
+    const answer = q.fresh === true ? probe() : sidebarRepositories(app.getPath('userData'))(key, probe);
+    return answer.then((value) => (machine(id)?.hostKey === hostKey ? (value ?? null) : null));
   });
   handle('host:gitStatus', ask('status'));
   handle('host:gitDiff', ask('diff'));

@@ -27,7 +27,7 @@ import { FOLDER_RECHECK_MS, useFolderAvailability } from './useFolderAvailabilit
 
 import type { CloudTask } from '../../lib/native';
 import { cloudSidebarAccount } from '../../lib/cloudSidebarAccount';
-import { folderRepository, useSidebarRepositories } from './sidebarRepositories';
+import { folderRepository, useMachineCheckouts, useSidebarRepositories } from './sidebarRepositories';
 import { groupRepositories } from './repositoryGroups';
 import { labelProjects } from './projectLabels';
 import type { RepositoryDestination } from '../../../shared/model/repositorySidebar';
@@ -38,6 +38,8 @@ export interface ProjectGroupData {
   repositoryKey?: string;
   repository?: string;
   machineGroups?: string[];
+  /** Original folders of merged Host checkouts, retained by Remove from sidebar. */
+  machineFolderAliases?: string[];
   cloudTasks?: CloudTask[];
   locations?: RepositoryDestination[];
   locationKinds?: HostLocationKind[];
@@ -58,6 +60,8 @@ export interface ProjectGroupData {
   pinnedKeys?: string[];
   /** the machine the folder is on, for a folder group of chats that run on a machine: its path is that machine's, never looked up on this Mac */
   machine?: { id: string; name: string; scope?: string };
+  /** Recorded machine folders before checkout resolution, for recognizing legacy saved entries. */
+  machineFolders?: Set<string>;
 }
 
 /**
@@ -107,6 +111,7 @@ export function useProjectGroups(withRepositories = false) {
   const home = useStore((s) => s.home);
   const hiddenFolders = useStore((s) => s.prefs.hiddenFolders ?? EMPTY_IDS);
   const folderNames = useStore((s) => s.prefs.folderNames ?? EMPTY_NAMES);
+  const collapsed = useStore((s) => s.collapsedProjects);
   const projectless = useStore((s) => projectlessFolderOf(s.prefs, s.home));
   const loading = useLoadingEmpty();
   // the row the home page is: where the new chat being written goes, picked or by default (./homeTarget)
@@ -166,18 +171,39 @@ export function useProjectGroups(withRepositories = false) {
     ],
     FOLDER_RECHECK_MS,
   );
-  const result = useMemo(() => {
-    const folderKey = (p: string) => pathKey(resolve(p));
-    const sameFolder = (a: string, b: string) => samePath(resolve(a), resolve(b));
+  const families = useMemo(() => {
     const hidden = segmentNatives(segments);
     const shown = order
       .map((id) => threads[id])
       .filter((t): t is Thread => !!t && !t.parentThreadId && !t.ephemeral && !hidden.has(t.id) && !isMomoChat(momoChats, t.id));
     // Recency places a whole family where its newest listed member would appear, with the head first.
-    const families = sidebarFamilies(
+    return sidebarFamilies(
       linked,
       shown.sort(byActivity).map((t) => t.id),
     );
+  }, [threads, order, segments, momoChats, linked]);
+  const machinePathOf = useMachineCheckouts(
+    [
+      ...sidebarFolders,
+      ...projectOrder,
+      ...pinnedP,
+      ...Object.keys(folderNames),
+      ...Object.keys(chatOrder),
+      ...Object.keys(collapsed),
+      ...(target?.kind === 'machine' ? [machineFolderKey(target.id, target.path)] : []),
+      ...starting.flatMap((entry) => (entry.hostId ? [machineFolderKey(entry.hostId, entry.cwd)] : [])),
+      ...families.roots.flatMap((id) => {
+        const machine = ownerOf(id);
+        const cwd = threads[id].cwd;
+        return machine && cwd ? [machineFolderKey(machine, cwd)] : [];
+      }),
+    ],
+    machines,
+  );
+  const machineKeyOf = useCallback((key: string) => machineProjectKey(key, machinePathOf), [machinePathOf]);
+  const result = useMemo(() => {
+    const folderKey = (p: string) => pathKey(resolve(p));
+    const sameFolder = (a: string, b: string) => samePath(resolve(a), resolve(b));
     const list = families.roots.map((id) => threads[id]);
     const groups: ProjectGroupData[] = [];
     const identityRank = new Map(projectOrder.map((id, index) => [id, index]));
@@ -203,15 +229,18 @@ export function useProjectGroups(withRepositories = false) {
     }
     const recents: Thread[] = [];
     const folders = new Map<string, ProjectGroupData>();
+    const onMachines = new Set<string>();
     // a hidden folder hides each spelling of it (/private/tmp/x and /tmp/x on macOS)
     const folderHidden = (path: string) => hiddenFolders.some((h) => sameFolder(h, path));
     const machineById = new Map(machines.map((machine) => [machine.id, machine]));
-    const machineNames = new Map(Object.entries(folderNames).map(([key, name]) => [machineProjectKey(key), name]));
+    const machineNames = new Map(Object.entries(folderNames).map(([key, name]) => [machineKeyOf(key), name]));
     /** A folder group on a machine, kept under the machine's key: its path is never read as a path of this Mac. */
     const machineGroup = (id: string, folder: string): ProjectGroupData | null => {
-      const path = machineProjectPath(folder);
+      const path = machinePathOf(id, folder);
       const key = machineFolderKey(id, path);
       if (hiddenFolders.includes(key) || hiddenFolders.includes(machineFolderKey(id, folder))) return null;
+      onMachines.add(folder);
+      if (path === machineProjectPath(folder)) onMachines.add(path);
       let g = folders.get(key);
       const machine = machineById.get(id);
       if (!g)
@@ -222,10 +251,12 @@ export function useProjectGroups(withRepositories = false) {
             path,
             name: folderNames[key] ?? machineNames.get(key) ?? basename(path),
             machine: { id, name: machine?.name ?? id, ...(machine?.repositoryScope && { scope: machine.repositoryScope }) },
+            machineFolders: new Set(),
             threads: [],
             saved: false,
           }),
         );
+      g.machineFolders!.add(folder);
       return g;
     };
     for (const entry of sidebarFolders) {
@@ -276,9 +307,15 @@ export function useProjectGroups(withRepositories = false) {
       if (g) (g.starting ??= []).push(entry);
     }
     // a folder an older version remembered by the bare path of a machine's folder stays a group of that machine, not a second, empty group of this Mac (see the effect below)
-    const onMachines = new Set([...folders.values()].filter((g) => g.machine).map((g) => g.path));
     for (const [key, g] of folders)
-      if (!g.machine && !g.threads.length && !g.starting?.length && onMachines.has(machineProjectPath(g.path))) folders.delete(key);
+      if (
+        !g.machine &&
+        !g.threads.length &&
+        !g.starting?.length &&
+        !pinnedP.some((pin) => !machineFolderOf(pin) && sameFolder(pin, g.path)) &&
+        (onMachines.has(g.path) || onMachines.has(machineProjectPath(g.path)))
+      )
+        folders.delete(key);
     groups.push(...folders.values());
     // A pin can predate a saved project or the merging of two aliases: grouping and pin controls share that identity.
     const pins = new Set(pinnedP);
@@ -291,22 +328,26 @@ export function useProjectGroups(withRepositories = false) {
     for (const g of groups) {
       const keys = [groupKey(g), ...(g.projectIds ?? []), ...(!g.machine ? (folderPins.get(folderKey(g.path)) ?? []) : [])];
       g.pinnedKeys = g.machine
-        ? pinnedP.filter((key) => !hiddenFolders.includes(key) && machineProjectKey(key) === groupKey(g))
+        ? pinnedP.filter((key) => !hiddenFolders.includes(key) && machineKeyOf(key) === groupKey(g))
         : [...new Set(keys)].filter((key) => pins.has(key));
     }
     const pinnedGroups = groups.filter((g) => g.pinnedKeys!.length > 0).map(groupKey);
     // until main says which machine each ACP chat is on, those chats wait in Recents: their groups are not known to be empty
     const placing = list.some((t) => ownerOf(t.id) === null);
     const hiddenTarget = target?.kind === 'machine' && hiddenFolders.includes(machineFolderKey(target.id, target.path));
-    const homeGroup = target && !hiddenTarget ? groups.find((g) => isHomeTarget(g, target, sameFolder)) : undefined;
+    const homeGroup = target && !hiddenTarget ? groups.find((g) => isHomeTarget(g, target, sameFolder, machinePathOf)) : undefined;
     const isListed = (g: ProjectGroupData) =>
       loading || placing || g.threads.length > 0 || !!g.starting?.length || g.pinnedKeys!.length > 0 || g === homeGroup;
     // Manual chat ordering is independent of project placement; new chats go first.
     if (chatSort === 'manual')
       for (const g of groups)
-        sortManual(g.threads, g.machine ? machineProjectChatOrder(chatOrder, groupKey(g)) : (chatOrder[groupKey(g)] ?? []), (t) => t.id);
+        sortManual(
+          g.threads,
+          g.machine ? machineProjectChatOrder(chatOrder, groupKey(g), machineKeyOf) : (chatOrder[groupKey(g)] ?? []),
+          (t) => t.id,
+        );
     // Project sorting never changes chat sorting. Pinning partitions either project order.
-    sortProjectGroups(groups, [...new Set(projectOrder.map(machineProjectKey))], pinnedGroups, projectSort);
+    sortProjectGroups(groups, [...new Set(projectOrder.map(machineKeyOf))], pinnedGroups, projectSort);
     const rank = new Map(families.roots.map((id, i) => [id, i]));
     const recentChats = [...recents, ...groups.flatMap((g) => g.threads)].sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
     if (chatSort === 'manual') sortManual(recentChats, chatOrder[RECENTS_ORDER] ?? [], (t) => t.id);
@@ -320,7 +361,7 @@ export function useProjectGroups(withRepositories = false) {
   }, [
     threads,
     starting,
-    order,
+    families,
     savedProjects,
     worktreeOf,
     pinnedP,
@@ -329,25 +370,24 @@ export function useProjectGroups(withRepositories = false) {
     sidebarFolders,
     chatSort,
     chatOrder,
-    segments,
-    momoChats,
     home,
     hiddenFolders,
     folderNames,
     projectless,
     loading,
     target,
-    linked,
     resolve,
     ownerOf,
     machines,
+    machineKeyOf,
+    machinePathOf,
   ]);
   useEffect(() => {
     if (!ready) return;
     // Remember inferred folders before an archive empties a group; discovery preserves existing placement.
-    const patch = folderPrefsPatch(result.groups, getState().prefs, resolve);
+    const patch = folderPrefsPatch(result.groups, getState().prefs, resolve, machineKeyOf);
     if (patch) setPrefs(patch);
-  }, [result.groups, ready, resolve]);
+  }, [result.groups, ready, resolve, machineKeyOf]);
   // Keep every group as a revalidation candidate, with its identity/order and chats intact, even while unavailable.
   const availability = useFolderAvailability(result.groups.filter((g) => !g.machine && localFolder(g.path)).map((g) => g.path));
   const facts = useSidebarRepositories(
@@ -381,7 +421,7 @@ export function useProjectGroups(withRepositories = false) {
       else group.threads = [...group.threads].sort((a, b) => (ranks.get(a.id) ?? 0) - (ranks.get(b.id) ?? 0));
     }
     const pins = groups.filter((group) => group.pinnedKeys?.length).map(groupKey);
-    sortProjectGroups(groups, [...new Set(projectOrder.map(machineProjectKey))], pins, projectSort);
+    sortProjectGroups(groups, [...new Set(projectOrder.map(machineKeyOf))], pins, projectSort);
     const projectedKeys = new Set(projection.listed.map(groupKey));
     const listed = groups.filter(
       (g) => (projectedKeys.has(groupKey(g)) || g.pinnedKeys?.length) && (g.localAvailable !== false || g.locations?.length),
@@ -391,6 +431,7 @@ export function useProjectGroups(withRepositories = false) {
     labelProjects(listed, machines, ownerOf, result.descendants);
     return {
       cloud: projection.cloud,
+      machineKeyOf,
       recents: result.recents,
       groups,
       listed,
@@ -414,6 +455,7 @@ export function useProjectGroups(withRepositories = false) {
     withRepositories,
     folderNames,
     ownerOf,
+    machineKeyOf,
   ]);
 }
 
@@ -421,10 +463,15 @@ export function useProjectGroups(withRepositories = false) {
  * Whether this group is the home page's target (homeTarget): a project by any of its saved ids, a folder of this Mac by its
  * canonical path, or a folder on a machine by the machine and its path there.
  */
-function isHomeTarget(g: ProjectGroupData, target: HomeTarget, sameFolder: (a: string, b: string) => boolean) {
+function isHomeTarget(
+  g: ProjectGroupData,
+  target: HomeTarget,
+  sameFolder: (a: string, b: string) => boolean,
+  machinePathOf: (id: string, path: string) => string,
+) {
   if (target.kind === 'project') return g.id === target.id || !!g.projectIds?.includes(target.id);
   if (target.kind === 'folder') return !g.machine && sameFolder(g.path, target.path);
-  return g.machine?.id === target.id && g.path === machineProjectPath(target.path);
+  return g.machine?.id === target.id && g.path === machinePathOf(target.id, target.path);
 }
 
 /** Threads in ~/.mopilot/worktrees or the official app's ~/.codex/worktrees (<id>/<repo>) belong to the repo's project. */

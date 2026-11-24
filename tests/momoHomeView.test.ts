@@ -257,13 +257,13 @@ test('the outbox: saved before it is sent, one send per chat at a time, never re
     box.all().map((e: any) => [e.turnId, e.delivery]),
     [['key-00000002', 'sent-uncertain']],
   );
-  // one never sent that is over a day old is dropped, not sent late
+  // one never sent that is over a day old is not sent late, and it is not dropped: it stays until the person decides
   box.save({ turnId: 'key-00000020', chatId: 'c9', text: 'old' });
   at += OUTBOX_MAX_AGE_MS + 1;
   assert.deepEqual(box.due(), []);
   assert.deepEqual(
     box.all().map((e: any) => e.turnId),
-    ['key-00000002'],
+    ['key-00000002', 'key-00000020'],
   );
 });
 

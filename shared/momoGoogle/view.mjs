@@ -10,9 +10,17 @@ export const GOOGLE_INTENTS = Object.freeze(['connect', 'reconnect', 'grant-send
  */
 export function sourcesOf(state, progress = null) {
   if (state.kind === 'not_connected' || state.kind === 'connecting') return [];
-  const rows = (/** @type {string} */ access, /** @type {string} */ status) =>
-    ['gmail', 'calendar'].map((id) => ({ id, account: state.email, access, status, progress: status === 'catching-up' ? progress : null }));
-  if (state.kind === 'disconnected') return rows('read-only', 'needs-reconnect');
+  const rows = (/** @type {string} */ access, /** @type {string} */ status, /** @type {string | null} */ cause = null) =>
+    ['gmail', 'calendar'].map((id) => ({
+      id,
+      account: state.email,
+      access,
+      status,
+      progress: status === 'catching-up' ? progress : null,
+      cause,
+    }));
+  // `cause` says why a row needs a reconnect (`revoked`, `testing_expired`, ...), for the copy beside it; null while it does not
+  if (state.kind === 'disconnected') return rows('read-only', 'needs-reconnect', state.cause);
   const access = state.kind === 'send_granted' ? 'read-and-ask' : 'read-only';
   return rows(access, progress ? 'catching-up' : 'ok');
 }

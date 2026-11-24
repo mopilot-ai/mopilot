@@ -120,10 +120,16 @@ export type Matter = {
   suspect?: boolean;
   /** Domain of the sender that started the matter (for the brief and the sender check; the model may merge only into a matter this very thread was filed under). */
   fromDomain?: string;
+  /** The full address of that sender (public mail services are told apart by address, not domain). */
+  fromAddress?: string;
   /** ISO time after which the matter is over by itself (an event's end). */
   expiresAt?: string;
   /** Held for the brief: told in quiet hours, over the daily cap, held by a snooze, or found on the first connect. */
-  pendingDelivery?: 'quiet_hours' | 'daily_cap' | 'snoozed' | 'first_connect';
+  pendingDelivery?: 'quiet_hours' | 'daily_cap' | 'snoozed' | 'quiet_rule' | 'first_connect';
+  /** The accepted quiet rule that kept this matter out of tell-now, while it waits to be shown (in the brief, or in Watching when the brief is off). */
+  quietRule?: { ruleId: string; label: string };
+  /** ISO time a brief showed this matter as kept quiet by a rule: it is not listed again as needing the owner unless new mail arrives or it is told. */
+  quietShownAt?: string;
   /** Set when the matter was last decided, ISO. */
   updatedAt: string;
 };

@@ -149,12 +149,13 @@ test('the view rows: nothing before a connect, two rows when connected, read-and
     access: 'read-only',
     status: 'catching-up',
     progress: { done: 3, total: 10 },
+    cause: null,
   });
   assert.deepEqual(
-    sourcesOf(lost, { done: 1, total: 2 }).map((r) => [r.status, r.progress]),
+    sourcesOf(lost, { done: 1, total: 2 }).map((r) => [r.status, r.progress, r.cause]),
     [
-      ['needs-reconnect', null],
-      ['needs-reconnect', null],
+      ['needs-reconnect', null, 'testing_expired'],
+      ['needs-reconnect', null, 'testing_expired'],
     ],
   );
   assert.equal(causeOf(lost), 'testing_expired');

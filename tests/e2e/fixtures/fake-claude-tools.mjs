@@ -7,7 +7,7 @@ export function createFakeClaudeTools({ version: VERSION, sessionId, allowedTool
   let nextMcpId = 1;
   /** Whether a tool may run: the permission mode and --allowedTools first, then canUseTool. */
   async function permit(toolName, input, mcpServer) {
-    if (state.permissionMode === 'bypassPermissions' || allowedTools.includes(toolName)) return 'allow';
+    if (state.permissionMode === 'bypassPermissions' || allowedTools.includes(toolName) || toolName === 'Skill') return 'allow';
     if (state.permissionMode === 'acceptEdits' && ['Edit', 'Write'].includes(toolName)) return 'allow';
     if (state.permissionMode === 'dontAsk') return 'deny';
     const r = await askSdk({

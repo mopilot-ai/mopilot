@@ -13,6 +13,7 @@ import { exitCode, formatReport } from './host-accept/report.mjs';
 import { fixtureClosure, runSteps, throwawayKeySafe } from './host-accept.mjs';
 import { assertVmName } from '../shared/vmName.mjs';
 import { STEPS, cleanup } from './host-accept-app/steps.mjs';
+import { workFolder } from './host-accept/workFolder.mjs';
 
 const require = createRequire(import.meta.url);
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -86,7 +87,7 @@ export function realDeps(o = {}) {
     /** The app's outbox for a chat that runs on the machine, with an in-memory queue where the chat's window would show it. @param {any} ctx @param {string} chatId */
     makeSend(ctx, chatId) {
       const owners = new OwnershipStore(path.join(ctx.dir, 'host-ownership.json'));
-      owners.set(chatId, { hostId: ctx.state.id, ownerHostId: ctx.state.id, epoch: 0, folder: ctx.state.dataDir });
+      owners.set(chatId, { hostId: ctx.state.id, ownerHostId: ctx.state.id, epoch: 0, folder: workFolder(ctx.state) });
       /** @type {Map<string, { queue: any[] }>} */
       const store = new Map();
       const get = (/** @type {string} */ id) => store.get(id) ?? (store.set(id, { queue: [] }), /** @type {any} */ (store.get(id)));

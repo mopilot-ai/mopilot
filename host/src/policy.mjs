@@ -78,6 +78,7 @@ export function createPolicy({
     return [
       d.harnesses?.allow && 'harnesses.allow',
       d.hosts?.clients?.phone !== undefined && 'hosts.clients.phone',
+      d.hosts?.clients?.home !== undefined && 'hosts.clients.home',
       d.hosts?.credentials?.orgOnly !== undefined && 'hosts.credentials.orgOnly',
       d.hosts?.roots && 'hosts.roots',
       d.audit && 'audit',
@@ -85,6 +86,8 @@ export function createPolicy({
   };
   const refuse = (/** @type {string} */ key, /** @type {string} */ message) => new HostRefusal('policy_refused', message, { key });
   return {
+    /** The permission mode a chat was last set to by anyone (its start or a later `chat.permit`), or none. @param {string} chatId */
+    modeOf: (chatId) => modes.get(chatId),
     /** The document the Host enforces now, and the keys the managed layer decides. */
     effective,
     /** Replaces the owner layer with an accepted document; writes are applied in the order they arrive, so the later document is the one that stays. @param {any} doc @returns {{ generation: string }} */
@@ -171,11 +174,18 @@ export function createPolicy({
         this.checkMode(/** @type {string} */ (modes.get(params.chatId)), 'desktop');
       // a card answered after the ceiling dropped: the chat's mode is checked again before the answer runs
       if (method === 'chat.answer' && modes.has(params.chatId)) this.checkMode(/** @type {string} */ (modes.get(params.chatId)), kind);
+      if (method === 'host.clientAdd' && params.kind === 'home' && doc?.hosts?.clients?.home === false)
+        throw refuse('hosts.clients.home', 'Your organization does not allow MoMo to use this machine.');
       if (method === 'host.clientAdd' && params.kind === 'phone' && doc?.hosts?.clients?.phone === false)
         throw refuse('hosts.clients.phone', 'Your organization does not allow a phone on this machine.');
       if (method === 'host.modelKey' && params.key !== null && doc?.hosts?.credentials?.orgOnly)
         throw refuse('hosts.credentials.orgOnly', 'Organization sign-in required.');
     },
+    /**
+     * Whether managed policy lets this Host have a client of this kind: the code-pair service asks before it offers a code and again before it adds a controller (it never goes through `host.clientAdd`). `false` is a switch an organization turned off; absent is allowed.
+     * @param {'phone' | 'controller'} kind
+     */
+    allowsClient: (kind) => managedDoc()?.hosts?.clients?.[kind] !== false,
     /** A scheduled run starts through the same rules as `chat.start`; it runs on the machine's own login, which `orgOnly` forbids. @param {{ harness: string, permission?: string }} p */
     checkScheduled(p) {
       this.rules('chat.start', { harness: p.harness, permission: p.permission }, 'cli');
@@ -191,7 +201,9 @@ export function createPolicy({
     roots: () => managedDoc()?.hosts?.roots,
     /** `host.policy`: only a desktop or CLI client may replace the owner layer. @param {any} params @param {string} kind */
     replace(params, kind) {
-      if (kind === 'phone') throw new HostRefusal('policy_refused', 'Change this from the app on a computer.', { key: 'caller', kind });
+      // only a computer of the owner's own: a phone or a Mac paired by a code (a controller) may not
+      if (kind !== 'desktop' && kind !== 'cli')
+        throw new HostRefusal('policy_refused', 'Change this from the app on a computer.', { key: 'caller', kind });
       const done = this.set(params.doc);
       audit.note({ kind: 'policy.changed', by: { kind }, what: { generation: done.generation } });
       return done;

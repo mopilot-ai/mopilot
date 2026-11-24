@@ -177,10 +177,19 @@ export interface ClaudeSlashCommand {
   builtin?: boolean;
 }
 
+export interface ClaudeSkillFile {
+  /** absolute path of the skill's SKILL.md */
+  path: string;
+  description: string;
+  scope: 'personal' | 'project' | 'plugin';
+}
+
 export interface ClaudeCatalog {
   commands: ClaudeSlashCommand[];
   skills: string[];
   plugins: { name: string; path: string | null }[];
+  /** the listed skills whose SKILL.md is on this Mac (names that don't resolve are absent) */
+  skillFiles?: Record<string, ClaudeSkillFile>;
   /** init.terminal_slash_commands; null until a session reported them */
   terminalSlash: string[] | null;
   /** a live session reported it (vs. a prefetch) */

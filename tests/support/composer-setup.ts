@@ -115,6 +115,7 @@ export function reset() {
       fastHidden: false,
     },
     nativeCmds: null,
+    skillFiles: null,
     provider: null,
     registry: () => ({ menu: [], hidden: [] }),
     resolve: () => ({ kind: 'none' }),
@@ -257,7 +258,12 @@ mock.module('../../src/session/harness/select.ts', {
   },
 });
 mock.module('../../src/session/harness/claude.ts', {
-  namedExports: { useClaudeCommands: () => fx.nativeCmds, useCommandProvider: () => fx.provider, setRemoteControl: rec('remoteControl') },
+  namedExports: {
+    useClaudeCommands: () => fx.nativeCmds,
+    useClaudeSkillFiles: () => fx.skillFiles,
+    useCommandProvider: () => fx.provider,
+    setRemoteControl: rec('remoteControl'),
+  },
 });
 mock.module('../../src/harness/commands.ts', {
   namedExports: {

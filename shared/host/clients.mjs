@@ -2,8 +2,16 @@
 import { SchemaError } from '../remote/schema.mjs';
 
 export const CLIENTS_FEATURE = 'clients';
-export const CLIENT_METHODS = Object.freeze(['host.clients', 'host.clientAdd', 'host.clientRemove', 'host.clientRename']);
-export const CLIENT_KINDS = Object.freeze(['desktop', 'phone', 'cli']);
+export const CLIENT_METHODS = Object.freeze([
+  'host.clients',
+  'host.clientAdd',
+  'host.clientRemove',
+  'host.clientRename',
+  'host.homeLinkRepair',
+]);
+export const CLIENT_KINDS = Object.freeze(['desktop', 'phone', 'cli', 'home', 'controller']);
+/** The kinds a client may ask to add: a `controller` (a Mac paired by an 8-character code) is made only by the Host's code-pair service, after the person on this Mac allowed it. */
+export const ADDABLE_KINDS = Object.freeze(CLIENT_KINDS.filter((k) => k !== 'controller'));
 export const NAME_MAX = 80;
 const bad = (/** @type {string} */ message) => new SchemaError(message);
 const FINGERPRINT = /^[0-9a-f]{64}$/;
@@ -29,13 +37,20 @@ export const clientParsers = () => ({
   'host.clients': () => ({}),
   'host.clientAdd': (/** @type {any} */ p) => {
     if (typeof p.publicKey !== 'string' || !p.publicKey || p.publicKey.length > 200) throw bad('That client has no valid publicKey.');
-    if (!CLIENT_KINDS.includes(p.kind)) throw bad('That client kind is not one this Host knows.');
-    return { publicKey: p.publicKey, kind: p.kind, name: clientNameOf(p.name) };
+    if (!ADDABLE_KINDS.includes(p.kind)) throw bad('That client kind is not one this Host knows.');
+    // the owner's device says which MoMo home key this one succeeds (a fingerprint, or `floor` for a lease nobody holds): the lease is handed over by that, never by who asks first
+    if (
+      p.succeeds != null &&
+      (p.kind !== 'home' || typeof p.succeeds !== 'string' || !(FINGERPRINT.test(p.succeeds) || p.succeeds === 'floor'))
+    )
+      throw bad('That is not a key a MoMo home key can succeed.');
+    return { publicKey: p.publicKey, kind: p.kind, name: clientNameOf(p.name), ...(p.succeeds == null ? {} : { succeeds: p.succeeds }) };
   },
   'host.clientRemove': (/** @type {any} */ p) => {
     if (typeof p.fingerprint !== 'string' || !FINGERPRINT.test(p.fingerprint)) throw bad('That client fingerprint is not valid.');
     return { fingerprint: p.fingerprint };
   },
+  'host.homeLinkRepair': () => ({}),
   'host.clientRename': (/** @type {any} */ p) => {
     if (typeof p.name !== 'string') throw bad('That device name is not text.');
     return { name: clientNameOf(p.name) };
@@ -51,7 +66,9 @@ export function clientListOf(result) {
   const list = /** @type {any} */ (result)?.clients;
   if (!Array.isArray(list)) return [];
   return list
-    .filter((c) => c && typeof c.fingerprint === 'string' && FINGERPRINT.test(c.fingerprint) && CLIENT_KINDS.includes(c.kind))
+    .filter(
+      (c) => c && typeof c.fingerprint === 'string' && FINGERPRINT.test(c.fingerprint) && [...CLIENT_KINDS, 'unknown'].includes(c.kind),
+    )
     .map((c) => ({
       fingerprint: c.fingerprint,
       name: clientNameOf(c.name),

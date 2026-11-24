@@ -18,10 +18,10 @@ export function line(socketPath: string, token?: string) {
   const closed = new Promise<void>((resolve) => socket.once('close', () => resolve()));
   socket.on('error', () => undefined);
   let id = 0;
-  const call = (method: string, params?: any) =>
+  const call = (method: string, params?: any, withToken = token) =>
     new Promise<any>((resolve) => {
       waiting.push(resolve);
-      socket.write(`${JSON.stringify({ id: ++id, method, params, ...(token ? { token } : {}) })}\n`);
+      socket.write(`${JSON.stringify({ id: ++id, method, params, ...(withToken ? { token: withToken } : {}) })}\n`);
     });
   // the app's `request`: the result, or a rejection carrying the Host's code
   const request = async (method: string, params?: any) => {

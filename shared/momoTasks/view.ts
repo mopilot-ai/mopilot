@@ -6,6 +6,8 @@ import type { FailureCode, Fix, Item } from './types.ts';
 /** The contract's failure codes for each of ours. A stop is not a failure, so it has none. */
 const CODE: Record<FailureCode, MomoTaskFailure['code'] | null> = {
   machine_offline: 'machine-unreachable',
+  // the fix is the app's "Allow MoMo to use <machine>"
+  machine_not_allowed: 'machine-unreachable',
   host_outdated: 'machine-unreachable',
   agent_missing: 'agent-missing',
   agent_signed_out: 'agent-signed-out',

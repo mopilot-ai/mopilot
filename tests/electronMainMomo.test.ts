@@ -62,7 +62,11 @@ test('MoMo’s gate opens with the MoPilot account, follows its status and the k
   // MoMo's services start with the app, refusing while the account isn't invited (electron/app/momo.cjs)
   for (const ch of ['momoChat:mainChat', 'momoMemory:list', 'momoSources:list', 'momoAsk:chat'])
     assert.ok(h.handlers.has(ch), `${ch} is registered at startup`);
-  assert.equal(access.onMomoAccess.mock.callCount(), 2, 'MoMo’s services and its background work follow its access');
+  assert.equal(
+    access.onMomoAccess.mock.callCount(),
+    3,
+    'MoMo’s services, its background work and the real home over the machines follow its access',
+  );
   assert.equal(h.claude.setIsolated.mock.callCount(), 1, 'MoMo’s chats run apart from the coding side');
   assert.deepEqual(await h.invoke('momoChat:mainChat'), {
     error: { message: 'MoMo is not available for this account.', code: 'not_allowed' },

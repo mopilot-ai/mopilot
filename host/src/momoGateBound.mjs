@@ -53,7 +53,7 @@ const shape = (v) => ({
  * @param {() => number} o.now
  * @param {(m: string) => void} o.report
  * @param {() => Promise<{ gate: any, store: import('../../shared/momoCore/approvalGate.ts').CardStore }>} o.ensure the gate and its card store
- * @param {(card: import('../../shared/momoCore/approvalGate.ts').Card) => Promise<unknown>} o.rowed writes a card's row in MoMo's chat
+ * @param {(card: import('../../shared/momoCore/approvalGate.ts').Card | string) => Promise<unknown>} o.rowed writes a card's row in MoMo's chat (the card, or its id)
  * @param {() => { run: (req: any, exec: () => unknown) => Promise<any>, resume: (id: string, req: any, exec: () => unknown) => Promise<any> }} o.api the gate's own calls
  */
 export function createBoundCards({ home, now, report, ensure, rowed, api }) {
@@ -80,6 +80,8 @@ export function createBoundCards({ home, now, report, ensure, rowed, api }) {
     await open().change((v) => {
       v.cards[cardId] = entry;
     });
+    // the row written when the card was raised could not know the card has an op kept for it (Edit is offered on it): it is written again
+    await rowed(cardId);
   };
   /** Whether a card can be asked again: it was turned down, ended unattended or ended uncertain (a void or completed one cannot). @param {import('../../shared/momoCore/approvalGate.ts').Card} card */
   const askable = (card) =>
@@ -219,6 +221,8 @@ export function createBoundCards({ home, now, report, ensure, rowed, api }) {
       }
       return execOf(next, 'owner')();
     };
+    // a card for this chat takes one of the places the gate keeps for waiting cards, like any other
+    if ((await room(req.chatId)) !== 'ok') return { ok: false, reason: 'refused' };
     const out = await api().run(req, entry.said ? guarded : modelRuns);
     if ('pending' in out) {
       await keep(out.card.id, next);

@@ -10,27 +10,13 @@ import { deleteProjectGroup } from '../../session/projectGroupActions';
 import { showInFinder } from '../../session/open';
 import { abbreviateHome } from '../../lib/paths';
 import { Menu, MenuItem, MenuSeparator, Tooltip, useAnchor, Popover } from '../ui/Popover';
-import {
-  ChevronRight,
-  Circle,
-  Settings2,
-  SquarePen,
-  Folder,
-  FolderOpen,
-  Ellipsis,
-  Archive,
-  Pencil,
-  FolderSearch,
-  Monitor,
-  Pin,
-  X,
-} from '../ui/icons';
+import { ChevronRight, Circle, Settings2, SquarePen, Folder, Ellipsis, Archive, Pencil, FolderSearch, Monitor, Pin, X } from '../ui/icons';
 import { LocationMark } from '../ui/HostMark';
 import type { HostLocationKind } from '../../lib/hostLocation';
 import { cancelOnEscape, isEnter, onActivate } from '../../lib/focus';
 import { type ProjectGroupData, type ReorderChat, groupKey } from './projectGroups';
 import { folderEntryOf } from './folderPrefs';
-import { folderOnMachine, onMachineHint } from '../../lib/machineFolder';
+import { folderOnMachine, machineFolderKey, onMachineHint } from '../../lib/machineFolder';
 import { DraggableChat, ThreadRow } from './ThreadRow';
 import { useRowDrag } from '../../lib/rowDrag';
 import { ChildRows, NestedAllItem } from './ChildRows';
@@ -119,12 +105,12 @@ export function ProjectGroup({
   const headingLocation = sharedHostName ? onMachineHint(sharedHostName) : empty ? location : undefined;
   const kinds = group.locationKinds ?? [];
   const marks = kinds.map((kind) => ({ kind, label: kinds.length === 1 && headingLocation ? headingLocation : LOCATION_LABELS[kind] }));
-  const compact = marks.length > 0;
-  const rowName = compact && group.hint ? `${group.name} · ${group.hint}` : group.name;
-  const description = compact ? marks.map(({ label }) => label).join('. ') : group.hint;
+  const located = marks.length > 0;
+  const rowName = located && group.hint ? `${group.name} · ${group.hint}` : group.name;
+  const description = located ? marks.map(({ label }) => label).join('. ') : group.hint;
   const headingMarks = usesMixedLocationMark(kinds) ? [{ kind: 'mixed' as const, label: description }] : marks;
   const label = (
-    <span className="side-row-label" title={compact ? rowName : undefined}>
+    <span className="side-row-label" title={located ? rowName : undefined}>
       {group.name}
       {group.hint && <span className="project-hint"> · {group.hint}</span>}
     </span>
@@ -154,7 +140,7 @@ export function ProjectGroup({
   };
 
   return (
-    <div className={`project-group${compact ? ' with-location' : ''}`}>
+    <div className="project-group">
       <div
         ref={rowRef}
         className={`side-row project-row ${activeHome ? 'selected' : ''} ${menu.open ? 'menu-open' : ''} ${dragOver ? 'drag-over' : ''} ${dragOver && dragAfter ? 'drag-after' : ''}`}
@@ -193,11 +179,6 @@ export function ProjectGroup({
           menu.setOpen(true);
         }}
       >
-        {!compact && (
-          <span className="side-row-icon">
-            {expanded ? <FolderOpen size={16} strokeWidth={1.7} /> : <Folder size={16} strokeWidth={1.7} />}
-          </span>
-        )}
         {renaming ? (
           <input
             className="rename-input"
@@ -217,7 +198,8 @@ export function ProjectGroup({
               cancelOnEscape(e, () => setRenaming(false));
             }}
           />
-        ) : compact ? (
+        ) : (
+          // One heading for every project: its name, then where its sessions run, then the disclosure.
           <span className="side-row-name project-row-name">
             {label}
             {headingMarks.map(({ kind, label }) => (
@@ -225,8 +207,6 @@ export function ProjectGroup({
             ))}
             <ChevronRight className="project-disclosure" size={14} aria-hidden="true" />
           </span>
-        ) : (
-          label
         )}
         <span className="row-actions">
           <Tooltip label="Project actions">
@@ -257,8 +237,8 @@ export function ProjectGroup({
       >
         <div className="project-card" onMouseEnter={enter} onMouseLeave={leave}>
           <div className="project-card-head">
-            {compact ? headingMarks.map(({ kind }) => <LocationMark key={kind} kind={kind} />) : <Folder size={14} strokeWidth={1.7} />}
-            <span className="project-card-name" title={compact ? rowName : undefined}>
+            {located ? headingMarks.map(({ kind }) => <LocationMark key={kind} kind={kind} />) : <Folder size={14} strokeWidth={1.7} />}
+            <span className="project-card-name" title={located ? rowName : undefined}>
               {rowName}
             </span>
             <Tooltip label={isPinned ? 'Unpin project' : 'Pin project'}>
@@ -300,7 +280,7 @@ export function ProjectGroup({
         </div>
       </Popover>
       <Collapse open={expanded} className="side-collapse">
-        <StartingChatRows entries={group.starting ?? []} indent={!compact} projectHostId={sharedHost} />
+        <StartingChatRows entries={group.starting ?? []} projectHostId={sharedHost} />
         {empty && (
           <div>
             <div className="side-row empty-note">{loading ? 'Loading…' : 'No active chats'}</div>
@@ -318,18 +298,10 @@ export function ProjectGroup({
               {row.kind === 'cloud' ? (
                 <CloudTaskRow task={row.task} />
               ) : (
-                <ThreadRow
-                  thread={row.thread}
-                  active={row.key === activeThread}
-                  indent={!compact}
-                  nestedView="project"
-                  projectHostId={sharedHost}
-                />
+                <ThreadRow thread={row.thread} active={row.key === activeThread} nestedView="project" projectHostId={sharedHost} />
               )}
             </DraggableChat>
-            {row.kind === 'chat' && (
-              <ChildRows parentId={row.key} activeThread={activeThread} indent={!compact} view="project" projectHostId={sharedHost} />
-            )}
+            {row.kind === 'chat' && <ChildRows parentId={row.key} activeThread={activeThread} view="project" projectHostId={sharedHost} />}
           </Fragment>
         ))}
         <WindowFoot foot={foot} label={group.name} onMore={() => reveal(more)} onLess={() => reveal(0)} />
@@ -372,6 +344,10 @@ export function ProjectGroup({
               : `Remove ${group.name} from Projects? Its chats move to Recents and stay in your history.`;
             if (!confirm(question)) return;
             const hidden = new Set([...(getState().prefs.hiddenFolders ?? []), folderEntryOf(group)]);
+            if (group.machine && group.machineFolders)
+              for (const path of group.machineFolders) hidden.add(machineFolderKey(group.machine.id, path));
+            for (const key of group.machineGroups ?? []) hidden.add(key);
+            for (const alias of group.machineFolderAliases ?? []) hidden.add(alias);
             if (group.repository && group.locations?.length) hidden.add(`repo:${group.repository}`);
             setPrefs({ hiddenFolders: [...hidden] });
             if (group.id) deleteProjectGroup(group.id, group.projectIds).catch(toastFailure("Couldn't remove the project"));

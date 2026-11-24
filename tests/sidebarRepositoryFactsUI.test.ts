@@ -38,8 +38,8 @@ test('a re-pair drops an old probe and a decided missing origin clears the match
     await act(async () => replies.requests[0].resolve({ value: 'github.com/old/app' }));
     assert.equal(view.host.textContent, 'github.com/new/app');
     assert.deepEqual(bridge.callsTo('host.sidebarRepository'), [
-      ['box', { path: '/remote/checkout' }],
-      ['box', { path: '/remote/checkout' }],
+      ['box', { path: '/remote/checkout', expectedHostKey: 'old' }],
+      ['box', { path: '/remote/checkout', expectedHostKey: 'new' }],
     ]);
     const refresh = () => act(async () => void window.dispatchEvent(new window.Event('focus')));
     await refresh();

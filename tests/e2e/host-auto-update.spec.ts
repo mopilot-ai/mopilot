@@ -1,4 +1,5 @@
-// Host auto-update (#2709): with host.autoUpdate on, a paired machine whose Host is older than the app is sent the update without a click (the fake machine has no build for this app, so the row ends at "Update failed" with its cause, the same as a click); with the person's "Update automatically" off the row stays at "Host is out of date" with its Update button.
+// Host auto-update uses the shipped default for an older Host over SSH. Verify the update attempt reaches the machine and that opting out leaves the manual button available.
+// e2e-covers: shared/flagDefs.mjs electron/host/autoUpdate.cjs electron/host/hostUpdate.cjs
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -34,7 +35,7 @@ for (const automatic of [true, false]) {
       shellPath: [FAKE_SSH_BIN],
       env: {
         MOPILOT_HOST_DEV: '1',
-        MOPILOT_FLAGS: 'host.autoUpdate=1',
+        MOPILOT_FLAGS: '{}',
         FAKE_HOST_ROOT: ROOT,
         FAKE_HOST_HARNESSES: JSON.stringify(harnesses),
         FAKE_HOST_BUILD: 'an-older-build',

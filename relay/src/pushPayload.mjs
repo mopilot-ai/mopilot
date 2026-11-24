@@ -4,6 +4,8 @@
 
 /** The longest sealed title blob the relay forwards (base64url of a short sealed string). */
 export const MAX_SEALED = 2048;
+/** The longest sealed lease stamp the relay forwards (a real one is about 100 characters). */
+export const MAX_SEALED_STAMP = 256;
 
 /**
  * The ActivityKit update body: the activity's content state (counts, a kind, a start time, up to three rows) and the times the system acts on.
@@ -45,6 +47,8 @@ export function apnsBody(m) {
     ...(m.card && { card: m.card }),
     ...(m.sealed && { st: m.sealed }),
     ...(m.sealedBody && { sb: m.sealedBody }),
+    // the lease of the MoMo home that sent it, sealed for the phone (unread here): the phone drops a push older than the newest it has seen
+    ...(m.sealedStamp && { ss: m.sealedStamp }),
   };
 }
 
@@ -67,6 +71,7 @@ export function fcmMessage(m) {
       ...(m.card && { card: m.card }),
       ...(m.sealed && { st: m.sealed }),
       ...(m.sealedBody && { sb: m.sealedBody }),
+      ...(m.sealedStamp && { ss: m.sealedStamp }),
     },
   };
 }

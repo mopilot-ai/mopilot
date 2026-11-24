@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { createApprovalGate } from '../../../shared/momoCore/approvalGate.ts';
 import { approvalView } from '../../../shared/momoCore/view.ts';
 import { gateIntents } from '../momoGateIntents.mjs';
+import { createGateRows } from '../momoGateRows.mjs';
 import { createAuditSink, createCardStore, createKeyedHash, createTaintStore, sealedStore } from '../momoCoreHost.mjs';
 import { MAX_WAITING, MAX_WAITING_PER_CHAT, createBoundCards } from '../momoGateBound.mjs';
 import { PENDING_TEXT, REFUSAL_CODES, causeOf, createExtraTools, effectOf, fieldsOf } from '../momoToolEffects.mjs';
@@ -77,27 +78,8 @@ export default ({ home, report = () => undefined, now = Date.now }) => {
   };
   const taints = () => (taintStore ??= createTaintStore({ dir: home.storage.dir, safeStorage: home.data.safeStorage, now }));
 
-  /**
-   * The card as a row of MoMo's chat, one per card id, updated in place at every change (answered, used, expired, void). The row is the same for every client, so it names no viewing device: who answered is `decidedName` of host.momoCards, per device. A card raised while MoMo has no main chat has no row yet; `syncRows` writes it once there is one.
-   * @param {import('../../../shared/momoCore/approvalGate.ts').Card} card
-   */
-  const putRow = async (card) => {
-    await home.rows?.put({
-      kind: 'approval',
-      id: `approval:${card.id}`,
-      at: card.createdAt,
-      approval: approvalView(card, { device: card.decidedBy ?? '', editable: bound.editable(card.id) }),
-    });
-  };
-  /** The row of a card, written where a failure of the row must not stop what the card is for: it is reported. @param {import('../../../shared/momoCore/approvalGate.ts').Card} card */
-  const rowed = (card) => putRow(card).catch((/** @type {Error} */ error) => report(`MoMo could not write a card's row: ${error.message}`));
-  /** Writes the row of every card that has one to write (a card from before MoMo had a chat, a failed write); a row already kept as it is is not written again. */
-  const syncRows = async () => {
-    if (!home.stamp() || !home.rows || !home.chats?.main()) return;
-    const { store } = await ensure();
-    for (const card of await store.list()) await rowed(card);
-    await home.service('questions')?.syncRows?.();
-  };
+  const rows = createGateRows({ home, ensure: () => ensure(), editable: (id) => bound.editable(id), report });
+  const { rowed, syncRows } = rows;
 
   /** The tools other lanes added (`home.gate.tools.register`): what each does, so a send is a card and a read of outside content taints the chat. */
   const extraTools = createExtraTools();
@@ -453,22 +435,19 @@ export default ({ home, report = () => undefined, now = Date.now }) => {
       home.stamp,
     );
   };
+  /** The sweep, then the rows, whether or not the sweep failed: a row that could not be written is tried again. */
+  const sweepThenSync = () =>
+    api
+      .sweep()
+      .finally(() => syncRows().catch((/** @type {Error} */ error) => report(`MoMo's rows could not be synced: ${error.message}`)));
   home.use('gate', {
     seed,
     start: () => {
       disarm();
       ensure()
-        .then(() => api.sweep())
-        .then(() => syncRows())
+        .then(() => sweepThenSync())
         .catch((error) => report(`MoMo's gate could not start: ${error.message}`));
-      timer = setInterval(
-        () =>
-          void api
-            .sweep()
-            .then(syncRows)
-            .catch((error) => report(`MoMo's gate sweep failed: ${error.message}`)),
-        SWEEP_MS,
-      );
+      timer = setInterval(() => void sweepThenSync().catch((error) => report(`MoMo's gate sweep failed: ${error.message}`)), SWEEP_MS);
       timer.unref?.();
     },
     pause: disarm,

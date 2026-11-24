@@ -4,6 +4,7 @@ const { ToolError } = require('../contract/registry.cjs');
 const { helperError } = require('./computer.cjs');
 const { outdatedHelperText } = require('../computer.cjs');
 const P = require('../contract/desktopPolicy.cjs');
+const { SCROLL_RETRY_HINT } = require('./appScopedLadder.cjs');
 const { mayAct } = require('../contract/actionGuard.cjs');
 const { TAKEOVER_WAIT_MS } = require('./takeoverWait.cjs');
 
@@ -250,8 +251,7 @@ const NO_CHANGE_HINT = {
     'Nothing changed after the click. Do not repeat it blindly: take a desktop_app_screenshot and check the target; it may be disabled, covered by a dialog, or need element_index or desktop_app_menu instead.',
   type: 'The field looks the same after typing. Check with a desktop_app_screenshot that the right field is targeted; target it by element_index, or use mode: "replace".',
   key: 'The key had no visible effect: what has keyboard focus may not take it. Click or desktop_app_focus the field first, or use desktop_app_menu for commands.',
-  scroll:
-    'Nothing moved: the content may be at its end, or the point is not over a scrollable area. Scroll at another point or element_index.',
+  scroll: `Nothing moved: the content may be at its end, the point may not be over a scrollable area, or the app may ignore scroll events sent to a background window. Scroll at another point or element_index.${SCROLL_RETRY_HINT}`,
   drag: 'Nothing changed after the drag. Check the start point with a desktop_app_screenshot; some drags need the display-scope desktop_left_click_drag.',
   focus: 'Focus did not visibly move. Click the element instead.',
 };

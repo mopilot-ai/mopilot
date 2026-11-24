@@ -22,6 +22,7 @@ export function mockContextModules(store: ReturnType<typeof fakeStore>, { mockAc
     queue: [] as any[],
     compaction: null as string | null,
     activeTurn: null as import('../../shared/model/session').SessionState['activeTurn'],
+    pendingSwitch: null as import('../../shared/model/session').SessionState['pendingSwitch'],
     windows: [] as unknown[],
     blocked: null as string | null,
     /** the chat's compact capability as main resolves it, or null while it is not loaded */
@@ -60,7 +61,13 @@ export function mockContextModules(store: ReturnType<typeof fakeStore>, { mockAc
       flushSessionPatches: () => {},
       useSession: () => ({ turn: ctx.turn, queue: ctx.queue, compaction: ctx.compaction, activeTurn: ctx.activeTurn }),
       useSessionField: (_id: string, pick: any) =>
-        pick({ turn: ctx.turn, queue: ctx.queue, compaction: ctx.compaction, activeTurn: ctx.activeTurn }),
+        pick({
+          turn: ctx.turn,
+          queue: ctx.queue,
+          compaction: ctx.compaction,
+          activeTurn: ctx.activeTurn,
+          pendingSwitch: ctx.pendingSwitch,
+        }),
     },
   });
   mock.module('../../src/store/session/useCaps.ts', {

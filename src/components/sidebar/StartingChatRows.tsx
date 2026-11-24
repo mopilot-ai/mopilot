@@ -5,20 +5,12 @@ import { onMachineHint } from '../../lib/machineFolder';
 import { HostMark } from '../ui/HostMark';
 import { RowDot } from './ThreadIndicators';
 
-export function StartingChatRows({
-  entries,
-  indent = true,
-  projectHostId,
-}: {
-  entries: readonly ChatStart[];
-  indent?: boolean;
-  projectHostId?: string;
-}) {
+export function StartingChatRows({ entries, projectHostId }: { entries: readonly ChatStart[]; projectHostId?: string }) {
   if (entries.length === 0) return null;
-  return <StartingRows entries={entries} indent={indent} projectHostId={projectHostId} />;
+  return <StartingRows entries={entries} projectHostId={projectHostId} />;
 }
 
-function StartingRows({ entries, indent, projectHostId }: { entries: readonly ChatStart[]; indent: boolean; projectHostId?: string }) {
+function StartingRows({ entries, projectHostId }: { entries: readonly ChatStart[]; projectHostId?: string }) {
   const { machines } = useHostMachines();
   return entries.map((entry) => {
     const machine = machines.find((m) => m.id === entry.hostId);
@@ -26,7 +18,7 @@ function StartingRows({ entries, indent, projectHostId }: { entries: readonly Ch
     return (
       <div
         key={entry.id}
-        className={`side-row thread-row ${indent ? 'indent' : ''}`}
+        className="side-row thread-row"
         data-chat-start={entry.id}
         role="status"
         aria-label={`${entry.name} · Starting chat`}
@@ -35,9 +27,11 @@ function StartingRows({ entries, indent, projectHostId }: { entries: readonly Ch
         title="Starting chat"
       >
         <span className="thread-row-content">
-          <span className="side-row-label">{entry.name}</span>
+          <span className="side-row-name">
+            <span className="side-row-label">{entry.name}</span>
+            {entry.hostId && entry.hostId !== projectHostId && <HostMark id={entry.hostId} name={machine?.name} cloud={machine?.cloud} />}
+          </span>
         </span>
-        {entry.hostId && entry.hostId !== projectHostId && <HostMark id={entry.hostId} name={machine?.name} cloud={machine?.cloud} />}
         <RowDot status="working" label="Starting chat" />
       </div>
     );

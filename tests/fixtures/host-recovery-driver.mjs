@@ -65,9 +65,9 @@ if (mode === 'start') {
   await call('chat.subscribe', CODEX_CHAT);
   await call('chat.subscribe', ACP_CHAT);
   await call('chat.subscribe', CLAUDE_CHAT);
-  await call('chat.start', CODEX_CHAT, { harness: 'codex', text: 'slow work', cwd: dataDir });
-  await call('chat.start', ACP_CHAT, { harness: 'acp:fake', text: 'SLOW work', cwd: dataDir });
-  await call('chat.start', CLAUDE_CHAT, { harness: 'claude', text: 'SLOW work', cwd: dataDir });
+  await call('chat.start', CODEX_CHAT, { harness: 'codex', text: 'slow work', cwd: path.dirname(dataDir) });
+  await call('chat.start', ACP_CHAT, { harness: 'acp:fake', text: 'SLOW work', cwd: path.dirname(dataDir) });
+  await call('chat.start', CLAUDE_CHAT, { harness: 'claude', text: 'SLOW work', cwd: path.dirname(dataDir) });
   const busy = () =>
     ['running', 'awaitingUser'].includes(sessions.state.snapshot(CODEX_CHAT).turn) &&
     ['running', 'awaitingUser'].includes(sessions.state.snapshot(ACP_CHAT).turn) &&

@@ -77,6 +77,7 @@ test('every block parses, with its keys optional', () => {
     clients: {},
     credentials: {},
   });
+  assert.deepEqual(parse({ hosts: { clients: { phone: false, home: false } } }).hosts.clients, { phone: false, home: false });
   for (const k of ['computerUse', 'browser', 'orgAccess', 'endpoints', 'audit', 'spend', 'cloud'])
     assert.deepEqual(parse({ [k]: {} })[k], {});
   assert.deepEqual(parse({ orgAccess: { gateways: {} } }).orgAccess, { gateways: {} });
@@ -134,6 +135,7 @@ test('the strict fallback is stricter than every ceiling it sets', () => {
   assert.equal(STRICT_FALLBACK.accounts.rotation, false);
   assert.equal(STRICT_FALLBACK.computerUse.allowAlways, false);
   assert.equal(STRICT_FALLBACK.hosts.clients.phone, false);
+  assert.equal(STRICT_FALLBACK.hosts.clients.home, false, 'a policy that cannot be read does not let MoMo onto a machine');
   assert.ok(COMPUTER_LEVELS.indexOf(STRICT_FALLBACK.computerUse.maxLevel) < COMPUTER_LEVELS.indexOf('full'));
   assert.doesNotThrow(() => parseManagedPolicy(JSON.parse(JSON.stringify(STRICT_FALLBACK)), bad));
 });

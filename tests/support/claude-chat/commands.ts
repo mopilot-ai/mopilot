@@ -138,12 +138,36 @@ export function registerCommands() {
     const p = claude.useClaudeCommands(chat, '/w')!;
     assert.equal(p.kind, 'claude');
     assert.deepEqual(claude.useClaudeSkills(chat, '/w'), ['pdf']);
+    // a catalog that reports no skill files has none; one that reports them gives them out
+    assert.deepEqual(claude.useClaudeSkillFiles(chat, '/w'), {});
+    const found = { pdf: { path: '/h/pdf/SKILL.md', description: 'PDFs', scope: 'personal' } };
+    fx.state.claudeCatalogs[`default\u0000/w`] = { ...fx.state.claudeCatalogs[`default\u0000/w`], skillFiles: found };
+    assert.equal(claude.useClaudeSkillFiles(chat, '/w'), found);
+    assert.deepEqual(claude.useClaudeSkillFiles(chat, '/unknown'), {});
+    // the chat's own login decides: a chat served by 'work' reads that login's catalog, not the active one's
+    const mine = { pdf: { path: '/work/pdf/SKILL.md', description: '', scope: 'personal' } };
+    fx.state.claudeCatalogs[`work\u0000/w`] = { commands: [], skills: ['pdf'], skillFiles: mine };
+    const accountsBefore = fx.state.claudeAccounts;
+    fx.state.claudeAccounts = {
+      active: 'default',
+      accounts: [
+        { id: 'default', loggedIn: true },
+        { id: 'work', loggedIn: true },
+      ],
+    };
+    const workChat = claudeThreadId('work-1');
+    fx.state.claudeChats[workChat] = { id: 'work', pinned: true, serving: 'work' };
+    assert.equal(claude.useClaudeSkillFiles(workChat, '/w'), mine);
+    assert.equal(claude.useClaudeSkillFiles(chat, '/w'), found, 'a chat on the active login still reads that one');
+    fx.state.claudeAccounts = accountsBefore;
+    delete fx.state.claudeCatalogs[`work\u0000/w`];
     assert.equal(claude.useCommandProvider(chat, '/w')!.kind, 'claude');
     // a catalog without skills or terminal commands
     fx.state.claudeCatalogs[`default\u0000/v`] = { commands: [], terminalSlash: ['x'] };
     assert.equal(claude.useClaudeCommands(null, '/v'), null, 'a new chat on Codex');
     fx.state.newChatHarness = 'claude';
     assert.deepEqual(claude.useClaudeSkills(null, '/v'), []);
+    assert.deepEqual(claude.useClaudeSkillFiles(null, '/v'), {}, 'a new chat reads the active account');
     assert.equal(claude.useClaudeCommands(null, '/v')!.kind, 'claude');
     // no folder, no CLI, a Codex chat: nothing fetched
     assert.equal(claude.useClaudeCommands(chat, ''), null);
@@ -151,6 +175,7 @@ export function registerCommands() {
     assert.equal(claude.useClaudeCommands(chat, '/other'), null);
     assert.equal(fetches, 1);
     assert.equal(claude.useClaudeSkills('codex-1', '/w'), null);
+    assert.equal(claude.useClaudeSkillFiles('codex-1', '/w'), null, 'another harness has no skill files');
     assert.equal(claude.useCommandProvider('codex-1', '/w')!.kind, 'codex');
     fx.sessions.cx = { pendingSwitch: { harness: 'acp' } };
     assert.equal(claude.useCommandProvider('cx', '/w'), null);

@@ -136,6 +136,17 @@ test('each awaited phase rechecks current machine, permission and signer before 
   }
 });
 
+test('retiring the service update during preparation prevents any upload even if the pairing still matches', async () => {
+  const w = world({ block: 'bundle' });
+  let ownsUpdate = true;
+  const started = w.updater.update('m', undefined, { ownsUpdate: () => ownsUpdate });
+  await w.ready;
+  ownsUpdate = false;
+  w.release();
+  await assert.rejects(started, { code: 'update_invalidated' });
+  assert.deepEqual(w.events, ['authenticate', 'probe', 'bundle']);
+});
+
 test('actual pairing proof renews a stale update key without removing the 180-day eligibility rule', async () => {
   const configDir = fs.mkdtempSync(path.join(base, 'host-'));
   let now = 1_800_000_000_000;

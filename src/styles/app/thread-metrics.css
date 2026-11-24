@@ -72,8 +72,9 @@
   justify-content: space-between;
   min-height: 26px;
   padding: 8px 10px 0 12px;
-  font-size: var(--fs-small);
-  color: var(--text-3);
+  /* a section's label steps down from the project headings under it, as the Projects label does (sidebar-metrics.css) */
+  font-size: var(--fs-micro);
+  color: var(--text-4);
 }
 .side-section-label .icon-btn {
   opacity: 0;

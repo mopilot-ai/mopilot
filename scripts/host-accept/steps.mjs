@@ -1,6 +1,7 @@
 // The steps of the Host's real-machine acceptance run, in order. Each takes the run's context and returns what it saw, or throws what was wrong. A step uses only what `ctx` gives it (the machine's channel, the app's own installer and pairing client), so the whole run can be tried against a stand-in machine.
 import { HOST_CLI } from '../../electron/host/install.cjs';
 import { lineClient } from './wire.mjs';
+import { workFolder } from './workFolder.mjs';
 
 /** The Host's executable on the machine, as the installer runs it. */
 const CLI = HOST_CLI;
@@ -65,7 +66,15 @@ export async function session(ctx) {
 export async function ask(ctx, chatId, text, start = {}) {
   const c = await session(ctx);
   await c.request('chat.subscribe', { chatId, epoch: 1, fromRev: 0 });
-  await c.request('chat.start', { chatId, epoch: 1, key: `accept-${chatId}`, harness: 'acp:fake', text, cwd: ctx.state.dataDir, ...start });
+  await c.request('chat.start', {
+    chatId,
+    epoch: 1,
+    key: `accept-${chatId}`,
+    harness: 'acp:fake',
+    text,
+    cwd: workFolder(ctx.state),
+    ...start,
+  });
   return c;
 }
 

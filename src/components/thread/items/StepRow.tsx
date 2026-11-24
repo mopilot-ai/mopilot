@@ -23,6 +23,9 @@ import { ownToolLine, shownToolName } from '../../../lib/ownToolLines';
 import { designCallLine } from '../../../lib/designToolCall';
 import { skillCall, skillCallVerb } from '../../../session/skillToolCall';
 import { SkillGlyph } from '../../markdown/SkillGlyph';
+import { openSkillClick } from '../../../session/openSkill';
+import { useSkillPath } from '../../../session/harness/skillPath';
+import { ActivityChat } from '../turnTokens';
 import { Shimmer, firstLine, hostOf, agentVerb, stepIcon } from './presentation';
 import { stepControl, thoughtItems, type Step, type WithStatus } from './stepModel';
 import { ShellBox, SkillCallBody, SkyProblemNote, ToolIO } from './output';
@@ -117,6 +120,18 @@ function GroupLiveLinkFor({ ids }: { ids: string[] }) {
   return live && chatId ? <LiveLinkButton chatId={chatId} /> : null;
 }
 
+/** A skill call's "/name": it opens the skill pane when the chat's harness can say where its SKILL.md is, else it is plain text. */
+function SkillName({ chat, name }: { chat: string | null; name: string }) {
+  const path = useSkillPath(chat, name);
+  return path ? (
+    <button type="button" className="step-file-link step-em" title={path} onClick={(e) => openSkillClick(path, e)}>
+      /{name}
+    </button>
+  ) : (
+    <span className="step-em">/{name}</span>
+  );
+}
+
 /**
  * `inApp`: the step sits in a run in that one desktop app (ControlRun), which already names it: the row reads plainly
  * ("Clicked", not "Clicked in Notes"), with no icon of its own (Claude Design option 2A).
@@ -150,6 +165,7 @@ export function StepRow({
   let thumb: string | null = null;
   let images: string[] = [];
   const timing = useTurnTiming();
+  const chat = useContext(ActivityChat);
   // a step Stop cut off reads "Interrupted", not as a failure
   const interrupted = cutOffByStop(timing, step.item as WithStatus & { cutOff?: boolean });
   // a skill also fails by its result's error (skillToolCall.ts), whatever its status says
@@ -297,7 +313,7 @@ export function StepRow({
       ) : skill ? (
         <>
           {skill.state === 'running' && !interrupted ? <Shimmer>{skillCallVerb(skill)}</Shimmer> : skillCallVerb(skill, interrupted)}{' '}
-          <span className="step-em">/{skill.name}</span>
+          <SkillName chat={chat} name={skill.name} />
         </>
       ) : own ? (
         own.text

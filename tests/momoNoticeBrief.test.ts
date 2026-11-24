@@ -184,6 +184,7 @@ test('after the brief, held matters count as told and keep their earlier told ti
   await store.putMatter(matter('told', { notifiedAt: '2026-11-23T09:00:00.000Z' }));
   const brief = buildBrief(input({ matters: await store.listMatters() }));
   brief.needsYou.push({ matterKey: 'ghost', title: '', summary: '', pending: false, suspect: false });
+  brief.keptQuiet.push({ matterKey: 'ghost-quiet', title: '', summary: '', pending: true, suspect: false });
   await markBriefed(store, brief, NOW);
   assert.deepEqual(
     [(await store.getMatter('held'))?.notifiedAt, (await store.getMatter('held'))?.pendingDelivery],
@@ -191,6 +192,7 @@ test('after the brief, held matters count as told and keep their earlier told ti
   );
   assert.equal((await store.getMatter('told'))?.notifiedAt, '2026-11-23T09:00:00.000Z');
   assert.equal(await store.getMatter('ghost'), undefined);
+  assert.equal(await store.getMatter('ghost-quiet'), undefined);
 });
 
 test('the brief day and its claim follow the home zone, whatever zone the calling device is in', async () => {

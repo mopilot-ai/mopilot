@@ -11,7 +11,14 @@ test('the served Host builds every process-starting service on the opener env, n
   const cli = read('host/src/cli.mjs');
   const serve = cli.slice(cli.indexOf("case 'serve': {"), cli.indexOf("case 'status': {"));
   assert.match(serve, /const hostEnv = \{ \.\.\.opener\.env\(env\), \.\.\.gitFailFastEnv\(/);
-  for (const factory of ['createNoSignIn', 'createAcpRuntime', 'createCodexFamily', 'createHostSessions', 'createLogin', 'harnessList']) {
+  for (const factory of [
+    'createNoSignIn',
+    'createAcpRuntime',
+    'createCodexFamily',
+    'createHostSessions',
+    'createLogin',
+    'reportedHarnesses',
+  ]) {
     const calls = serve.match(new RegExp(`${factory}\\(\\{[^}]*\\}`, 'g')) ?? [];
     assert.ok(calls.length > 0, `${factory} is built in serve`);
     for (const call of calls) assert.match(call, /env: hostEnv/, `${factory} must run on the opener env: ${call}`);

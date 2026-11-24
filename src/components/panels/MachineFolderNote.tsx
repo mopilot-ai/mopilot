@@ -1,4 +1,5 @@
-// What a panel says in place of a folder's git, branch or files when the chat's folder is on a machine: this Mac holds no copy of it, so nothing is read here.
+// Machine status and refusal notes for threads and panels, including folders unavailable on this Mac.
+import type { ReactNode } from 'react';
 import { Server } from '../ui/icons';
 import { HostUpdateAction } from '../host/HostUpdateAction';
 import type { ChatMachine } from '../../lib/chatMachine';
@@ -15,13 +16,14 @@ export function MachineFolderNote({ machine, what }: { machine: ChatMachine; wha
   );
 }
 
-/** One line from the machine's Host about why a panel has nothing to show (a refusal, an older Host). */
-export function MachineNotice({ text, hostId }: { text: string; hostId?: string }) {
+/** A machine status or refusal, with the relevant action beside it. */
+export function MachineNotice({ text, hostId, title, children }: { text: string; hostId?: string; title?: string; children?: ReactNode }) {
   return (
-    <div className="machine-folder-note" role="status">
+    <div className="machine-folder-note" role="status" title={title} aria-description={title}>
       <Server size={16} strokeWidth={1.7} aria-hidden="true" />
       <span>{text}</span>
       {hostId && <HostUpdateAction hostId={hostId} text={text} />}
+      {children}
     </div>
   );
 }

@@ -101,7 +101,7 @@ test('a CLI whose command list fails keeps the commands it had; settings that ca
   await until('the result', () => of(events, key, 'message').some((e: any) => e.msg.type === 'result'));
   await until('the command list', () => listed === 1);
   await flush();
-  assert.deepEqual(catalogs.at(-1).catalog, { commands: [], skills: ['s'], plugins: [], terminalSlash: null, live: true });
+  assert.deepEqual(catalogs.at(-1).catalog, { commands: [], skills: ['s'], plugins: [], skillFiles: {}, terminalSlash: null, live: true });
   // the flags still apply when their settings can't be shown
   assert.equal(await handlers.get('claude:control')!({}, key, 'applyFlagSettings', { effortLevel: 'high', ultracode: true }), true);
   await flush();

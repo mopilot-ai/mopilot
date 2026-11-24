@@ -37,7 +37,7 @@ export function ProjectMenu({
   // Host (closed alpha): the machines that are online can be browsed for the folder
   const hostAllowed = useHostAccess();
   const machines = useHostMachines().machines.filter((m) => m.status === 'online');
-  const [browsing, setBrowsing] = useState<{ id: string; name: string } | null>(null);
+  const [browsing, setBrowsing] = useState<{ id: string; name: string; scope?: string } | null>(null);
 
   const list = projects.filter(
     (p) => !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.roots[0]?.path.toLowerCase().includes(q.toLowerCase()),
@@ -128,7 +128,7 @@ export function ProjectMenu({
                   aria-current={checked}
                   onClick={() => {
                     onClose();
-                    setBrowsing({ id: m.id, name: m.name });
+                    setBrowsing({ id: m.id, name: m.name, scope: m.repositoryScope });
                   }}
                 >
                   <span className="menu-icon">

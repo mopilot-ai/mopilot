@@ -37,9 +37,12 @@ export function createHostFiles({ hostFs, fsp = fs.promises, timeoutMs = READ_MS
       const roots = await hostFs.roots();
       /** @type {{ name: string, isDirectory: boolean }[]} */
       const entries = [];
+      // the Host's own folders are not listed where they lie below this one
+      const hidden = new Set((await hostFs.deniedUnder(dir)).map((n) => n.toLowerCase()));
       let truncated = false;
       // by name before the bound, so a folder past it always shows the same names
       for (const e of (await fsp.readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+        if (hidden.has(e.name.toLowerCase())) continue;
         let isDirectory = e.isDirectory();
         let isFile = e.isFile();
         if (e.isSymbolicLink()) {

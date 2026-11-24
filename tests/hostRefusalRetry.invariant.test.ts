@@ -19,6 +19,10 @@ const NOT_LEDGERED = new Set([
   'key_unreadable',
   // MoMo's guard and wire methods: raised by the chat veil before the ledger sees a message (the same key is asked again from scratch), or by `host.momoMove`/`host.momoChat`, which are not chat writes
   'momo_home_away',
+  'momo_grant_lapsed',
+  // MoMo's home reaching another machine (host/src/momoTasks/homeClient.mjs): `machine_offline` is raised before any request is sent, so nothing was taken; `machine_lost` after one was sent, and the retry sends the same chat id and wire key (remoteMachine keeps the start key), which the target's ledger answers as a repeat of that request. Neither is a refusal the ledger stored, so neither is ever answered again as a refusal.
+  'machine_offline',
+  'machine_lost',
   'turn_busy',
   'momo_chat_not_started',
   'home_lease_stale',

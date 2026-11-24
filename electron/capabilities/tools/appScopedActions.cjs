@@ -23,7 +23,7 @@ const {
   whyNotHid,
 } = require('./appScopedUtil.cjs');
 const { AppScopedCapture } = require('./appScopedCapture.cjs');
-const { withCursor, signClick, firstPlan, foregroundRefused } = require('./appScopedApproach.cjs');
+const { withCursor, signClick, firstPlan, foregroundRefused, shiftWindow } = require('./appScopedApproach.cjs');
 const { mayForeground, needsEscalation, foregroundWorked, windowStateRefusal, foregroundNote, laddered } = require('./appScopedLadder.cjs');
 
 /** @typedef {InstanceType<typeof import('./appScoped.cjs').AppScopedControl>} AppScopedControl the control these methods run on */
@@ -129,8 +129,8 @@ class AppScopedActions extends AppScopedCapture {
   }
 
   /**
-   * The escalation ladder around one input action. Accessibility and events to the app's process come first (the planned request; a coordinate click of an app in front goes
-   * straight to the real pointer, firstPlan); when the helper saw nothing change (no_change, ineffective) for a click, typing or a key, and the user allows brief switching for an
+   * The escalation ladder around one input action. Accessibility and events to the app's process come first (the planned request; a coordinate click or scroll of an app in front goes
+   * straight to the real pointer, firstPlan); when the helper saw nothing change (no_change, ineffective) for a click, typing, a key or a scroll, and the user allows brief switching for an
    * app granted full control, the action runs once more with the app briefly in front (the helper restores the previous app and pointer). The rung that worked is remembered per
    * app and the next such action starts there. A window that is minimized or hidden with its app is brought back to the current desktop and the action goes on; one on another Space
    * takes the brief-foreground rung (macOS switches to its Space and back). If the helper refuses the real pointer for the first request (the user is at the mouse), the plain click is tried. The record says which rung did it.
@@ -140,18 +140,29 @@ class AppScopedActions extends AppScopedCapture {
     const thumb = this.thumbDue(c);
     const fgOk = mayForeground(this.ladder, c.app, action);
     const up = () => this.request(c, signClick(c, this.foregroundPlan(c, action, args, r, thumb)));
-    if (fgOk && this.ladder.rung(c.app.bundleId, action) === 'foreground') {
-      const out = await up();
+    // a scroll the model aimed at an element: the helper moves its scroll bar through accessibility first, with no pointer and no foreground
+    const byElement = action === 'scroll' && args.element_index !== undefined;
+    const plain = () => this.request(c, signClick(c, { ...p, params: { ...p.params, ...thumb } }));
+    // an element scroll tries its accessibility route first whatever rung is remembered
+    if (fgOk && this.ladder.rung(c.app.bundleId, action) === 'foreground' && !byElement) {
+      let out;
+      try {
+        out = await up();
+      } catch (e) {
+        if (!foregroundRefused(e)) throw e;
+        const back = await plain();
+        return { record: laddered(back.record, 'background', { note: `Brief foreground was not used: ${appHelperError(e).message}` }) };
+      }
       return { record: laddered(out.record, 'foreground', { note: foregroundNote(c.app.name, action, out.fg), fg: out.fg }) };
     }
     let out;
     try {
-      out = await this.request(c, signClick(c, firstPlan(p, thumb, fgOk)));
+      out = await this.request(c, signClick(c, firstPlan(p, thumb, fgOk && !byElement)));
     } catch (e) {
       const state = windowStateRefusal(appHelperError(e));
       if (state) return this.offWindow(c, action, args, r, p, state, e, thumb);
       if (!foregroundRefused(e)) throw e;
-      out = await this.request(c, signClick(c, { ...p, params: { ...p.params, ...thumb } }));
+      out = await plain();
     }
     if (!fgOk) return out;
     if (out.fg || !needsEscalation(out.record)) return { record: laddered(out.record, out.fg ? 'foreground' : 'background', out) };
@@ -211,7 +222,7 @@ class AppScopedActions extends AppScopedCapture {
 
   /**
    * The brief-foreground request for an action: the same plan, with the helper asked to bring the app
-   * forward around it; a click goes to its point (a real click in front), typing goes as keystrokes.
+   * forward around it; a click or a scroll goes to its point (a real click or wheel in front), typing goes as keystrokes.
    * @this {AppScopedControl}
    */
   foregroundPlan(c, action, args, r, thumb) {
@@ -297,23 +308,6 @@ class AppScopedActions extends AppScopedCapture {
   }
 
   /**
-   * The window moved since its screenshot (the helper moved the point with it): its frame and elements move too.
-   * @this {AppScopedControl}
-   */
-  shiftWindow(w, moved) {
-    const dx = Number(moved?.dx) || 0;
-    const dy = Number(moved?.dy) || 0;
-    if (!w || (!dx && !dy)) return false;
-    w.geom.x += dx;
-    w.geom.y += dy;
-    w.bounds.x += dx;
-    w.bounds.y += dy;
-    for (const e of w.elements) e.frame = { ...e.frame, x: e.frame.x + dx, y: e.frame.y + dy };
-    if (w.last?.point) w.last = { ...w.last, point: { x: w.last.point.x + dx, y: w.last.point.y + dy } };
-    return true;
-  }
-
-  /**
    * The helper request for an input action: {method, params, opts?, finish(result) -> {record} | {next}}.
    * Every request asks the helper to verify its effect (after an adaptive settle); the ones that post
    * events at a point carry the window's bounds as of its screenshot, so the helper can refuse a
@@ -327,7 +321,7 @@ class AppScopedActions extends AppScopedCapture {
       const seen = observedEffect(reported, res?.verify);
       // inside the helper request's time: how long it waited for the app to settle
       if (seen.settle_ms !== undefined) callPhases.note('in-helper:settle', seen.settle_ms);
-      const moved = this.shiftWindow(w, res?.moved);
+      const moved = shiftWindow(w, res?.moved);
       const record = withHint(
         P.actionRecord(action, seen.effect, route, {
           app: c.app.name,
@@ -453,7 +447,7 @@ class AppScopedActions extends AppScopedCapture {
             done(
               r.route === 'ax' ? 'confirmed' : 'unverifiable',
               r.route || 'pid',
-              { dy, ...(r.saturated ? { note: 'reached the end of the scroll range' } : {}) },
+              { dy, ...(r.saturated ? { note: 'reached the end of the scroll range' } : {}), ...whyNotHid(r) },
               r,
               at(t.point),
             ),

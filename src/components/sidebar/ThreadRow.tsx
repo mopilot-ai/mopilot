@@ -36,7 +36,6 @@ import { onMachineHint } from '../../lib/machineFolder';
 export const ThreadRow = memo(function ThreadRow({
   thread,
   active,
-  indent = true,
   depth = 0,
   nestedView,
   projectHostId,
@@ -45,7 +44,6 @@ export const ThreadRow = memo(function ThreadRow({
 }: {
   thread: Thread;
   active: boolean;
-  indent?: boolean;
   /** how far below the chat that started it the row is nested (sidebar/ChildRows.tsx); 0 for a top-level row */
   depth?: number;
   /** the sidebar list the row is in: a chat that started listed chats gets its Show/Hide nested sessions there */
@@ -122,14 +120,7 @@ export const ThreadRow = memo(function ThreadRow({
     <div
       ref={rowRef}
       data-sidebar-chat={thread.id}
-      className={[
-        'side-row thread-row',
-        indent && 'indent',
-        depth && 'linked-child',
-        active && 'selected',
-        word && 'has-sub',
-        more.open && 'menu-open',
-      ]
+      className={['side-row thread-row', depth && 'linked-child', active && 'selected', word && 'has-sub', more.open && 'menu-open']
         .filter(Boolean)
         .join(' ')}
       style={depth ? ({ '--depth': depth } as CSSProperties) : undefined}
@@ -171,6 +162,10 @@ export const ThreadRow = memo(function ThreadRow({
                 {/* a new name (the generated title replacing the first words, or a rename elsewhere) crossfades in */}
                 <RowName thread={thread} title={title} linked={orchestration.children[thread.id]} />
               </span>
+              {/* Where it runs follows the name, as on a project heading; the trailing columns stay PR and status. */}
+              {machineLine && machineLine.id !== projectHostId && (
+                <HostMark id={machineLine.id} name={machineLine.name} cloud={machineLine.cloud} />
+              )}
               {nests && (
                 <Tooltip label={nestedLabel}>
                   <button
@@ -183,7 +178,7 @@ export const ThreadRow = memo(function ThreadRow({
                       toggleNested();
                     }}
                   >
-                    <ChevronRight size={14} fill="currentColor" data-expanded={!nestedHidden} />
+                    <ChevronRight size={14} data-expanded={!nestedHidden} />
                   </button>
                 </Tooltip>
               )}
@@ -208,9 +203,6 @@ export const ThreadRow = memo(function ThreadRow({
       <SidebarChatShortcut row={rowRef} />
       <SidebarInboxCount threadId={thread.id} row={rowRef} />
       <ThreadPullRequestBadge threadId={thread.id} cwd={folder} updatedAt={thread.updatedAt} row={rowRef} />
-      {machineLine && machineLine.id !== projectHostId && (
-        <HostMark id={machineLine.id} name={machineLine.name} cloud={machineLine.cloud} />
-      )}
       <ThreadActivityIndicator thread={thread} linked={orchestration.children[thread.id]} />
       {/* The menu takes the status dot's place on hover (sidebar.css). */}
       <span className="row-actions">

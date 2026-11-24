@@ -74,10 +74,11 @@ export function pickNewChatHost(m: { id: string; name: string }): NonNullable<Ap
 }
 
 /** The folder picked on `host` for the next new chat; its agent stays when the machine is the one already picked. */
-export function setNewChatHostFolder(host: { id: string; name: string }, path: string) {
+export function setNewChatHostFolder({ id, name, scope }: { id: string; name: string; scope?: string }, path: string) {
   const s = get();
   const kept = newChatHostPick(s);
-  setHostPick({ ...(kept?.id === host.id ? kept : {}), id: host.id, name: host.name, path, before: targetBefore(s, kept) });
+  const sameHost = kept?.id === id && (scope === undefined || kept.scope === undefined || kept.scope === scope);
+  setHostPick({ ...(sameHost ? kept : {}), id, name, path, ...(scope !== undefined && { scope }), before: targetBefore(s, kept) });
 }
 
 function setHostPick(newChatHost: NonNullable<AppState['newChatHost']>) {

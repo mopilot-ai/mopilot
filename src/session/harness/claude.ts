@@ -58,7 +58,7 @@ export {
   archivedCodexMissing,
   archivedClaudeThreads,
 } from './claude/threads';
-export { useClaudeCommands, useCommandProvider, useClaudeSkills } from './claude/catalog';
+export { useClaudeCommands, useCommandProvider, useClaudeSkills, useClaudeSkillFiles } from './claude/catalog';
 import { detectClaude, claudeChatAccount, markClaudeLoginLapsed, onAccountsEvent, setAccounts } from './claude/accounts';
 import { inheritClaudeChat } from './claude/accounts';
 import { claudeLiveUsage } from '../../../shared/claudeRateLimit.mjs';

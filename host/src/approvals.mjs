@@ -54,6 +54,7 @@ class CardAnsweredError extends HostRefusal {
  * @param {(fn: () => void, ms: number) => () => void} [o.after] runs `fn` once after `ms`; returns the cancel
  * @param {(chatId: string) => unknown} [o.skipped] told once when a `skip` run stopped at a card (U3)
  * @param {(chatId: string) => Record<string, any> | undefined} [o.saved] the chat's state lane as it was kept, for a Host that restarted with a chat paused
+ * @param {(chatId: string) => { kind: string, home: string } | null} [o.startedBy] who started a chat, when it was not a person (MoMo's home on another machine): the card says so
  * @param {(message: string) => void} [o.report]
  * @param {{ governed: (e: any) => boolean, note: (e: any) => void }} [o.audit] the audit record: a card asked and expired is noted, an answer is written before it is taken (`audit.required` refuses it otherwise)
  */
@@ -69,6 +70,7 @@ export function createApprovals({
   after,
   skipped = () => undefined,
   saved = () => undefined,
+  startedBy = () => null,
   report = () => undefined,
   audit = { governed: () => true, note: () => undefined },
 }) {
@@ -254,6 +256,7 @@ export function createApprovals({
         .filter(isObject)
         .map((o) => ({ optionId: String(o.optionId), name: String(o.name ?? ''), kind: optionKindOf(o.kind) })),
       ...(isObject(e.question?.form) ? { form: e.question.form } : {}),
+      ...(startedBy(chatId) ? { startedBy: startedBy(chatId) } : {}),
       at,
     };
     let w = waiting.get(chatId);

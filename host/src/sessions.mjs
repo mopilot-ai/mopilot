@@ -17,7 +17,7 @@ import { HostRefusal } from './hostFs.mjs';
 import { userInput } from '../../shared/userInput.mjs';
 import { convertImage } from './imageDecoder.mjs';
 import { createMomoIsolation } from './momoIsolation.mjs';
-import { createHostSwitcher, landsOn, laneChoice, readHold, settlingPick, switchRuntime } from './hostSwitch.mjs';
+import { createHostSwitcher, folderReader, landsOn, laneChoice, readHold, settlingPick, switchRuntime } from './hostSwitch.mjs';
 import { createContinueRuntime } from './continueRuntime.mjs';
 import { goalRuntime } from './goalRuntime.mjs';
 import { createChatRename, dropsTitle } from './chatRename.mjs';
@@ -351,6 +351,7 @@ export function createHostSessions({
         provided,
         labels: FAMILY_LABEL,
         hold: (chatId, pending) => (pending ? holds.set(chatId, pending) : holds.delete(chatId), persist(chatId)),
+        folderOf: folderReader({ switcher, controller: () => controller }),
       }),
       ...goalRuntime({ chats, state: sessions, controller, familyOf, claude: claudeFamily, codex: codexFamily }),
       // what a continue asks of the chats here, for every family (./continueRuntime.mjs)

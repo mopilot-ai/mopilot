@@ -204,17 +204,28 @@ test('the wire harness of a chat comes from the id the Host knows it by', async 
 
 test('the handler refuses when its Host has no list to give, and passes the limit and the caller on when it has', async () => {
   assert.throws(() => (chatsMethods({}) as any).handlers['host.chats']({ limit: 5 }), /keeps no chats/);
-  const log = { chats: async () => [{ chatId: 'claude:a' }, { chatId: 'claude:b' }], fillTitle: () => ({ status: 'deferred' }) };
+  const log = {
+    chats: async () => [
+      { chatId: 'claude:a', createdAt: 1, updatedAt: 2, title: '' },
+      { chatId: 'claude:b', createdAt: 1, updatedAt: 1, title: '' },
+    ],
+    fillTitle: () => ({ status: 'deferred' }),
+  };
   const made: any = chatsMethods({
     dataDir: '/data',
     log,
     epochs: { current: () => 4 },
     chatVisible: (who: any) => (id: string) => who === 'x' && id === 'claude:b',
   } as any);
-  assert.deepEqual(await made.handlers['host.chats']({ limit: 5 }, 'desktop', 'x'), {
-    chats: [{ chatId: 'claude:b', harness: 'claude', epoch: 4 }],
-    titles: { pending: 0, deferred: 0 },
-  });
+  assert.deepEqual(
+    { ...(await made.handlers['host.chats']({ limit: 5 }, 'desktop', 'x')), generation: 'g' },
+    {
+      chats: [{ chatId: 'claude:b', title: '', createdAt: 1, updatedAt: 1, harness: 'claude', state: 'idle', epoch: 4, rev: 1 }],
+      titles: { pending: 0, deferred: 0 },
+      at: 0,
+      generation: 'g',
+    },
+  );
   assert.equal(
     (await made.handlers['host.chats']({ limit: 1 }, 'desktop', 'y')).chats.length,
     0,
@@ -223,7 +234,12 @@ test('the handler refuses when its Host has no list to give, and passes the limi
 });
 
 test('what a caller may not see is left out before the list is cut, so a short list says nothing about what was left out', async () => {
-  const rows = ['claude:hidden-1', 'claude:a', 'claude:hidden-2', 'claude:b', 'claude:c'].map((chatId) => ({ chatId }));
+  const rows = ['claude:hidden-1', 'claude:a', 'claude:hidden-2', 'claude:b', 'claude:c'].map((chatId, i) => ({
+    chatId,
+    title: '',
+    createdAt: 1,
+    updatedAt: 100 - i,
+  }));
   const log = { chats: async () => rows, fillTitle: () => ({ status: 'deferred' }) };
   const epochs = { current: () => 2 };
   const asked: unknown[] = [];

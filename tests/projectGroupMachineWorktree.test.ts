@@ -149,7 +149,7 @@ test('the screenshot folders become one repository group across remote Codex, Cl
       asked.some((p) => [repo, first, second].includes(p) || p.includes('\0')),
       false,
     );
-    assert.deepEqual(getState().prefs.sidebarFolders, [key(HOST.id, repo)]);
+    assert.deepEqual(getState().prefs.sidebarFolders, [key(HOST.id, first), key(HOST.id, second)]);
   } finally {
     await view.unmount();
   }
@@ -223,7 +223,7 @@ test('a shared SSH icon replaces session icons in Projects while Recents and Pri
   answered = false;
   const view = await mountSidebar();
   try {
-    assert.equal(view.$('.thread-row > .host-mark'), null);
+    assert.equal(view.$('.thread-row .host-mark'), null);
     answered = true;
     await update({ ...getState() });
     assert.equal(view.$('.project-row .side-row-label').textContent, 'project');
@@ -336,7 +336,7 @@ test('saved worktree pins, names and manual order apply to the repository, and u
       g.threads.map((t: any) => t.id),
       [B, A, C],
     );
-    assert.deepEqual(getState().prefs.sidebarProjectOrder, [canonical]);
+    assert.deepEqual(getState().prefs.sidebarProjectOrder, [alias, otherAlias]);
     await update({ ...getState(), prefs: { ...getState().prefs, folderNames: { [alias]: 'Old', [canonical]: 'Repository' } } });
     assert.equal(get().listed[0].name, 'Repository');
   } finally {

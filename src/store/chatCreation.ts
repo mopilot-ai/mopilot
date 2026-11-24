@@ -73,7 +73,7 @@ export async function createHostChatThread(host: NonNullable<AppState['newChatHo
     const verified = selected ? await verifyRepositoryMachine(selected, host) : null;
     if (selected && !verified) return toast(chooseRepositoryLocation, 'error'), null;
     // Read and write branches through the same Host registration verified for this draft.
-    const path = await machineStartFolder(host, s, verified?.scope);
+    const path = await machineStartFolder(host, s, verified?.scope ?? host.scope);
     if (selected && get().newChatRepositoryGroup !== selected) return null;
     id = await runtime().startHostAcpThread({ host: { ...host, path, ...verified }, harness });
   } catch (e) {

@@ -6,6 +6,8 @@ import { createMomoMove } from './momoMove.mjs';
 import { loadMomoServices } from './momoServices.mjs';
 import path from 'node:path';
 import { createFileSafeStorage } from './secretStore.mjs';
+import { createEntitlementGate, entitlementModeFrom } from './momoEntitlementGate.mjs';
+import { ENTITLEMENT_KEYS, REVOKED_ENTITLEMENT_KEY_IDS } from '../../shared/host/momoEntitlementKeys.mjs';
 import { mapStrings } from './chatVeil.mjs';
 import { registerMomoTools } from './momoTools.mjs';
 import { HostRefusal } from './hostFs.mjs';
@@ -56,6 +58,14 @@ export function createMomoHidden() {
       momo(event?.chatId) ? momoNotify?.(event) : hidden(event?.chatId) ? undefined : notify(event),
   };
 }
+
+/** The gate that backs a MoMo grant with the account's server-signed entitlement for this Host (#5474); its mode (`MOPILOT_MOMO_ENTITLEMENT`) is `off` until the owner moves Hosts on. @param {string} hostId this Host's own id @param {Record<string, string | undefined>} env @param {(message: string) => void} [report] */
+export const entitlementGateFor = (hostId, env, report = () => undefined) => {
+  const mode = entitlementModeFrom(env);
+  if (mode === 'required' && ENTITLEMENT_KEYS.length === 0)
+    report('MoMo entitlements are required but this Host trusts no key: MoMo stays off until the app is updated.');
+  return createEntitlementGate({ hostId, keys: ENTITLEMENT_KEYS, revoked: REVOKED_ENTITLEMENT_KEY_IDS, mode, now: () => Date.now() });
+};
 
 /**
  * MoMo's own push and the answers of a notification, over the relay links the approval push already uses (given once the push is made).
@@ -137,6 +147,7 @@ export function momoHomeFor(
     safeStorage: createFileSafeStorage(paths.configDir),
     dataSafeStorage: createFileSafeStorage(dataKeyDir),
     dataKeyDir,
+    entitlement: entitlementGateFor(hostId, env ?? process.env, report),
     report,
     isMomoChat: (chatId) => !!home.chats?.isMomoChat(chatId),
   });

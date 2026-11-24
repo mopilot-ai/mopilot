@@ -6,6 +6,9 @@ import path from 'node:path';
 import { argsFit, createIntentRegistry, DEVICE_LANES, INTENT_TABLE, LANES } from '../shared/momoIntents.mjs';
 import os from 'node:os';
 import { createFakeHome } from '../shared/momoHomeFake.mjs';
+// @ts-ignore
+import { createMomoOutbox } from '../shared/momoOutbox.mjs';
+import { createRealHome } from '../shared/momoHomeReal.mjs';
 // @ts-ignore: plain ESM without declarations
 import { momoHomeFor, createMomoHidden } from '../host/src/momoWiring.mjs';
 import { toIntent } from '../src/components/momo/home/homeIntents.ts';
@@ -133,6 +136,18 @@ test('what the Mac’s screens send carries the arguments the table names, by na
  */
 const HOMES: { name: string; make: () => { pending: () => string[] }; exact: boolean }[] = [
   { name: 'the scripted home', make: () => createFakeHome({ stepMs: 0 }), exact: true },
+  // the Mac's real composition: the home lane's kinds are its own, every Host lane's are forwarded to the home's Host
+  {
+    name: 'the real composition over the Hosts',
+    make: () =>
+      createRealHome({
+        hosts: { machines: () => [], call: async () => ({}) },
+        outbox: createMomoOutbox({ store: { read: () => [], write: () => undefined }, now: () => 0 }),
+        sent: { read: () => [], write: () => undefined },
+        report: () => undefined,
+      }),
+    exact: false,
+  },
 ];
 
 for (const home of HOMES)

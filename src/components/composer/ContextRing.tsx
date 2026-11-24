@@ -1,4 +1,4 @@
-// The composer's usage ring opens one popover with context and the serving account's plan limits.
+// The composer's usage ring opens one popover with the chat's context and the plan limits of the login its next message uses.
 import { useId, useRef } from 'react';
 import { identityKey } from '../../../shared/identityKey.mjs';
 import { MOPILOT_PLAN } from '../../harness/accounts';
@@ -10,6 +10,7 @@ import { contextLevel, contextShare, contextTokens } from '../../lib/contextForm
 import { contextPercent, contextTip, type ContextReading } from '../../store/contextUsage';
 import { useStore } from '../../store/core';
 import { useChatAccountView } from '../../session/harness/chatAccountView';
+import { useSessionField } from '../../store/session/useSession';
 import { useChatContext } from '../../session/useChatContext';
 import { useContextOwner, useContextSnapshot } from '../../session/useContextSnapshot';
 import { Popover, Tooltip, useAnchor } from '../ui/Popover';
@@ -39,11 +40,14 @@ export function ContextRing({
   const context = useChatContext(threadId, "read a chat's context use for the composer");
   const auto = useContextSnapshot(threadId, "read a chat's context use for the composer")?.autoCompact;
   const owner = useContextOwner(threadId)?.owner ?? null;
-  // An existing chat uses the account serving its current session. The picker can already show a pending destination.
+  // Plan limits belong to the harness the picker beside the ring names: the next message spends its login's plan, also
+  // before a switched chat's session changes. Context stays the open session's. Until the picker resolves, the session's.
   const servingHarness = useStore((s) =>
-    momo ? null : threadId ? firstTierOf(currentFamily(s.segments[threadId], threadId)) : firstTierKind(selection),
+    momo ? null : selection || !threadId ? firstTierKind(selection) : firstTierOf(currentFamily(s.segments[threadId], threadId)),
   );
-  const view = useChatAccountView(servingHarness ?? 'codex', threadId);
+  // a switch that waits for the next message may name the login it moves the chat to
+  const pending = useSessionField(threadId, (s) => s.pendingSwitch);
+  const view = useChatAccountView(servingHarness ?? 'codex', threadId, pending?.harness === servingHarness ? pending.account : null);
   const account = servingHarness ? view.account : null;
   const plan =
     servingHarness &&

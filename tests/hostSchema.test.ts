@@ -53,6 +53,7 @@ const valid: Record<string, any> = {
   'host.clientAdd': { publicKey: 'AAAA', kind: 'phone', name: 'Pocket iPhone' },
   'host.clientRemove': { fingerprint: 'a'.repeat(64) },
   'host.clientRename': { name: 'Work MacBook Pro' },
+  'host.homeLinkRepair': {},
   'host.gitCommit': { path: '/srv/app', message: 'm', files: null },
   'host.gitDiscard': { path: '/srv/app', file: null },
   'host.relayEnroll': {
@@ -69,6 +70,8 @@ const valid: Record<string, any> = {
   'host.momoGrant': { account: 'a1', features: ['momo'] },
   'host.momoChat': { harness: 'claude' },
   'host.momoHomeStart': { homeId: 'home-aaaa-1111', name: 'Studio' },
+  'host.momoHomeLook': {},
+  'host.momoStandDown': { homeId: 'home-bbbb-2222', leaseEpoch: 2, name: 'Mini' },
   'host.momoTurn': { turnId: 'key-00000001' },
   'host.momoReset': {},
   'host.momoPrefs': {},
@@ -87,6 +90,7 @@ const valid: Record<string, any> = {
   'host.momoRows': {},
   'host.momoLaneIntent': { intent: { kind: 'task.stop', id: 't-1' } },
   'host.momoTasks': { op: 'view' },
+  'host.momoLink': { op: 'key' },
   'host.momoNotice': { op: 'state' },
   'host.pair': { ...proof, code: 'ABCD-EFGH-JKMN' },
   'host.auth': proof,
@@ -119,6 +123,7 @@ const valid: Record<string, any> = {
   'git.carryDrop': { path: '/home/u/b', branch: 'mopilot/carry/abcdefgh' },
   'host.pending': {},
   'host.chats': { limit: 50 },
+  'host.chats.watch': {},
   'host.commands': { harness: 'claude', cwd: '/home/u/b' },
 };
 const invalid = (fn: () => unknown) => assert.throws(fn, (e: any) => e instanceof S.SchemaError && e.code === 'invalid');

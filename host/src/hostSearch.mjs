@@ -86,12 +86,15 @@ export function createHostSearch({ hostFs, run = runGit, rg = runRipgrep }) {
   async function search({ path: p, query, limit }) {
     const dir = await hostFs.requireDirectory(p);
     const { names, cut } = await listing(dir);
+    // a file in one of the Host's own folders below this one is not listed
+    const hiddenBelow = (await hostFs.deniedUnder(dir)).map((n) => `${n.toLowerCase()}/`);
     const q = query.trim().toLowerCase();
     /** @type {{ path: string, score: number }[]} */
     const hits = [];
     let seen = 0;
     for (const name of names) {
       if (!name) continue;
+      if (hiddenBelow.some((h) => `${name.toLowerCase()}/`.startsWith(h))) continue;
       if (++seen > MAX_FILES) return rank(hits, limit, true);
       const score = scoreOf(name, q);
       if (score > 0) hits.push({ path: name, score });

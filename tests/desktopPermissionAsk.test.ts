@@ -256,3 +256,84 @@ test('waitForPermission: a Try again that still finds it off ends the wait with 
   assert.equal(await r.cu.waitForPermission('c1', owner, 'accessibility', { timeoutMs: 5000, everyMs: 2 }), false);
   assert.equal(r.cu.hasPermissionGuide('c1'), true);
 });
+
+/* -- desktop_request_access: its setup text says a card is in the chat, so the card is ----------------------------------------------------- */
+test('request_access with a permission off raises the card and asks macOS; without a grant the setup text stays', async () => {
+  const r = rig();
+  r.helper.resolved.set('Notes', { query: 'Notes', app: { ...NOTES, running: true } });
+  r.helper.perms = { screenRecording: false, accessibility: true };
+  const asked: string[] = [];
+  r.helper.requestPermission = async (kind: string) => (asked.push(kind), { screenRecording: false, accessibility: true });
+  r.cu.waitForPermission = async () => false;
+  const out = await r.json('desktop_request_access', { apps: ['Notes'], reason: 'r' });
+  assert.match(out.setup, /permission card in this chat/);
+  assert.deepEqual(asked, ['screenRecording']);
+  assert.equal(r.cu.blocked.get('c1')?.permission, 'screenRecording', 'the card the text points to is up');
+  // both off: the card asks for Accessibility first, as its recheck does
+  const both = rig();
+  both.helper.resolved.set('Notes', { query: 'Notes', app: { ...NOTES, running: true } });
+  both.helper.perms = { screenRecording: false, accessibility: false };
+  both.helper.requestPermission = async () => ({ screenRecording: false, accessibility: false });
+  both.cu.waitForPermission = async () => false;
+  await both.json('desktop_request_access', { apps: ['Notes'], reason: 'r' });
+  assert.equal(both.cu.blocked.get('c1')?.permission, 'accessibility');
+});
+
+test('request_access: a grant given at the prompt leaves nothing to set up and takes the card down', async () => {
+  const r = rig();
+  r.helper.resolved.set('Notes', { query: 'Notes', app: { ...NOTES, running: true } });
+  r.helper.perms = { screenRecording: false, accessibility: true };
+  r.helper.requestPermission = async () => (r.helper.perms = { screenRecording: true, accessibility: true });
+  const out = await r.json('desktop_request_access', { apps: ['Notes'], reason: 'r' });
+  assert.equal(out.setup, undefined);
+  assert.equal(r.cu.hasPermissionGuide('c1'), false);
+  // one of two granted: the card moves to the one still off, and the text names only that one
+  const two = rig();
+  two.helper.resolved.set('Notes', { query: 'Notes', app: { ...NOTES, running: true } });
+  two.helper.perms = { screenRecording: false, accessibility: false };
+  two.helper.requestPermission = async () => (two.helper.perms = { screenRecording: false, accessibility: true });
+  const left = await two.json('desktop_request_access', { apps: ['Notes'], reason: 'r' });
+  assert.match(left.setup, /cannot use Screen Recording yet/);
+  assert.doesNotMatch(left.setup, /cannot use Accessibility yet/);
+  assert.equal(two.cu.blocked.get('c1')?.permission, 'screenRecording');
+});
+
+test('request_access: nobody there, a stopped call or a closing app shows the card at most and never prompts', async () => {
+  const r = rig();
+  r.helper.resolved.set('Notes', { query: 'Notes', app: { ...NOTES, running: true } });
+  await r.json('desktop_request_access', { apps: ['Notes'], reason: 'r' });
+  r.helper.perms = { screenRecording: false, accessibility: true };
+  let asked = 0;
+  r.helper.requestPermission = async () => (asked++, { screenRecording: true });
+  // Notes is granted already, so no access card is asked: only the permission prompt would need someone there
+  r.state.unattended = 'the screen is locked';
+  assert.match((await r.json('desktop_request_access', { apps: ['Notes'], reason: 'r' })).setup, /permission card in this chat/);
+  assert.equal(r.cu.hasPermissionGuide('c1'), true);
+  r.state.unattended = null;
+  r.cu.permissionMayAct = () => false;
+  assert.match((await r.json('desktop_request_access', { apps: ['Notes'], reason: 'r' })).setup, /permission card in this chat/);
+  assert.equal(asked, 0);
+  // no card can go up (the coordinator is closing): the text does not claim one
+  r.cu.showPermissionGuide = () => undefined;
+  assert.equal((await r.json('desktop_request_access', { apps: ['Notes'], reason: 'r' })).setup, undefined);
+});
+
+test('request_access: the setup text is read again after the wait, and a call stopped meanwhile raises no card', async () => {
+  const r = rig();
+  r.helper.resolved.set('Notes', { query: 'Notes', app: { ...NOTES, running: true } });
+  r.helper.perms = { screenRecording: false, accessibility: false };
+  r.helper.requestPermission = async () => ({ screenRecording: false, accessibility: false });
+  // the user turned Accessibility on and pressed Try again: the wait ends with Screen Recording still off
+  r.cu.waitForPermission = async () => ((r.helper.perms = { screenRecording: false, accessibility: true }), false);
+  const out = await r.json('desktop_request_access', { apps: ['Notes'], reason: 'r' });
+  assert.match(out.setup, /cannot use Screen Recording yet/);
+  assert.doesNotMatch(out.setup, /cannot use Accessibility yet/, 'a permission granted during the wait is not named');
+  // stopped while its permissions were read: nothing goes up for the ended turn
+  const s = rig();
+  s.helper.resolved.set('Notes', { query: 'Notes', app: { ...NOTES, running: true } });
+  s.helper.perms = { screenRecording: false, accessibility: true };
+  const stop = new AbortController();
+  s.helper.permissionStatus = async () => (stop.abort(), s.helper.perms);
+  await s.call('desktop_request_access', { apps: ['Notes'], reason: 'r' }, { signal: stop.signal }).catch(() => null);
+  assert.equal(s.cu.hasPermissionGuide('c1'), false);
+});

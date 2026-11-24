@@ -8,9 +8,13 @@ import { createMomoPrefs } from './momoPrefs.mjs';
 import { createServiceRegistry } from './momoServiceRegistry.mjs';
 import { createMemoryOps } from './momoMemoryOps.mjs';
 import { SchemaError } from '../../shared/host/schema.mjs';
+import { createEntitlementKeep } from './momoEntitlementKeep.mjs';
 import { MOMO_FEATURE } from '../../shared/host/methods/momo.mjs';
 import { createMomoTurns, settledAs } from './momoTurns.mjs';
 import { createMomoKept } from './momoKept.mjs';
+import { adoptRule, resetRule, startRule } from '../../shared/host/momoHomeSafety.mjs';
+import { createHomeSafety } from './momoHomeSafety.mjs';
+import { CLOSED_KEEP, grantShape, homeShape } from './momoHomeRecord.mjs';
 
 const require = createRequire(import.meta.url);
 const { momoStorage, systemClock } = require('../../electron/momo/seams.cjs');
@@ -22,62 +26,16 @@ const { AuditLog } = require('../../electron/momo/audit.cjs');
 const { sentinelFileStorage } = require('../../electron/momo/sentinelStore.cjs');
 
 /** What the Host keeps for itself in MoMo's folder, which neither a move nor a Reset takes. */
-export const HOST_OWN = ['grant.json', 'home.json', 'chats.json', 'stamps.json', 'google-revoke-owed.json'];
+export const HOST_OWN = ['grant.json', 'home.json', 'chats.json', 'stamps.json', 'google-revoke-owed.json', 'entitlement.json'];
 /** What a Reset keeps: the Host's own files and the ids of the turns it deleted (those are sealed with MoMo's data key, so a move carries them). */
 export const RESET_KEEPS = [...HOST_OWN, 'turns-void.json'];
-
-/** How many ended moves' ids an old home remembers, so a late or repeated step of one cannot pause it again. */
-const CLOSED_KEEP = 20;
 
 /** A grant older than this has run out: scheduled runs stop until the client sends it again (the client does every 30 minutes). */
 export const GRANT_MAX_AGE_MS = 7 * 86_400_000;
 
-/** @typedef {{ account: string | null, features: string[], receivedAt: number }} Grant */
-/**
- * The home record (design 3.1): `leaseEpoch` is the fencing token, +1 on every move; only the Host holding the current one acts.
- * `state` is what this Host keeps: 'none', 'running' or 'moving' (a Host that is asleep, out of date or signed out cannot say so; the
- * client derives those, shared/momoHomeState.mjs).
- * @typedef {{ homeId: string | null, leaseEpoch: number, state: 'none' | 'running' | 'moving', stateSince: number, lastSeenAt: number, moveId: string | null, bundleHash: string | null, moveDeadline: number | null, targetSignKey: string | null, moveReceipts: Record<string, { leaseEpoch: number, receipt: string }>, closedMoves: string[], movedTo: { name: string, homeId: string, at: number } | null, name: string, account: string | null }} HomeRecord
- */
-/** @typedef {{ homeId: string, leaseEpoch: number }} HomeStamp what every outbound action and push of the home carries */
-
-/** @param {any} v @returns {Grant} */
-const grantShape = (v) => ({
-  account: typeof v?.account === 'string' ? v.account : null,
-  features: Array.isArray(v?.features) ? v.features.filter((/** @type {unknown} */ f) => typeof f === 'string') : [],
-  receivedAt: Number.isFinite(v?.receivedAt) ? v.receivedAt : 0,
-});
-/** The target's receipts of the switches it made, by move id, newest last: kept past later moves and restarts, so a repeat of a switch or a discard that finds one tells the same. @param {any} v @returns {Record<string, { leaseEpoch: number, receipt: string }>} */
-const receiptsOf = (v) =>
-  Object.fromEntries(
-    Object.entries(v && typeof v === 'object' && !Array.isArray(v) ? v : {})
-      .filter(([, r]) => Number.isSafeInteger(/** @type {any} */ (r)?.leaseEpoch) && typeof (/** @type {any} */ (r)?.receipt) === 'string')
-      .slice(-CLOSED_KEEP)
-      .map(([id, r]) => [id, { leaseEpoch: /** @type {any} */ (r).leaseEpoch, receipt: /** @type {any} */ (r).receipt }]),
-  );
-
-/** @param {any} v @returns {HomeRecord} */
-const homeShape = (v) => ({
-  homeId: typeof v?.homeId === 'string' ? v.homeId : null,
-  leaseEpoch: Number.isSafeInteger(v?.leaseEpoch) && v.leaseEpoch > 0 ? v.leaseEpoch : 0,
-  state: v?.state === 'running' || v?.state === 'moving' ? v.state : 'none',
-  stateSince: Number.isFinite(v?.stateSince) ? v.stateSince : 0,
-  lastSeenAt: Number.isFinite(v?.lastSeenAt) ? v.lastSeenAt : 0,
-  moveId: typeof v?.moveId === 'string' ? v.moveId : null,
-  bundleHash: typeof v?.bundleHash === 'string' ? v.bundleHash : null,
-  moveDeadline: Number.isFinite(v?.moveDeadline) ? v.moveDeadline : null,
-  moveReceipts: receiptsOf(v?.moveReceipts),
-  closedMoves: Array.isArray(v?.closedMoves)
-    ? v.closedMoves.filter((/** @type {unknown} */ i) => typeof i === 'string').slice(-CLOSED_KEEP)
-    : [],
-  targetSignKey: typeof v?.targetSignKey === 'string' ? v.targetSignKey : null,
-  movedTo:
-    typeof v?.movedTo?.name === 'string' && typeof v.movedTo.homeId === 'string' && Number.isFinite(v.movedTo.at)
-      ? { name: v.movedTo.name, homeId: v.movedTo.homeId, at: v.movedTo.at }
-      : null,
-  name: typeof v?.name === 'string' ? v.name : '',
-  account: typeof v?.account === 'string' ? v.account : null,
-});
+/** @typedef {import('./momoHomeRecord.mjs').Grant} Grant */
+/** @typedef {import('./momoHomeRecord.mjs').HomeRecord} HomeRecord */
+/** @typedef {import('./momoHomeRecord.mjs').HomeStamp} HomeStamp */
 
 /**
  * @param {object} o
@@ -88,6 +46,7 @@ const homeShape = (v) => ({
  * @param {import('../../electron/platform/secretFile.cjs').SafeStorage & { forget?: () => void }} [o.dataSafeStorage] seals MoMo's stores (memory, audit, turns…) with a key of their own, so a move carries that key and the home's own files stay on the Host's (default: the Host's)
  * @param {string | null} [o.dataKeyDir] the folder of that key's file, when it is a file (a move copies and deletes it)
  * @param {(chatId: string) => boolean} [o.isMomoChat] the chats a memory fact may come from (the home's chats, H2)
+ * @param {ReturnType<typeof import('./momoEntitlementGate.mjs').createEntitlementGate> | null} [o.entitlement] the server-signed entitlement gate (#5474); without one a grant is the client's word (the closed alpha)
  * @param {(message: string) => void} [o.report]
  */
 export function createMomoHome({
@@ -98,6 +57,7 @@ export function createMomoHome({
   dataKeyDir = null,
   clock = systemClock,
   isMomoChat = () => false,
+  entitlement: gate = null,
   report = () => undefined,
 }) {
   if (typeof hostId !== 'string' || !hostId) throw new Error('MoMo’s home needs this Host’s own id.');
@@ -123,10 +83,11 @@ export function createMomoHome({
       return grantShape(null);
     }
   };
+  const entitlementKeep = gate ? createEntitlementKeep({ gate, sealed, dir: storage.dir, report }) : null;
   /** A grant is live for seven days after it was received; one from the future (this Host's clock moved back) is not live until the clock is back. @param {Grant} g */
   const live = (g) => {
     const age = now() - g.receivedAt;
-    return !!g.account && g.features.includes(MOMO_FEATURE) && age >= 0 && age <= GRANT_MAX_AGE_MS;
+    return !!g.account && g.features.includes(MOMO_FEATURE) && age >= 0 && age <= GRANT_MAX_AGE_MS && (entitlementKeep?.standing() ?? true);
   };
 
   /** @type {ReturnType<typeof opened> | null} */
@@ -219,18 +180,20 @@ export function createMomoHome({
      * An invited account's client sends its grant (and again every 30 minutes): a Host keeps it sealed. A grant without
      * the `momo` feature is a revoke: it is erased and answered as for a request no Host knows. Another account's grant or
      * revoke is refused the same way while a home or a live grant belongs to the first. Says how long the last one had run
-     * out, so the client can tell the person MoMo paused.
-     * @param {{ account: string, features: string[] }} p
+     * out, so the client can tell the person MoMo paused. With an entitlement gate (#5474) its refusal is answered as it is.
+     * @param {{ account: string, features: string[], entitlement?: string }} p
      */
-    async grant({ account, features }) {
+    async grant({ account, features: asked, entitlement }) {
       const before = readGrant();
       const h = readHome();
       // whose MoMo this is: the home's account, else the account of a grant still live; nobody else may grant or revoke it
       const owner = h?.homeId ? h.account : live(before) ? before.account : null;
       if (!h || (owner && owner !== account)) throw unknown('host.momoGrant');
+      const dropGrant = () =>
+        Promise.resolve(fs.existsSync(`${storage.dir}/grant.json`) ? grantFile.erase() : undefined).finally(() => (grantNow = null));
+      const features = (await entitlementKeep?.admit({ account, features: asked, entitlement }, dropGrant)) ?? asked;
       if (!features.includes(MOMO_FEATURE)) {
-        if (owner && fs.existsSync(path.join(storage.dir, 'grant.json'))) await grantFile.erase();
-        grantNow = null;
+        await (owner ? dropGrant() : (grantNow = null));
         throw unknown('host.momoGrant');
       }
       const lapsedForMs = before.receivedAt && !live(before) ? Math.max(0, now() - (before.receivedAt + GRANT_MAX_AGE_MS)) : null;
@@ -238,6 +201,7 @@ export function createMomoHome({
       grantNow = null;
       return { granted: true, expiresAt: now() + GRANT_MAX_AGE_MS, lapsedForMs };
     },
+    entitlement: entitlementKeep,
     /** What this Host holds: the home record (null when none, or "unavailable" when it could not be read) and when the grant runs out. */
     status() {
       const h = readHome();
@@ -245,6 +209,7 @@ export function createMomoHome({
         version: 1,
         keys: storage.keys,
         grantExpiresAt: readGrant().receivedAt + GRANT_MAX_AGE_MS,
+        access: entitlementKeep?.lapse() ?? null,
         home: !h
           ? { state: 'unavailable' }
           : h.state === 'none' && !h.movedTo
@@ -266,24 +231,24 @@ export function createMomoHome({
       };
     },
     /**
-     * Make this Host MoMo's home. Another home refuses it (`home_exists`, naming that machine); the same home asking
-     * again is answered as it is; a record that cannot be read refuses it rather than start over on top of it.
-     * @param {{ name: string }} p
+     * Make this Host MoMo's home. Another home refuses it (`home_exists`); the same home asking again is answered as it is; an unreadable
+     * record refuses it. A new home starts above this Host's own epoch, the newest stamp seen and `floor` (the highest the caller has seen on any Host).
+     * @param {{ name: string, floor?: number, revive?: boolean }} p
      */
-    async start({ name }) {
-      const homeId = hostId;
+    async start({ name, floor, revive }) {
       const before = readHome();
       if (!before) throw new HostRefusal('home_unavailable', "MoMo's home record on this machine cannot be read, so it was left as it is.");
+      let taking = false;
       await home.swap(before.leaseEpoch, (h) => {
-        // a machine MoMo moved away from is not the home again by a start: the new home holds the lease, and this one would be a second
-        if (h.state === 'none' && h.movedTo)
-          throw new HostRefusal('home_moved', `MoMo moved to ${h.movedTo.name}.`, { name: h.movedTo.name, homeId: h.movedTo.homeId });
-        if (h.state !== 'none' && h.homeId !== homeId)
-          throw new HostRefusal('home_exists', `MoMo's home is ${h.name}.`, { name: h.name, homeId: h.homeId });
-        if (h.state !== 'none') return false;
-        Object.assign(h, { homeId, name, state: 'running', account: readGrant().account });
-        return true;
+        const out = startRule(h, { hostId, name, floor, known: beside.newestEpoch(), revive });
+        if ('refuse' in out) throw new HostRefusal(out.refuse.code, out.refuse.message, out.refuse.details);
+        if ('asis' in out) return false;
+        Object.assign(h, out.set);
+        if (out.set.homeId) (taking = true), (h.account = readGrant().account);
+        return out.epoch;
       });
+      // only a home that was TAKEN (made, or taken back) starts its services: a lease bump or an answer as it is touches only the record
+      if (!taking) return home.status();
       home.stores();
       await home.lifecycle('start');
       return home.status();
@@ -318,13 +283,17 @@ export function createMomoHome({
       }
       told();
     },
+    ...createHomeSafety(() => home, { now, storage }), // what this Host holds and the stand-down (./momoHomeSafety.mjs)
     // the services plugged into the home (./momoServiceRegistry.mjs)
     ...registry,
     /**
      * Reset MoMo on this Host: services pause and wipe, the stores let go, and every file MoMo's stores kept is deleted. The home record, the
      * grant, the chat registry and the data key stay, so the home goes on, empty. Refused while a move is under way.
+     * @param {{ ifRetired?: boolean, expectEpoch?: number }} [pre] "Delete the old MoMo": only a copy still retired at that epoch
      */
-    async reset() {
+    async reset(pre) {
+      const refused = resetRule(/** @type {HomeRecord} */ (readHome()), pre);
+      if (refused) throw new HostRefusal(refused.code, refused.message);
       if (readHome()?.state === 'moving') throw new HostRefusal('move_in_progress', 'MoMo is being moved; reset it afterwards.');
       await home.lifecycle('pause');
       await home.lifecycle('wipe');
@@ -339,7 +308,7 @@ export function createMomoHome({
         if (!RESET_KEEPS.includes(entry)) fs.rmSync(path.join(storage.dir, entry), { recursive: true, force: true });
       // the person who resets a machine MoMo moved away from means to start over on it: its tombstone goes, so it may be a home again (a new one, with its own lease)
       const kept = readHome();
-      if (kept?.state === 'none' && kept.movedTo) await home.swap(kept.leaseEpoch, (r) => ((r.movedTo = null), false));
+      if (kept?.state === 'none' && kept.movedTo) await home.swap(kept.leaseEpoch, (r) => ((r.movedTo = null), (r.retired = null), false));
       if (home.stamp()) await home.lifecycle('start');
       return home.status();
     },
@@ -363,15 +332,16 @@ export function createMomoHome({
     canAdopt(leaseEpoch) {
       const h = readHome();
       if (!h) throw new HostRefusal('home_unavailable', "MoMo's home record on this machine cannot be read, so it was left as it is.");
-      if (h.state !== 'none') throw new HostRefusal('home_exists', `MoMo's home is ${h.name}.`, { name: h.name, homeId: h.homeId });
-      if (!(leaseEpoch > h.leaseEpoch))
-        throw new HostRefusal('home_lease_stale', 'That lease is not newer than this one.', { leaseEpoch: h.leaseEpoch });
+      const refused = adoptRule(h, leaseEpoch, beside.newestEpoch());
+      if (refused) throw new HostRefusal(refused.code, refused.message, refused.details);
     },
     /**
      * Take a stamp that arrived from another Host or a push: refused when it is older than the newest lease this Host has seen for a home, or at
      * the same lease from another machine (the sink, shared/momoStamp.mjs). The newest is kept across restarts. @param {unknown} stamp
      */
     receiveStamp: (stamp) => beside.receiveStamp(stamp),
+    /** The newest lease epoch this Host has seen in any stamp (0 before any). */
+    newestEpoch: () => beside.newestEpoch(),
     /** This Host's own clock, which a move's deadlines are measured on. */
     now,
     /** This Host's own id: what names the home on every record and receipt. */

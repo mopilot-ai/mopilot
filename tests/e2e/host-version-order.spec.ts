@@ -46,7 +46,7 @@ test.use({
     PATH: withPath([FAKE_SSH_BIN]),
   },
   seed: {
-    uiState: { prefs: { ...themeSeed('light').prefs, sshHosts: ['me@newer', 'me@older', 'me@differs'] } },
+    uiState: { prefs: { ...themeSeed('light').prefs, autoUpdate: false, sshHosts: ['me@newer', 'me@older', 'me@differs'] } },
     userData: { 'host-registry.json': { version: 1, hosts: ['me@newer', 'me@older', 'me@differs'].map(record) } },
   },
 });

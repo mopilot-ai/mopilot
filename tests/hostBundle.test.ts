@@ -59,6 +59,9 @@ test('the bundle of this repository has the Host, what it reaches and the packag
   assert.ok(listed.includes('src/cli.mjs'), 'the shim `update` unpacks');
   for (const f of [ENTRY, 'host/src/cli.mjs', 'host/package.json', 'shared/host/schema.mjs', 'electron/harness/acp.cjs'])
     assert.ok(listed.includes(f), f);
+  // the view contract is split into modules the walker follows by their explicit paths: all of them are in the bundle (a .ts file is shipped as .mjs, with its import paths rewritten)
+  for (const f of ['shared/momoView.mjs', 'shared/momoViewBase.mjs', 'shared/momoViewRows.mjs', 'shared/momoViewLists.mjs'])
+    assert.ok(listed.includes(f), f);
   assert.ok(
     listed.some((f: string) => f.startsWith('node_modules/mdast-util-from-markdown/')),
     'a package the Host imports',

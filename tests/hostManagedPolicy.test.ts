@@ -74,6 +74,24 @@ test('a person with no file is unconstrained and not managed', () => {
   assert.equal(p.roots(), undefined);
 });
 
+test('the mode a chat was last set to is what the policy remembers of it (start, then a later permit)', () => {
+  const p = mk({});
+  assert.equal(p.modeOf('claude:m'), undefined);
+  p.checkRequest('chat.start', { chatId: 'claude:m', harness: 'claude', permission: 'default' }, 'desktop');
+  assert.equal(p.modeOf('claude:m'), 'default');
+  p.checkRequest('chat.permit', { chatId: 'claude:m', value: 'read-only' }, 'desktop');
+  assert.equal(p.modeOf('claude:m'), 'read-only');
+});
+
+test('hosts.clients.home false refuses MoMo on this machine, and a phone ban does not', () => {
+  const p = mk({ hosts: { clients: { home: false } } });
+  assert.throws(() => p.checkRequest('host.clientAdd', { kind: 'home' }, 'desktop'), refusal('hosts.clients.home'));
+  p.checkRequest('host.clientAdd', { kind: 'phone' }, 'desktop');
+  mk({ hosts: { clients: { home: true } } }).checkRequest('host.clientAdd', { kind: 'home' }, 'desktop');
+  mk({ hosts: { clients: { phone: false } } }).checkRequest('host.clientAdd', { kind: 'home' }, 'desktop');
+  assert.deepEqual(mk({ hosts: { clients: { home: false } } }).status().locked, ['hosts.clients.home']);
+});
+
 test('hosts.clients.phone false refuses a phone, not a desktop', () => {
   const p = mk({ hosts: { clients: { phone: false } } });
   assert.throws(() => p.checkRequest('host.clientAdd', { kind: 'phone' }, 'desktop'), refusal('hosts.clients.phone'));

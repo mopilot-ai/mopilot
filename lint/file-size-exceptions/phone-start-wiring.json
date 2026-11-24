@@ -5,8 +5,8 @@
       "reason": "Owns the browser/paired-phone composition root. Initial permission ordering and the pre-chat mention resolver are wired beside the existing start and list operations; their implementation stays in the existing focused services. Combined dependency integration retains the already configured 510-line cap."
     },
     "electron/app/ipc/host.cjs": {
-      "maxLines": 530,
-      "reason": "The Host IPC composition root owns the allowed machine services and their app lifetime. Side chats share the existing machine start, send and follow services, including retirement at quit. The registration and shared lifetime wiring belong here. Preparing the side chat and carrying its picks live in machineSideChat.cjs."
+      "maxLines": 532,
+      "reason": "The Host IPC composition root owns the allowed machine services and their app lifetime. Side chats share the existing machine start, send and follow services, including retirement at quit. The registration and shared lifetime wiring belong here. Preparing the side chat and carrying its picks live in machineSideChat.cjs. MoMo's real home API is attached when the machines service is created (one call, handing it the cloud wake and the system key, and its stop at quit); the home itself lives in electron/momo/homeService.cjs. The MoMo home's one attach call also hands it the protocol's hello and the one wake the chat send shares."
     }
   }
 }

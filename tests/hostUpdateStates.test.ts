@@ -113,6 +113,23 @@ test('only an actual pairing refusal marks Pair again; retryable transport error
   }
 });
 
+test('a missing restart acknowledgment clears when the Host reports the update took effect', async () => {
+  for (const appBuild of ['b2', '']) {
+    const s = createUpdateStates({ appBuild: () => appBuild, appVersion: () => '1.0.0' });
+    await assert.rejects(
+      s.run(
+        'm',
+        async () => {
+          throw Object.assign(new Error('Restart unconfirmed'), { code: 'update_restart_unconfirmed' });
+        },
+        () => undefined,
+      ),
+    );
+    assert.equal(s.rowFor('m', '', false).update, 'failed', 'no answer keeps the recovery action');
+    assert.equal(s.rowFor('m', 'b2', true).update, appBuild ? undefined : 'failed');
+  }
+});
+
 test('a removed update cannot publish over a newer update of the same id', async () => {
   for (const fail of [false, true]) {
     const s = createUpdateStates({ appBuild: () => 'b', appVersion: () => '1.0.0' });
@@ -162,4 +179,34 @@ test('a retry keeps the cause of the failure it follows on the row until it ends
   );
   assert.equal(during.update, 'running');
   assert.equal(during.updateError, 'No route.', 'the last cause is still readable while the next try uploads');
+});
+
+test('a deferred automatic update restores the previous row state', async () => {
+  const s = createUpdateStates({ appBuild: () => 'b2', appVersion: () => '1.0.0' });
+  const fail = (e: Error) =>
+    s.run(
+      'm',
+      async () => Promise.reject(e),
+      () => undefined,
+    );
+  const defer = () => fail(Object.assign(new Error('Waiting for the Host'), { code: 'update_deferred' }));
+  const row = () => s.rowFor('m', 'b1', true, '0.9.0');
+  await assert.rejects(defer());
+  assert.equal(row().update, undefined);
+  await assert.rejects(fail(new Error('No route.')));
+  await assert.rejects(defer());
+  assert.equal(row().update, 'failed');
+  assert.equal(row().updateError, 'No route.');
+});
+
+test('automatic eligibility needs a distinct known app build and an older or legacy Host', () => {
+  const options = { appBuild: () => 'mine', appVersion: () => '0.4.62' };
+  const status = { id: 'm', hostBuild: 'older', hostAppVersion: '0.4.61' };
+  const { isOlder } = createUpdateStates(options).forUpdater;
+  assert.equal(isOlder(status), true);
+  assert.equal(isOlder({ ...status, hostBuild: '', hostAppVersion: '' }), true);
+  assert.equal(isOlder({ ...status, hostBuild: 'mine' }), false);
+  assert.equal(isOlder({ ...status, hostBuild: '', hostAppVersion: '0.4.63' }), false);
+  assert.equal(createUpdateStates({ ...options, appBuild: () => '' }).isOlder(status), false);
+  assert.equal(createUpdateStates({ ...options, appVersion: () => '' }).isOlder(status), false);
 });

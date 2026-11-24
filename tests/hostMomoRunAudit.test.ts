@@ -276,7 +276,8 @@ test('two actions cut short are one report in the plural, and a row made while t
   const realStores = home.stores.bind(home);
   const realStamp = home.stamp.bind(home);
   let gone = false;
-  home.stamp = () => (gone ? ((gone = false), null) : realStamp());
+  // only the gate's own build is told so: another service's timer reading the stamp first must not use the one null up
+  home.stamp = () => (gone && /\bbuild \(.*momoServices\/gate\.mjs/.test(new Error().stack ?? '') ? ((gone = false), null) : realStamp());
   home.stores = () => {
     const s = realStores();
     const audit = new Proxy(s.audit, {

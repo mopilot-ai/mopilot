@@ -3,6 +3,7 @@
 import { selectLocalProject } from '../../store/localProjectDraft';
 import { useFolderHere } from '../../lib/chatMachine';
 import { useEffect, useState } from 'react';
+import { ownGet, ownTable } from '../../../shared/ownTable.mjs';
 import { useStore, toast } from '../../store/core';
 import { navigate } from '../../store/panes';
 import { showPanel } from '../../store/shellPanels';
@@ -15,7 +16,7 @@ import { PARTS } from '../harness/parts';
 import { fastBillingNote } from '../../harness/accounts';
 import { setSelection, useComposerFamily, useEffectiveSelection, useHarnessAccounts } from '../../session/harness/select';
 import { HARNESS_TRAITS, firstTierOf } from '../../harness/family';
-import { setRemoteControl, useClaudeCommands, useCommandProvider } from '../../session/harness/claude';
+import { setRemoteControl, useClaudeCommands, useClaudeSkillFiles, useCommandProvider } from '../../session/harness/claude';
 import { appEntries, composeCommands } from '../../harness/commands';
 import { initDesc } from '../../harness/polyfills/init';
 import { COPY } from '../../harness/copy';
@@ -116,6 +117,7 @@ export function useSlashItems(
   const cwd = useChatFolderHere(threadId);
   // Claude's catalog: its skills come with it, so Codex's skill list is only fetched without one
   const nativeCmds = useClaudeCommands(threadId, cwd);
+  const claudeFiles = useClaudeSkillFiles(threadId, cwd);
   // Skills follow the commands, like the official menu.
   const codexReady = useStore((s) => s.conn === 'ready');
   // the folder whose Codex skills are listed; null: none are (the chat is on another harness, which has its own,
@@ -465,7 +467,7 @@ export function useSlashItems(
         disabled: c.source === 'skill' ? (attachmentOff ?? undefined) : undefined,
         desc: c.description,
         icon: c.source === 'skill' ? <Box {...I} /> : <SquareSlash {...I} />,
-        scope: c.source === 'skill' ? 'Skill' : undefined,
+        scope: c.source === 'skill' ? (CLAUDE_SCOPE[ownGet(claudeFiles, c.name)?.scope ?? ''] ?? 'Skill') : undefined,
         skill: c.source === 'skill',
         nativeSkill: c.source === 'skill' ? c.name : undefined,
         aliases: c.aliases,
@@ -473,6 +475,9 @@ export function useSlashItems(
       })),
   ];
 }
+
+/** The scope label a Claude skill row carries, in the words Codex's rows use. */
+const CLAUDE_SCOPE: Record<string, string> = ownTable({ personal: 'Personal', project: 'Project', plugin: 'Plugin' });
 
 /** Typed-only: the menu above has its own entry (Feedback, which /bug also finds) or the command needs a chat's history. */
 const NO_APP_ENTRY = new Set(['feedback', 'bug', 'goal', 'review', 'status', 'mcp', 'init', 'model', 'plan']);

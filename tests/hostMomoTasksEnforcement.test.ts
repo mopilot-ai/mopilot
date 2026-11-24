@@ -7,6 +7,7 @@ import { MOMO_FORM } from '../host/src/momoChats.mjs';
 import { loadMomoServices } from '../host/src/momoServices.mjs';
 import { A, host } from './support/host/momoMoveWorld.ts';
 import { ask, fakeSessions, REPORT, tasksWorld, until, withWorkDir } from './support/host/momoTasksWorld.ts';
+import { waitFor } from './support/waitFor.ts';
 
 const chatOf = (item: { where: { sessionId: string | null } }) => item.where.sessionId as string;
 const on = (harness: string) => ({ ...ask, title: `on ${harness}`, where: { machineId: A.homeId, harness } });
@@ -66,7 +67,7 @@ test('a lease lost while the Host is starting the session stops that session', a
   const w = await tasksWorld(t);
   const stamp = w.home.stamp.bind(w.home);
   w.sessions.duringSend = () => void (w.home.stamp = () => null);
-  await assert.rejects(w.tasks.create(ask), /not running on this machine/);
+  await assert.rejects(w.tasks.create(ask), /not running on/);
   w.home.stamp = stamp;
   assert.equal(w.sessions.cancelled.length, 1);
   assert.equal(w.sessions.cancelled[0], w.sessions.sent[0].key);
@@ -214,6 +215,7 @@ test("the home's wiring hands over only the brain and the chat (no machine): age
         brainUp ? '{"met": true, "reason": "ok", "checked": "opened it"}' : Promise.reject(refuse('momo_check_unavailable')),
     },
     chat: {
+      chatId: () => 'momo-chat',
       postResult: async (card: any) => (chatUp ? void rows.push(card) : Promise.reject(refuse('momo_chat_unavailable'))),
       postWatchChanged: async () => Promise.reject(refuse('momo_chat_unavailable')),
     },
@@ -227,7 +229,9 @@ test("the home's wiring hands over only the brain and the chat (no machine): age
   assert.deepEqual([view.failure?.code, view.failure?.message], ['not-done', "I couldn't check this result."]);
   assert.equal(rows.length, 0);
   chatUp = true;
-  assert.equal(await tasks.deliver(), 1);
+  // the owed card is posted once the chat works: by this call or by the delivery that was already running, whichever comes first, so the test waits for the card and not for which of them posted it
+  await tasks.deliver();
+  await waitFor(() => rows.length > 0, 'the owed card to be posted');
   assert.deepEqual([rows.length, rows[0].state, rows[0].itemId], [1, 'needs_you', item.id]);
   assert.equal(brainUp, false);
 });

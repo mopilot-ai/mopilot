@@ -105,5 +105,30 @@ for (const family of [
       await page.getByRole('button', { name: 'Request Accessibility permission', exact: true }).click();
       await expect(page.locator('.cu-permission-still')).toHaveText(recovery!);
     });
+
+    test('request access alone, with Screen Recording off, shows the card its answer points to', async ({ page, harness }, info) => {
+      const helper = harness.helper!;
+      helper.permissions.screenRecording = false;
+      helper.enforcePermissions = true;
+      await expect(page.getByRole('heading', { name: 'What should we build?' })).toBeVisible();
+      const composer = page.getByRole('textbox', { name: 'Message', exact: true });
+      // no action follows: the access request is the only call that can raise the card (#5577)
+      const lines = [family.call('desktop_request_access', { apps: ['Notes'], reason: 'Read the note' }), family.steps];
+      await composer.fill(lines.join('\n'));
+      await page.getByRole('button', { name: 'Send', exact: true }).click();
+      await page
+        .locator('.sage-approval')
+        .getByRole('button', { name: /^Allow in this chat/ })
+        .click();
+      const guide = page.locator('.cu-permission');
+      await expect(guide).toHaveAttribute('data-permission', 'screenRecording');
+      await expect(guide.getByRole('button', { name: 'Request', exact: true })).toBeVisible();
+      await page.screenshot({ path: info.outputPath('request-access-permission-card.png') });
+      // the grant lands while the call waits: the card goes by itself and the turn carries on to its end
+      helper.permissions.screenRecording = true;
+      await expect(guide).toHaveCount(0, { timeout: 30_000 });
+      await expect(page.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('main').getByText(/permission card in this chat/)).toHaveCount(0);
+    });
   });
 }
