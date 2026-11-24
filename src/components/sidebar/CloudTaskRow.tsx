@@ -1,6 +1,6 @@
 // A Codex Cloud sidebar row, shared by projects and the Cloud section.
 import type { CloudTask } from '../../lib/native';
-import { Cloud } from '../ui/icons';
+import { LocationMark } from '../ui/HostMark';
 import { RowDot } from './ThreadIndicators';
 import { useStore } from '../../store/core';
 import { activeCloudTask } from '../../store/route';
@@ -22,11 +22,13 @@ export function CloudTaskRow({ task }: { task: CloudTask }) {
       title={task.environment_label ?? undefined}
       onClick={() => navigate({ name: 'cloud', id: task.id })}
     >
-      <span className="side-row-label">{task.title ?? task.id}</span>
-      <span className="row-meta">
-        {cloudRunning(task) ? <RowDot status="working" label="Working" /> : <Cloud size={12} strokeWidth={1.8} />}
-        <span>{cloudLabel}</span>
+      <span className="thread-row-content">
+        <span className="side-row-name">
+          <span className="side-row-label">{task.title ?? task.id}</span>
+          <LocationMark kind="cloud" label={cloudLabel} />
+        </span>
       </span>
+      <span className="row-status">{cloudRunning(task) && <RowDot status="working" label="Working" />}</span>
     </button>
   );
 }

@@ -151,7 +151,10 @@ export function createMomoGoogle({
   };
 
   /** The revokes owed: the Host's own sealed file (a Reset keeps it, so a grant that could not be revoked before a Reset is still tried after). */
-  const owedFile = () => createOwedFile(home.hostOnlyStorage.dir, home.hostOnlyStorage.safeStorage, fs.promises);
+  const owedFile = () => {
+    const own = home.hostOwnStorage('google-revoke-owed.json');
+    return createOwedFile(own.dir, own.safeStorage, fs.promises);
+  };
   /** @param {string} token a refresh token Google could not be asked to revoke */
   async function owe(token) {
     try {

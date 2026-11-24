@@ -180,6 +180,15 @@ export const FLAG_DEFS = Object.freeze(
         "MoMo's home on a Host (M1, designs/momo-m1-home): MoMo's chats, memory, routines and cards live on a machine's Host and keep running with the app closed; off, MoMo runs in the Mac app as before and no client asks a Host for MoMo",
     },
     {
+      key: 'momo.hostLink',
+      default: false,
+      owner: 'momo',
+      remove: '2027-03-31',
+      mode: 'toggle',
+      description:
+        "MoMo's home starts and follows its tasks on the user's other machines by itself (#5474, option B): the owner allows MoMo per machine, and the home reaches it over the end-to-end relay session with a key of its own; off, tasks run only on the home's own machine",
+    },
+    {
       key: 'host.unattended',
       default: true,
       owner: 'host',
@@ -217,12 +226,12 @@ export const FLAG_DEFS = Object.freeze(
     },
     {
       key: 'host.autoUpdate',
-      default: false,
+      default: true,
       owner: 'host',
       remove: '2027-03-31',
       mode: 'toggle',
       description:
-        "A machine's Host reached over ssh is updated to this app's build by itself when it is older (Remote Run, #2709): at most three tries per app build, the Host restarts only once idle, and the person's \"Update automatically\" still applies; off until the real-machine check passes, the row's Update button is the only way",
+        "An older Host reached over SSH receives this app's build when automatic updates are enabled (Remote Run, #2709). The app tries at most three times per build and the Host restarts when idle. The machine's manual Update remains available when the switch is off.",
     },
     {
       key: 'host.phoneDirect',

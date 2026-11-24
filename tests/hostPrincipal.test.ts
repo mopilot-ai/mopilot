@@ -206,7 +206,13 @@ test('a client-table request that reaches the handler table, with no connection 
   // @ts-ignore: plain ESM without declarations
   const { default: made } = await import('../host/src/methods/clients.mjs');
   const { handlers } = made();
-  assert.deepEqual(Object.keys(handlers).sort(), ['host.clientAdd', 'host.clientRemove', 'host.clientRename', 'host.clients']);
+  assert.deepEqual(Object.keys(handlers).sort(), [
+    'host.clientAdd',
+    'host.clientRemove',
+    'host.clientRename',
+    'host.clients',
+    'host.homeLinkRepair',
+  ]);
   for (const run of Object.values<any>(handlers))
     assert.throws(
       () => run({}),

@@ -75,7 +75,9 @@ test('a full sign-in through the shared client flow: connecting, connected read-
   assert.equal(w.fake.requests.filter((r) => r.path === '/token').length, 1);
   // the tokens exist on the home's disk, sealed, and nowhere else
   const sealedAccount = fs.readFileSync(path.join(w.momoDir, 'google', 'google-account.sealed'), 'utf8');
-  assert.doesNotMatch(sealedAccount, /rt1|at1/);
+  // quote-bounded: a quote is never in base64, so ciphertext cannot contain these by chance (a bare `rt1` does, now and then)
+  assert.equal(JSON.parse(sealedAccount).enc, 'safe');
+  assert.doesNotMatch(sealedAccount, /"(rt1|at1)"|refreshToken|accessToken/);
   assert.ok(!JSON.stringify(ok).includes('rt1'));
 });
 

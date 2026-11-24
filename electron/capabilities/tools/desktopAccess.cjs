@@ -5,7 +5,7 @@ const P = require('../contract/desktopPolicy.cjs');
 const { TIER_LEVEL } = require('./desktopSpecs.cjs');
 const { onboarding } = require('./desktopUtil.cjs');
 const { outdatedHelperText } = require('../computer.cjs');
-const { checkAct, shuttingDown, noteNoGo } = require('../contract/actionGuard.cjs');
+const { checkAct, mayAct, shuttingDown, noteNoGo } = require('../contract/actionGuard.cjs');
 const { SELF_NAME, refuseSelf } = require('../contract/controlRefusals.cjs');
 /** @typedef {import('./desktop.cjs').Clipboard} Clipboard */
 /** @typedef {import('./desktop.cjs').Clip} Clip */
@@ -145,8 +145,7 @@ class DesktopAccess {
     if (always.length) out.alwaysAllowed = always;
     if (self) out.instead = `MoPilot: ${P.SELF_PANE_HINT}`;
     try {
-      const perms = await helper.permissionStatus();
-      const missing = ['screenRecording', 'accessibility'].filter((p) => perms?.[p] === false);
+      const missing = await this.missingPermissions(chatId, helper, ctx);
       if (missing.length) out.setup = missing.map((p) => onboarding(p, this.helperInfo)).join(' ');
     } catch (error) {
       // permission status unknown: no setup hint (a missing permission still fails the action with its guide)
@@ -156,6 +155,31 @@ class DesktopAccess {
       out.next =
         'Work in an app in the background with desktop_app_screenshot and the other desktop_app_* tools; use desktop_open_application and desktop_screenshot only for display-scope control.';
     return [{ type: 'text', text: JSON.stringify(out, null, 1) }];
+  }
+
+  /**
+   * The required macOS permissions still off once access is settled. The setup text says a permission card is in the
+   * chat and macOS was asked, so both happen here, as for an action that failed: the card goes up, macOS is asked
+   * (never with nobody there, or for a stopped call) and a grant given in time leaves nothing to set up. Empty when
+   * no card goes up (a stopped call, the coordinator closing).
+   * @this {DesktopControl}
+   */
+  async missingPermissions(chatId, helper, ctx) {
+    const off = async () => {
+      const perms = await helper.permissionStatus();
+      return ['screenRecording', 'accessibility'].filter((p) => perms?.[p] === false);
+    };
+    const missing = await off();
+    // a call stopped meanwhile (the access card can wait long) raises nothing for its ended turn
+    if (!missing.length || !mayAct()) return [];
+    // the order the card's own recheck names them in
+    const permission = missing.includes('accessibility') ? 'accessibility' : 'screenRecording';
+    const refusal = this.cu.showPermissionGuide(chatId, permission);
+    if (!refusal) return [];
+    if ((await this.cu.unattended(chatId, ctx)) || !this.cu.permissionMayAct(chatId, refusal)) return missing;
+    // nothing missing now takes the card down; otherwise it stays on a permission still off, read again after the wait
+    if ((await this.cu.awaitGrant(chatId, refusal, permission)) && (await this.cu.recheck(chatId))) return [];
+    return off();
   }
 
   /**

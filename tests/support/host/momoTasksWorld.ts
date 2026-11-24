@@ -95,6 +95,7 @@ export async function tasksWorld(t: any, { bind = true, start = true } = {}) {
     machine: { name: 'Studio', agents: () => agents.list },
     check: { ask: async (p: string, data?: string) => (asked.push(p), askedData.push(data), brain.answer) },
     chat: {
+      chatId: () => 'momo-chat',
       postResult: async (c: ResultCard) => {
         if (chat.down) throw new Error('chat down');
         cards.push(c);

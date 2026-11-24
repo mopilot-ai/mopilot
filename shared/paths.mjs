@@ -10,6 +10,24 @@ export const isWinPath = (p) => /^[A-Za-z]:([\\/]|$)/.test(p) || /^\\\\[^\\]/.te
 /** A Windows path's comparable form: lower-cased, '\' separators, no trailing one. */
 export const winPathKey = (p) => p.replace(/\//g, '\\').replace(/\\+$/, '').toLowerCase();
 
+/** Infer the parent checkout from a Host-created worktree's folder name, without reading a filesystem. @param {string} folder */
+export function foldHostWorktreePath(folder) {
+  const windows = isWinPath(folder);
+  if (!windows && !folder.startsWith('/')) return folder;
+  const parts = folder.split(windows ? /[\\/]/ : '/');
+  const at = parts.findIndex(
+    (part, i) =>
+      i > 0 &&
+      part.endsWith('.worktrees') &&
+      part.length > 10 &&
+      !!parts[i + 1] &&
+      /^(?:[\w.-]|%[0-9a-f]{2,4})+$/i.test(parts[i + 1]) &&
+      !['.', '..'].includes(parts[i + 1]),
+  );
+  if (at < 0) return folder;
+  return [...parts.slice(0, at), parts[at].slice(0, -10)].join(windows && folder.includes('\\') ? '\\' : '/');
+}
+
 export function basename(p) {
   if (!p) return '';
   if (!isWinPath(p)) {

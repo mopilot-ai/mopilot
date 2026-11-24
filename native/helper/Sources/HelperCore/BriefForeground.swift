@@ -60,6 +60,18 @@ public func planForegroundRestore(previousFront: Int32?, target: Int32, pointerB
 /// window is on top goes out at the HID level, as a person's would. At any other point, or with the app in the
 /// background, it is posted to the process: a HID click there would land on whatever is on top.
 public func clickRoute(foreground: Bool, ownerPid: Int32?, targetPid: Int32) -> String {
+    pointerRoute(foreground: foreground, ownerPid: ownerPid, targetPid: targetPid)
+}
+
+/// The route an app wheel scroll takes, by the same rule as a click: WeChat-style apps ignore a wheel event posted to
+/// their process, so in brief foreground, where the app's own window is on top at the point, a real wheel event goes out
+/// at the HID level (the pointer is moved to the point first and restored afterwards); anywhere else it is posted to the process.
+public func scrollRoute(foreground: Bool, ownerPid: Int32?, targetPid: Int32) -> String {
+    pointerRoute(foreground: foreground, ownerPid: ownerPid, targetPid: targetPid)
+}
+
+/// The one rule behind clickRoute and scrollRoute: a real-pointer ("hid") event only with the app in front and its own window under the point.
+func pointerRoute(foreground: Bool, ownerPid: Int32?, targetPid: Int32) -> String {
     foreground && ownerPid == targetPid ? "hid" : "pid"
 }
 

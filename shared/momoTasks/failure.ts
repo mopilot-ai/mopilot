@@ -35,6 +35,8 @@ const FIX_LABEL: Partial<Record<FixAction, (machine: string, agent: string) => s
   signIn: (machine) => `Sign in on ${machine}`,
   orgSignIn: () => 'Sign in to your organization',
   update: (machine) => `Update MoPilot on ${machine}`,
+  // done by the app: it registers MoMo's key on that machine after the owner agrees
+  allow: (machine) => `Allow MoMo to use ${machine}`,
 };
 
 const fix = (action: FixAction, c: FailureContext, extra: Partial<Fix> = {}): Fix => ({
@@ -66,6 +68,8 @@ const retryFix: Fix = { action: 'retry', label: 'Retry' };
 export function preflight(c: FailureContext): TaskError | null {
   const name = machineName(c);
   if (!c.machine) return error(c, 'machine_offline', `${name} isn't one of your machines any more.`, alternatives(c), false);
+  if (c.machine.needsAllow)
+    return error(c, 'machine_not_allowed', `MoMo isn't allowed to use ${name} yet.`, [fix('allow', c), ...alternatives(c)], false);
   if (!c.machine.online) return error(c, 'machine_offline', `${name} is offline.`, [retryFix, ...alternatives(c)], true);
   if (c.machine.outdated)
     return error(c, 'host_outdated', `MoPilot on ${name} is out of date.`, [fix('update', c), ...alternatives(c)], false);
@@ -89,6 +93,25 @@ export function preflight(c: FailureContext): TaskError | null {
 /** A Host's refusal of the start, in the words a Remote Run chat shows for the same code. */
 export function fromRefusal(refusal: { code: string; message?: string; details?: Record<string, unknown> }, c: FailureContext): TaskError {
   const name = machineName(c);
+  // the machine does not take MoMo's key as its home's (another key holds the lease, none does, or a handover did not finish): the owner's device allows MoMo again, in the machine's own words
+  if (refusal.code === 'home_lease_held' || refusal.code === 'home_lease_unassigned' || refusal.code === 'home_handover_failed')
+    return error(
+      c,
+      'machine_not_allowed',
+      c.words.refusalWords(refusal.code, { machine: name })?.line ?? `MoMo isn't allowed to use ${name} yet.`,
+      [fix('allow', c), ...alternatives(c)],
+      false,
+    );
+  if (refusal.code === 'machine_not_allowed')
+    return error(c, 'machine_not_allowed', `MoMo isn't allowed to use ${name} yet.`, [fix('allow', c), ...alternatives(c)], false);
+  if (refusal.code === 'machine_lost')
+    return error(
+      c,
+      'machine_offline',
+      `The connection to ${name} was lost while starting, so it may have started. Retry checks.`,
+      [retryFix, ...alternatives(c)],
+      true,
+    );
   if (refusal.code === 'machine_offline') return error(c, 'machine_offline', `${name} is offline.`, [retryFix, ...alternatives(c)], true);
   if (refusal.code === 'host_outdated')
     return error(c, 'host_outdated', `MoPilot on ${name} is out of date.`, [fix('update', c), ...alternatives(c)], false);

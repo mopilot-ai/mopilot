@@ -18,6 +18,7 @@ import { HostStore } from './hostStore.mjs';
 import { bootData, hostGone, isHostKind, liveFrame, peerChanged, refreshed, revocableId } from './hosts.mjs';
 import { revokeDevice } from './revoke.mjs';
 import { createBoots } from './boot.mjs';
+import { createRendezvous } from './rendezvous.mjs';
 import { closeOf, countRefusal, refusedDisabled } from './access.mjs';
 
 /** @typedef {import('./connection.mjs').Socket} Socket */
@@ -38,7 +39,7 @@ export class Hub {
    * @param {import('./store.mjs').Store} o.store
    * @param {import('./push.mjs').PushService} o.push
    * @param {{ verify(token: string): Promise<Identity | null> }} o.verifier
-   * @param {{ mailbox: { ttlMs: number, maxFrames: number, maxBytes: number }, pairJoinMs: number, limits?: Partial<import('./limits.mjs').Limits>, trustProxy?: boolean, bootOrigin?: string | null }} o.config
+   * @param {{ mailbox: { ttlMs: number, maxFrames: number, maxBytes: number }, pairJoinMs: number, limits?: Partial<import('./limits.mjs').Limits>, trustProxy?: boolean, bootOrigin?: string | null, rendezvous?: boolean }} o.config
    * @param {() => number} [o.now]
    * @param {(event: string, data: object) => void} [o.log] ids and sizes only, never a frame
    * @param {import('./durableStore.mjs').DurableStore} [o.durable] keeps a frame until its receiver acknowledges it (counter 0, the pairing hello, still uses the plain mailbox)
@@ -78,6 +79,8 @@ export class Hub {
     this.hosts = new HostStore(store.db);
     /** Add by command's boot ids and the downloads they proxy (boot.mjs): memory only */
     this.boots = createBoots({ now, origin: config.bootOrigin ?? null, perDay: this.limits.bootsPerDay, log });
+    /** Pairing two computers by a code (rendezvous.mjs): memory only, five minutes at most; null (and its routes unknown) unless RENDEZVOUS=1 */
+    this.rendezvous = config.rendezvous ? createRendezvous({ now, metrics }) : null;
     /** set once a shutdown starts: new sockets are refused and closing sockets raise no offline notices */
     this.draining = false;
     this.cache = new PairCache(now, CACHE_MS);
@@ -463,6 +466,8 @@ export class Hub {
   /** Every `pingMs`: ping each socket, end the ones that missed three, and end the ones whose token ran out without a refresh. */
   tick() {
     tickHub(this, MISSED_PINGS, TOKEN_GRACE_MS);
+    // the pairing offers and limits that ran out go on the relay's own timer, never on a request
+    this.rendezvous?.sweep();
   }
 
   /** Drops expired mailbox frames and tells the senders (now, or when they next connect). */

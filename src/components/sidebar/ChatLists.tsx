@@ -82,7 +82,7 @@ export function PinnedSection({
       <div className="side-label">Pinned</div>
       {visible.map((t) => (
         <DraggableChat key={t.id} id={t.id} orderKey={PINNED_ORDER} ids={list.map((t) => t.id)} reorder={reorderChat}>
-          <ThreadRow thread={t} active={t.id === activeThread} indent={false} />
+          <ThreadRow thread={t} active={t.id === activeThread} />
         </DraggableChat>
       ))}
       {foot}
@@ -134,16 +134,16 @@ export function RecentsSection({
         </div>
       </div>
       <Collapse open={!collapsed} className="side-collapse">
-        <StartingChatRows entries={starting} indent={false} />
+        <StartingChatRows entries={starting} />
         {list.length === 0 && starting.length === 0 && (
           <div className="side-row empty-note recents">{loading ? 'Loading…' : 'No chats'}</div>
         )}
         {visible.map((t) => (
           <Fragment key={t.id}>
             <DraggableChat id={t.id} orderKey={RECENTS_ORDER} ids={list.map((t) => t.id)} reorder={reorderChat}>
-              <ThreadRow thread={t} active={t.id === activeThread} indent={false} onOpen={openChat} nestedView="recents" />
+              <ThreadRow thread={t} active={t.id === activeThread} onOpen={openChat} nestedView="recents" />
             </DraggableChat>
-            <ChildRows parentId={t.id} activeThread={activeThread} view="recents" indent={false} />
+            <ChildRows parentId={t.id} activeThread={activeThread} view="recents" />
           </Fragment>
         ))}
         {foot}
@@ -173,7 +173,7 @@ export function PrioritySection() {
           </Tooltip>
         </div>
       </div>
-      <StartingChatRows entries={starting} indent={false} />
+      <StartingChatRows entries={starting} />
       {ids.length === 0 && starting.length === 0 && <div className="side-row empty-note recents">Nothing needs attention</div>}
       {ids.map((id) => (
         <PriorityCard key={id} id={id} />
@@ -270,7 +270,7 @@ export function OneList({
   );
   return (
     <>
-      <StartingChatRows entries={groups.flatMap((g) => g.starting ?? [])} indent={false} />
+      <StartingChatRows entries={groups.flatMap((g) => g.starting ?? [])} />
       {shown.map((row) =>
         row.kind === 'cloud' ? (
           <DraggableChat key={row.key} id={row.key} orderKey={LIST_ORDER} ids={mixed.map((entry) => entry.key)} reorder={reorderChat}>
@@ -279,9 +279,9 @@ export function OneList({
         ) : (
           <Fragment key={row.key}>
             <DraggableChat id={row.key} orderKey={LIST_ORDER} ids={mixed.map((entry) => entry.key)} reorder={reorderChat}>
-              <ThreadRow thread={row.thread} active={row.key === activeThread} indent={false} nestedView="list" />
+              <ThreadRow thread={row.thread} active={row.key === activeThread} nestedView="list" />
             </DraggableChat>
-            <ChildRows parentId={row.key} activeThread={activeThread} view="list" indent={false} />
+            <ChildRows parentId={row.key} activeThread={activeThread} view="list" />
           </Fragment>
         ),
       )}

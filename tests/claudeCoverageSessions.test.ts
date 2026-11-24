@@ -93,7 +93,7 @@ test('a session stream: init reads settings and the catalog, tasks, schedules an
   assert.equal(of(t, key, 'message').find((e: any) => e.msg.subtype === 'sage_bash_output').msg.output, 'hello\n');
   const cat = t.broadcasts.filter(([ch]) => ch === 'claude:catalog').at(-1)![1];
   assert.equal(cat.cwd, cwd);
-  assert.deepEqual(cat.catalog, {
+  assert.deepEqual(JSON.parse(JSON.stringify({ ...cat.catalog, skillFiles: undefined })), {
     commands: [
       { name: 'help', description: 'Help', argumentHint: '', aliases: ['h'], builtin: true },
       { name: 'x', description: '', argumentHint: '', aliases: [], builtin: false },
@@ -685,7 +685,7 @@ test('the catalog for a folder no session ran in is prefetched, with skills read
   fs.writeFileSync(path.join(cwd, '.claude', 'skills', 'proj', 'SKILL.md'), 'no front matter');
   fakes.onQuery = (q: any) => (q.initializationResult = async () => ({ commands: [{ name: 'review', description: 'Review' }] }));
   const cat = await t.call('claude:catalog', bin, cwd, null);
-  assert.deepEqual(cat, {
+  assert.deepEqual(JSON.parse(JSON.stringify({ ...cat, skillFiles: undefined })), {
     commands: [{ name: 'review', description: 'Review', argumentHint: '', aliases: [], builtin: false }],
     skills: ['home-skill', 'proj'],
     plugins: [],

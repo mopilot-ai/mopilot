@@ -351,4 +351,7 @@ export function holdStart(chat) {
 export async function scriptedToolTurns(text, toolRound, ctx) {
   if (text.includes('FGTASK')) await toolRound('Agent', FG_AGENT, (id) => foregroundAgent(id, ctx));
   if (text.includes('LABELCHURN')) await labelChurn(toolRound, ctx.log);
+  // SKILLCALL <name>: the Skill tool, which the CLI answers with "Launching skill: <name>"
+  const skill = /SKILLCALL (\S+)/.exec(text)?.[1];
+  if (skill) await toolRound('Skill', { skill }, () => ({ text: `Launching skill: ${skill}` }));
 }

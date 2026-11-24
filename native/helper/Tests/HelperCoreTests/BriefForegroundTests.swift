@@ -57,6 +57,25 @@ final class BriefForegroundTests: XCTestCase {
         XCTAssertEqual(clickRoute(foreground: false, ownerPid: 42, targetPid: 42), "pid")
     }
 
+    func testScrollRouteFollowsTheClickRule() {
+        for (foreground, owner) in [(true, Int32?(42)), (true, 7), (true, nil), (false, 42), (false, 7), (false, nil)] {
+            XCTAssertEqual(scrollRoute(foreground: foreground, ownerPid: owner, targetPid: 42), clickRoute(foreground: foreground, ownerPid: owner, targetPid: 42))
+        }
+        XCTAssertEqual(scrollRoute(foreground: true, ownerPid: 42, targetPid: 42), "hid")
+        XCTAssertEqual(scrollRoute(foreground: true, ownerPid: 7, targetPid: 42), "pid")
+        XCTAssertEqual(scrollRoute(foreground: true, ownerPid: nil, targetPid: 42), "pid")
+        XCTAssertEqual(scrollRoute(foreground: false, ownerPid: 42, targetPid: 42), "pid")
+    }
+
+    func testWheelMovesThePointerOnlyWhenItIsNotOnThePoint() {
+        let target = CGPoint(x: 100, y: 200)
+        XCTAssertTrue(wheelNeedsPointerMove(pointer: nil, target: target))
+        XCTAssertFalse(wheelNeedsPointerMove(pointer: target, target: target))
+        XCTAssertFalse(wheelNeedsPointerMove(pointer: CGPoint(x: 100.5, y: 199), target: target))
+        XCTAssertTrue(wheelNeedsPointerMove(pointer: CGPoint(x: 102, y: 200), target: target))
+        XCTAssertTrue(wheelNeedsPointerMove(pointer: CGPoint(x: 100, y: 198), target: target))
+    }
+
     func testClickResultNamesTheOwnerOnlyWhenForegroundDidNotTakeTheHIDRoute() {
         let hid = clickResult(route: "hid", foreground: true, ownerPid: 42, targetPid: 42)
         XCTAssertEqual(hid["route"] as? String, "hid")

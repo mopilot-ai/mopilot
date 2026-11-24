@@ -18,6 +18,7 @@ const SETTINGS = {
  * @param {ReturnType<typeof import('./momoNoticeStore.mjs').createNoticeStore>} o.store
  * @param {{ prefs: { change: (patch: any) => Promise<unknown> } }} o.home
  * @param {() => number} [o.now]
+ * @param {() => { consumeNotices?: () => Promise<unknown> } | undefined} [o.learning] the learning service: told to look at the reactions now, so a suggestion shows at once (it counts them; this never does)
  * @param {() => string[]} [o.signalIds] the ids of the signals MoMo shows now (the learning service's); none while it has none
  * @param {(key: unknown) => Promise<unknown>} [o.draft] writes a reply draft for a notice
  * @param {(key: unknown) => Promise<unknown>} [o.remind] sets a reminder on a matter
@@ -28,6 +29,7 @@ export function createNoticeIntents({
   home,
   now = Date.now,
   signalIds = () => [],
+  learning = () => undefined,
   offerShown = () => false,
   remind = async () => ({ remindAt: '' }),
   draft = async () => ({ id: '' }),
@@ -58,26 +60,32 @@ export function createNoticeIntents({
       if (latest.changeId !== decision.changeId || (decisionId !== undefined && decisionId !== decisionIdOf(latest)))
         throw new IntentError(CHANGED);
       // let go atomically on the record as it is now: two taps at once change it once, and only the one that changed it is a reaction
-      /** @type {any} */
-      let ended = null;
       const changed = await store.notice.updateMatter(decision.matterKey, (/** @type {any} */ current) => {
         if (!current || current.state === 'dismissed') return undefined;
-        ended = current;
         const { nextCheck: _a, pendingDelivery: _b, remindAt: _c, ...rest } = current;
         return { ...rest, state: 'dismissed', updatedAt: new Date(now()).toISOString() };
       });
       if (!changed) return;
       // only a tap that carried the decision it saw, on mail that passed the sender check, says anything about the sender's domain (a spoofed sender teaches nothing)
-      const teaches = decisionId !== undefined && latest.senderStatus === 'pass' && typeof ended?.fromDomain === 'string';
+      // the sender is the one of the mail this decision judged, never the matter's first sender
+      const teaches = decisionId !== undefined && latest.senderStatus === 'pass' && typeof latest.fromDomain === 'string';
       await store.addReaction({
         kind: 'not_needed',
         rowId: id,
         matterKey: decision.matterKey,
         decidedBy: decision.decidedBy,
         outcome: decision.outcome,
-        fromDomain: teaches ? ended.fromDomain : null,
+        fromDomain: teaches ? latest.fromDomain : null,
+        // what the learning service reads to count the tap (host/src/momoServices/learning.mjs `consumeNotices`): the decision the owner saw, how the sender check went, and for a public mail service the sender's full address
+        decisionId: decisionId ?? null,
+        senderStatus: latest.senderStatus ?? null,
+        fromAddress: teaches && typeof latest.fromAddress === 'string' ? latest.fromAddress : null,
         at: now(),
       });
+      // a nudge, best-effort: the learning service reads the reaction from the store and counts it, on its own clock too
+      await learning()
+        ?.consumeNotices?.()
+        .catch(() => undefined);
     },
     /** The owner chose to make a signal MoMo suggested into a rule, or to ignore it. */
     'signal.make': async (/** @type {{ id: string }} */ { id }) => react('signal_make', id),

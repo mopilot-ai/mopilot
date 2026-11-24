@@ -10,7 +10,7 @@ import { retryAfterMs } from './pushRetry.mjs';
 
 /**
  * @typedef {{ timestamp: number, event: 'update' | 'end', state: object, staleAt: number, dismissAt: number, priority: 5 | 10 }} ActivityUpdate
- * @typedef {{ platform: 'apns' | 'fcm', token: string, kind: string, title: string, count: number, collapseId: string, ref: string, sealed?: string, card?: string, sealedBody?: string, topic?: string, activity?: ActivityUpdate }} PushMessage `card`: the opaque handle of the MoMo card a momoNeedsYou push is for; `topic`: the APNs topic that last sent to this token (a hint for which credential set to try first)
+ * @typedef {{ platform: 'apns' | 'fcm', token: string, kind: string, title: string, count: number, collapseId: string, ref: string, sealed?: string, card?: string, sealedBody?: string, sealedStamp?: string, topic?: string, activity?: ActivityUpdate }} PushMessage `card`: the opaque handle of the MoMo card a momoNeedsYou push is for; `topic`: the APNs topic that last sent to this token (a hint for which credential set to try first)
  * @typedef {(m: PushMessage) => Promise<{ ok: boolean, invalidToken?: boolean, status?: number, reason?: string, topic?: string }>} PushSend
  * @typedef {{ sandbox: boolean, topic: string }} ApnsTarget an APNs credential set as the token log names it
  * @typedef {(m: PushMessage) => Promise<import('./pushRetry.mjs').SendResult>} RawSend a provider's single attempt; withRetry (pushRetry.mjs) turns it into a PushSend
@@ -40,6 +40,8 @@ export function proxySender({ url, authToken = '', fetch: f = fetch, timeoutMs =
           ...(m.sealed && { sealed: m.sealed }),
           // MoMo's opt-in body, sealed for the phone: handed on unread, as `sealed` is
           ...(m.sealedBody && { sealedBody: m.sealedBody }),
+          // the MoMo home's lease, sealed for the phone: handed on unread
+          ...(m.sealedStamp && { sealedStamp: m.sealedStamp }),
         }),
       });
       // 404/410 from the proxy: the provider said the token is dead
@@ -245,8 +247,9 @@ export class PushService {
     /** @type {string} */ card = '',
     /** @type {boolean} */ fromHost = false,
     /** @type {string} */ sealedBody = '',
+    /** @type {string} */ sealedStamp = '',
   ) {
-    const status = await this.#ordered(pair, kind, ref, sealed, card, fromHost, sealedBody);
+    const status = await this.#ordered(pair, kind, ref, sealed, card, fromHost, sealedBody, sealedStamp);
     this.metrics.inc('relay_push_requests_total', { status, kind }, 1, 'Push requests from Macs, by outcome and kind');
     return status;
   }
@@ -265,13 +268,16 @@ export class PushService {
     /** @type {string} */ card,
     /** @type {boolean} */ fromHost,
     /** @type {string} */ sealedBody,
+    /** @type {string} */ sealedStamp,
   ) {
     const phone = pair.phoneDeviceId;
     const busy = this.pending.get(phone) ?? 0;
     if (busy >= MAX_PER_PHONE) return 'failed';
     this.pending.set(phone, busy + 1);
     const key = `${pair.pairId}:${ref}`;
-    const run = (this.chains.get(key) ?? Promise.resolve()).then(() => this.#request(pair, kind, ref, sealed, card, fromHost, sealedBody));
+    const run = (this.chains.get(key) ?? Promise.resolve()).then(() =>
+      this.#request(pair, kind, ref, sealed, card, fromHost, sealedBody, sealedStamp),
+    );
     const tail = run.then(
       () => undefined,
       () => undefined,
@@ -296,6 +302,7 @@ export class PushService {
     /** @type {string} */ card,
     /** @type {boolean} */ fromHost,
     /** @type {string} */ sealedBody,
+    /** @type {string} */ sealedStamp,
   ) {
     if (!this.send) return 'disabled';
     const target = await this.store.pushTokenOf(pair.phoneDeviceId);
@@ -325,6 +332,8 @@ export class PushService {
       ...(card && !shown.merged && kind === 'momoNeedsYou' && { card }),
       // and MoMo's opt-in body, which only the phone can open: a merged push names no routine
       ...(sealedBody && !shown.merged && kind === 'momoNeedsYou' && { sealedBody }),
+      // and the lease of the home that sent it, sealed for the phone: one push's stamp says nothing of a merged "(n)"
+      ...(sealedStamp && !shown.merged && (kind === 'momoNeedsYou' || kind === 'cleared') && { sealedStamp }),
     });
     // what the provider answered, never a token, a chat handle or a sealed title: a push that did not arrive can be told from one that was refused
     this.log('push', {

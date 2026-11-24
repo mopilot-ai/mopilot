@@ -122,6 +122,20 @@ test('a machine with unknown repository keeps its folder group and a hidden save
   assert.equal(result.listed[1].threads[0].id, 'machine');
 });
 
+test('checkouts verified against one remote repository retain each destination in the shared project', () => {
+  const alias = `${box.path}/src`;
+  const second = { ...box, path: '/other/checkout', threads: [chat('second', 3)] };
+  const checkouts = [{ ...box, machineFolders: new Set([alias]) }, second];
+  const result = groupRepositories(checkouts, new Set(checkouts.map(groupKey)), () => repo, [], [], [], null);
+  assert.equal(result.listed.length, 1);
+  assert.deepEqual(result.listed[0].machineGroups, checkouts.map(groupKey));
+  assert.deepEqual(result.listed[0].machineFolderAliases, [groupKey({ ...box, path: alias })]);
+  assert.deepEqual(
+    result.listed[0].locations,
+    checkouts.map(({ machine, path }) => ({ kind: 'machine', ...machine, path })),
+  );
+});
+
 test('a configured cloud environment is a launch destination before it has tasks', () => {
   const result = groupRepositories([local], new Set([groupKey(local)]), () => repo, [], [env], [], null);
   assert.deepEqual(result.listed[0].locations, [{ kind: 'cloud', id: 'env', label: 'Build environment' }]);

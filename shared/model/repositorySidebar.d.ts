@@ -1,4 +1,8 @@
 // Draft and sidebar repository destination contracts shared by the window state and routing.
+export type HostSidebarRepositoryQuery =
+  | { path: string; fresh?: true; expectedHostKey?: string; checkout?: never }
+  | { path: string; checkout: true; expectedHostKey?: string };
+
 export type RepositoryDestination =
   | { kind: 'machine'; id: string; name: string; path: string; scope?: string }
   | { kind: 'cloud'; id: string; label: string };

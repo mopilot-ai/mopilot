@@ -12,6 +12,7 @@ import { keySafe, openKeyFile } from './support/hostKeySafe.ts';
 
 const require = createRequire(import.meta.url);
 const { createHostUpdater, VALID_MS, STATUS_MS } = require('../electron/host/hostUpdate.cjs');
+const { READ_UPDATE_FLOOR } = require('../electron/host/automaticUpdateCommands.cjs');
 const { loadIdentity } = require('../electron/host/pairingClient.cjs');
 const { register } = require('../electron/app/ipc/host.cjs');
 
@@ -27,21 +28,39 @@ const publicPem = (await import('node:crypto'))
   .export({ type: 'spki', format: 'pem' })
   .toString();
 
-function world(t: any, o: { hostKey?: string; fail?: (command: string) => boolean; build?: string; status?: () => object } = {}) {
+function world(
+  t: any,
+  o: {
+    hostKey?: string;
+    fail?: (command: string) => boolean;
+    build?: string;
+    status?: () => unknown;
+    floor?: string;
+    floorCode?: number;
+    stageExit?: number;
+    stageStdout?: string;
+  } = {},
+) {
   const clock = installFakeClock(t, 1_700_000_000_000);
   const ran: { destination: string; command: string; input?: Buffer }[] = [];
   const built: string[] = [];
   const channel = async (destination: string, command: string, input?: Buffer) => {
     ran.push({ destination, command, input });
+    const floor = command === READ_UPDATE_FLOOR;
+    const stage = command.startsWith(`${READ_UPDATE_FLOOR} `);
     return o.fail?.(command)
       ? { code: 1, stdout: '', stderr: 'disk full' }
       : {
-          code: 0,
-          stdout: command.includes('process.report')
-            ? `${o.build ?? 'linux-x64-gnu'}\n`
-            : command.includes('update --manifest')
-              ? 'Staged version 9.9.9.\n'
-              : '',
+          code: stage ? (o.stageExit ?? 0) : floor ? (o.floorCode ?? 0) : 0,
+          stdout: stage
+            ? (o.stageStdout ?? '')
+            : floor
+              ? `${o.floor ?? floorAnswer()}\n`
+              : command.includes('process.report')
+                ? `${o.build ?? 'linux-x64-gnu'}\n`
+                : command.includes('update --manifest')
+                  ? 'Staged version 9.9.9.\n'
+                  : '',
           stderr: '',
         };
   };
@@ -59,10 +78,17 @@ function world(t: any, o: { hostKey?: string; fail?: (command: string) => boolea
       return { file: FILE, sha256: SHA, version: '9.9.9' };
     },
     identity: () => identity,
-    ...(o.status && { status: async () => o.status?.(), isNewer: (r: any) => r.hostAppVersion > '0.4.27' }),
+    ...(o.status && {
+      status: async () => o.status?.(),
+      isNewer: (r: any) => r.hostAppVersion > '0.4.27',
+      isOlder: (r: any) => r.hostAppVersion < '0.4.27',
+    }),
   });
   return { ran, updater, built, clock };
 }
+
+const floorAnswer = (seq = 40, build = 'older', appVersion = '0.4.0') =>
+  `MOPILOT_UPDATE_FLOOR ${JSON.stringify({ seq, build, appVersion })}`;
 
 test('a machine with no build gets nothing: the update fails in words and its Host goes on running what it has (A)', async (t) => {
   const cases: [object, RegExp][] = [
@@ -111,6 +137,105 @@ test('#4923: a Host that says it is older, or says nothing, is updated as before
 test('#4923: a Host that says nothing of itself is updated as before', async (t) => {
   const w = world(t, { status: () => ({}) });
   assert.equal((await w.updater.update('ssh:me@box')).version, '9.9.9');
+});
+
+test('automatic updates require a fresh Host status and stop before uploading if disabled', async (t) => {
+  for (const status of [undefined, () => null, () => [], () => 'garbled', () => ({})]) {
+    const w = world(t, { status });
+    await assert.rejects(w.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true }), { code: 'update_deferred' });
+    assert.deepEqual(w.ran, []);
+  }
+  const opts = { status: () => ({ build: 'older', appVersion: '0.4.0', harnesses: [] }) };
+  const stopped = world(t, opts);
+  await assert.rejects(stopped.updater.update('ssh:me@box', undefined, { automaticEnabled: () => false }), { code: 'update_deferred' });
+  assert.deepEqual(stopped.ran, []);
+  const preparing = world(t, opts);
+  await assert.rejects(preparing.updater.update('ssh:me@box', undefined, { automaticEnabled: () => preparing.built.length === 0 }), {
+    code: 'update_deferred',
+  });
+  assert.equal(preparing.ran.filter((command) => command.input).length, 0, 'nothing was uploaded');
+});
+
+test('automatic updates leave a build staged by another app during bundle preparation alone', async (t) => {
+  let reads = 0;
+  const w = world(t, {
+    status: () => ({
+      build: 'older',
+      appVersion: '0.4.0',
+      harnesses: [],
+      ...(++reads > 1 && { pendingUpdate: { build: 'another-build' } }),
+    }),
+  });
+  await assert.rejects(w.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true }), { code: 'update_deferred' });
+  assert.equal(reads, 2);
+  assert.equal(w.ran.filter((command) => command.input).length, 0, 'nothing was uploaded');
+});
+
+test('an automatic update signs for the observed floor and honors the remote staging decision', async (t) => {
+  const opts = { status: () => ({ build: 'older', appVersion: '0.4.0', harnesses: [] }), floor: `Welcome to the Host\n${floorAnswer(42)}` };
+  const first = world(t, opts);
+  await first.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true });
+  const [archive] = first.ran.filter((command) => command.input);
+  assert.deepEqual(archive.input, BYTES);
+  const encoded = / '([A-Za-z0-9+/=]+)'$/.exec(archive.command)![1];
+  const manifest = JSON.parse(Buffer.from(encoded, 'base64').toString());
+  assert.equal(manifest.seq, 43, 'the signed sequence is tied to the last observed update');
+  const context = { keys: [publicPem], hostId: HOST_ID, now: first.clock.now() };
+  assert.equal(checkManifest(manifest, { ...context, floor: { seq: 42, sha256: 'd'.repeat(64) } }).ok, true);
+  assert.equal(
+    checkManifest(manifest, { ...context, floor: { seq: 43, sha256: 'd'.repeat(64) } }).ok,
+    false,
+    'the Host refuses this manifest if another build was staged after the last check',
+  );
+  const pending = world(t, { ...opts, stageExit: 75 });
+  await assert.rejects(pending.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true }), { code: 'update_deferred' });
+  const unconfirmed = world(t, { ...opts, stageExit: 77, stageStdout: 'Welcome to the Host\n' });
+  await assert.rejects(unconfirmed.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true }), {
+    code: 'update_restart_unconfirmed',
+    message: /staged the update.*restart.*Try again/,
+  });
+  const silent = world(t, { ...opts, stageExit: 1 });
+  await assert.rejects(silent.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true }), {
+    code: 'update_failed',
+    message: 'The command failed.',
+  });
+});
+
+test('an automatic update defers when the Host cannot report a safe update floor', async (t) => {
+  for (const options of [
+    { floor: '' },
+    { floor: 'MOPILOT_UPDATE_FLOOR {broken' },
+    { floor: 'MOPILOT_UPDATE_FLOOR []' },
+    { floor: 'MOPILOT_UPDATE_FLOOR {"seq":1,"build":"older"}' },
+    { floor: 'MOPILOT_UPDATE_FLOOR {"seq":1,"appVersion":"0.4.0"}' },
+    { floor: 'MOPILOT_UPDATE_FLOOR {"seq":null,"build":"older","appVersion":"0.4.0"}' },
+    { floor: floorAnswer(1.5) },
+    { floor: floorAnswer(-1) },
+    { floor: floorAnswer(Number.MAX_SAFE_INTEGER) },
+    { floor: floorAnswer(42, 'activating', '0.4.0') },
+    { floor: floorAnswer(42, 'older', '0.5.0') },
+    { fail: (command: string) => command === READ_UPDATE_FLOOR },
+  ]) {
+    const w = world(t, { status: () => ({ build: 'older', appVersion: '0.4.0', harnesses: [] }), ...options });
+    await assert.rejects(w.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true }), { code: 'update_deferred' });
+    assert.equal(w.ran.filter((command) => command.input).length, 0);
+  }
+});
+
+test('a Host without a compatible signed updater reports the manual update action', async (t) => {
+  const status = () => ({ build: 'older', appVersion: '0.4.0', harnesses: [] });
+  const w = world(t, { status, floorCode: 76 });
+  await assert.rejects(w.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true }), {
+    code: 'update_failed',
+    message: /Choose Try again on this machine/,
+  });
+  assert.equal(w.ran.filter((command) => command.input).length, 0);
+  assert.equal((await w.updater.update('ssh:me@box')).version, '9.9.9');
+  const stage = world(t, { status, stageExit: 76 });
+  await assert.rejects(stage.updater.update('ssh:me@box', undefined, { automaticEnabled: () => true }), {
+    code: 'update_failed',
+    message: /Choose Try again on this machine/,
+  });
 });
 
 test('M1: the archive and a manifest signed for that Host go to the machine, `update` runs there, and the files are removed; the Host accepts exactly that manifest', async (t) => {

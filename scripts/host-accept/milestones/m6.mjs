@@ -3,6 +3,7 @@ import { prefixUnits } from '../../../shared/textPrefix.mjs';
 import { ask, chat, expect, hostUp, restart, until } from '../steps.mjs';
 import { answerCard, optionOf, refusalOf, rpc, waitCard } from './common.mjs';
 import { removePolicyFile, sudoGap, writeManaged } from './policyFile.mjs';
+import { workFolder } from '../workFolder.mjs';
 
 /** The document that caps every client at "Ask for approval" (`default`). */
 const CAP = { version: 1, organization: 'mopilot-accept', permission: { max: 'default' } };
@@ -25,7 +26,7 @@ const fullAccess = (ctx, n) =>
     key: `accept-policy-${n}`,
     harness: 'acp:fake',
     text: 'hello',
-    cwd: ctx.state.dataDir,
+    cwd: workFolder(ctx.state),
     permission: 'full-access',
   });
 
@@ -56,7 +57,7 @@ export const M6_STEPS = [
         key: 'accept-policy-22',
         harness: 'acp:fake',
         text: 'allowed under the cap',
-        cwd: ctx.state.dataDir,
+        cwd: workFolder(ctx.state),
         permission: 'default',
       });
       expect(kept === null, `chat.start with Ask for approval was refused too ("${kept}").`);

@@ -6,7 +6,8 @@ import { declineRule, emptyLearning, record, suggestRule, undoRule } from '../sh
 import { applyOps } from '../shared/momoCore/noteOps.ts';
 import { emptyTree } from '../shared/momoCore/notes.ts';
 import { tidy } from '../shared/momoCore/noteTidy.ts';
-import { approvalView, noteViews, ruleViews, signalViews } from '../shared/momoCore/view.ts';
+import { MOMO_RULE_HELP } from '../shared/momoRuleHelp.ts';
+import { approvalView, noteViews, ruleView, ruleViews, signalViews } from '../shared/momoCore/view.ts';
 import { harness, req } from './support/momoCore/gateKit.ts';
 import { NOW, add, counter, ctx, lineOf, mail, owner, treeOf } from './support/momoCore/notesKit.ts';
 
@@ -153,4 +154,63 @@ test('rules: every stance and state, the reactions behind a learned rule, and si
     ['instruction', 'yours', 'off'],
   );
   assert.equal(ruleViews(undoRule(ordered.state, (ordered.rule as { id: string }).id, 99))[0].state, 'undone');
+});
+
+test('a card ended because the chat read outside content is void: it cannot be asked again, and its row says it no longer counts', () => {
+  const ended = approvalView(card({ status: 'expired', expiredWhy: 'taint_changed' }), { device: 'mac' });
+  assert.deepEqual([ended.status, ended.canAskAgain], ['void', false]);
+  assert.match(ended.failure?.cause ?? '', /MoMo will ask again/);
+});
+
+test('a quiet sender rule says where its mail is held: for the brief, or in Watching when the brief is off', () => {
+  const rule: any = {
+    id: 'q',
+    pattern: 'notice:sender:acme.com',
+    label: 'mail from acme.com',
+    stance: 'quieter',
+    status: 'on',
+    reactions: [],
+  };
+  const on = ruleView(rule, 0, true, true);
+  const off = ruleView(rule, 0, true, false);
+  assert.match(on.appliesTo, /held for the brief, except/);
+  assert.match(off.appliesTo, /held in Watching \(your brief is off\), except/);
+  assert.deepEqual([on.inBrief, off.inBrief], [true, false]);
+});
+
+test('a "tell me now" rule carries the one help line both clients draw, and no other effect does', () => {
+  const tell = ruleViews({
+    reactions: [],
+    rules: [
+      {
+        id: 'r1',
+        pattern: 'owner:1',
+        label: 'Tell me about acme.com',
+        stance: 'instruction',
+        status: 'on',
+        reactions: [],
+        ownerEffect: 'tell_now',
+      },
+    ],
+  } as any)[0];
+  assert.equal(tell.help, "Name the sender's domain or address. It beats a quiet rule for that sender.");
+  assert.equal(MOMO_RULE_HELP.tell_now, tell.help);
+  const quiet = ruleViews({
+    reactions: [],
+    rules: [
+      { id: 'r2', pattern: 'owner:2', label: 'Be quiet', stance: 'instruction', status: 'on', reactions: [], ownerEffect: 'stay_quiet' },
+    ],
+  } as any)[0];
+  assert.equal(quiet.help, null);
+  // a learned rule that tells now is not one the owner is writing; and a name like `toString` finds nothing
+  const learned = ruleViews({
+    reactions: [],
+    rules: [{ id: 'r3', pattern: 'p', label: 'Acme', stance: 'more', status: 'on', reactions: [{ at: 1, kind: 'accept', label: 'x' }] }],
+  } as any)[0];
+  assert.equal(learned.help, null);
+  const odd = ruleViews({
+    reactions: [],
+    rules: [{ id: 'r4', pattern: 'o', label: 'x', stance: 'instruction', status: 'on', reactions: [], ownerEffect: 'toString' }],
+  } as any)[0];
+  assert.equal(odd.help, null);
 });

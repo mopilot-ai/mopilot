@@ -32,6 +32,14 @@ test('the veil of every host.momo* method lets the owner’s devices through and
   }
   assert.deepEqual(wrong, [], 'veils that are not the owner’s only');
   assert.ok(seen.length >= 10, `read ${seen.length} veils: ${seen.join(', ')}`);
-  for (const m of ['host.momoGrant', 'host.momoGoogle', 'host.momoMove', 'host.momoRows', 'host.momoLaneIntent', 'host.momoTasks'])
+  for (const m of [
+    'host.momoGrant',
+    'host.momoGoogle',
+    'host.momoMove',
+    'host.momoRows',
+    'host.momoLaneIntent',
+    'host.momoTasks',
+    'host.momoLink',
+  ])
     assert.ok(seen.includes(m), `${m} was checked`);
 });

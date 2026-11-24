@@ -7,7 +7,7 @@ import { applyLimits, isMaterialChange, noticeSettings, type LimitInput } from '
 import { createMemoryNoticeStore, createMemoryVersionStore } from '../shared/momoNotice/memoryStore.ts';
 import { runNoticePass, type PassDeps } from '../shared/momoNotice/pipeline.ts';
 import { hasDuplicateKey, parseReading, ReadingError, type ReadItem } from '../shared/momoNotice/reading.ts';
-import { isAutomated, senderName } from '../shared/momoNotice/senderCheck.ts';
+import { fromAddress, isAutomated, senderName } from '../shared/momoNotice/senderCheck.ts';
 import { askOf } from '../shared/momoNotice/signals.ts';
 import type { MailMessage, Matter, ReaderModel } from '../shared/momoNotice/types.d.ts';
 
@@ -365,4 +365,11 @@ test('askOf ignores boilerplate, and an automated sender asks nothing', async ()
     [(await store.getMatter('gmail:a'))?.notifiedAsk, (await store.getMatter('gmail:h'))?.notifiedAsk],
     [undefined, 'can you confirm today'],
   );
+});
+
+test('fromAddress: the one address of a From header, lower case; none or several is none', () => {
+  assert.equal(fromAddress('Ana <Ana@Acme.com>'), 'ana@acme.com');
+  assert.equal(fromAddress('ana@acme.com'), 'ana@acme.com');
+  assert.equal(fromAddress('nobody at all'), null);
+  assert.equal(fromAddress('a@x.com, b@y.com'), null);
 });

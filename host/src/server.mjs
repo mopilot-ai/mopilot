@@ -7,10 +7,12 @@ import { imageReplyForWire } from './imagePublication.mjs';
 import { IMAGE_METHODS } from '../../shared/host/images.mjs';
 import { FOLDER_PAIRED_ONLY, parseParams } from '../../shared/host/schema.mjs';
 import { HostRefusal } from './hostFs.mjs';
+import { refuseByKind } from './controllerRefusals.mjs';
 import { PairingError } from './pairing.mjs';
 import { BROWSER_METHODS } from '../../shared/host/browser.mjs';
 import { DESKTOP_METHODS } from '../../shared/host/desktop.mjs';
 import { CLI_PRINCIPAL, createHostClients } from './hostClients.mjs';
+import { homeStatus } from './homeGate.mjs';
 import { MAX_FRAME } from '../../shared/host/frames.mjs';
 import { wireError } from './protocol.mjs';
 import { VERSIONED_METHOD } from './versionedMethods.mjs';
@@ -102,6 +104,9 @@ const PAIRED_ONLY = new Set([
   'git.carryDrop',
 ]);
 
+/** A `home` client (MoMo's home on another machine) is told only of the agents a machine has, not of its policy, spend, push or network. @param {{ principal: { kind?: string } | null }} conn @param {unknown} method @param {any} result */
+const reducedFor = (conn, method, result) => (conn.principal?.kind === 'home' && method === 'host.status' ? homeStatus(result) : result);
+
 /**
  * @param {{ method?: unknown, params?: any, token?: unknown }} req
  * @param {ReturnType<typeof import('./acp.mjs').createAcpRuntime> | undefined} runtime
@@ -110,7 +115,7 @@ const PAIRED_ONLY = new Set([
  * @param {string | undefined} runningVersion
  * @param {{ hostFs: ReturnType<typeof import('./hostFs.mjs').createHostFs>, hostGit: ReturnType<typeof import('./hostGit.mjs').createHostGit>, hostRead?: ReturnType<typeof import('./hostRead.mjs').createHostRead>, hostFiles?: ReturnType<typeof import('./hostFiles.mjs').createHostFiles>, hostSearch?: ReturnType<typeof import('./hostSearch.mjs').createHostSearch> } | undefined} dirs
  * @param {ReturnType<typeof import('./pairing.mjs').createPairing> | undefined} pairing
- * @param {{ authed: boolean, fingerprint?: string | null, principal: import('./hostClients.mjs').Principal | null, socket?: net.Socket, emit: (message: object) => unknown, session?: ReturnType<ReturnType<typeof import('./protocol.mjs').createProtocol>['connection']> }} conn this connection's standing
+ * @param {{ homeGate?: { landing: (fingerprint: string, chatId: unknown) => (ok: boolean) => Promise<void> }, authed: boolean, fingerprint?: string | null, principal: import('./hostClients.mjs').Principal | null, socket?: net.Socket, emit: (message: object) => unknown, session?: ReturnType<ReturnType<typeof import('./protocol.mjs').createProtocol>['connection']> }} conn this connection's standing
  * @param {ReturnType<typeof import('./protocol.mjs').createProtocol> | undefined} protocol the protocol the Host serves; its `status` is the one status
  * @param {string} cliToken what the CLI on this machine proves itself with
  */
@@ -118,10 +123,27 @@ async function answer(req, runtime, login, updater, runningVersion, dirs, pairin
   try {
     // the CLI on this machine reads the token from beside the socket (callHost); whoever can read it can read the pairing too
     if (cliToken && typeof req.token === 'string' && same(req.token, cliToken)) {
+      // a connection that proved a paired client's key does not become the CLI by presenting the token: a client that read it (a file, a shell) must open a connection of its own, which the Host sees as one
+      if (conn.principal && conn.principal !== CLI_PRINCIPAL)
+        return { error: 'This client is already paired and may not become another.', code: 'forbidden' };
       conn.authed = true;
       conn.fingerprint = 'local-cli';
       conn.principal = CLI_PRINCIPAL;
     }
+    // what a kind of client may ask at all (host/src/controllerRefusals.mjs): a controller has a person's chat powers and none of the Host's own settings, a kind this Host does not know none; each refusal is a line in the audit record (coalesced)
+    try {
+      refuseByKind(conn.principal, String(req.method));
+    } catch (error) {
+      pairing?.record?.({
+        kind: 'client.refused',
+        by: /** @type {NonNullable<typeof conn.principal>} */ (conn.principal),
+        what: { tool: String(req.method).slice(0, 64) },
+      });
+      throw error;
+    }
+    // MoMo's home on another machine reaches the versioned protocol only (where its allow-list holds it): the line protocol's files, git and sends are not for it, and it cannot pair another key
+    if (conn.principal?.kind === 'home' && (!VERSIONED_METHOD.test(String(req.method)) || req.method === 'host.pair'))
+      return { error: 'MoMo may not do that on this machine.', code: 'home_not_allowed' };
     if (pairing && (String(req.method).startsWith('chat.') || PAIRED_ONLY.has(String(req.method))) && !conn.authed)
       return { error: 'This client is not paired with the Host.', code: 'unknown_client' };
     // a hello that names chats the app moved away poisons this Host's copies of them: only a paired client may say so
@@ -147,8 +169,21 @@ async function answer(req, runtime, login, updater, runningVersion, dirs, pairin
       return { result };
     }
     // the versioned protocol (shared/host/schema.mjs): hello, then chat requests with an epoch and a key
-    if (conn.session && VERSIONED_METHOD.test(String(req.method)))
-      return { result: await conn.session.call(String(req.method), req.params) };
+    if (conn.session && VERSIONED_METHOD.test(String(req.method))) {
+      // a start of a home is told to the gate while the protocol works on it: one the protocol refuses drops its record at once (unless another start of that chat is still landing), and a removal waits for it
+      const landing =
+        conn.principal?.kind === 'home' && req.method === 'chat.start'
+          ? conn.homeGate?.landing(conn.principal.fingerprint, req.params?.chatId)
+          : undefined;
+      try {
+        const result = reducedFor(conn, req.method, await conn.session.call(String(req.method), req.params));
+        await landing?.(true);
+        return { result };
+      } catch (e) {
+        await landing?.(false);
+        throw e;
+      }
+    }
     if (dirs && req.method === 'fs.list') return { result: await dirs.hostFs.list(parseParams('fs.list', req.params)) };
     // the clone's progress goes to the connection that asked, as events the client matches by key
     if (dirs && req.method === 'git.clone')
@@ -163,6 +198,7 @@ async function answer(req, runtime, login, updater, runningVersion, dirs, pairin
     if (dirs?.hostRead && req.method === 'git.status') return { result: await dirs.hostRead.status(parseParams('git.status', req.params)) };
     if (dirs && req.method === 'git.inspect') {
       const query = parseParams('git.inspect', req.params);
+      if (query.checkout) return { result: await dirs.hostGit.sidebarCheckout(query) };
       return { result: query.sidebar ? await dirs.hostGit.sidebarOrigin(query) : await dirs.hostGit.inspect(query) };
     }
     if (dirs && req.method === 'git.carryPush') return { result: await dirs.hostGit.carryPush(parseParams('git.carryPush', req.params)) };
@@ -205,7 +241,7 @@ async function answer(req, runtime, login, updater, runningVersion, dirs, pairin
 }
 
 /**
- * @param {{ paths: { dataDir: string, socketPath: string, lockPath: string }, runtime?: ReturnType<typeof import('./acp.mjs').createAcpRuntime>, login?: ReturnType<typeof import('./login.mjs').createLogin>, updater?: ReturnType<typeof import('./update.mjs').createUpdater>, runningVersion?: string, dirs?: Parameters<typeof answer>[5], pairing?: ReturnType<typeof import('./pairing.mjs').createPairing>, protocol?: ReturnType<typeof import('./protocol.mjs').createProtocol>, harnesses?: () => Promise<{ id: string, detected: boolean, signedIn: boolean }[]>, updateKey?: boolean, afterLock?: () => Promise<unknown>, onActivity?: () => void }} o `onActivity` hears each request a paired client sends that is not a status look (a cloud machine's idle stop); `afterLock` runs once this Host holds the lock and before it listens: what the previous run left behind is cleaned up there
+ * @param {{ paths: { dataDir: string, socketPath: string, lockPath: string }, runtime?: ReturnType<typeof import('./acp.mjs').createAcpRuntime>, login?: ReturnType<typeof import('./login.mjs').createLogin>, updater?: ReturnType<typeof import('./update.mjs').createUpdater>, runningVersion?: string, dirs?: Parameters<typeof answer>[5], pairing?: ReturnType<typeof import('./pairing.mjs').createPairing>, protocol?: ReturnType<typeof import('./protocol.mjs').createProtocol>, harnesses?: () => Promise<{ id: string, detected: boolean, signedIn: boolean }[]>, updateKey?: boolean, afterLock?: () => Promise<unknown>, onActivity?: () => void, homeGate?: ReturnType<typeof import('./homeGate.mjs').createHomeGate> }} o `homeGate`: what a `home` client may do (told when it refuses one of its starts, and its damaged state is the owner's to repair); `onActivity` hears each request a paired client sends that is not a status look (a cloud machine's idle stop); `afterLock` runs once this Host holds the lock and before it listens: what the previous run left behind is cleaned up there
  * @returns {Promise<{ close: () => Promise<void> }>}
  */
 export async function startServer({
@@ -221,6 +257,7 @@ export async function startServer({
   updateKey,
   afterLock,
   onActivity,
+  homeGate,
 }) {
   fs.mkdirSync(paths.dataDir, { recursive: true, mode: 0o700 });
   fs.chmodSync(paths.dataDir, 0o700);
@@ -239,6 +276,7 @@ export async function startServer({
   const clients = pairing
     ? createHostClients({
         pairing,
+        homeLink: homeGate,
         connected: (fingerprint) => [...conns].some((c) => c.principal?.fingerprint === fingerprint),
         close: (fingerprint) => {
           for (const c of conns) if (c.principal?.fingerprint === fingerprint) c.socket?.destroy();
@@ -272,6 +310,7 @@ export async function startServer({
       principal: null,
       socket,
       emit,
+      homeGate,
     };
     conns.add(conn);
     conn.session = protocol?.connection(emit, () => imageIdentity(conn, pairing), { principal: () => conn.principal, clients });

@@ -113,11 +113,14 @@ export function opposes(a: Stance, b: Stance): boolean {
 export const turnsOnAtOnce = (stance: Stance): boolean => stance === 'quieter' || stance === 'ask_again';
 
 /** The rule's sentence, made from structured data when shown. */
-export function ruleTextOf(rule: Pick<LearnedRule, 'stance' | 'label' | 'detail' | 'editedText'>): string {
+export function ruleTextOf(rule: Pick<LearnedRule, 'stance' | 'label' | 'detail' | 'editedText'> & { pattern?: string }): string {
   if (rule.editedText) return rule.editedText;
   switch (rule.stance) {
     case 'quieter':
-      return `Stay quiet about ${rule.label}.`;
+      // a rule about a sender's mail says what it does: it is not told right away (and the rule's line says it is held for the brief)
+      return rule.pattern?.startsWith('notice:sender:')
+        ? `Don't tell me right away about ${rule.label}.`
+        : `Stay quiet about ${rule.label}.`;
     case 'more':
       return `Tell me more about ${rule.label}.`;
     case 'skip_question':
@@ -132,6 +135,8 @@ export function ruleTextOf(rule: Pick<LearnedRule, 'stance' | 'label' | 'detail'
 export interface LearnDeps {
   newId: () => string;
   now: () => number;
+  /** A rule that only makes MoMo quieter waits for the owner's tap too (what the notices' reactions make), instead of turning on at once. */
+  holdFirst?: boolean;
 }
 
 export type LearnChange =
@@ -197,10 +202,10 @@ export function record(
     stance: run.stance,
     label: reaction.label,
     ...(reaction.detail ? { detail: reaction.detail } : {}),
-    status: turnsOnAtOnce(run.stance) ? 'on' : 'proposed',
+    status: turnsOnAtOnce(run.stance) && !deps.holdFirst ? 'on' : 'proposed',
     reactions: run.reactions,
     createdAt: at,
-    ...(turnsOnAtOnce(run.stance) ? { decidedAt: at } : {}),
+    ...(turnsOnAtOnce(run.stance) && !deps.holdFirst ? { decidedAt: at } : {}),
     ...(reaction.action ? { action: reaction.action } : {}),
   };
   return {
@@ -340,3 +345,30 @@ export function turnOnRule(state: LearnState, ruleId: string, at: number): Learn
   // a rule that skips a question removes a card: bringing it back takes the same confirmation as when it was first proposed (it waits for Accept), not one tap
   return setStatus(state, ruleId, ['retired', 'declined'], rule.stance === 'skip_question' ? 'proposed' : 'on', at);
 }
+
+/** "Make it a rule" on a signal (a pattern with one tap): the owner's own choice, so a rule that only makes MoMo quieter is on at once and any other waits for their tap. Nothing when the signal is gone or a rule for it is already there. The signal's id is its pattern. */
+export function ruleFromSignal(state: LearnState, pattern: string, deps: LearnDeps): { state: LearnState; rule?: LearnedRule } {
+  const run = currentRun(state, pattern);
+  if (run?.reactions.length !== 1 || state.rules.some((r) => r.pattern === pattern && r.stance === run.stance && live(r))) return { state };
+  const [reaction] = run.reactions;
+  const at = deps.now();
+  const now = turnsOnAtOnce(run.stance);
+  const rule: LearnedRule = {
+    id: deps.newId(),
+    pattern,
+    stance: run.stance,
+    label: reaction.label,
+    ...(reaction.detail ? { detail: reaction.detail } : {}),
+    status: now ? 'on' : 'proposed',
+    reactions: run.reactions,
+    createdAt: at,
+    ...(now ? { decidedAt: at } : {}),
+    ...(reaction.action ? { action: reaction.action } : {}),
+  };
+  // the signal is answered: it goes, and a later tap starts the count again (the rule is there)
+  return { state: { ...state, rules: [...state.rules, rule], since: { ...state.since, [pattern]: at } }, rule };
+}
+
+/** "Ignore" on a signal: its tap no longer counts, so the signal goes and the next tap starts the count again. */
+export const ignoreSignal = (state: LearnState, pattern: string, at: number): LearnState =>
+  currentRun(state, pattern) ? { ...state, since: { ...state.since, [pattern]: at } } : state;

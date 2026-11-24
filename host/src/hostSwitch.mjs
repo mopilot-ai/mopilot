@@ -129,6 +129,12 @@ export function readHold(raw) {
   };
 }
 
+/** The folder a chat's session runs in, as the switcher reads it: what `chatRuntime.folderOf` answers for. @param {{ switcher: { cwdOf: (ref: any) => Promise<string | null | undefined> }, controller: () => { ref: (chatId: string) => any } }} o */
+export const folderReader =
+  ({ switcher, controller }) =>
+  (/** @type {string} */ chatId) =>
+    switcher.cwdOf(controller().ref(chatId));
+
 /** The family a message lands on: the agent a held choice moves the chat to, else the one it runs on. @param {{ harness: string } | null | undefined} pending @param {string} family */
 export const landsOn = (pending, family) => (pending ? (parseKind(pending.harness)?.family ?? family) : family);
 
@@ -144,8 +150,9 @@ export const laneChoice = (pending) => (pending ? { harness: pending.harness, ..
  * @param {{ acp: boolean, claude: boolean, codex: boolean }} o.provided the families this Host runs
  * @param {Record<string, string>} o.labels how the person knows a family
  * @param {(chatId: string, pending: object | null) => void} o.hold keeps the choice on disk until it settles or is dropped (null)
+ * @param {(chatId: string) => Promise<string | null | undefined>} [o.folderOf] the folder the chat's session runs in now (the switcher's own reading of it)
  */
-export function switchRuntime({ chats, state, controller, provided, labels, hold }) {
+export function switchRuntime({ chats, state, controller, provided, labels, hold, folderOf }) {
   return {
     switching: true,
     /** The agent the chat runs on now and the one a held choice moves it to (null: none), or null when this Host has no such chat. @param {string} chatId */
@@ -155,6 +162,11 @@ export function switchRuntime({ chats, state, controller, provided, labels, hold
         harness: controller().ref(chatId).kind,
         pending: state.has(chatId) ? (state.get(chatId).pendingSwitch?.harness ?? null) : null,
       };
+    },
+    /** The folder the chat's own record says its session runs in, or null when this Host has no such chat: what a message with no folder of its own runs in, so the Host can look at it again at every message (./chatEffects.mjs). @param {string} chatId */
+    async folderOf(chatId) {
+      if (!chats.records.has(chatId) && !state.has(chatId)) return null;
+      return (await folderOf?.(chatId)) ?? null;
     },
     /**
      * The person's choice, held on the chat until its next message settles it (null: dropped). An agent whose family this Host does not run is refused here, with the family's name.

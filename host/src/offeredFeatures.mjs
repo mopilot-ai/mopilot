@@ -2,7 +2,7 @@
 import { SIDE_CHAT_FEATURE } from '../../shared/host/sideChats.mjs';
 
 /** Features that need a data directory. */
-const NEEDS_DATA_DIR = ['journalLifecycle', 'historyPages', 'chatList', SIDE_CHAT_FEATURE];
+const NEEDS_DATA_DIR = ['journalLifecycle', 'historyPages', 'chatList', 'chatPaging', 'chatEvents', SIDE_CHAT_FEATURE];
 
 /** @param {string[]} features @param {{ dataDir?: string, commands?: unknown }} has */
 export const offeredFeatures = (features, { dataDir, commands }) =>

@@ -7,7 +7,7 @@ import { macKeys } from '../src/lib/agentNarration/common.ts';
 import { desktopStep } from '../src/lib/agentNarration/tools.ts';
 import { goalNotice } from '../shared/goalNotice.mjs';
 import { accountGate } from '../shared/caps.mjs';
-import { ownTable } from '../shared/ownTable.mjs';
+import { ownGet, ownTable } from '../shared/ownTable.mjs';
 import { HARNESS_LABEL } from '../shared/handoff.mjs';
 import { effortLabel, comboFromEvent } from '../src/lib/format.ts';
 import { toolVerb } from '../src/lib/tasks.ts';
@@ -98,4 +98,14 @@ test('an unknown refusal reason does not invent browser recovery choices', () =>
 test('unrecognized goal status never creates a system notification', () => {
   for (const status of ['__proto__', 'constructor', 'toString', 'hasOwnProperty'])
     assert.equal(goalNotice({ status: 'active' } as any, { status } as any), null);
+});
+
+test('ownGet answers own entries only, for a table that crossed a boundary or none at all', () => {
+  const table = JSON.parse('{"known":1,"__proto__":2}');
+  assert.equal(ownGet(table, 'known'), 1);
+  assert.equal(ownGet(table, '__proto__'), 2);
+  for (const name of ['constructor', 'toString', 'missing']) assert.equal(ownGet(table, name), undefined, name);
+  assert.equal(ownGet({ known: 1 }, '__proto__'), undefined);
+  assert.equal(ownGet(null, 'known'), undefined);
+  assert.equal(ownGet(undefined, 'known'), undefined);
 });

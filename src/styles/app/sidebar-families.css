@@ -16,25 +16,15 @@
   border-bottom: 1px solid var(--hairline-strong);
   border-end-start-radius: 6px;
 }
-.side-children.indent::after {
-  inset-inline-start: 38px;
-}
 .side-row.linked-child {
   padding-inline-start: 30px;
 }
-.side-row.indent.linked-child {
-  padding-inline-start: 54px;
-}
 .thread-row {
-  --row-location-width: 14px;
   justify-content: flex-end;
   height: max(28px, calc(var(--fs-ui) * 1.5));
   margin-bottom: 2px;
   padding-inline: 10px;
   font-size: var(--fs-ui);
-}
-.thread-row.indent:not(.linked-child) {
-  padding-inline-start: 34px;
 }
 .row-menu {
   display: contents;
@@ -45,10 +35,26 @@
   min-width: 0;
   flex: 1;
 }
+/* A name ends where its text does, so the marks after it follow it; one the row cuts short fades out at the cut.
+   The scroll timeline is active only while the name overflows, so a name that fits keeps its last letters. */
 .side-row-name .side-row-label {
   flex: 0 1 auto;
-  -webkit-mask-image: none;
-  text-overflow: ellipsis;
+  --label-fade: 0px;
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - var(--label-fade)), transparent);
+  animation: side-label-clipped linear both;
+  animation-timeline: scroll(self inline);
+}
+/* The name's crossfade layer (MorphText) would cut the text itself with an ellipsis and leave the label nothing to
+   scroll: here the layer keeps the text's width and the label makes the cut. */
+.side-row-name .side-row-label .morph-layer {
+  min-width: max-content;
+  overflow: visible;
+}
+@keyframes side-label-clipped {
+  from,
+  to {
+    --label-fade: 18px;
+  }
 }
 .nested-caret {
   flex: none;
@@ -98,6 +104,6 @@
 .show-more[aria-disabled='true'],
 .show-more[aria-disabled='true']:hover {
   cursor: default;
-  color: var(--text-3);
+  color: var(--text-4);
   background: transparent;
 }

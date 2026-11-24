@@ -256,14 +256,14 @@ test('serve restarts into a staged version when asked, once idle, and refuses ne
     loadIdentity(path.join(base, 'serve-app.json'), keySafe),
     o.out.find((l) => l.startsWith('Pairing code: '))!.slice(14),
   );
-  const sent: any = await conn.request('send', { key: 'acp:fake:u', text: 'SLOW', cwd: dir, progressMs: 400 });
+  const sent: any = await conn.request('send', { key: 'acp:fake:u', text: 'SLOW', cwd: path.dirname(dir), progressMs: 400 });
   assert.equal(((await callHost(paths.socketPath, 'update')) as any).result.state, 'none', 'nothing staged yet');
   const cli = io();
   r.sign(trustDataDir(dir));
   assert.equal(await main(['update', '--manifest', r.manifest, '--data-dir', dir], { ...cli.io, coreLoads }), 0);
   assert.match(cli.out.join('\n'), /Staged version 6\.0\.0/);
   assert.match(cli.out.join('\n'), /as soon as it is idle/);
-  const refused: any = await conn.call('send', { key: 'acp:fake:v', text: 'hi', cwd: dir });
+  const refused: any = await conn.call('send', { key: 'acp:fake:v', text: 'hi', cwd: path.dirname(dir) });
   assert.match(refused.error, /restarting for an update/);
   assert.match(((await callHost(paths.socketPath, 'login', { harness: 'fake' })) as any).error, /restarting/);
   assert.equal(((await callHost(paths.socketPath, 'ping')) as any).result, 'pong');
@@ -371,7 +371,7 @@ test('the Host’s harness children die with it', async () => {
   // the Host serves a chat only to a client it paired
   const conn = line(sock);
   await pairWith(conn.request, loadIdentity(path.join(base, 'kids-app.json'), keySafe), /Pairing code: (\S+)/.exec(printed)![1]);
-  await conn.request('send', { key: 'acp:fake:k', text: 'SLOW', cwd: dir });
+  await conn.request('send', { key: 'acp:fake:k', text: 'SLOW', cwd: path.dirname(dir) });
   conn.close();
   const kids = await until(() => {
     const found = spawnSync('pgrep', ['-P', String(child.pid)], { encoding: 'utf8' })

@@ -91,10 +91,10 @@ test('nested rows also show under a project’s chat and in the one-list view; a
   fx.orchestration = { children: { kid1: child('top', 'kid1', 1) }, deliveries: {}, proposals: {}, queue: [] };
   const view = await mountSidebar();
   await flush();
-  const nested = [...view.host.querySelectorAll('.side-children .thread-row.indent.linked-child')] as HTMLElement[];
+  const nested = [...view.host.querySelectorAll('.project-group .side-children .thread-row.linked-child')] as HTMLElement[];
   assert.ok(
     nested.some((r) => r.getAttribute('aria-label') === 'Chat kid1'),
-    'nested under the project’s chat, indented',
+    'nested under the project’s chat',
   );
   await update({ ...getState(), prefs: { ...getState().prefs, sidebarOrganize: 'list' } });
   await flush();

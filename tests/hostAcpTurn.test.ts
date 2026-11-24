@@ -57,7 +57,7 @@ test('smoke: `bin serve` runs one ACP turn over the unix socket; A5: it goes on 
   const first = line(sock);
   await pairWith(first.request, app, /Pairing code: (\S+)/.exec(printed)![1]);
   // a turn the agent holds until it is cancelled: the client that started it hangs up
-  const slow: any = await first.request('send', { key: 'acp:fake:slow', text: 'SLOW please', cwd: dir });
+  const slow: any = await first.request('send', { key: 'acp:fake:slow', text: 'SLOW please', cwd: path.dirname(dir) });
   first.close();
   const second = line(sock);
   await authenticate(second.request, app);
@@ -69,7 +69,7 @@ test('smoke: `bin serve` runs one ACP turn over the unix socket; A5: it goes on 
     'no client is connected and the turn still runs',
   );
   // another chat on the same Host completes a whole turn
-  const sent: any = await askHost(sock, 'send', { key: 'acp:fake:a', text: 'hello there', cwd: dir });
+  const sent: any = await askHost(sock, 'send', { key: 'acp:fake:a', text: 'hello there', cwd: path.dirname(dir) });
   const done: any = await until(async () => {
     const t: any = await askHost(sock, 'turn', { turnId: sent.turnId });
     return t?.state === 'ended' && t;
@@ -179,7 +179,7 @@ test('a turn waiting on a permission card shows it, and permit answers it over t
   const runtime = createAcpRuntime({ paths, env: {} });
   const server = await startServer({ paths, runtime });
   try {
-    const sent: any = await askHost(paths.socketPath, 'send', { key: 'acp:fake:perm', text: 'PERMIT it', cwd: dir });
+    const sent: any = await askHost(paths.socketPath, 'send', { key: 'acp:fake:perm', text: 'PERMIT it', cwd: path.dirname(dir) });
     const card: any = await until(async () => ((await askHost(paths.socketPath, 'turn', { turnId: sent.turnId })) as any)?.permission);
     assert.ok(card.requestId && card.options.length);
     const allow = card.options.find((o: any) => o.kind === 'allow_once').optionId;

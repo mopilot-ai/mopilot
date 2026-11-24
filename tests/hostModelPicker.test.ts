@@ -396,20 +396,22 @@ test('a new chat whose draft points at another machine: Sign in only starts the 
   }
 });
 
-test('an agent the machine reports no models for: an older Host gets the row’s Update beside the note, a current one only the note', async () => {
+test('an agent the machine reports no models for: only an older Host gets the row’s Update beside the note', async () => {
   reset();
   machines[0].agents = [{ id: 'custom', label: 'Custom', state: 'ready' }];
-  for (const [stale, buttons] of [
-    [true, 1],
-    [false, 0],
+  for (const [stale, differs, buttons] of [
+    [true, false, 1],
+    [true, true, 0],
+    [false, false, 0],
   ] as const) {
     machines[0].hostStale = stale;
+    machines[0].hostDiffers = differs;
     const m = await mount(h(HostModelPicker, { threadId: 'c', hostId: 'box' }));
     try {
       await openAgent('Custom');
       const note = $$('.hp-note').find((n) => /has not reported models/.test(n.textContent!))!;
       assert.equal($$('button', note).length, buttons);
-      if (stale) assert.equal($('button', note).getAttribute('aria-label'), 'Update the Host on Box');
+      if (buttons) assert.equal($('button', note).getAttribute('aria-label'), 'Update the Host on Box');
     } finally {
       await m.unmount();
     }

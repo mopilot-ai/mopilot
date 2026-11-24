@@ -1,4 +1,4 @@
-// A tooltip only for text an ellipsis cut short: on hover or focus, the element's title becomes the full text of its
+// A tooltip only for text its row cut short (by an ellipsis or a fade): on hover or focus, the element's title becomes the full text of its
 // ellipsized part when that part overflows, and is removed when it fits (a label that reads whole needs none).
 
 /** Sets or clears `host`'s title from the overflow of its descendant matching `selector` (without one, of `host`

@@ -45,6 +45,12 @@ export function fromDomain(from: string): string | null {
   return addresses[0].slice(addresses[0].lastIndexOf('@') + 1).toLowerCase();
 }
 
+/** The one address of a `From` header, lower case, or null when it holds not exactly one. */
+export function fromAddress(from: string): string | null {
+  const addresses = from.match(/[^\s<>,"';]+@[^\s<>,"';]+/g) ?? [];
+  return addresses.length === 1 ? addresses[0].toLowerCase() : null;
+}
+
 /** The authserv-ids whose results are trusted: Gmail's own receiving servers. */
 export const GMAIL_AUTHSERV_IDS = ['mx.google.com'];
 

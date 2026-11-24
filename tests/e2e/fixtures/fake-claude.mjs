@@ -70,6 +70,7 @@ import { fakeClaudeUsage } from './fake-claude-usage.mjs';
 import { holdWhileMarked, marked } from './fake-claude-marks.mjs';
 import { claudeHookResponses, claudeUsage, extraClaudeModels, heldNext, released, streamClaudeThoughts } from './fake-turn-details.mjs';
 import { cloudEnvOf, holdStart, scriptedToolTurns } from './fake-turn-details.mjs';
+import { diskSkills, skillCommand } from './fake-claude-skills.mjs';
 import { drainQueue } from './fake-claude-fold.mjs';
 import { refusedTurn } from './fake-claude-limits.mjs';
 import { runLocalCommand } from './fake-claude-local.mjs';
@@ -230,9 +231,8 @@ const COMMANDS = [
   { name: 'compact', description: 'Clear history but keep a summary in context', argumentHint: '' },
   { name: 'usage', description: 'Show plan usage limits', argumentHint: '' },
 ];
-const SKILLS = ['fake-skill'];
-// skills show up as commands too, as in the real CLI
-COMMANDS.push({ name: 'fake-skill', description: 'A skill the fake knows', argumentHint: '' });
+const SKILLS = ['fake-skill', ...diskSkills(CONFIG_DIR)]; // the account's own skills too (fake-claude-skills.mjs)
+for (const name of SKILLS) COMMANDS.push(skillCommand(name)); // skills show up as commands too, as in the real CLI
 const ACCOUNT = SIGNED_IN
   ? { email: EMAIL, organization: 'Fake Org', subscriptionType: 'max', tokenSource: 'claude.ai', apiProvider: 'firstParty' }
   : {};

@@ -1,10 +1,12 @@
 // The notice pipeline for one pass: pre-checks, the tool-less reading turn, the sender check, then the code limits, returning one decision record per item and at most one catch-up summary.
+import { senderKey } from '../momoCore/senders.ts';
 import { markSeen, type Change } from './changeDetect.ts';
 import { assertFreshIds } from './envelope.ts';
 import { applyLimits, isCatchUp, localTime, resolveMatter, type DeliveryMode, type NoticeSettings, type Outcome } from './limits.ts';
 import { holdsAccessSecret, preCheck } from './preChecks.ts';
 import { injectionSignals, ownMatterKey, readItem, type Candidate, type Person, type ReadItem } from './reading.ts';
 import {
+  fromAddress,
   fromDomain,
   isAutomated,
   judgeSender,
@@ -34,6 +36,9 @@ export type Decision = {
   sender?: SenderCheck;
   /** What the sender check said about this mail, whenever it ran (it runs for every mail the model did not call quiet): only a mail that passed teaches anything about its sender's domain. */
   senderStatus?: SenderCheck['status'];
+  /** The sender of the mail this decision judged (not the matter's first sender): what a "Not needed" tap on this decision may teach. */
+  fromDomain?: string;
+  fromAddress?: string;
   /** The sender failed that check: the reason is "This may not be from <name>" and there is no reply draft and no link. */
   suspect?: { name: string };
   offerReply: boolean;
@@ -50,6 +55,10 @@ export type PassDeps = {
   versions: VersionStore;
   model: ReaderModel;
   person: Person;
+  /** Senders (by domain) whose quiet rule the owner accepted: their notices are kept out of tell-now in code, after the model reads and never over a failed sender check. */
+  /** False when the owner turned the brief off (a matter a quiet rule held then waits in Watching). */
+  briefOn?: boolean;
+  quietSenders?: { domain: string; address: string | null; ruleId: string }[];
   clock: Clock;
   /** The home's settings, time zone included: every day key and quiet-hours test in the pass uses them. */
   settings: NoticeSettings;
@@ -147,10 +156,10 @@ async function decide(deps: PassDeps, change: Change, mode: DeliveryMode): Promi
       outcome: 'unsorted',
     };
 
-  const { answer, decidedBy } = reading;
+  const { answer: read, decidedBy: readBy } = reading;
   // the sender check runs before anything is decided about the push: a money or credential alert that fails it is shown as "may not be from", never as an alert
   // every tell-now and every watched mail is judged: a phish that talks about a parcel or an address is not a money alert by its words
-  const sender = answer.verdict !== 'quiet' && item.kind === 'mail' ? judgeSender(item.mail, await deps.history.knownDomains()) : undefined;
+  const sender = read.verdict !== 'quiet' && item.kind === 'mail' ? judgeSender(item.mail, await deps.history.knownDomains()) : undefined;
   const sensitive = item.kind === 'mail' && (mentionsMoneyOrCredentials(item.mail) || hasRiskSignal(mailText(item.mail)));
   // money, credentials and risk wording need a known correspondent whose domain passed; any other mail is flagged when the check failed or the domain imitates one the user knows
   const suspect =
@@ -158,10 +167,25 @@ async function decide(deps: PassDeps, change: Change, mode: DeliveryMode): Promi
   const suspectName = suspect && item.kind === 'mail' ? senderName(item.mail.from) : undefined;
   const shown = suspectName ? `This may not be from ${suspectName}.` : undefined;
   // the model may only pick among the matters code offered; anything else is the item's own matter
-  const matterKey = !suspect && candidates.some((candidate) => candidate.key === answer.matterKey) ? answer.matterKey : own;
+  const fromDomainOf = item.kind === 'mail' ? fromDomain(item.mail.from) : null;
+  const fromAddressOf = item.kind === 'mail' ? fromAddress(item.mail.from) : null;
+  // a sender the way learning keys it: by domain, or by full address at a public mail service
+  const who = fromDomainOf !== null ? senderKey({ domain: fromDomainOf, address: fromAddressOf }) : null;
   const { timeZone } = deps.settings;
   const signals = signalsOf(item, localTime(at, timeZone).dayKey, timeZone);
-  const fromDomainOf = item.kind === 'mail' ? fromDomain(item.mail.from) : null;
+  // an accepted quiet rule for this sender keeps a would-be tell-now out of it, shown in the brief as held. It never applies to mail that has to be told whatever the rule says:
+  // money, credentials or risk wording, a deadline, or urgency today or past; nor to mail whose sender check did not pass (a failed one is shown as "may not be from", an unknown one is not trusted enough to be silenced)
+  const rule =
+    read.verdict === 'tell_now' && !suspect && who !== null
+      ? deps.quietSenders?.find((q) => (q.address === null ? q.domain === who.domain : q.address === who.address))
+      : undefined;
+  const mustTell = sensitive || signals.deadline !== undefined || signals.urgency === 3;
+  const quiet = rule && !mustTell && sender?.status === 'pass' ? rule : undefined;
+  const despite = rule && mustTell && sender?.status === 'pass' ? rule : undefined;
+  const label = (q: { address: string | null; domain: string }) => q.address ?? q.domain;
+  // the words and the decider are final only once the limits have answered: a mail held for another reason (dismissed, snoozed, already told) was not kept quiet by the rule
+  const answer = read;
+  const matterKey = !suspect && candidates.some((candidate) => candidate.key === answer.matterKey) ? answer.matterKey : own;
   // an automated sender's "please" and "do not reply" are boilerplate, never a request to the owner
   const ask = item.kind === 'mail' && !isAutomated(item.mail) ? askOf(mailText(item.mail)) : undefined;
   const outcome = await applyLimits(deps.store, deps.settings, at, {
@@ -176,20 +200,33 @@ async function decide(deps: PassDeps, change: Change, mode: DeliveryMode): Promi
     ...signals,
     mode,
     ...(fromDomainOf ? { fromDomain: fromDomainOf } : {}),
+    ...(fromAddressOf ? { fromAddress: fromAddressOf } : {}),
     ...(item.kind === 'mail' && ask ? { ask } : {}),
     ...(suspect ? { suspect } : {}),
+    ...(quiet ? { quietRule: { ruleId: quiet.ruleId, label: label(quiet) } } : {}),
+    ...(deps.briefOn === false ? { briefOn: false } : {}),
   });
+  const ruleHeld =
+    quiet !== undefined && outcome.action === 'hold' && (outcome.why === 'quiet_rule' || outcome.why === 'quiet_rule_watching');
+  const wasTold = outcome.action === 'tell_now' || outcome.action === 'catch_up';
+  const reason = ruleHeld
+    ? `Kept quiet by your rule for ${label(quiet)}: ${read.reason}`
+    : despite && wasTold
+      ? `Told you despite your quiet rule for ${label(despite)}: ${read.reason}`
+      : read.reason;
   return {
     ...base,
-    decision: answer.verdict,
-    reason: shown ?? answer.reason,
+    decision: ruleHeld ? ('quiet' as const) : answer.verdict,
+    reason: shown ?? reason,
     ...(suspectName ? { suspect: { name: suspectName } } : {}),
     matterKey,
-    decidedBy,
+    decidedBy: ruleHeld && quiet ? `rule:quiet-sender:${quiet.ruleId}` : readBy,
     outcome: outcome.action,
     ...(outcome.action === 'hold' ? { heldFor: outcome.why } : {}),
     ...(sender && (sensitive || suspect) ? { sender } : {}),
     ...(sender ? { senderStatus: sender.status } : {}),
+    ...(fromDomainOf ? { fromDomain: fromDomainOf } : {}),
+    ...(fromAddressOf ? { fromAddress: fromAddressOf } : {}),
     // a reply draft is for a sender that is known and passed when money or credentials are in play, and for any sender that did not fail
     offerReply: suspect ? false : sender && sensitive ? mayOfferReply(sender) : true,
   };

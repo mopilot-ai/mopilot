@@ -1,8 +1,9 @@
-// The Host's handlers for the `host.momo*` methods (feature `momo`, M1): the grant, the status and starting a home. MoMo is veiled: to a client that is not paired, or while no live grant of an invited account is held (host/src/momoHome.mjs), every one (the grant only needs a paired client) is a request no Host knows, and the feature is not in the hello, so an uninvited client sees nothing of MoMo.
+// The Host's handlers for the `host.momo*` methods (feature `momo`, M1): the grant, the status and starting a home. MoMo is veiled: to a client that is not paired, or while no live grant of an invited account is held (host/src/momoHome.mjs), every one (the grant only needs a paired client) is a request no Host knows, and the feature is not in the hello, so an uninvited client sees nothing of MoMo. The ONE deliberate exception is what a Host holds (`host.momoHomeLook`, `host.momoStandDown`, the hello feature `momoLook`): a paired owner device is answered with no grant, even for an account that was never invited, so a lapsed grant is never read as "no home"; it says presence only (a home, none, moved, retired, unreadable and the lease epoch) and never any MoMo data.
 import { HostRefusal } from '../hostFs.mjs';
 import { momoDeliveryView } from '../../../shared/momoDeliveryView.mjs';
 
 import { isOwner } from '../momoOwner.mjs';
+import { onlyAtHome } from '../momoHomeGuard.mjs';
 
 /** @param {{ momo?: ReturnType<typeof import('../momoHome.mjs').createMomoHome> }} deps */
 export default ({ momo }) => {
@@ -20,10 +21,14 @@ export default ({ momo }) => {
     return part;
   };
   return {
+    guard: onlyAtHome(momo),
     veils: {
       'host.momoGrant': (/** @type {unknown} */ principal) => paired(principal) && isOwner(principal),
       'host.momoStatus': seen,
       'host.momoHomeStart': owner,
+      // what a Host holds and the stand-down of an older home: the owner's devices, with or without a grant (a Host whose grant lapsed still says what it holds)
+      'host.momoHomeLook': (/** @type {unknown} */ principal) => paired(principal) && isOwner(principal),
+      'host.momoStandDown': (/** @type {unknown} */ principal) => paired(principal) && isOwner(principal),
       'host.momoChat': owner,
       'host.momoPrefs': owner,
       'host.momoMemory': owner,
@@ -36,7 +41,11 @@ export default ({ momo }) => {
     // which chats are MoMo's and who may see them: the protocol's chat veil (./chatVeil.mjs) holds every chat request, result and event to it
     chatRules: momo?.chats?.rules,
     // `momoHome` only while this Host is the running home: a Host that is not (none, moving, asleep to a client) does not claim it
-    features: { momo: seen, momoHome: (/** @type {unknown} */ principal) => seen(principal) && !!momo?.stamp() },
+    features: {
+      momoLook: (/** @type {unknown} */ principal) => paired(principal) && isOwner(principal),
+      momo: seen,
+      momoHome: (/** @type {unknown} */ principal) => seen(principal) && !!momo?.stamp(),
+    },
     handlers: {
       'host.momoGrant': (/** @type {{ account: string, features: string[] }} */ p) => home.grant(p),
       // what this Host holds, and whether it can tell MoMo's chats from the rest right now
@@ -67,14 +76,16 @@ export default ({ momo }) => {
       'host.momoBriefNow': () => needed(home.daily).briefNow(),
       'host.momoIntent': (/** @type {{ key: string, action: 'draft' | 'remind' | 'dismiss', at?: number }} */ p) =>
         needed(home.intents).apply(p),
-      'host.momoReset': () => home.reset(),
+      'host.momoReset': (/** @type {{ ifRetired?: boolean, expectEpoch?: number }} */ p) => home.reset(p),
       // one step of a move (host/src/momoMove.mjs): the op names it, the rest are its parameters
       'host.momoMove': (
         /** @type {{ op: 'begin' | 'seal' | 'cancel' | 'reclaim' | 'finish' | 'offer' | 'receive' | 'commit' | 'discard' } & Record<string, any>} */ p,
         _kind,
         /** @type {{ principal?: () => { fingerprint: string } | null }} */ who,
       ) => /** @type {any} */ (home.move)[p.op](p.op === 'reclaim' ? { ...p, by: who?.principal?.()?.fingerprint ?? null } : p),
-      'host.momoHomeStart': (/** @type {{ homeId: string, name: string }} */ p) => home.start(p),
+      'host.momoHomeStart': (/** @type {{ homeId: string, name: string, floor?: number }} */ p) => home.start(p),
+      'host.momoHomeLook': () => home.look(),
+      'host.momoStandDown': (/** @type {{ homeId: string, leaseEpoch: number, name?: string }} */ p) => home.standDown(p),
       'host.momoChat': (/** @type {{ harness: string }} */ p) => /** @type {NonNullable<typeof home.chats>} */ (home.chats).start(p),
     },
   };

@@ -1,0 +1,129 @@
+// Runs on the SSH Host to report the installed update floor or stage a signed archive and request an idle restart.
+import { createWriteStream, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { pipeline } from "node:stream/promises";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+const [bootstrap, options, expectedFloor, signedManifest] = process.argv.slice(1);
+const { deferredExit, unsupportedExit, restartUnconfirmedExit, maxActivationAttempts, floorPrefix } = JSON.parse(options);
+const load = (root, name) => import(pathToFileURL(join(root, name)).href);
+const { createPaths } = await load(bootstrap, "paths.mjs");
+const bootstrapApi = await load(bootstrap, "update.mjs");
+const { updatePaths } = bootstrapApi;
+if (typeof updatePaths !== "function") process.exit(unsupportedExit);
+const paths = createPaths();
+const p = updatePaths(paths.dataDir);
+const sha256 = /^[a-f0-9]{64}$/;
+function read(file) {
+  try { return readFileSync(file, "utf8"); }
+  catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+    return null;
+  }
+}
+function updateTarget() {
+  try {
+    // Read the floor first. A concurrent acceptance advances it under the trust lock.
+    const stored = read(p.floor);
+    const floor = stored === null ? { seq: 0 } : JSON.parse(stored);
+    if (!Number.isSafeInteger(floor?.seq) || floor.seq < 0 || (stored !== null && !sha256.test(floor.sha256)) || existsSync(p.next))
+      return null;
+    const active = read(p.active);
+    let modules = bootstrap;
+    if (active !== null) {
+      const pointer = JSON.parse(active);
+      if (!sha256.test(pointer?.sha256)) return null;
+      const version = p.version(pointer.sha256);
+      if (Number(pointer.tries ?? 0) >= maxActivationAttempts || !existsSync(join(version, "src", "cli.mjs")))
+        return { manual: true };
+      modules = join(version, "host", "src");
+    }
+    modules = realpathSync(modules);
+    const build = read(join(modules, "..", "BUILD_ID"))?.trim() ?? "";
+    const appVersion = read(join(modules, "..", "APP_VERSION"))?.trim() ?? "";
+    return { seq: floor.seq, build, appVersion, modules };
+  } catch {
+    return null;
+  }
+}
+const target = updateTarget();
+if (!target) process.exit(deferredExit);
+if (target.manual) process.exit(unsupportedExit);
+function lockedUpdater(api) {
+  if (typeof api.updateKeysOf !== "function" || typeof api.stageUpdate !== "function") process.exit(unsupportedExit);
+  const trusted = api.updateKeysOf(paths.configDir);
+  if (typeof trusted.withCurrentTrust !== "function") process.exit(unsupportedExit);
+  return { stageUpdate: api.stageUpdate, trusted };
+}
+// Manual updates still run through the bootstrap. Both writers must use the same trust lock.
+const bootstrapUpdater = lockedUpdater(bootstrapApi);
+// Signed updates delegate to the active bundle without replacing the original bootstrap.
+const { stageUpdate, trusted } = target.modules === realpathSync(bootstrap)
+  ? bootstrapUpdater
+  : lockedUpdater(await load(target.modules, "update.mjs"));
+const matches = (current, expected) => current?.seq === expected.seq &&
+  current.build === expected.build && current.appVersion === expected.appVersion;
+if (expectedFloor) {
+  await stageArchive();
+} else {
+  const { seq, build, appVersion } = target;
+  console.log(floorPrefix + JSON.stringify({ seq, build, appVersion }));
+}
+
+async function stageArchive() {
+  const expected = JSON.parse(Buffer.from(expectedFloor, "base64"));
+  if (!matches(target, expected)) process.exit(deferredExit);
+  const { createPairing } = await load(target.modules, "pairing.mjs");
+  const { callHost } = await load(target.modules, "server.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "mopilot-auto-update-"));
+  const targetStillMatches = () => {
+    const live = updateTarget();
+    return matches(live, target) && live.modules === target.modules;
+  };
+  let acceptanceStarted = false;
+  const keyStore = {
+    ...trusted,
+    withCurrentTrust: (signed, context, accept) =>
+      trusted.withCurrentTrust(signed, context, () => {
+        if (!targetStillMatches())
+          throw Object.assign(new Error("The Host changed while preparing the update."), { code: "update_deferred" });
+        acceptanceStarted = true;
+        return accept();
+      }),
+  };
+  let staged;
+  try {
+    await pipeline(process.stdin, createWriteStream(join(dir, "archive.tgz"), { mode: 0o600 }));
+    const source = join(dir, "manifest.json");
+    writeFileSync(source, Buffer.from(signedManifest, "base64"), { mode: 0o600 });
+    staged = await stageUpdate({
+      source, dataDir: paths.dataDir, keys: keyStore.entries(), keyStore,
+      hostId: createPairing({ configDir: paths.configDir }).hostId(),
+    });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    // An advancing floor can make stageUpdate refuse before it reaches the lock callback.
+    const superseded = !acceptanceStarted && !targetStillMatches();
+    process.exitCode = error?.code === "update_deferred" || error?.code === "trust_busy" || superseded ? deferredExit : 1;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  if (staged) {
+    const restartFailed = () => {
+      console.error("The Host staged the update but did not acknowledge the restart request. Try updating again.");
+      process.exitCode = restartUnconfirmedExit;
+    };
+    const deadline = setTimeout(() => {
+      restartFailed();
+      process.exit(restartUnconfirmedExit);
+    }, 5000);
+    try {
+      const reply = await callHost(paths.socketPath, "update");
+      const state = reply?.result?.state;
+      if (state === "waiting" || state === "restarting") console.log("Staged version " + staged.version + ".");
+      else restartFailed();
+    } finally {
+      clearTimeout(deadline);
+    }
+  }
+}

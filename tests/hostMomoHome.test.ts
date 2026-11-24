@@ -46,7 +46,7 @@ test('B4: a client with no grant leaves no trace: nothing is granted, read or ma
   assert.equal(home.granted(), false);
   assert.equal(home.stores(), null);
   assert.equal(fs.existsSync(w.momoDir), false, 'no folder, so no trace');
-  assert.deepEqual(home.status(), { version: 1, keys: 'key-file', grantExpiresAt: GRANT_MAX_AGE_MS, home: null });
+  assert.deepEqual(home.status(), { version: 1, keys: 'key-file', grantExpiresAt: GRANT_MAX_AGE_MS, access: null, home: null });
 });
 
 test('a grant without the momo feature is a revoke: erased, and answered as a request no Host knows', async (t) => {
@@ -200,7 +200,8 @@ test('on the wire, through the server: to an unpaired client and to one without 
   assert.equal(home.granted(), false);
   assert.equal(fs.existsSync(w.momoDir), false);
   const { conn } = await host.paired('mac', 'Mac');
-  assert.doesNotMatch(await hello(conn), /momo/i);
+  // the one deliberate exception: a paired owner device is told this Host can say what it holds (presence only, no MoMo data), so it never reads a missing grant as "no home"
+  assert.doesNotMatch((await hello(conn)).replaceAll('momoLook', ''), /momo/i);
   await sameAsUnknown(conn);
   assert.equal(fs.existsSync(w.momoDir), false, 'and no trace on the disk');
   // the invited account's client: its grant, a new hello that now names the feature, then the status and a home
@@ -217,7 +218,7 @@ test('on the wire, through the server: to an unpaired client and to one without 
   await assert.rejects(conn.request('host.momoHomeStart', { homeId: start.homeId, name: '' }), /machine name/);
   // revoked: it is all unknown again, and the hello forgets the feature
   await assert.rejects(conn.request('host.momoGrant', { account: 'a1', features: [] }), /Unknown request/);
-  assert.doesNotMatch(await hello(conn), /momo/i);
+  assert.doesNotMatch((await hello(conn)).replaceAll('momoLook', ''), /momo/i);
   await sameAsUnknown(conn);
   await home.close();
 });

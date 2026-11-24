@@ -2,87 +2,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 // @ts-ignore: plain ESM without declarations
 import { createNoticeModel } from '../host/src/momoNoticeModel.mjs';
 // @ts-ignore
-import { createMomoHidden, momoHomeFor, momoRunsFor } from '../host/src/momoWiring.mjs';
+import { momoRunsFor } from '../host/src/momoWiring.mjs';
 // @ts-ignore
 import { helloParams } from '../shared/host/schema.mjs';
-import { createMemoryVersionStore } from '../shared/momoNotice/memoryStore.ts';
 import { servedHost } from './support/hostClientsWorld.ts';
+import { mailOf, world } from './support/host/noticeHomeWorld.ts';
 
 const MOMO = ['momo'];
-const start = { homeId: 'home-aaaa-1111', name: 'Studio' };
-const authPass = { 'Authentication-Results': 'mx.google.com; dkim=pass; dmarc=pass (p=NONE) header.from=acme.com' };
-
-const mailOf = (threadId: string, subject: string, body: string, over: object = {}) => ({
-  id: `m-${threadId}`,
-  threadId,
-  from: 'Ana <ana@acme.com>',
-  to: ['maya@x.com'],
-  cc: [],
-  subject,
-  date: new Date().toISOString(),
-  headers: authPass,
-  labels: ['INBOX'],
-  body,
-  ...over,
-});
-
-async function world(t: any, mode: string | undefined) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'momo-notice-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const paths = { dataDir: path.join(dir, 'data'), configDir: path.join(dir, 'config') };
-  const reports: string[] = [];
-  const records = new Map<string, any>();
-  const sessions: any = {
-    chats: { records, patchMeta: (id: string, patch: object) => records.set(id, { meta: { ...records.get(id)?.meta, ...patch } }) },
-    isolated: () => true,
-    isolate: () => undefined,
-  };
-  const home: any = momoHomeFor({
-    hostId: start.homeId,
-    paths,
-    report: (m: string) => reports.push(m),
-    sessions,
-    epochs: { current: () => 0 },
-    hidden: createMomoHidden(),
-    env: { ...(mode ? { MOMO_NOTICE_MODE: mode } : {}), MOMO_NOTICE_EVERY_MS: '0' },
-  });
-  t.after(() => home.close());
-  await home.grant({ account: 'a1', features: MOMO });
-  await home.start(start);
-  // one UTC day, no quiet hours: what the test sees does not depend on the time it runs
-  await home.prefs.change({ quietHours: null, brief: { on: true, zone: 'UTC', time: new Date().toISOString().slice(11, 16) } });
-
-  const threads: Record<string, any> = {};
-  const calls = { listThreads: 0, getMail: 0 };
-  const versions = createMemoryVersionStore();
-  const client = {
-    listThreads: async () => (calls.listThreads++, { threadIds: Object.keys(threads) }),
-    getThreadMeta: async (id: string) => ({ id, messages: [{ id: threads[id].id, internalDate: String(Date.parse(threads[id].date)) }] }),
-    getMail: async (id: string) => (calls.getMail++, threads[id] ?? null),
-    listEvents: async () => ({ events: [] }),
-    calendarEtag: async () => 'etag-1',
-  };
-  home.provide('google', {
-    reader: async () => ({ client, versions }),
-    status: async () => ({ kind: 'connected_read_only', email: 'maya@x.com', connectedAt: 1 }),
-  });
-  const told: any[] = [];
-  home.push = { tell: async (item: any) => (told.push(item), { status: 'sent' }) };
-  const prompts: string[] = [];
-  const answers: string[] = [];
-  home.service('notice').setModel({
-    name: 'fake',
-    complete: async (prompt: string) => (prompts.push(prompt), answers.shift() ?? 'no answer'),
-  });
-  const answer = (verdict: string, reason = 'It needs you.') => JSON.stringify({ verdict, reason, matterKey: 'gmail:x' });
-  return { dir, home, reports, threads, calls, told, prompts, answers, answer, notice: () => home.service('notice') };
-}
 
 test('the service is loaded by the real loader, and off means nothing is read', async (t) => {
   const w = await world(t, undefined);
@@ -343,4 +272,41 @@ test('the offers on a shown brief are readable by id for the tasks lane, until t
   assert.equal(w.notice().offer('nope'), null);
   await w.notice().intents['brief.hide']({ kind: 'brief.hide', offerId: 'o1' });
   assert.equal(await bound.at(-1).offers.get('o1'), null);
+});
+
+test('end to end through the real notice and learning services: two taps on one sender make one suggestion; after Accept the next mail from it is kept quiet and says why', async (t) => {
+  const w = await world(t, 'tell_now');
+  const learning = w.home.service('learning');
+  const run = async (intent: object) => (w.home.intentRegistry().intents() as any)[(intent as any).kind](intent);
+  const rules = () => learning.view().rules;
+  const at = (n: number) => new Date(Date.now() + n * 1000).toISOString();
+  w.threads.t0 = mailOf('t0', 'Hello', 'Welcome.', { date: at(0) });
+  w.answers.push(w.answer('quiet'));
+  await w.notice().tick(); // the first connect
+  for (const [n, id] of [
+    [1, 't1'],
+    [2, 't2'],
+  ] as const) {
+    w.threads[id] = mailOf(id, `Sale ${id}`, 'Big sale today.', { date: at(n) });
+    w.answers.push(w.answer('tell_now'));
+    assert.equal((await w.notice().tick()).decisions, 1);
+    const [seen] = await w.notice().decisions({ ids: [`gmail:${id}`] });
+    await run({ kind: 'row.notNeeded', rowId: `gmail:${id}`, decisionId: seen.decisionId });
+    // the tap itself nudged the learning service: no waiting for its timer
+    if (n === 1) assert.equal(rules().length, 0);
+  }
+  assert.deepEqual(
+    rules().map((r: any) => [r.state, /acme\.com/.test(r.appliesTo)]),
+    [['suggested', true]],
+    'one suggestion that waits for Accept',
+  );
+  assert.deepEqual(learning.quietSenders(), [], 'nothing is quiet until the owner accepts');
+  await learning.confirm(rules()[0].id, 'phone:a');
+  w.told.length = 0;
+  w.threads.t3 = mailOf('t3', 'Sale t3', 'Another sale.', { date: at(3) });
+  w.answers.push(w.answer('tell_now'));
+  assert.equal((await w.notice().tick()).decisions, 1);
+  assert.deepEqual(w.told, [], 'nothing pushed');
+  const [kept] = await w.notice().decisions({ ids: ['gmail:t3'] });
+  assert.deepEqual([kept.outcome, kept.reason], ['quiet', 'Kept quiet by your rule for acme.com: It needs you.']);
 });

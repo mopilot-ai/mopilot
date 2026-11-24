@@ -1,4 +1,4 @@
-// The phantom cursor's part of a background desktop_app_* input action: its approach to where the action lands, and its exit when the action fails.
+// The phantom cursor's part of a background desktop_app_* input action (its approach and exit), the ladder's first request, and the window shift a moved window needs.
 
 /** @typedef {InstanceType<typeof import('./appScoped.cjs').AppScopedControl>} AppScopedControl the control the cursor belongs to */
 
@@ -49,12 +49,15 @@ function signClick(c, plan) {
   return SIGNALLED.has(plan.method) && c.cursorSignal ? { ...plan, params: { ...plan.params, signal: c.cursorSignal } } : plan;
 }
 
+/** The requests with a real-pointer route for an app in front: a click and a wheel scroll (a drag has only the process route). */
+const REAL_POINTER = new Set(['app.click', 'app.scroll']);
+
 /**
- * The ladder's first request. An app in front ignores events posted to its process, so with brief foreground allowed (`fgOk`) a coordinate click asks the helper to take the
- * real-pointer route at once when the app is in front as the click runs (`ifFrontmost`); the result then carries `foreground` and there is no higher rung to try.
+ * The ladder's first request. An app in front ignores events posted to its process, so with brief foreground allowed (`fgOk`) a coordinate click or scroll asks the helper to take the
+ * real-pointer route at once when the app is in front as the input runs (`ifFrontmost`); the result then carries `foreground` and there is no higher rung to try.
  */
 function firstPlan(p, thumb, fgOk) {
-  return { ...p, params: { ...p.params, ...thumb, ...(fgOk && p.method === 'app.click' ? { ifFrontmost: true } : {}) } };
+  return { ...p, params: { ...p.params, ...thumb, ...(fgOk && REAL_POINTER.has(p.method) ? { ifFrontmost: true } : {}) } };
 }
 
 /** Whether the helper refused the brief-foreground path the first request asked for (the user is at the mouse or keyboard, the screen is locked): nothing was posted, so the plain background click is still to try. */
@@ -62,4 +65,18 @@ function foregroundRefused(e) {
   return /^(unsupported\(user_active\)|refused.*locked screen)/i.test(String(e?.message ?? ''));
 }
 
-module.exports = { withCursor, signClick, firstPlan, foregroundRefused };
+/** The window moved since its screenshot (the helper moved the point with it): its frame and elements move too. */
+function shiftWindow(w, moved) {
+  const dx = Number(moved?.dx) || 0;
+  const dy = Number(moved?.dy) || 0;
+  if (!w || (!dx && !dy)) return false;
+  w.geom.x += dx;
+  w.geom.y += dy;
+  w.bounds.x += dx;
+  w.bounds.y += dy;
+  for (const e of w.elements) e.frame = { ...e.frame, x: e.frame.x + dx, y: e.frame.y + dy };
+  if (w.last?.point) w.last = { ...w.last, point: { x: w.last.point.x + dx, y: w.last.point.y + dy } };
+  return true;
+}
+
+module.exports = { withCursor, signClick, firstPlan, foregroundRefused, shiftWindow };

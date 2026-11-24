@@ -227,7 +227,9 @@ export function parseView(raw: unknown): MomoView | null {
       dailyCap: num(s.dailyCap, 6),
       previews: s.previews === true,
     },
-    problems: rows(raw.problems).filter((p) => fix(p.fix)),
+    problems: rows(raw.problems)
+      .filter((p) => fix(p.fix))
+      .map((p) => (Array.isArray(p.also) ? { ...p, also: p.also.filter(fix) } : p)),
   });
 }
 

@@ -188,6 +188,17 @@ export function ProblemBanners({ problems }: { problems: MomoDeliveryProblem[] }
             <button type="button" className={styles.btn} disabled={busy} onClick={() => void act({ type: 'fix.run', id: p.fix.id })}>
               {p.fix.label}
             </button>
+            {(p.also ?? []).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={styles.btn}
+                disabled={busy}
+                onClick={() => void act({ type: 'fix.run', id: f.id })}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
       ))}

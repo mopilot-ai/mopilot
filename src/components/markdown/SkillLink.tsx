@@ -1,11 +1,9 @@
 // Skill mentions: inline skill links and opening a skill in the side pane.
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { openPaneTab } from '../../store/panes';
 import { skillName } from '../../lib/skills';
-import { openPath } from '../../session/open';
+import { openSkill, openSkillClick } from '../../session/openSkill';
 import { useFileMenu } from '../ui/FileMenu';
-import { modKey } from '../../lib/platform';
 import { dirname, joinPath } from '../../lib/paths';
 import { native } from '../../lib/native';
 import { noteIgnored } from '../../lib/ignored';
@@ -39,9 +37,7 @@ function displayName(path: string) {
   return pending;
 }
 
-export function openSkill(path: string) {
-  openPaneTab('skill', { path, title: skillName(path) });
-}
+export { openSkill };
 
 /** Shared by assistant links, sent skill mentions, and composer attachments. */
 export function SkillLink({ path, children }: { path: string; children?: ReactNode }) {
@@ -70,8 +66,7 @@ export function SkillLink({ path, children }: { path: string; children?: ReactNo
         title={path}
         onClick={(e) => {
           e.preventDefault();
-          if (modKey(e)) openPath(path);
-          else openSkill(path);
+          openSkillClick(path, e);
         }}
         {...menu.target}
       >

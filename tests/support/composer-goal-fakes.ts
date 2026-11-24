@@ -67,6 +67,7 @@ export const f: any = {
   useCap: (_id: any, semantic: string) => ({ state: semantic === 'shell' && f.shell ? 'sage' : 'absent', via: 'none' }),
   useCaps: () => ({ goal: f.cap }),
   useClaudeCommands: () => null,
+  useClaudeSkillFiles: () => null,
   useCommandProvider: () => f.provider,
   useEffectiveSelection: () => ({ model: { id: 'test' }, models: [], efforts: [], tiers: [], effort: 'medium' }),
   useHarnessAccounts: () => ({ active: null }),

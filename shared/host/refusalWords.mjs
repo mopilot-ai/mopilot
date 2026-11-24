@@ -4,6 +4,7 @@ import { agentLabel } from './agentReadiness.mjs';
 import { hostPermissionFamily, isHostPermission } from './permissions.mjs';
 import { SIDE_CHAT_PARENT_CHANGED_WORDS } from './sideChats.mjs';
 import { PERMISSION_LABEL } from '../permissionMenu.mjs';
+import { LINK_WORDS } from './refusalWordsLink.mjs';
 
 /** the Host's names for the two modes the chip words differently */
 const MODE_WORDS = { Default: PERMISSION_LABEL.default, 'Auto-review': PERMISSION_LABEL['auto-review'] };
@@ -316,6 +317,50 @@ const TABLE = {
   momo_chat_unavailable: (c) => ({ line: `MoMo's chat on ${c.machine} can't take this yet.`, action: null, retry: true }),
   momo_chat_fixed: (c) => ({ line: `MoMo's chat on ${c.machine} keeps its own settings, agent and place.`, action: null, retry: false }),
   momo_home_away: (c) => ({ line: `MoMo's home isn't running on ${c.machine}.`, action: 'openMachines', retry: true }),
+  // MoMo's home on another of the user's machines (host/src/homeGate.mjs): what this machine says when the home asks for more than it may
+  home_not_allowed: (c) => ({ line: `MoMo isn't allowed to do that on ${c.machine}.`, action: null, retry: false }),
+  home_mode_refused: (c) => ({
+    line: `MoMo may start tasks on ${c.machine} only in "Ask for approval" or read-only.`,
+    action: null,
+    retry: false,
+  }),
+  home_lease_jump: (c) => ({
+    line: `${c.machine} doesn't believe MoMo's claim to a lease far ahead of the one it knows. Allow MoMo again if it really moved that far.`,
+    action: null,
+    retry: false,
+  }),
+  home_too_many: (c) => ({
+    line: `MoMo already has as many tasks running on ${c.machine} as it may. Wait for one to finish.`,
+    action: null,
+    retry: false,
+  }),
+  home_mode_changed: (c) => ({
+    line: `This session's mode was raised on ${c.machine}, so MoMo can no longer send to it.`,
+    action: null,
+    retry: false,
+  }),
+  home_handover_failed: (c) => ({
+    line: `MoMo's key was added on ${c.machine}, but taking over its lease did not finish. Allow MoMo again.`,
+    action: null,
+    retry: false,
+  }),
+  home_lease_unassigned: (c) => ({
+    line: `MoMo has no key allowed to hold its lease on ${c.machine}. Allow MoMo again from your own device.`,
+    action: null,
+    retry: false,
+  }),
+  home_lease_held: (c) => ({
+    line: `Another MoMo key holds the lease on ${c.machine}. Allow MoMo again from your own device.`,
+    action: null,
+    retry: false,
+  }),
+  home_stamp_missing: (c) => ({ line: `${c.machine} can't tell which MoMo home this comes from.`, action: null, retry: false }),
+  ...LINK_WORDS,
+  home_state_unreadable: (c) => ({
+    line: `MoMo's permissions on ${c.machine} can't be read, so MoMo is not allowed to use it until they are set again.`,
+    action: null,
+    retry: false,
+  }),
   turn_id_required: (c) => ({
     line: `A message to MoMo on ${c.machine} needs its own id, so this one wasn't sent.`,
     action: null,
@@ -323,6 +368,11 @@ const TABLE = {
   }),
   turn_busy: (c) => ({ line: `MoMo on ${c.machine} is still working on your last message.`, action: null, retry: true }),
   turn_conflict: (c) => ({ line: `That message belongs to another chat on ${c.machine}.`, action: null, retry: false }),
+  momo_grant_lapsed: (c) => ({
+    line: `MoMo's access has run out on ${c.machine}: open MoPilot on your account's device to renew it.`,
+    action: null,
+    retry: true,
+  }),
   momo_unavailable: (c) => ({ line: `MoMo isn't available on ${c.machine} right now.`, action: null, retry: false }),
   momo_intent_unavailable: (c) => ({ line: `MoMo on ${c.machine} can't do that from a notification yet.`, action: null, retry: false }),
   momo_unknown_notification: (c) => ({ line: `That notification is not one MoMo on ${c.machine} sent.`, action: null, retry: false }),
@@ -346,6 +396,20 @@ const TABLE = {
   }),
   home_exists: (c) => ({ line: `MoMo's home is ${nameOf(c, 'another machine')}, not ${c.machine}.`, action: 'openMachines', retry: false }),
   home_moved: (c) => ({ line: `MoMo moved from ${c.machine} to ${nameOf(c, 'another machine')}.`, action: 'openMachines', retry: false }),
+  retired_copy_here: (c) => ({
+    line: `${c.machine} still has an older MoMo. Use it or delete it first.`,
+    action: 'openMachines',
+    retry: false,
+  }),
+  retired_changed: (c) => ({ line: `The older MoMo on ${c.machine} changed, so nothing was deleted.`, action: null, retry: false }),
+  floor_too_high: (c) => ({ line: `${c.machine} can't start MoMo above an epoch that far ahead in one step.`, action: null, retry: false }),
+  floor_invalid: (c) => ({ line: `${c.machine} was given an epoch it can't use.`, action: null, retry: false }),
+  epoch_limit: (c) => ({ line: `${c.machine} can't start a newer MoMo.`, action: null, retry: false }),
+  epoch_unproven: (c) => ({
+    line: `${c.machine} has no reason to believe that MoMo is newer, so it was left as it is.`,
+    action: null,
+    retry: false,
+  }),
   home_not_here: (c) => ({ line: `${c.machine} isn't MoMo's home.`, action: 'openMachines', retry: false }),
   home_lease_stale: (c) => ({ line: `MoMo's home moved on while ${c.machine} was being asked.`, action: null, retry: true }),
   move_in_progress: (c) => ({ line: onMachine(c, `Another move of MoMo started on ${c.machine}.`), action: null, retry: false }),
@@ -382,6 +446,37 @@ const TABLE = {
     retry: true,
   }),
   bundle_too_large: (c) => ({ line: `MoMo's data on ${c.machine} is too large to move in one piece yet.`, action: null, retry: false }),
+  // MoMo's server-signed entitlement (#5474): the Host's own cause for not taking the grant; the view's fix (Refresh access, Update the app) sits beside it
+  entitlement_missing: (c) => ({
+    line: `${c.machine} needs a signed MoMo entitlement and the app sent none.`,
+    action: 'update',
+    retry: false,
+  }),
+  entitlement_invalid: (c) => ({ line: `${c.machine} doesn't trust the MoMo entitlement it was sent.`, action: null, retry: false }),
+  entitlement_unknown_key: (c) => ({
+    line: `${c.machine} doesn't know the key that signed MoMo's entitlement; update MoPilot there.`,
+    action: 'update',
+    retry: false,
+  }),
+  entitlement_wrong_host: (c) => ({
+    line: `The MoMo entitlement was made for another machine, not ${c.machine}.`,
+    action: null,
+    retry: false,
+  }),
+  entitlement_stale: (c) => ({
+    line: `${c.machine} already has a newer MoMo entitlement than the one it was sent.`,
+    action: null,
+    retry: false,
+  }),
+  entitlement_expired: (c) => ({ line: `MoMo's access on ${c.machine} ran out and wasn't renewed.`, action: null, retry: false }),
+  entitlement_revoked: (c) => ({ line: `MoMo access for this account was withdrawn on ${c.machine}.`, action: null, retry: false }),
+  clock_skew: (c) => ({ line: `${c.machine}'s date or time looks wrong: check the clock.`, action: null, retry: false }),
+  not_invited: (c) => ({ line: `This account isn't invited to MoMo on ${c.machine}.`, action: null, retry: false }),
+  entitlement_unwritable: (c) => ({
+    line: `${c.machine} couldn't save MoMo's access: check its disk space and permissions.`,
+    action: null,
+    retry: false,
+  }),
   audit_chain_broken: (c) => ({
     line: `MoMo's audit log didn't check out on ${c.machine}, so nothing was changed.`,
     action: null,

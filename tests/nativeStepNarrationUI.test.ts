@@ -45,6 +45,8 @@ mock.module('../src/lib/paths.ts', {
   },
 });
 mock.module('../src/lib/platform.ts', { namedExports: { isWin: false } });
+mock.module('../src/session/harness/skillPath.ts', { namedExports: { useSkillPath: () => null, useSkillFile: () => null } });
+mock.module('../src/session/openSkill.ts', { namedExports: { openSkill: () => {}, openSkillClick: () => {} } });
 mock.module('../src/session/open.ts', { namedExports: { openMessageLink: record('openMessageLink'), openLink: record('openLink') } });
 mock.module('../src/components/ui/Presence.tsx', { namedExports: { Collapse: ({ open, children }: any) => (open ? children : null) } });
 mock.module('../src/components/markdown/Markdown.tsx', {

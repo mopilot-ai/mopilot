@@ -1,13 +1,22 @@
-// The notes under a chat's last turn: the harness's own MCP servers that crowd the model, and a chat on a machine whose Host is older than this app (it can miss replies, so the person is told, with the machine row's Update in place).
+// The notes under a chat's last turn for the harness's MCP servers and the machine's Host update status.
 import { OwnMcpNotice } from '../harness/OwnMcp';
+import { UpdateButton } from '../host/UpdateButton';
 import { MachineNotice } from '../panels/MachineFolderNote';
 import { useChatMachine } from '../../lib/chatMachine';
+import { hostUpdateLine } from '../../lib/machineStatus';
 
-/** What a chat says about its machine's Host: nothing unless the Host is older than this app. The sentence asks for the update, so the row's own Update button follows it (HostUpdateAction). */
 export function HostOutdatedNotice({ threadId }: { threadId: string }) {
   const { machine } = useChatMachine(threadId);
-  if (!machine?.row?.hostStale || machine.away) return null;
-  return <MachineNotice text={`${machine.name}'s Host is out of date, so replies may not show. Update it.`} hostId={machine.id} />;
+  const row = machine?.row;
+  if (!row?.hostStale || row.hostDiffers) return null;
+  const line = hostUpdateLine(row);
+  return (
+    line && (
+      <MachineNotice text={`${row.name} · ${line.text}`} title={line.title}>
+        {line.update && <UpdateButton key={row.id} machine={row} label={line.update.label} />}
+      </MachineNotice>
+    )
+  );
 }
 
 export function ThreadNotices({ threadId }: { threadId: string }) {

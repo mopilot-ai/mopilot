@@ -368,14 +368,22 @@ func postCharacter(_ c: Character) {
     }
 }
 
+/// Puts the pointer where a wheel event is to land and gives the window server time to take the move: a wheel posted
+/// right behind the move is dropped most of the time (#5579). A pointer already there (the next scroll of a run) is left alone.
+private func movePointerForWheel(to p: CGPoint) {
+    guard wheelNeedsPointerMove(pointer: CGEvent(source: nil)?.location, target: p) else { return }
+    post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: p, mouseButton: .left))
+    usleep(clickMoveSettleMicros)
+}
+
 /// Scrolls by wheel lines ("clicks" of a mouse wheel) rather than pixels.
 func postScrollLines(at p: CGPoint, dx: Int32, dy: Int32) {
-    post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: p, mouseButton: .left))
+    movePointerForWheel(to: p)
     post(CGEvent(scrollWheelEvent2Source: source, units: .line, wheelCount: 2, wheel1: dy, wheel2: dx, wheel3: 0))
 }
 
 func postScroll(at p: CGPoint, dx: Int32, dy: Int32) {
-    post(CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: p, mouseButton: .left))
+    movePointerForWheel(to: p)
     post(CGEvent(scrollWheelEvent2Source: source, units: .pixel, wheelCount: 2, wheel1: dy, wheel2: dx, wheel3: 0))
 }
 

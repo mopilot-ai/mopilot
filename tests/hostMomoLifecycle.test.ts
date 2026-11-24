@@ -36,7 +36,7 @@ test('a service starts with the home, pauses and wipes through a move on the old
   assert.deepEqual(log, [], 'no home yet, so nothing starts');
   await a.home.start(A);
   await a.home.start(A);
-  assert.deepEqual(log, ['A:start', 'A:start'], 'a repeated start is the service’s to take');
+  assert.deepEqual(log, ['A:start'], 'a repeated start answers as it is: the services are not started again');
   log.length = 0;
   assert.equal((await run(a, b)).ok, true);
   assert.deepEqual(log, ['A:pause', 'B:start', 'A:wipe']);
@@ -123,12 +123,12 @@ test('on the wire: host.momoReset is unknown to a client with no grant, and a gr
   };
   assert.deepEqual(
     (await features()).filter((f) => f.startsWith('momo')),
-    ['momo', 'momoHome'],
+    ['momo', 'momoHome', 'momoLook'],
   );
   await a.side.call('begin', { moveId: 'move-0001' });
   assert.deepEqual(
     (await features()).filter((f) => f.startsWith('momo')),
-    ['momo'],
+    ['momo', 'momoLook'],
     'a home that is moving does not claim it',
   );
   await a.side.call('cancel', { moveId: 'move-0001' });

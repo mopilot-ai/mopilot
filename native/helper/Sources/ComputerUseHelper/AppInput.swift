@@ -63,6 +63,19 @@ func routedClick(pid: pid_t, windowId: CGWindowID, at p: CGPoint, button: String
     return clickResult(route: route, foreground: foreground, ownerPid: owner, targetPid: pid)
 }
 
+/// An app wheel scroll by the route scrollRoute (HelperCore/BriefForeground.swift) picks; the answer names the route taken
+/// (and, in brief foreground without the real-pointer route, who owned the window at the point, as a click's does).
+func routedWheel(pid: pid_t, windowId: CGWindowID, at p: CGPoint, lines: Int32, foreground: Bool) -> [String: Any] {
+    let owner = windowOwner(at: p)?.pid
+    let route = scrollRoute(foreground: foreground, ownerPid: owner, targetPid: pid)
+    if route == "hid" {
+        postScrollLines(at: p, dx: 0, dy: lines)
+    } else {
+        appWheel(pid: pid, windowId: windowId, at: p, lines: lines)
+    }
+    return clickResult(route: route, foreground: foreground, ownerPid: owner, targetPid: pid)
+}
+
 func appDrag(pid: pid_t, windowId: CGWindowID, through points: [CGPoint]) {
     guard let first = points.first else { return }
     postToApp(CGEvent(mouseEventSource: appSource, mouseType: .mouseMoved, mouseCursorPosition: first, mouseButton: .left), pid: pid, windowId: windowId)

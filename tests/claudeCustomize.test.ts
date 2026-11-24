@@ -23,6 +23,13 @@ mock.module('../src/components/harness/claude/Extensions.tsx', {
       ),
   },
 });
+// the skill detail is the Skills page's (its own tests are allSkillsPage's): here, what Customize hands it
+mock.module('../src/components/skills/SkillDetailDialog.tsx', {
+  namedExports: {
+    SkillDetailDialog: ({ row, onClose }: any) =>
+      h('div', { id: 'detail', onClick: onClose }, `${row.key}|${row.title}|${row.copies.claude?.file}|${row.copies.claude?.on}`),
+  },
+});
 const { ClaudeCustomize } = await import('../src/components/harness/claude/Customize.tsx');
 
 test('without the CLI the page says so and loads nothing; its header opens Claude Code settings', async () => {
@@ -104,4 +111,28 @@ test('the plugins tab hands the catalog to the plugin list, and drops a reply th
     settle();
     await flush();
   }
+});
+
+test('a listed skill whose SKILL.md was found opens its detail; the others stay text', async () => {
+  status = { state: 'ready', bin: '/bin/claude' };
+  catalog = async () => ({
+    skills: ['a', 'b', 'c', 'constructor'],
+    plugins: [],
+    skillFiles: { b: { path: '/h/b/SKILL.md', description: '', scope: 'personal' } },
+  });
+  const r = await mount(h(ClaudeCustomize, { tab: 'skills' }));
+  await flush();
+  const buttons = [...r.host.querySelectorAll('.row i button')] as HTMLElement[];
+  assert.deepEqual(
+    buttons.map((b) => b.textContent),
+    ['b'],
+  );
+  assert.equal(r.host.querySelector('.row i')?.textContent, 'a  b  c  constructor');
+  assert.equal(r.host.querySelector('#detail'), null);
+  await click(buttons[0]);
+  assert.equal(r.host.querySelector('#detail')?.textContent, 'b|B|/h/b/SKILL.md|true');
+  // closing it leaves the list as it was
+  await click(r.host.querySelector('#detail'));
+  assert.equal(r.host.querySelector('#detail'), null);
+  await r.unmount();
 });

@@ -179,6 +179,15 @@ function Detail({ note }: { note: MomoNoteView }) {
   );
 }
 
+/** What Google ended and what that means, by the home's cause; a cause this version does not know gets the general line. */
+const WHY: Record<string, string> = {
+  revoked: 'You removed MoMo’s access in Google. Your notes are kept.',
+  testing_expired: 'Google’s test sign-in ran out. Your notes are kept.',
+  scope_missing: 'Google didn’t give MoMo the access it needs. Your notes are kept.',
+  client_rejected: 'Google rejected MoMo’s sign-in settings. Your notes are kept.',
+  wrong_account: 'That is not the account MoMo was set up with. Your notes are kept.',
+};
+
 function Disconnected({ s }: { s: MomoSourceView }) {
   const { act, busy, failed } = useMomoAct();
   const name = SOURCE_NAME[s.id] ?? s.id;
@@ -186,7 +195,10 @@ function Disconnected({ s }: { s: MomoSourceView }) {
     <div className={styles.card} data-tone="warn" role="status" aria-label={`${name} needs you to sign in again`}>
       <h2 className={styles.h1}>{name} needs you to sign in again</h2>
       <Refusal failed={failed} />
-      <p className={styles.text}>Google ended the sign-in. MoMo is not reading new mail. Your notes are kept.</p>
+      <p className={styles.text}>
+        {(s.cause && Object.hasOwn(WHY, s.cause) ? WHY[s.cause] : null) ??
+          'Google ended the sign-in. MoMo is not reading new mail. Your notes are kept.'}
+      </p>
       <div className={styles.actions}>
         <button type="button" className={styles.primary} disabled={busy} onClick={() => void act({ type: 'source.reconnect', id: s.id })}>
           Reconnect

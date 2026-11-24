@@ -9,12 +9,14 @@
   min-width: 0;
   background: var(--main);
 }
+/* a 12px strip to grab, as wide as Codex's split handle: 8px over the chat and 4px inside the pane, where the browser
+   page's inset (browser-pane.css) leaves it uncovered */
 .pane-resize {
   position: absolute;
-  left: -3px;
+  left: -8px;
   top: 0;
   bottom: 0;
-  width: 6px;
+  width: 12px;
   cursor: col-resize;
   touch-action: none;
   z-index: 3;

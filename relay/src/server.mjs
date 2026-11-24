@@ -14,6 +14,7 @@ import { messageOf } from './processGuards.mjs';
 import { isHostToken, laneOf, verifyHost } from './hosts.mjs';
 import { clientAddress } from './address.mjs';
 import { accountDisabled, closeOf, countRefusal, setAccountAccess } from './access.mjs';
+import { serveRendezvous } from './rendezvousHttp.mjs';
 
 /** The path of a request; a request target that is not a URL ('//', '//[') has none. */
 const pathOf = (/** @type {http.IncomingMessage} */ req) => {
@@ -152,6 +153,11 @@ export function createRelay({
           const change = await verifier.verifyAccess?.(bearer(req) ?? '');
           if (!change) return void res.writeHead(401).end();
           res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(await setAccountAccess(hub, change)));
+        } else if (
+          path?.startsWith('/v1/rendezvous/') &&
+          (await serveRendezvous({ req, res, path, hub, verifier, trustProxy: config.trustProxy }))
+        ) {
+          // answered
         } else if (!hub.boots.serve(hub, req, res, path ?? '')) {
           res.writeHead(404).end();
         }

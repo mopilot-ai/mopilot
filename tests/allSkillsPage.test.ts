@@ -201,6 +201,23 @@ test('the detail shows where a skill is on, its SKILL.md and Try now', async () 
   assert.equal(r.host.querySelector('[role=dialog]'), null);
 });
 
+test("a Claude-only skill reads its SKILL.md from the catalog's skillFiles, and the dialog has no Open (the pane belongs to a chat)", async () => {
+  catalog = async () => ({
+    skills: ['both', 'claude-only', 'built-in'],
+    skillFiles: { 'claude-only': { path: '/h/claude-only/SKILL.md', description: 'Only for Claude', scope: 'personal' } },
+  });
+  readText = async () => '---\nname: claude-only\n---\nThe body';
+  const r = await mount(h(AllSkills));
+  await flush();
+  await click(cardOf(r.host, 'Claude Only'));
+  await flush();
+  assert.deepEqual(calls.at(-1), ['read', '/h/claude-only/SKILL.md']);
+  const dialog = r.host.querySelector('[role=dialog]') as HTMLElement;
+  assert.equal(dialog.querySelector('.md')?.textContent, 'The body');
+  assert.equal(byText(dialog, 'button', /^Open$/), undefined);
+  assert.ok(byText(dialog, 'button', /Try now/));
+});
+
 test('a SKILL.md that cannot be read says why; a Codex skill is named as Codex knows it; a backdrop press closes', async () => {
   readText = async () => Promise.reject(new Error('gone'));
   const r = await mount(h(AllSkills));

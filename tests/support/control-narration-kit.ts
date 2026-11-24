@@ -39,6 +39,8 @@ export async function controlNarrationFixture({ realImages = false } = {}) {
   const { onActivate, cancelOnEscape } = await import('../../src/lib/focus.ts');
   const stubs: Record<string, Record<string, unknown>> = {
     'lib/paths.ts': { absPath: id, fileName: id, relPath: id, basename: (p: any) => String(p).split('/').pop() },
+    'session/harness/skillPath.ts': { useSkillPath: nul, useSkillFile: nul },
+    'session/openSkill.ts': noop('openSkill,openSkillClick'),
     'lib/platform.ts': { platform: 'darwin', isWin: false, shellScript: () => '' },
     'session/open.ts': noop('openMessageLink,showInFinder,openInApp,openLink,revealPath'),
     'components/ui/Presence.tsx': {

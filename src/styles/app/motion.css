@@ -306,6 +306,11 @@
 .side-pane:not(.full) {
   overflow: clip;
 }
+/* the pane's resize handle reaches 8px over the chat (side-pane.css): the clip stops that far out, or only the part
+   inside the pane could be grabbed */
+.side-pane:not(.full) {
+  overflow-clip-margin: 8px;
+}
 /* width opens and closes with the content held at its full width, so nothing reflows mid-animation */
 .sidebar {
   animation: fade-in 250ms var(--ease-enter) backwards;

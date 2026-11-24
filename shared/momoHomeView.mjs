@@ -1,9 +1,10 @@
 // The home's data in the shape of the view contract (shared/momoView.ts, design 1 "Always there"): the home view (state, machine, move, machines, agent problem, update), a message's delivery and a move's view, derived in one place from what the Host answered (`host.momoStatus`, `host.momoTurn`), the app's machine records and the device's own outbox. Pure: the Mac's IPC and the phone's transport call these, so the two never disagree.
+import { fixId } from './momoFixId.mjs';
 import { homeStateOf } from './momoHomeState.mjs';
 import { MOVE_STEPS, reclaimWords } from './momoMove.mjs';
 
 /** @typedef {{ id?: string, name: string, installed: boolean, signedIn: boolean }} AgentRecord `id` is what a fix names (the app's own id for the agent); the name is what a screen shows */
-/** @typedef {{ id: string, hostId?: string, name: string, isThisDevice: boolean, reachable: boolean, current: boolean, stays: 'on' | 'sleeps' | 'cloud', setUp: boolean, agents: AgentRecord[], hostBuild?: string, needBuild?: string }} MachineRecord what the app's machine list knows of one machine; `hostId` is the id its Host named itself with when it was paired (the home record names the home by it; the machine's own `id` when absent); `hostBuild` and `needBuild` are what it runs and what MoMo needs, for "needs an update" */
+/** @typedef {{ id: string, hostId?: string, name: string, isThisDevice: boolean, reachable: boolean, current: boolean, stays: 'on' | 'sleeps' | 'cloud', setUp: boolean, hasHost?: boolean, agents: AgentRecord[], hostBuild?: string, hostAppVersion?: string, hostVersionAt?: number, needBuild?: string }} MachineRecord what the app's machine list knows of one machine; `hasHost`: false when no Host is installed on it (it cannot hold MoMo); `hostId` is the id its Host named itself with when it was paired (the home record names the home by it; the machine's own `id` when absent); `hostBuild` and `hostAppVersion` (dotted) are what it runs, `needBuild` what MoMo needs; kept here for the shared rules and and what MoMo needs, for "needs an update" */
 /** @typedef {import('./momoMove.mjs').MoveResult} MoveResult */
 
 /** The plain cost of picking a machine, as the card says it; null when there is none. @type {Record<MachineRecord['stays'], string | null>} */
@@ -48,7 +49,7 @@ export function agentProblem(home) {
     return {
       kind: /** @type {const} */ ('not-installed'),
       agent: first?.name ?? '',
-      fix: { id: `install-agent:${home.id}:${first?.id ?? first?.name ?? ''}`, label: `Install on ${home.name}` },
+      fix: { id: fixId('install-agent', home.id, first?.id ?? first?.name ?? ''), label: `Install on ${home.name}` },
     };
   }
   if (installed.some((a) => a.signedIn)) return null;
@@ -56,14 +57,14 @@ export function agentProblem(home) {
   return {
     kind: /** @type {const} */ ('signed-out'),
     agent: first.name,
-    fix: { id: `sign-in-agent:${home.id}:${first.id ?? first.name}`, label: `Sign in on ${home.name}` },
+    fix: { id: fixId('sign-in-agent', home.id, first.id ?? first.name), label: `Sign in on ${home.name}` },
   };
 }
 
 /**
  * The fix of a machine that is out of date: one tap updates it, then the move or the home goes on. @param {MachineRecord} m
  */
-export const updateFix = (m) => ({ id: `update-machine:${m.id}`, label: `Update ${m.name}` });
+export const updateFix = (m) => ({ id: fixId('update-machine', m.id), label: `Update ${m.name}` });
 
 /**
  * A move as the sheet shows it: the step it is at, how it ended, the real cause when it did not finish, and whether the old machine still

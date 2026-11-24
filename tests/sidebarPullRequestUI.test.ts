@@ -87,13 +87,16 @@ for (const id of ['codex-chat', 'claude:chat', 'acp:gemini:chat']) {
       const columns = [...row.children];
       const location = row.querySelector('.host-mark[aria-label="On Build host"]')!;
       assert.ok(location);
-      assert.ok(location.nextElementSibling === status, 'the location mark uses the slot immediately before activity');
+      assert.ok(location.closest('.side-row-name')?.querySelector('.side-row-label + .host-mark'), 'the location mark follows the name');
       assert.ok(columns.indexOf(status) < columns.indexOf(actions), 'the menu sits right of the activity slot it replaces');
       const count = row.querySelector('.thread-pr-count');
       if (count) assert.equal(window.getComputedStyle(count as any).order, '-1', 'counts grow left of the aligned PR icon');
       const badge = row.querySelector('.thread-pr-badge');
       if (badge) {
-        assert.ok(columns.indexOf(badge.parentElement!) < columns.indexOf(location), 'a PR badge cannot move the location slot');
+        assert.ok(
+          badge.parentElement!.nextElementSibling === status,
+          'the PR column sits beside activity in every row, with no location slot between',
+        );
         assert.ok(columns.indexOf(badge.parentElement!) < columns.indexOf(actions), 'the menu sits right of the PR badge');
       }
     };

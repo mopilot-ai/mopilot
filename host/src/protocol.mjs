@@ -76,7 +76,7 @@ const INTERRUPTED = 'The host stopped while this turn was running.';
  * @param {(folder: string) => Promise<string>} [o.existingFolder] a chat's folder is still on this machine (not bound by the browsing roots): `chat.send` refuses a folder that is gone before the agent starts; without it nothing is checked
  * @param {(p: { harness: string, cwd?: string }) => Promise<unknown>} [o.commands] the slash commands and skills an agent offers for a folder (`host.commands`, ./hostCommands.mjs); without it the feature is not offered
  * @param {ReturnType<typeof import('./credentialLease.mjs').createCredentialLeases>} [o.leases] the model keys the app lends (`host.modelKey`); without it that request is unsupported
- * @param {ReturnType<typeof import('./momoHome.mjs').createMomoHome>} [o.momo] MoMo's home on this Host (its grant, record, ledger and chat rules); without it no `host.momo*` request is served and the `momo` feature is never offered
+ * @param {ReturnType<typeof import('./momoHome.mjs').createMomoHome>} [o.momo] MoMo's home on this Host (its grant, record, ledger and chat rules); without it no `host.momo*` request is served and the `momo` feature is never offered @param {ReturnType<typeof import('./homeGate.mjs').createHomeGate>} [o.homeGate] what MoMo's home on another machine may do here (its allow-list, lease and modes); without it a `home` client is served nothing
  */
 export function createProtocol(options) {
   const {
@@ -114,8 +114,10 @@ export function createProtocol(options) {
   };
   /** The family a chat's events are tagged with: its harness's (`acp`, `codex`, `claude`); a runtime that does not tell runs ACP chats only. */
   const familyOf = (/** @type {string} */ chatId) => runtime.familyOf?.(chatId) ?? 'acp';
-  const log = createChatLog({ dataDir, epoch: (chatId) => epochs.current(chatId), live: runtime.liveChoice });
+  const log = createChatLog({ dataDir, epoch: (chatId) => epochs.current(chatId), live: runtime.liveChoice, report });
   const { hub, finish, check } = log;
+  // a chat's owner moved (another client's continue): the list row carries its epoch
+  epochs.onAdvance((chatId) => log.index.observe(chatId, { t: 'epoch' }));
   const faults = createJournalFaults({ hub, cancel: (chatId) => runtime.host.cancel(chatId), report });
   const output = createLiveOutput(hub);
   const approvals = approvalsFor({ record, hub, runtime, epochs, familyOf, report, skipped: (c) => schedules?.needsApproval(c) }, options);
@@ -224,29 +226,16 @@ export function createProtocol(options) {
     faults,
     approvals,
     credentials: ownRuns?.chatCredentials,
+    report,
+    state: hub.state,
     existingFolder: options.existingFolder,
     ...(dataDir ? { assertAlive } : {}),
   });
   const startOnParent = sideChatStart({ epochs, continueHost, log, runtime, policy: options.policy, report });
   const { handlers, effects: moreEffects, veil, visible, chatVeil } = loadHandlers({ ...options, log, epochs });
   Object.assign(effects, moreEffects);
-  effects['chat.remove'] = createChatRemoval({
-    log,
-    runtime,
-    ownRuns,
-    approvals,
-    spend,
-    groups,
-    output,
-    turns,
-    journal,
-    tools,
-    images,
-    handoffs,
-    guard,
-    clients: options.knownClients,
-    report,
-  });
+  const forgetting = { log, runtime, ownRuns, approvals, spend, groups, output, turns, journal, tools, images, handoffs, guard };
+  effects['chat.remove'] = createChatRemoval({ ...forgetting, clients: options.knownClients, report });
 
   /** The continue methods go to the continue Host directly: the epoch guard would refuse the retry of a commit whose reply was lost. @type {Record<string, (p: any) => unknown>} */
   const continues = {
@@ -315,12 +304,14 @@ export function createProtocol(options) {
       const subs = new Map();
       const tabs = browser?.connection(emit);
       const seat = desktop?.connection();
+      /** What the connection's handlers keep going (a watch of the chat list), ended with it. @type {Set<() => void>} */
+      const ends = new Set();
       const app = tools?.attach(emit, (chatId) => epochs.current(chatId), identity);
       return wrap({
         /** @param {string} method @param {unknown} raw @returns {Promise<any>} */
         async call(method, raw) {
-          veil(method, who.principal?.());
-          let params = parseParams(method, raw);
+          const veiled = veil(method, who.principal?.(), raw);
+          let params = parseParams(method, veiled instanceof Promise ? await veiled : veiled);
           if (method === 'host.hello') {
             const offered = helloParams({ switching: !!runtime.switching, continueFamilies: !!continueHost?.takesFamilies });
             offered.features = offeredFeatures(offered.features, options);
@@ -384,7 +375,7 @@ export function createProtocol(options) {
             return method === 'host.loginStatus' ? login.status(params.harness) : login.cancel(params.harness);
           }
           if (Object.hasOwn(handlers, method))
-            return /** @type {any} */ (handlers)[method](params, who.principal?.()?.kind ?? 'desktop', who);
+            return /** @type {any} */ (handlers)[method](params, who.principal?.()?.kind ?? 'desktop', who, emit, ends);
           if (method === 'host.install' || method === 'host.installStatus' || method === 'host.installCancel') {
             if (!installer) throw new UnsupportedError('This host cannot install an agent.');
             if (method === 'host.install') return installer.start(params);
@@ -481,6 +472,7 @@ export function createProtocol(options) {
           tabs?.close();
           seat?.close();
           app?.detach();
+          for (const end of ends) end();
         },
       });
     },

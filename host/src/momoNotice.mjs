@@ -5,7 +5,10 @@ import { briefHasContent, buildBrief, markBriefed } from '../../shared/momoNotic
 import { randomMarkerId } from '../../shared/momoNotice/envelope.ts';
 import { dismissMatter, localTime, snoozeMatter, zonedMidnight } from '../../shared/momoNotice/limits.ts';
 import { addDays } from '../../shared/momoNotice/signals.ts';
+import { namesSender } from '../../shared/momoCore/senders.ts';
 import { createDrafter } from './momoNoticeDraft.mjs';
+import { fenced } from './momoNoticeFence.mjs';
+import { createHeldSweep } from './momoNoticeHeld.mjs';
 import { createReminders } from './momoNoticeReminders.mjs';
 import { briefView, decisionView, renderBrief, watchingTask } from '../../shared/momoNotice/views.ts';
 import { describeError } from '../../shared/userError.mjs';
@@ -24,21 +27,6 @@ const USAGE_LIMIT = /usage limit|rate limit|quota|too many requests|\b429\b|over
 /** The home moved on (a move, Reset, a lost lease) while a pass was running: nothing more is written. */
 export class LeaseLost extends Error {}
 
-/**
- * `target` with the named methods refusing, before they run, once the lease is no longer the home's.
- * @template {object} T @param {T} target @param {string[]} names @param {() => Promise<void>} check @returns {T}
- */
-const fenced = (target, names, check) =>
-  new Proxy(target, {
-    get(object, key) {
-      const value = Reflect.get(object, key);
-      if (typeof key !== 'string' || !names.includes(key) || typeof value !== 'function') return value;
-      return async (/** @type {any[]} */ ...args) => {
-        await check();
-        return value.apply(object, args);
-      };
-    },
-  });
 /** How often the Host looks for changes while the home is awake. */
 export const PASS_EVERY_MS = 5 * MINUTE;
 /** The collector's modes: nothing, the brief only (the first thing anyone sees of it), or tell-now pushes as well. Off until it is turned on for a Host. */
@@ -136,7 +124,15 @@ export function createMomoNotice({
       const check = async () => {
         if (!(await live(stamp))) throw new LeaseLost('MoMo moved on while reminders were going out.');
       };
-      const { gaveUp } = await remindersOn(fenced(store.notice, ['updateMatter'], check)).fire({ stillHome: () => live(stamp) });
+      const fencedNotice = fenced(store.notice, ['updateMatter'], check);
+      const { gaveUp } = await remindersOn(fencedNotice).fire({ stillHome: () => live(stamp) });
+      // mail a quiet rule held for a brief that is off, or not shown for days, moves to Watching where it is seen
+      await createHeldSweep({
+        store: { notice: fencedNotice },
+        now,
+        briefOn: () => home.prefs.forRoutines()?.momo?.brief?.on !== false,
+        recheckMs: () => noticeSettingsOf(home.prefs.forRoutines()).trackRecheckMs,
+      }).sweep();
       if (gaveUp.length > 0) {
         reminderGaps = [
           ...reminderGaps,
@@ -183,6 +179,22 @@ export function createMomoNotice({
       return Array.isArray(rules) ? rules : [];
     } catch (error) {
       report(`MoMo could not read the owner's rules: ${describeError(error)}`);
+      return [];
+    }
+  }
+
+  /** The senders whose quiet rule the owner accepted, minus any the owner also wrote a "tell me now" rule for (a name in such a rule keeps the sender loud); none while the learning service has none. @param {{ kind: string, text: string }[]} rules */
+  function readQuietSenders(rules) {
+    try {
+      const senders = /** @type {any} */ (home.service('learning'))?.quietSenders?.();
+      // a "tell me now" rule wins for a sender it names: learning's own `namesSender`, so the two sides cannot differ
+      const texts = rules.filter((r) => r.kind === 'tell_now').map((r) => String(r.text));
+      return (Array.isArray(senders) ? senders : []).filter(
+        (/** @type {any} */ q) =>
+          typeof q?.domain === 'string' && !texts.some((text) => namesSender(text, { domain: q.domain, address: q.address ?? null })),
+      );
+    } catch (error) {
+      report(`MoMo could not read the quiet senders: ${describeError(error)}`);
       return [];
     }
   }
@@ -274,6 +286,8 @@ export function createMomoNotice({
         versions,
         model: watched,
         person: { name: email.split('@')[0], email, rules },
+        quietSenders: readQuietSenders(rules),
+        briefOn: home.prefs.forRoutines()?.momo?.brief?.on !== false,
         clock: { now: () => new Date(now()) },
         settings,
         history: { knownDomains: async () => store.knownDomains() },
@@ -293,6 +307,11 @@ export function createMomoNotice({
     for (const decision of result.decisions) {
       const matter = await store.notice.getMatter(decision.matterKey);
       await mine.addDecision({ ...decision, title: matter?.title ?? decision.matterKey, first: !matter || matter.sources.length <= 1 });
+    }
+    // each time a learned quiet rule kept something out, the rule is counted as used (the Rules page shows it, and a mistaken Accept shows up)
+    for (const decision of result.decisions) {
+      const ruleId = decision.decidedBy.startsWith('rule:quiet-sender:') ? decision.decidedBy.slice('rule:quiet-sender:'.length) : null;
+      if (ruleId) await /** @type {any} */ (home.service('learning'))?.used?.(ruleId)?.catch?.(() => undefined);
     }
     await mine.setLastRunAt(now());
     await settleReading(budget, mine);
@@ -394,7 +413,12 @@ export function createMomoNotice({
           return null;
         }
         // the card says "quiet mail": events that were quiet are not listed
-        const leftOut = log.filter((/** @type {any} */ d) => d.decision === 'quiet' && d.changeId.startsWith('gmail:')).slice(-20);
+        const leftOut = log
+          .filter(
+            (/** @type {any} */ d) =>
+              d.decision === 'quiet' && d.changeId.startsWith('gmail:') && !d.decidedBy.startsWith('rule:quiet-sender:'),
+          )
+          .slice(-20);
         return { text: renderBrief(brief, zone), brief, view: briefView(brief, leftOut) };
       },
       /** @param {{ id: string, day: string, text: string, built: any, stamp: any }} a */

@@ -101,14 +101,14 @@ test('the relay and the push proxy hand the sealed body on unread: every use of 
     // the push proxy's request
     ['relay/src/push.mjs', /^\s*\.\.\.\(m\.sealedBody && \{ sealedBody: m\.sealedBody \}\),$/],
     ['relay/src/push.mjs', /^\s*\/\*\* @type \{string\} \*\/ sealedBody(,| = '',)$/],
-    ['relay/src/push.mjs', /await this\.#ordered\(pair, kind, ref, sealed, card, fromHost, sealedBody\);$/],
-    ['relay/src/push.mjs', /this\.#request\(pair, kind, ref, sealed, card, fromHost, sealedBody\)\);$/],
+    ['relay/src/push.mjs', /await this\.#ordered\(pair, kind, ref, sealed, card, fromHost, sealedBody, sealedStamp\);$/],
+    ['relay/src/push.mjs', /this\.#request\(pair, kind, ref, sealed, card, fromHost, sealedBody, sealedStamp\),$/],
     ['relay/src/push.mjs', /^\s*\.\.\.\(sealedBody && !shown\.merged && kind === 'momoNeedsYou' && \{ sealedBody \}\),$/],
     [
       'relay/src/control.mjs',
       /if \(m\.sealedBody !== undefined && \(typeof m\.sealedBody !== 'string' \|\| !m\.sealedBody \|\| m\.sealedBody\.length > MAX_SEALED\)\)$/,
     ],
-    ['relay/src/control.mjs', /m\.card, kind === 'host', m\.sealedBody\)\.then\($/],
+    ['relay/src/control.mjs', /m\.card, kind === 'host', m\.sealedBody, sealedStamp\)\.then\($/],
   ];
   const seen: string[] = [];
   for (const f of walk('relay/src')) {
@@ -151,4 +151,32 @@ test('the opt-in is a Mac setting: no phone method, schema or phone code names i
     [...list.matchAll(/(\w+): '([\w.]+)'/g)].map((m) => m[2]),
     ['paused', 'routines.proactivity', 'routines.quietHours'],
   );
+});
+
+test('the relay hands the sealed lease stamp on unread: every use of it is a pass-through or a size check, never a log, a metric, a store or a parse', () => {
+  const ALLOWED: RegExp[] = [
+    /^\s*\/\*\* @type \{string\} \*\/ sealedStamp(,| = '',)$/,
+    /^\s*\.\.\.\(m\.sealedStamp && \{ sealedStamp: m\.sealedStamp \}\),$/,
+    /^\s*\.\.\.\(m\.sealedStamp && \{ ss: m\.sealedStamp \}\),$/,
+    /^\s*\.\.\.\(m\.sealedStamp && \{ ss: m\.sealedStamp \}\),$/,
+    /await this\.#ordered\(pair, kind, ref, sealed, card, fromHost, sealedBody, sealedStamp\);$/,
+    /this\.#request\(pair, kind, ref, sealed, card, fromHost, sealedBody, sealedStamp\),$/,
+    /^\s*\.\.\.\(sealedStamp && !shown\.merged && \(kind === 'momoNeedsYou' \|\| kind === 'cleared'\) && \{ sealedStamp \}\),$/,
+    /^\s*m\.sealedStamp !== undefined &&$/,
+    /^\s*\(typeof m\.sealedStamp !== 'string' \|\|\s*!m\.sealedStamp \|\|\s*m\.sealedStamp\.length > MAX_SEALED_STAMP \|\|\s*!STAMP_CHARS\.test\(m\.sealedStamp\)\)$/,
+    /^\s*const sealedStamp = momo && m\.sealedStamp \? m\.sealedStamp : '';$/,
+    /m\.card, kind === 'host', m\.sealedBody, sealedStamp\)\.then\($/,
+    /^export const MAX_SEALED_STAMP = 256;$/,
+    /import \{ MAX_SEALED, MAX_SEALED_STAMP \} from/,
+  ];
+  for (const f of walk('relay/src')) {
+    for (const line of read(f).split('\n')) {
+      if (/^\s*(\/\/|\*|\/\*)/.test(line) || !/sealedStamp|MAX_SEALED_STAMP|\bss\b/.test(line)) continue;
+      assert.ok(
+        ALLOWED.some((re) => re.test(line)),
+        `${f}: ${line.trim()}`,
+      );
+      assert.doesNotMatch(line, /\b(log|console\.\w+|metrics\.\w+|JSON\.parse|store\.\w+)\(/, f);
+    }
+  }
 });

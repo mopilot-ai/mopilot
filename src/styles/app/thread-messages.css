@@ -149,6 +149,13 @@
   cursor: pointer;
   overflow-wrap: anywhere;
 }
+/* a skill's name as a button (the Skills list): the link's look without the button's chrome */
+button.skill-link {
+  padding: 0;
+  font: inherit;
+  background: none;
+  border: 0;
+}
 .skill-link > svg {
   flex: none;
   align-self: center;
@@ -177,6 +184,19 @@
   color: var(--accent);
   font-weight: 500;
   white-space: nowrap;
+}
+/* with its SKILL.md located the chip is a link (so the text around it still selects): same look, opens the skill pane like .skill-link */
+a.bubble-skill {
+  text-decoration: none;
+  cursor: pointer;
+}
+a.bubble-skill:hover {
+  filter: brightness(0.9);
+}
+a.bubble-skill:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
 }
 .bubble-skill > svg {
   flex: none;

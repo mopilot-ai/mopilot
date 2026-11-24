@@ -1,4 +1,5 @@
 // MoMo's notice records on its home, sealed with MoMo's data key under the home's storage so a move carries them and a reset deletes them: the matters and watching entries, the daily told count and brief claims, the decision log, the cursors, the domains the user writes to, and the briefs shown. Every read-modify-write is one `change`, so two passes or two devices never count or claim twice.
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
@@ -29,6 +30,9 @@ export const noticeShape = (v) => ({
   reactions: Array.isArray(v?.reactions)
     ? v.reactions.filter((/** @type {any} */ r) => r && typeof r.kind === 'string' && typeof r.rowId === 'string')
     : [],
+  /** The id of this store and the last sequence number a reaction got in it: learning remembers the pair it looked at last, so a reset or replaced store (a new id) is read from its beginning and nothing is counted twice or skipped. */
+  storeId: typeof v?.storeId === 'string' ? v.storeId : '',
+  reactionSeq: Number.isInteger(v?.reactionSeq) && v.reactionSeq > 0 ? v.reactionSeq : 0,
   hiddenOffers: Array.isArray(v?.hiddenOffers) ? v.hiddenOffers.filter((/** @type {unknown} */ o) => typeof o === 'string') : [],
   domains: Array.isArray(v?.domains) ? v.domains.filter((/** @type {unknown} */ d) => typeof d === 'string') : [],
   unsorted: record(v?.unsorted),
@@ -114,7 +118,9 @@ export function createNoticeStore({ home, now = Date.now }) {
     /** What a person did to a notice, as the home derived it from its own log: the input of learned rules, newest last, capped. @param {any} reaction */
     addReaction: (reaction) =>
       change((v) => {
-        v.reactions.push(reaction);
+        v.storeId ||= randomUUID();
+        v.reactionSeq += 1;
+        v.reactions.push({ ...reaction, store: v.storeId, seq: v.reactionSeq });
         if (v.reactions.length > KEEP_REACTIONS) v.reactions.splice(0, v.reactions.length - KEEP_REACTIONS);
       }),
     reactions: () => read().reactions,

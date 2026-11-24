@@ -152,6 +152,20 @@ export function createMomoRows({ store, now = Date.now, stamp = () => ({}), hasC
         more: later.length > page.length,
       };
     },
+    /** The row kept under an id as clients see it (no write time), or undefined. @param {string} id */
+    kept(id) {
+      if (!stamp()) throw away();
+      const found = store.read().rows.find((r) => r.id === id);
+      if (!found) return undefined;
+      const { written: _written, ...row } = found;
+      return row;
+    },
+    /** How many settled rows are kept, and when the oldest was written (Infinity with none): a settled row written now pushes the oldest out once the limit is reached. */
+    stat() {
+      if (!stamp()) throw away();
+      const settled = store.read().rows.filter((r) => !isOpen(r));
+      return { settled: settled.length, oldest: settled.reduce((m, r) => Math.min(m, r.written), Number.POSITIVE_INFINITY) };
+    },
     /** Told of each row written or changed; returns how to stop. @param {(row: object) => void} fn */
     onRow(fn) {
       listeners.add(fn);

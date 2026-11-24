@@ -159,7 +159,9 @@ test('the journal of a chat the caller may not see is not read for a title, and 
   // two calls at once on one chat: the second finds it already done
   standIns(j, data, ['claude:race']);
   reads.length = 0;
-  const [one, two] = await Promise.all([list({ limit: 200 }, 'plain'), list({ limit: 200 }, 'plain')]);
+  // (the index is read from the journals once, when it is first asked: a chat that appeared on disk since needs a Host that starts again)
+  const restarted = chatListOf(logOf(createSessionJournal({ dataDir: data, io })), epochs, () => (id: string) => id !== 'claude:hidden');
+  const [one, two] = await Promise.all([restarted({ limit: 200 }, 'plain'), restarted({ limit: 200 }, 'plain')]);
   for (const r of [one, two]) assert.equal(r.chats.find((c: any) => c.chatId === 'claude:race')?.title, 'Title claude:race');
   assert.equal(reads.filter((f) => f.includes(path.basename(dirOf(data, 'claude:race'))) && f.endsWith('checkpoint')).length, 1);
   assert.doesNotMatch(summaryOf(data, 'claude:race'), /provisional/);

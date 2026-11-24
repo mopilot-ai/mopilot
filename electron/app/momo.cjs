@@ -1,8 +1,9 @@
 // MoMo in main (#2139): its services made once at startup over one folder (<userData>/momo), with their IPC, tools and Reset stores: memory, the main chat, local sources, the trust layer (audit log, sentinel, trust gate, the approval card it asks through) and Ask MoMo, then its background work (app/momoBackground.cjs). Each handler and tool refuses while MoMo isn't allowed for the account; work that touches the disk starts only once it is.
 const { fs } = require('../platform/ports/fs.cjs');
 const path = require('node:path');
-const { momoAllowed, onMomoAccess } = require('../momo/access.cjs');
+const { momoAllowed, momoUserId, onMomoAccess } = require('../momo/access.cjs');
 const { momoDir, momoWorkspace, registerMomoStore, memoryFilesReset } = require('../momo/stores.cjs');
+const { eraseHomeClient } = require('../momo/homeService.cjs');
 const { isMomoMeta, isMomoDataMeta } = require('../../shared/momoChat.mjs');
 const { ownerOf: chatOwning } = require('../platform/segmentOwner.cjs');
 const { ChatStarter } = require('../platform/chatStart.cjs');
@@ -372,9 +373,11 @@ function openMomo({
   });
   // a message to a MoMo chat goes after the brain change a window made just before it (#3907): the effort and model it shows
   if (live.controller) addGuard(live.controller, 'beforeDispatch', (/** @type {{ chatId: string }} */ e) => settledFor(mainChat, e.chatId));
-  // the channels' registry (channels.json) goes with the chats it names
+  // the channels' registry (channels.json) goes with the chats it names, and so do this Mac's unsent messages and lease note (homeService.cjs)
   registerMomoStore('chats', () =>
-    resetMomoChats({ live, ids: momoChatIds, clear: (id) => sentinel.clearChat(id), dir, mainChat }).then(() => channelStore.erase()),
+    resetMomoChats({ live, ids: momoChatIds, clear: (id) => sentinel.clearChat(id), dir, mainChat })
+      .then(() => channelStore.erase())
+      .then(() => eraseHomeClient(dir, { account: momoUserId(), safeStorage })),
   );
   // the index of MoMo's past chats (#2999), fed by every MoMo chat's finished turn
   const history = openMomoHistory({ dir, safeStorage, live, chatIds: momoChatIds, allowed, harnessOf });

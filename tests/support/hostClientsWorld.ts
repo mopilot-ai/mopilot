@@ -32,10 +32,20 @@ export const tmpDir = (t: any) => {
 };
 
 /** A served Host whose runtime records what it was sent. */
-export async function servedHost(t: any, extra: Record<string, unknown> = {}, wrapRuntime: (runtime: any) => any = (r) => r) {
+export async function servedHost(
+  t: any,
+  extra: Record<string, unknown> = {},
+  wrapRuntime: (runtime: any) => any = (r) => r,
+  serverOptions: Record<string, unknown> = {},
+) {
   const dir = tmpDir(t);
   const paths = createPaths({ dataDir: dir, env: {} });
-  const pairing = createPairing({ configDir: paths.configDir });
+  const recorded = serverOptions.audit as { note: (e: any) => void; governed: (e: any) => boolean } | undefined;
+  // as the Host's CLI wires it: a controller's connection is a governed line, every other a note
+  const pairing = createPairing({
+    configDir: paths.configDir,
+    ...(recorded ? { audit: (e: any) => (e.kind === 'controller.connected' ? recorded.governed(e) : recorded.note(e)) } : {}),
+  });
   const host: any = new EventEmitter();
   host.cancel = () => undefined;
   const sends: any[] = [];
@@ -48,14 +58,18 @@ export async function servedHost(t: any, extra: Record<string, unknown> = {}, wr
   const epochs = createEpochStore(path.join(dir, 'e.json'), quiet);
   const ledgerDir = path.join(dir, 'l');
   const guard = createGuard({ epochs, ledger: createLedger(ledgerDir, quiet) });
+  // a test that exercises MoMo's home gives a maker of the gate: it needs this world's pairing
+  const { homeGate: makeGate, ...rest } = extra as { homeGate?: (w: { pairing: any; dir: string; paths: any; epochs: any }) => any };
+  const homeGate = makeGate?.({ pairing, dir, paths, epochs });
   const protocol = createProtocol({
     runtime,
     epochs,
     guard,
     status: () => ({ running: true }),
-    ...extra,
+    ...rest,
+    ...(homeGate ? { homeGate } : {}),
   });
-  const server = await startServer({ paths, runtime: wrapRuntime(runtime), pairing, protocol });
+  const server = await startServer({ paths, runtime: wrapRuntime(runtime), pairing, protocol, ...(homeGate ? { homeGate } : {}) });
   t.after(() => server.close());
   const identity = (n: string) => loadIdentity(path.join(dir, `${n}.json`), keySafe);
   /** A connection of a new client paired with `name`, through the code. */
@@ -79,6 +93,7 @@ export async function servedHost(t: any, extra: Record<string, unknown> = {}, wr
     dir,
     paths,
     pairing,
+    homeGate,
     protocol,
     runtime,
     sends,

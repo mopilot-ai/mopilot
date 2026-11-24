@@ -332,7 +332,11 @@ const CORE_PARSERS = {
     sourceBranch: p.sourceBranch == null ? null : branchOf(p.sourceBranch),
   }),
   'git.carryDrop': (p) => ({ path: pathOf(p.path, 'a folder'), branch: carryBranchOf(p.branch) }),
-  'git.inspect': (p) => ({ path: pathOf(p.path, 'a folder'), ...(p.sidebar === true && { sidebar: true }) }),
+  'git.inspect': (p) => ({
+    path: pathOf(p.path, 'a folder'),
+    ...(p.sidebar === true && { sidebar: true }),
+    ...(p.checkout === true && { checkout: true }),
+  }),
   ...readParsers(pathOf, bad),
   ...imageParsers(effect, scoped, bad),
   'git.worktree': worktreeParser(keyOf, pathOf, branchOf),

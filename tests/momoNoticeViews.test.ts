@@ -102,6 +102,7 @@ const brief = (over: Partial<Brief> = {}): Brief => ({
   dayKey: '2026-11-24',
   at: '2026-11-24T08:00:00.000Z',
   name: 'Maya',
+  keptQuiet: [],
   needsYou: [],
   watching: [],
   today: [],
@@ -183,4 +184,18 @@ test('the brief text is the same record in words: needs you, watching, today on 
     ].join('\n'),
   );
   assert.equal(renderBrief(brief({ name: null }), 'UTC'), 'Good morning.');
+});
+
+test('a kept-quiet matter that has lost its rule is still listed, with no rule to undo and a plain label', () => {
+  const kept = { matterKey: 'gmail:p', title: 'A sale', summary: 's', pending: true, suspect: false };
+  const view = briefView(brief({ keptQuiet: [kept] }), []);
+  assert.deepEqual(view.keptQuiet, [{ id: 'gmail:p', title: 'A sale', ruleId: null, label: '' }]);
+  assert.match(renderBrief(brief({ keptQuiet: [kept] }), 'UTC'), /Kept quiet by your rules:\n- A sale \(your rule for this sender\)/);
+  const named = { ...kept, quietRule: { ruleId: 'r1', label: 'acme.com' } };
+  assert.deepEqual(briefView(brief({ keptQuiet: [named] }), []).keptQuiet[0], {
+    id: 'gmail:p',
+    title: 'A sale',
+    ruleId: 'r1',
+    label: 'acme.com',
+  });
 });

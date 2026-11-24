@@ -34,7 +34,9 @@ test('pure helpers: gates, escalation, success, window-state refusals, notes and
   const on = { allowed: () => true };
   assert.equal(L.mayForeground(on, { tier: 'full' }, 'type'), true);
   assert.equal(L.mayForeground(on, { tier: 'click' }, 'click'), false);
-  assert.equal(L.mayForeground(on, { tier: 'full' }, 'scroll'), false);
+  assert.equal(L.mayForeground(on, { tier: 'full' }, 'scroll'), true);
+  assert.equal(L.mayForeground(on, { tier: 'full' }, 'drag'), false);
+  assert.equal(L.mayForeground(on, { tier: 'click' }, 'scroll'), false);
   assert.equal(L.mayForeground(on, { tier: 'full' }, 'file_panel'), true);
   assert.equal(L.mayForeground({ allowed: () => false }, { tier: 'full' }, 'key'), false);
   assert.equal(L.NO_LADDER.allowed(), false);
@@ -116,10 +118,10 @@ test('a background success says so; the setting off, a weaker tier or another ac
   assert.equal(off.rung, undefined);
   assert.equal(r.callsOf('app.setText').filter((c: any) => c.params.foreground).length, 0);
   l.on = true;
-  // a scroll that changed nothing stays a background result
-  r.helper.answers['app.scroll'] = () => ({ ok: true, route: 'pid', ...noChange });
-  assert.equal((await r.record('desktop_app_scroll', { app: 'Notes', element_index: 2, dy: 2 })).effect, 'no_change');
-  assert.equal(r.callsOf('app.scroll').length, 1);
+  // a drag that changed nothing stays a background result (deferred: #5579)
+  r.helper.answers['app.drag'] = () => ({ ok: true, route: 'pid', ...noChange });
+  assert.equal((await r.record('desktop_app_drag', { app: 'Notes', coordinate: [10, 10], to_coordinate: [30, 30] })).effect, 'no_change');
+  assert.equal(r.callsOf('app.drag').length, 1);
   // Terminal is granted for clicks only: no brief foreground there
   const t = rig({ apps: { ladder: ladder() } });
   t.helper.answers['app.windows'] = () => ({ app: { pid: 9 }, windows: [{ window_id: 5, title: 'T', state: 'visible', bounds: {} }] });
@@ -293,4 +295,159 @@ test('foregroundRefused: only the helper’s refusals of the brief-foreground pa
   assert.equal(foregroundRefused(new Error('refused: the locked screen')), true);
   for (const other of [new Error('refused: target is X'), new Error('unsupported(minimized): x'), {}, undefined, null])
     assert.equal(foregroundRefused(other), false);
+});
+
+test('a scroll the app ignored in the background is retried at its point with the app briefly in front, and the rung is remembered', async () => {
+  const l = ladder();
+  const r = rig({ apps: { ladder: l } });
+  await r.shoot();
+  r.helper.answers['app.scroll'] = (p: any) =>
+    p.foreground
+      ? { ok: true, route: 'hid', verify: { effect: 'confirmed' }, foreground: { activated: true, restored: true, userTookOver: false } }
+      : { ok: true, route: 'pid', ...noChange };
+  const out = await r.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 3 });
+  assert.deepEqual([out.effect, out.route, out.rung, out.background_effect], ['confirmed', 'hid', 'foreground', 'no_change']);
+  assert.match(out.ladder, /^Notes needs brief foreground for scrolling: it was brought to the front/);
+  assert.deepEqual(
+    r.callsOf('app.scroll').map((c: any) => [c.params.ifFrontmost === true, c.params.foreground === true]),
+    [
+      [true, false],
+      [false, true],
+    ],
+  );
+  assert.deepEqual(l.remembered, [['com.apple.Notes', 'scroll', 'foreground']]);
+  // the next scroll starts on the remembered rung
+  r.helper.calls.length = 0;
+  const again = await r.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 3 });
+  assert.equal(again.rung, 'foreground');
+  assert.equal(r.callsOf('app.scroll').length, 1);
+});
+
+test('a scroll is not escalated with the setting off or below full control; an app in front is asked for the real wheel at once', async () => {
+  const off = rig({ apps: { ladder: ladder({ allowed: false }) } });
+  await off.shoot();
+  off.helper.answers['app.scroll'] = () => ({ ok: true, route: 'pid', ...noChange });
+  const out = await off.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 3 });
+  assert.deepEqual([out.effect, out.rung], ['no_change', undefined]);
+  assert.equal(off.callsOf('app.scroll').length, 1);
+  assert.equal(off.last('app.scroll').ifFrontmost, undefined);
+  assert.match(out.hint, /ignores scroll events|brief/i);
+  // in front: one request that the helper answers through its foreground path; nothing higher to try
+  const front = rig({ apps: { ladder: ladder() } });
+  await front.shoot();
+  front.helper.answers['app.scroll'] = () => ({
+    ok: true,
+    route: 'hid',
+    foreground: { activated: false, restored: true, userTookOver: false },
+    verify: { effect: 'no_change' },
+  });
+  const f = await front.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 3 });
+  assert.equal(front.callsOf('app.scroll').length, 1);
+  assert.deepEqual([f.effect, f.rung, f.route], ['no_change', 'foreground', 'hid']);
+});
+
+test('a scroll whose foreground rung is refused (user active) keeps the background result and says so; one that also changes nothing says it did not help', async () => {
+  const r = rig({ apps: { ladder: ladder() } });
+  await r.shoot();
+  r.helper.answers['app.scroll'] = (p: any) => {
+    if (p.foreground) throw helperFailure('unsupported', 'unsupported(user_active): the user is using the mouse or keyboard');
+    return { ok: true, route: 'pid', ...noChange };
+  };
+  const busy = await r.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 3 });
+  assert.deepEqual([busy.effect, busy.rung], ['no_change', 'background']);
+  assert.match(busy.ladder, /Brief foreground was not used: unsupported\(user_active\)/);
+  r.helper.answers['app.scroll'] = () => ({ ok: true, route: 'hid', ...noChange });
+  const still = await r.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 3 });
+  assert.deepEqual([still.effect, still.rung, still.background_effect], ['no_change', 'foreground', 'no_change']);
+  assert.match(still.ladder, /didn't help either/);
+});
+
+test('firstPlan asks for the real wheel of an app in front only with brief foreground allowed; a drag is not asked', () => {
+  const { firstPlan } = require('../electron/capabilities/tools/appScopedApproach.cjs');
+  const plan = (method: string) => ({ method, params: { a: 1 } });
+  assert.equal(firstPlan(plan('app.scroll'), {}, true).params.ifFrontmost, true);
+  assert.equal(firstPlan(plan('app.scroll'), {}, false).params.ifFrontmost, undefined);
+  assert.equal(firstPlan(plan('app.drag'), {}, true).params.ifFrontmost, undefined);
+  assert.equal(firstPlan(plan('app.click'), {}, true).params.ifFrontmost, true);
+});
+
+test('an element scroll stays an accessibility action: no ifFrontmost, no retry once the scroll bar moved, plain first even on a remembered rung', async () => {
+  // the scroll bar moved (route ax): nothing to retry
+  const a = rig({ apps: { ladder: ladder() } });
+  await a.shoot();
+  const ok = await a.record('desktop_app_scroll', { app: 'Notes', element_index: 2, dy: 2 });
+  assert.deepEqual([ok.route, ok.rung], ['ax', 'background']);
+  assert.equal(a.callsOf('app.scroll').length, 1);
+  assert.equal(a.last('app.scroll').ifFrontmost, undefined);
+  // it fell through to the wheel and nothing moved: now it goes up, at the element's point
+  const b = rig({ apps: { ladder: ladder() } });
+  await b.shoot();
+  b.helper.answers['app.scroll'] = (p: any) =>
+    p.foreground ? { ok: true, route: 'hid', verify: { effect: 'confirmed' } } : { ok: true, route: 'pid', ...noChange };
+  const up = await b.record('desktop_app_scroll', { app: 'Notes', element_index: 2, dy: 2 });
+  assert.deepEqual([up.effect, up.rung], ['confirmed', 'foreground']);
+  assert.equal(typeof b.callsOf('app.scroll')[1].params.x, 'number');
+  // a remembered foreground rung does not skip the accessibility route of an element scroll
+  const rem = rig({ apps: { ladder: ladder({ rungs: { 'com.apple.notes:scroll': 'foreground' } }) } });
+  await rem.shoot();
+  const first = await rem.record('desktop_app_scroll', { app: 'Notes', element_index: 2, dy: 2 });
+  assert.deepEqual([first.route, first.rung], ['ax', 'background']);
+  assert.equal(rem.callsOf('app.scroll').length, 1);
+  assert.equal(rem.last('app.scroll').foreground, undefined);
+});
+
+test('a remembered foreground rung the helper refuses falls back to the plain request with a note, for any action', async () => {
+  const r = rig({ apps: { ladder: ladder({ rungs: { 'com.apple.notes:key': 'foreground', 'com.apple.notes:scroll': 'foreground' } }) } });
+  await r.shoot();
+  r.helper.answers['app.key'] = (p: any) => {
+    if (p.foreground) throw helperFailure('unsupported', 'unsupported(user_active): the user is using the mouse or keyboard');
+    return { ok: true, route: 'pid', effect: 'confirmed' };
+  };
+  const key = await r.record('desktop_app_key', { app: 'Notes', element_index: 2, combo: 'return' });
+  assert.deepEqual([key.effect, key.rung], ['confirmed', 'background']);
+  assert.match(key.ladder, /Brief foreground was not used: unsupported\(user_active\)/);
+  r.helper.answers['app.scroll'] = (p: any) => {
+    if (p.foreground) throw helperFailure('refused', 'refused: the locked screen');
+    return { ok: true, route: 'pid', effect: 'confirmed' };
+  };
+  const sc = await r.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 2 });
+  assert.equal(sc.rung, 'background');
+  assert.match(sc.ladder, /locked screen/);
+  // any other failure still reaches the model
+  r.helper.answers['app.key'] = () => {
+    throw helperFailure('failed', 'boom');
+  };
+  await rejects(r.record('desktop_app_key', { app: 'Notes', element_index: 2, combo: 'return' }), 'failed', /boom/);
+});
+
+test('a scroll refused its real-pointer first request retries plain; a foreground scroll another app covers says whose window; the hint drops the retry advice once retried', async () => {
+  const r = rig({ apps: { ladder: ladder() } });
+  await r.shoot();
+  r.helper.answers['app.scroll'] = (p: any) => {
+    if (p.ifFrontmost) throw helperFailure('unsupported', 'unsupported(user_active): busy');
+    return { ok: true, route: 'pid', verify: { effect: 'confirmed' } };
+  };
+  const out = await r.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 2 });
+  assert.equal(out.effect, 'confirmed');
+  assert.deepEqual(
+    r.callsOf('app.scroll').map((c: any) => c.params.ifFrontmost),
+    [true, undefined],
+  );
+  const c = rig({ apps: { ladder: ladder() } });
+  await c.shoot();
+  c.helper.answers['app.scroll'] = (p: any) =>
+    p.foreground
+      ? { ok: true, route: 'pid', ownerPid: 7, targetPid: 42, ...noChange, foreground: { restored: true } }
+      : { ok: true, route: 'pid', ...noChange };
+  const rec = await c.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 2 });
+  assert.deepEqual([rec.rung, rec.owner_pid, rec.target_pid], ['foreground', 7, 42]);
+  assert.doesNotMatch(rec.hint, /briefly in front/);
+  assert.match(rec.hint, /Nothing moved/);
+  // a hid-routed record names its route
+  const h = rig({ apps: { ladder: ladder({ allowed: false }) } });
+  await h.shoot();
+  h.helper.answers['app.scroll'] = () => ({ ok: true, route: 'hid', verify: { effect: 'no_change' } });
+  const hid = await h.record('desktop_app_scroll', { app: 'Notes', coordinate: [130, 70], dy: 2 });
+  assert.equal(hid.route, 'hid');
+  assert.match(hid.hint, /briefly in front/);
 });

@@ -221,3 +221,28 @@ test('a card that is void says why when the home says why, and a device the row 
   assert.ok(m.row('q1').textContent.includes('Answered on another device at'));
   await m.close();
 });
+
+test('a problem’s other ways on are kept when they have an id and a label, and a problem without a fix is dropped', () => {
+  const v: any = parseView({
+    ...fixtureView(),
+    problems: [
+      {
+        id: 'older:s',
+        code: 'older_home',
+        cause: 'c',
+        fix: { id: 'use', label: 'Use' },
+        also: [{ id: 'keep', label: 'Keep' }, { label: 'No id' }, 7],
+        since: null,
+      },
+      { id: 'plain', code: 'x', cause: 'c', fix: { id: 'f', label: 'F' }, since: null },
+      { id: 'nofix', code: 'x', cause: 'c', since: null },
+    ],
+  });
+  assert.deepEqual(
+    v.problems.map((p: any) => [p.id, p.also?.map((f: any) => f.id) ?? null]),
+    [
+      ['older:s', ['keep']],
+      ['plain', null],
+    ],
+  );
+});

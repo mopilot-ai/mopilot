@@ -1,6 +1,7 @@
 // Milestone M4 (limits, Host only): S10, a day spend limit set through the owner policy that holds the next message once a turn has crossed it, and lets it go when the limit is raised.
 import { chat, expect, replyOf, session, until } from '../steps.mjs';
 import { later, refusalOf, rpc } from './common.mjs';
+import { workFolder } from '../workFolder.mjs';
 
 /** The owner policy with a day limit (`null` for none): the Host replaces the whole owner layer. @param {number | null} dayUsd */
 const policy = (dayUsd) => ({ version: 1, ...(dayUsd === null ? {} : { spend: { dayUsd } }) });
@@ -17,7 +18,7 @@ export const M4_STEPS = [
       try {
         await rpc(ctx, 'host.policy', { doc: policy(0.05) });
         await c.request('chat.subscribe', { chatId: id, epoch: 1, fromRev: 0 });
-        await c.request('chat.start', { chatId: id, epoch: 1, key: `accept-${id}`, harness: 'acp:fake', text, cwd: ctx.state.dataDir });
+        await c.request('chat.start', { chatId: id, epoch: 1, key: `accept-${id}`, harness: 'acp:fake', text, cwd: workFolder(ctx.state) });
         const crossing = (await c.waitFor(replyOf(id), 30_000)).frame.item;
         expect(crossing.stopReason === 'end_turn', `The crossing turn ended with ${crossing.stopReason}, not end_turn.`);
         const spend = await until(
