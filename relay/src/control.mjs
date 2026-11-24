@@ -2,8 +2,11 @@
 // a Mac's request and its activity snapshot). Each takes the hub and the connection it came on; `fail` answers with an error carrying the request id.
 import { PUSH_KINDS, isPairId } from './frames.mjs';
 import { parseSnapshot } from './activity.mjs';
-import { MAX_SEALED } from './pushPayload.mjs';
+import { MAX_SEALED, MAX_SEALED_STAMP } from './pushPayload.mjs';
 import { LANE_SUFFIX, hostControl, isHostKind } from './hosts.mjs';
+
+/** What a sealed stamp is made of (base64url): anything else is not one the phone could open, and is refused rather than dropped. */
+const STAMP_CHARS = /^[A-Za-z0-9_-]+$/;
 
 /** The hex of an ActivityKit push-to-update token (32 bytes today); the bound leaves room for a longer one. */
 const ACTIVITY_TOKEN = /^[0-9a-fA-F]{16,512}$/;
@@ -145,6 +148,15 @@ export async function control(hub, conn, m, rid, fail) {
       // MoMo's opt-in body, sealed for the phone: forwarded unread, like `sealed`
       if (m.sealedBody !== undefined && (typeof m.sealedBody !== 'string' || !m.sealedBody || m.sealedBody.length > MAX_SEALED))
         return void (await fail('bad_message'));
+      // the lease of the MoMo home that sent it, sealed for the phone: forwarded unread, like `sealedBody`; the relay keeps no state about it and ignores it on any other kind
+      const momo = m.kind === 'momoNeedsYou' || m.kind === 'cleared';
+      if (
+        momo &&
+        m.sealedStamp !== undefined &&
+        (typeof m.sealedStamp !== 'string' || !m.sealedStamp || m.sealedStamp.length > MAX_SEALED_STAMP || !STAMP_CHARS.test(m.sealedStamp))
+      )
+        return void (await fail('bad_message'));
+      const sealedStamp = momo && m.sealedStamp ? m.sealedStamp : '';
       const target = await pushTarget(hub, conn.identity, m.pair);
       if (!target) return void (await fail('unknown_pair', { pair: m.pair }));
       const { pairId, phoneDeviceId } = target;
@@ -152,7 +164,7 @@ export async function control(hub, conn, m, rid, fail) {
       // the provider may be slow: the answer follows when it is known, and the Mac's other messages are not held up behind it
       hub.track(
         conn,
-        hub.push.request({ pairId, phoneDeviceId }, m.kind, m.ref, m.sealed, m.card, kind === 'host', m.sealedBody).then(
+        hub.push.request({ pairId, phoneDeviceId }, m.kind, m.ref, m.sealed, m.card, kind === 'host', m.sealedBody, sealedStamp).then(
           (status) => hub.send(conn, { t: 'push.result', pair: pairId, status, rid }),
           // the Mac waits for an answer to its request id: a push that broke is answered too, and logged by the caller of track
           (e) => fail('push_failed', { pair: pairId }).then(() => Promise.reject(e)),

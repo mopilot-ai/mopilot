@@ -4,14 +4,14 @@ import path from 'node:path';
 import { CLIENT_KINDS, clientNameOf as cleanName } from '../../shared/host/clients.mjs';
 import { writePrivateDurable } from '../../electron/platform/durableFile.cjs';
 
-/** @typedef {{ key: string, name: string, kind: 'desktop' | 'phone' | 'cli', addedAt: number, addedBy: string }} ClientRecord */
+/** @typedef {{ key: string, name: string, kind: 'desktop' | 'phone' | 'cli' | 'home' | 'controller' | 'unknown', addedAt: number, addedBy: string }} ClientRecord */
 /** @typedef {{ codeHash: string | null, expires: number, wrong: number, clients: Record<string, ClientRecord> }} PairingState */
 /** @typedef {{ added: { id: string, pem: string }[], revoked: string[], seen: Record<string, number> }} UpdateKeyState */
 
 export { CLIENT_KINDS, cleanName };
 
 /**
- * One client as the trust file holds it. The old form, a bare public key, is a desktop client with no name; a record whose kind is not one this Host knows is read as a phone, so it never becomes an update key. Anything else is an unreadable file, never an empty client.
+ * One client as the trust file holds it. The old form, a bare public key, is a desktop client with no name; a record whose kind is not one this Host knows is read as `unknown`, which every kind check refuses by default (it is no owner, no update key, sees only its own chats and has the phone's permission ceiling). Anything else is an unreadable file, never an empty client.
  * @param {unknown} v @returns {ClientRecord}
  */
 export function clientOf(v) {
@@ -21,7 +21,7 @@ export function clientOf(v) {
   return {
     key: r.key,
     name: cleanName(r.name),
-    kind: CLIENT_KINDS.includes(r.kind) ? r.kind : 'phone',
+    kind: CLIENT_KINDS.includes(r.kind) ? r.kind : 'unknown',
     addedAt: Number.isFinite(r.addedAt) ? r.addedAt : 0,
     addedBy: typeof r.addedBy === 'string' ? r.addedBy.slice(0, 200) : 'code',
   };
@@ -55,6 +55,32 @@ function read(file, check, empty, kind) {
 /** @param {string} configDir */
 export const readPairing = (configDir) =>
   read(path.join(configDir, 'pairing.json'), checkedPairing, () => ({ codeHash: null, expires: 0, wrong: 0, clients: {} }), 'pairing');
+/**
+ * The Macs paired by a code (kind `controller`), kept in a file of their own that a Host from before them never reads, so a Host rolled back across this change has no controllers and each must pair again (fail closed; they are never read as a phone). A file that cannot be read is no controllers at all. A record is a controller whatever kind it says.
+ * @param {string} configDir @returns {Record<string, ClientRecord>}
+ */
+export function readControllers(configDir) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(configDir, 'controllers.json'), 'utf8'));
+    if (parsed?.v !== 1 || !parsed.controllers || typeof parsed.controllers !== 'object' || Array.isArray(parsed.controllers)) return {};
+    /** @type {Record<string, ClientRecord>} */
+    const out = {};
+    for (const [fingerprint, v] of Object.entries(parsed.controllers)) {
+      try {
+        out[fingerprint] = { ...clientOf(v), kind: 'controller' };
+      } catch {
+        // one record that is not a client is no client; the rest stand
+        continue;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+/** @param {string} configDir @param {Record<string, ClientRecord>} controllers */
+export const writeControllers = (configDir, controllers) =>
+  writeTrustState(path.join(configDir, 'controllers.json'), { v: 1, controllers });
 /** @param {string} configDir */
 export const readUpdateKeys = (configDir) =>
   read(path.join(configDir, 'update-keys.json'), checkedUpdateKeys, () => ({ added: [], revoked: [], seen: {} }), 'update key');

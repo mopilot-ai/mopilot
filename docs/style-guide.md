@@ -52,7 +52,7 @@ A component that owns its styles keeps them in a CSS Module next to it; global s
 - Chats and the composer are centered at `--composer-w`; panels open beside them, not over them.
 - Rows are `--row-h` high with `--row-radius` corners. Lists keep one row per item at every font size.
 - Text beside an icon stays on the icon's line at Chat font sizes up to 24px.
-- Long names truncate with an ellipsis and show the full text in a tooltip.
+- Long names truncate with an ellipsis, or fade out at the cut in the thread sidebar, and show the full text in a tooltip.
 
 ## Motion
 

@@ -197,9 +197,31 @@ function momoAllowed() {
   return current ? current.allowed() : false;
 }
 
+/** Told when anything the gate follows may have changed: the account (it may be another one) or the remote switches (a flag that loaded late). */
+const stateWatchers = new Set();
+function onMomoState(/** @type {() => void} */ cb) {
+  stateWatchers.add(cb);
+  return () => void stateWatchers.delete(cb);
+}
+const tellState = () => {
+  for (const cb of [...stateWatchers])
+    try {
+      cb();
+    } catch (error) {
+      noteIgnored('tell a MoMo service its account or switches changed', error);
+    }
+};
+
+/** The id of the signed-in MoPilot account the gate last heard of, null when none: what MoMo's data on this Mac belongs to. */
+function momoUserId() {
+  const id = current?.status?.signedIn ? current.status.user?.id : null;
+  return typeof id === 'string' && id ? id : null;
+}
+
 /** The account status changed (electron/app/identity.cjs). */
 function updateMomoAccess(/** @type {AccountStatus | null} */ status) {
   current?.update(status);
+  tellState();
 }
 
 /** The remote switches were loaded or changed (electron/app/flags.cjs). */
@@ -207,6 +229,7 @@ function recomputeMomoAccess() {
   if (!current) return;
   current.flagsLoaded = true;
   current.recompute();
+  tellState();
 }
 
 module.exports = {
@@ -214,6 +237,8 @@ module.exports = {
   decide,
   openMomoAccess,
   onMomoAccess,
+  onMomoState,
+  momoUserId,
   momoAllowed,
   updateMomoAccess,
   recomputeMomoAccess,

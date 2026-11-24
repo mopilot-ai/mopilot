@@ -267,3 +267,35 @@ test('main’s MoMo services hear each change of whichever gate is open, and one
   assert.deepEqual(heard, [true, false], 'unsubscribed');
   gate.dispose();
 });
+
+test('the account MoMo’s data belongs to, and a service that follows the account or the switches: told, one that fails does not stop the rest', () => {
+  const told: string[] = [];
+  const bad = access.onMomoState(() => {
+    throw new Error('broken service');
+  });
+  const good = access.onMomoState(() => void told.push('state'));
+  const gate = access.openMomoAccess({ file: file(), refresh: () => {}, flagOn: () => true });
+  access.updateMomoAccess({ signedIn: false, user: { id: 'u1', features: ['momo'] }, checkedAt: T });
+  assert.equal(access.momoUserId(), null, 'signed out');
+  access.updateMomoAccess({ signedIn: true, user: { id: 7 as any, features: [] }, checkedAt: T });
+  assert.equal(access.momoUserId(), null, 'an id that is not text');
+  access.updateMomoAccess({ signedIn: true, user: { id: '', features: [] }, checkedAt: T });
+  assert.equal(access.momoUserId(), null, 'an empty id');
+  access.updateMomoAccess(invited);
+  assert.equal(access.momoUserId(), 'u1');
+  access.recomputeMomoAccess();
+  assert.ok(told.length >= 5, 'each change was told');
+  good();
+  bad();
+  gate.dispose();
+  // a module that has no gate yet, and a gate that has not heard of an account yet
+  const path_ = require.resolve('../electron/momo/access.cjs');
+  delete require.cache[path_];
+  const fresh = require('../electron/momo/access.cjs');
+  assert.equal(fresh.momoUserId(), null, 'no gate yet');
+  const bare = fresh.openMomoAccess({ file: file(), refresh: () => {}, flagOn: () => true });
+  assert.equal(fresh.momoUserId(), null, 'no account heard of yet');
+  bare.dispose();
+  delete require.cache[path_];
+  require('../electron/momo/access.cjs');
+});

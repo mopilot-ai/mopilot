@@ -2,6 +2,7 @@
 import { expect, session, until } from '../steps.mjs';
 import { answerCard, eventOf, framesOf, optionOf, pending } from '../milestones/common.mjs';
 import { planFor } from '../milestones/harness.mjs';
+import { workFolder } from '../workFolder.mjs';
 
 /** The harnesses a matrix run tries, in the order of its table; the fake agent is always there. */
 export const KEYS = ['fake', 'claude', 'codex'];
@@ -50,7 +51,7 @@ export async function startChat(ctx, t, text, prep) {
       key: `accept-${id}`,
       harness: 'acp:fake',
       text,
-      cwd: ctx.state.dataDir,
+      cwd: workFolder(ctx.state),
       ...t.start,
     });
     return { c, id, t0 };

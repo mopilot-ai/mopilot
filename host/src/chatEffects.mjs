@@ -4,6 +4,7 @@ import { hostImageUrl } from '../../shared/host/images.mjs';
 import { UnsupportedError } from './errors.mjs';
 import { harnessOfChat } from './chatCredentials.mjs';
 import { HostRefusal } from './hostFs.mjs';
+import { chatFoldersOf } from './chatFolders.mjs';
 import { sideChatParentChanged } from './nativeSideChat.mjs';
 export const pickedOf = (p) => ({ ...(p.model ? { model: p.model } : {}), ...(p.effort ? { effort: p.effort } : {}) });
 
@@ -23,6 +24,8 @@ export function createChatEffects({
   check,
   faults,
   approvals,
+  report = /** @type {((message: string) => void) | undefined} */ (undefined),
+  state = /** @type {((chatId: string, patch: Record<string, unknown>) => unknown) | undefined} */ (undefined),
   credentials = null,
   existingFolder = /** @type {((folder: string) => Promise<string>) | undefined} */ (undefined),
   assertAlive = /** @type {((chatId: string) => void) | undefined} */ (undefined),
@@ -73,7 +76,8 @@ export function createChatEffects({
     async 'chat.send'(p) {
       check(p.chatId, p.text);
       // the folder the chat runs in is still on this machine: said before anything is taken or started, as the app's own chats say it, where the agent would fail with an unrelated error of its own
-      if (existingFolder && typeof p.cwd === 'string') await folderThere(p.cwd);
+      // and so is the one the chat runs in, looked at afresh at every message
+      if (existingFolder) for (const folder of await chatFoldersOf(runtime, p)) await folderThere(folder);
       // a chat continued here starts with the handoff in front of its first message; the transcript keeps the user's own words
       const handoff = handoffs?.take(p.chatId) ?? null;
       // and on the agent it was continued on, whatever its id spells (a chat switched to another agent keeps the id it began with)
@@ -191,6 +195,8 @@ export function createChatEffects({
       // Claude Code refuses a session id that is not a UUID, and its turn would then fail where no client hears of it: refuse the start instead
       if (p.harness === 'claude' && !p.sideChat && !CLAUDE_ID.test(p.chatId))
         throw new SchemaError('A Claude Code chat id is "claude:" and a UUID.');
+      // a folder the Host refuses is refused before the chat keeps it, not at the first message
+      if (existingFolder) for (const folder of await chatFoldersOf(runtime, p)) await folderThere(folder);
       const forked = await runtime.prepare({
         chatId: p.chatId,
         harness: p.harness,
@@ -236,7 +242,23 @@ export function createChatEffects({
     p.checkImages?.();
     credentials?.admit({ chatId: p.chatId, harness: p.harness, credential: inherited ?? p.credential });
     try {
-      return await started(p);
+      const sent = await started(p);
+      // where the chat began and who began it, kept on its state for every list of the chats (best effort: a chat is never refused for it)
+      const by = String((typeof p.by === 'string' ? p.by : p.by?.name) ?? '').slice(0, 80);
+      if (p.cwd || by) {
+        try {
+          state?.(p.chatId, {
+            origin: {
+              ...(p.cwd ? { folder: p.cwd } : {}),
+              ...(by ? { by } : {}),
+              ...(typeof p.by?.fingerprint === 'string' ? { fp: p.by.fingerprint } : {}),
+            },
+          });
+        } catch (error) {
+          report?.(`Could not keep where chat ${p.chatId} began: ${error}`);
+        }
+      }
+      return sent;
     } catch (error) {
       credentials?.forget(p.chatId);
       throw error;

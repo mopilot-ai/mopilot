@@ -92,8 +92,8 @@ test('run elsewhere and act are refused with words while this Host is not the ru
   const { w } = await intents(t);
   const { item } = await w.tasks.create(ask);
   w.home.stamp = () => null;
-  await assert.rejects(w.tasks.runElsewhere(item.id, A.homeId), /not running on this machine/);
-  await assert.rejects(w.tasks.act(item.id, 'retry'), /not running on this machine/);
+  await assert.rejects(w.tasks.runElsewhere(item.id, A.homeId), /not running on/);
+  await assert.rejects(w.tasks.act(item.id, 'retry'), /not running on/);
 });
 
 test('two devices tapping Retry at once start one session, and the second is told the task is starting or running', async (t) => {

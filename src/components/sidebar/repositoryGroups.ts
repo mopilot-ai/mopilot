@@ -1,6 +1,7 @@
 // Project sidebar projection that joins verified remote locations without changing session ownership.
 import { environmentRepository } from '../../../shared/sidebarRepository.mjs';
 import type { CloudTask, CloudEnv } from '../../lib/native';
+import { machineFolderKey } from '../../lib/machineFolder';
 import { groupKey } from '../../lib/projectGroupOrder';
 import type { ProjectGroupData } from './projectGroups';
 
@@ -66,6 +67,8 @@ export function groupRepositories(
     attached.add(group);
     if (!target) continue;
     (target.machineGroups ??= []).push(groupKey(group));
+    for (const path of group.machineFolders ?? [])
+      if (path !== group.path) (target.machineFolderAliases ??= []).push(machineFolderKey(group.machine.id, path));
     for (const thread of group.threads) target.threads.push(thread);
     for (const entry of group.starting ?? []) (target.starting ??= []).push(entry);
     (target.locations ??= []).push({ kind: 'machine', ...group.machine, path: group.path });

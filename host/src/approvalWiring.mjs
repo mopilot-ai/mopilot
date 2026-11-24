@@ -16,11 +16,11 @@ const policyTimes = (policy) => () => {
  * @param {(chatId: string) => string} o.familyOf
  * @param {(message: string) => void} o.report
  * @param {(chatId: string) => unknown} o.skipped a `skip` run stopped at a card (U3)
- * @param {{ notify?: Parameters<typeof createApprovals>[0]['notify'], approvalTimes?: () => { remindMs: number, pauseMs: number }, approvalClock?: { now?: () => number, after?: (fn: () => void, ms: number) => () => void }, audit?: { governed: (e: any) => boolean, note: (e: any) => void }, policy?: { approvalSettings: () => { approvals: { remindMinutes: number, pauseMinutes: number } } } }} [ports] the push port, the owner's clock (`approvalTimes`, else the effective policy's) and the tests' time
+ * @param {{ homeGate?: { startedBy: (chatId: string) => { kind: string, home: string } | null }, notify?: Parameters<typeof createApprovals>[0]['notify'], approvalTimes?: () => { remindMs: number, pauseMs: number }, approvalClock?: { now?: () => number, after?: (fn: () => void, ms: number) => () => void }, audit?: { governed: (e: any) => boolean, note: (e: any) => void }, policy?: { approvalSettings: () => { approvals: { remindMinutes: number, pauseMinutes: number } } } }} [ports] the push port, the owner's clock (`approvalTimes`, else the effective policy's) and the tests' time
  */
 export function approvalsFor(
   { record, hub, runtime, epochs, familyOf, report, skipped },
-  { notify, approvalTimes, approvalClock, audit, policy } = {},
+  { notify, approvalTimes, approvalClock, audit, policy, homeGate } = {},
 ) {
   const approvals = createApprovals({
     record: (chatId, event) => record(chatId, event),
@@ -31,6 +31,7 @@ export function approvalsFor(
     saved: (chatId) => hub.current(chatId),
     report,
     skipped,
+    ...(homeGate ? { startedBy: homeGate.startedBy } : {}),
     ...(notify ? { notify } : {}),
     ...(audit ? { audit } : {}),
     ...(approvalTimes || policy ? { times: approvalTimes ?? policyTimes(/** @type {NonNullable<typeof policy>} */ (policy)) } : {}),

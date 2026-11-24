@@ -1,4 +1,4 @@
-// The composer ring combines the current context with the serving login's limits, including refresh and owner changes.
+// The composer ring combines the current context with the limits of the login the picked harness uses, including refresh and owner changes.
 import { mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import './support/dom.ts';
@@ -181,7 +181,7 @@ test('a draft can open plan usage before a context reading, and expired windows 
   }
 });
 
-test('a pending harness choice keeps context and plan on the same owner until the session changes', async () => {
+test('a pending harness choice shows its own plan limits at once, beside the open session’s context', async () => {
   const windows = [limit('5h', 50)];
   reset([
     login('codex', 'local', windows, { usage: { windows, source: 'live', at: Date.now() - 3 * 3_600_000 } }),
@@ -196,9 +196,28 @@ test('a pending harness choice keeps context and plan on the same owner until th
   assert.match(panel().textContent!, /Updated 3h ago/);
   await r.rerender(usageRing('claude'));
   assert.equal(document.querySelector('.ctx-popover'), null);
-  assert.match(one(r.host, '.context-ring').getAttribute('aria-label')!, /5-hour limit, 50% used/);
+  // the picker names Claude Code before the session changes: its login's limits, the Codex session's context
+  assert.match(one(r.host, '.context-ring').getAttribute('aria-label')!, /^Context: 10% used.*Weekly · All models, 60% used/);
+  // a picker that has not resolved falls back to the session's harness
   await r.rerender(usageRing(null));
   assert.match(one(r.host, '.context-ring').getAttribute('aria-label')!, /5-hour limit, 50% used/);
+  // an agent with no plan of its own shows the context alone
+  await r.rerender(usageRing('acp:kimi'));
+  assert.match(one(r.host, '.context-ring').getAttribute('aria-label')!, /^Context: 10% used[^.]*tokens$/);
+  await r.rerender(usageRing('claude'));
+  await act(() => one(r.host, '.context-ring').click());
+  await settle(act);
+  assert.match(panel().textContent!, /Claude Code usage limits.*next@example.com · Claude Max/);
+  await act(() => one(r.host, '.context-ring').click());
+  // a login picked with the switch is the one the next message spends; one picked for another harness is not
+  accounts.push(login('claude', 'work', [limit('Weekly', 15)]));
+  ctx.pendingSwitch = { harness: 'claude', account: 'work' } as typeof ctx.pendingSwitch;
+  await r.rerender(usageRing('claude'));
+  assert.match(one(r.host, '.context-ring').getAttribute('aria-label')!, /Weekly · All models, 15% used/);
+  ctx.pendingSwitch = { harness: 'codex', account: 'work' } as typeof ctx.pendingSwitch;
+  await r.rerender(usageRing('claude'));
+  assert.match(one(r.host, '.context-ring').getAttribute('aria-label')!, /Weekly · All models, 60% used/);
+  ctx.pendingSwitch = null;
   await r.rerender(usageRing('claude'));
   await act(async () => session('claude', { nativeId: 'next', used: 0 }));
   answer = async () => undefined;
@@ -211,6 +230,7 @@ test('a pending harness choice keeps context and plan on the same owner until th
   assert.match(panel().textContent!, /Claude Code usage limits/);
   assert.deepEqual(refreshes, [
     ['codex', 'surface'],
+    ['claude', 'surface'],
     ['claude', 'surface'],
   ]);
   await act(() => document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' })));
@@ -243,7 +263,7 @@ test('changing only the serving login or native id closes the ring even when a r
   await r.unmount();
 });
 
-test('context-only chats keep the details action without reading a different harness’s plan', async () => {
+test('context-only chats keep the details action and read no plan until a harness with one is picked', async () => {
   reset([login('codex', 'default', [limit('Weekly', 50)])]);
   session('acp:kimi');
   const r = await render(usageRing('acp:kimi'));
@@ -255,8 +275,9 @@ test('context-only chats keep the details action without reading a different har
   assert.deepEqual(refreshes, []);
   await r.rerender(usageRing('acp:opencode'));
   assert.equal(document.querySelector('.ctx-popover'), null);
+  // picking a harness with a plan shows that plan before the chat's session changes
   await r.rerender(usageRing('codex'));
-  assert.doesNotMatch(one(r.host, '.context-ring').getAttribute('aria-label')!, /Weekly/);
+  assert.match(one(r.host, '.context-ring').getAttribute('aria-label')!, /^Context: 10% used.*Weekly, 50% used/);
   await r.unmount();
 });
 

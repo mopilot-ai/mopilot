@@ -12,11 +12,22 @@ export const TASK_ORIGINS: readonly TaskOrigin[] = ['asked', 'suggestion', 'matt
 export type Where = { machineId: string; harness: string; sessionId: string | null; machineName?: string | null };
 
 /** What the user can press on a failure or a blocked start. `install`, `signIn`, `orgSignIn` and `update` are the RefusalAction values of shared/host/refusalWords. */
-export type FixAction = 'install' | 'signIn' | 'orgSignIn' | 'update' | 'retry' | 'runElsewhere' | 'startAgain' | 'openSession' | 'review';
+export type FixAction =
+  | 'install'
+  | 'signIn'
+  | 'orgSignIn'
+  | 'update'
+  | 'retry'
+  | 'runElsewhere'
+  | 'startAgain'
+  | 'openSession'
+  | 'review'
+  | 'allow';
 export type Fix = { action: FixAction; label: string; machineId?: string; harness?: string };
 
 export type FailureCode =
   | 'machine_offline'
+  | 'machine_not_allowed'
   | 'agent_missing'
   | 'agent_signed_out'
   | 'host_outdated'
@@ -97,10 +108,16 @@ export type MachineInfo = {
   /** The machine's Host can install a missing agent itself. */
   installable: boolean;
   agents: MachineAgent[];
+  /** A move gave MoMo's home a key this machine does not know: the owner's device allows it again. */
+  needsAllow?: boolean;
 };
 
 /** The outcome codes of a start that are the task layer's own, not a Host wire refusal: `failure.ts` words them (a Host's own refusal codes are worded by shared/host/refusalWords.mjs). */
-export const START_CODE = { machineOffline: 'machine_offline', readOnlyUnsupported: 'read_only_unsupported' } as const;
+export const START_CODE = {
+  machineOffline: 'machine_offline',
+  machineNotAllowed: 'machine_not_allowed',
+  readOnlyUnsupported: 'read_only_unsupported',
+} as const;
 
 /** The Host's answer to a start (shared/host refusal wire codes; `machine_offline` is the transport's own). */
 export type StartOutcome =
@@ -172,6 +189,8 @@ export type WatchNotice = { itemId: string; title: string; detail: string; machi
 
 /** Delivery into the MoMo chat; the home lane writes the card as a chat row (and push when the notice pipeline allows). */
 export interface ChatSink {
+  /** The id of the MoMo chat the cards go to. What a session or a page wrote enters that chat's context, so the Host marks it as outside content before posting; a sink that names no chat cannot take a card. */
+  chatId?(): string | null;
   postResult(card: ResultCard): Promise<void>;
   postWatchChanged(notice: WatchNotice): Promise<void>;
 }

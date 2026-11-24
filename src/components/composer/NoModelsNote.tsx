@@ -7,10 +7,15 @@ import { userError } from '../../../shared/userError.mjs';
 import type { HostMachineRow } from '../../lib/hostMachines';
 
 /** The sentence for `machine`'s empty report; `what` names the agent when the note is for one. */
-export function noModelsText(machine: Pick<HostMachineRow, 'status' | 'hostStale'> | undefined, name: string, what?: string): string {
+export function noModelsText(
+  machine: Pick<HostMachineRow, 'status' | 'hostStale' | 'hostDiffers'> | undefined,
+  name: string,
+  what?: string,
+): string {
   const models = what ? `models for ${what}` : 'its models';
   if (machine?.status === 'offline') return `${name} is offline, so ${models} are not shown.`;
-  if (machine?.hostStale) return `${name}'s Host is out of date and has not reported ${what ? models : 'models'}. Update the Host.`;
+  if (machine?.hostStale && !machine.hostDiffers)
+    return `${name}'s Host is out of date and has not reported ${what ? models : 'models'}. Update the Host.`;
   return what ? `${name} has not reported models for ${what} yet.` : `Waiting for ${name} to report its models.`;
 }
 

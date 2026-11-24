@@ -18,6 +18,8 @@ const ALLOWED = new Set([
   'host/src/claudeFamily.mjs',
   'host/src/codexFamily.mjs',
   'host/src/acp.mjs',
+  // names `host.orgLease` in the list of methods a controller is refused: it reads no token
+  'host/src/controllerRefusals.mjs',
   'host/src/cli.mjs',
   // the app: the service that mints it, the IdP client and source adapters it comes from, the lender, sign-out (takes it back) and the wire call
   'electron/host/orgAccess/service.cjs',

@@ -1,26 +1,37 @@
-/* Thread sidebar metrics matched to Codex. */
+/* Thread sidebar metrics matched to Codex, and the type of its section labels. */
 /* thread sidebar: Codex's metrics (30px rows, 14px text); a project's chat titles line up with its name */
-/* the optional harness icon takes the folder icon's 16px slot, so the title still lines up */
+/* the optional harness icon keeps one 16px slot, so titles still line up */
 .thread-sidebar .thread-harness {
   width: 16px;
   justify-content: center;
   margin-right: 0;
 }
-.thread-sidebar .side-row.indent:has(.thread-harness) {
-  padding-left: 8px;
-}
 .project-hint {
   color: var(--text-4);
 }
-.project-group.with-location > .project-row,
-.project-group.with-location > .side-collapse :is(.empty-note, .show-more) {
+/* In the thread sidebar a section's label sits over project headings in that type, so it steps down from them. */
+.thread-sidebar .side-label {
+  font-size: var(--fs-micro);
+  color: var(--text-4);
+}
+.thread-sidebar button.side-label:is(:hover, :focus-visible) {
+  color: var(--text-3);
+}
+/* An empty project's actions are its only rows, not a list's foot: they stay brighter than the note over them.
+   :where keeps the rule under .show-more's hover and focus ink. */
+:where(.side-row.empty-note) ~ .show-more {
+  color: var(--text-3);
+}
+/* A project's heading and its rows share one left edge (the heading's type is set in sidebar.css). */
+.project-group > .project-row,
+.project-group > .side-collapse :is(.empty-note, .show-more) {
   padding-inline-start: 10px;
 }
-.project-group.with-location > .project-row > .rename-input {
+.project-group > .project-row > .rename-input {
   margin-inline-start: 0;
 }
 /* Keep session titles aligned when the optional harness icon is shown. */
-.project-group.with-location > .side-collapse .thread-row-content > .side-row-name {
+.project-group > .side-collapse .thread-row-content > .side-row-name {
   order: -1;
 }
 .project-row-name {

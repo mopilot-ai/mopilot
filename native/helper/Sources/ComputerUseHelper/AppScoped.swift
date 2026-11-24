@@ -793,8 +793,8 @@ extension Helper {
             try requirePostable(w)
             let d = try checkDispatch(params, window: w, scope: &scope)
             let p = try point(shifted(params, d), in: w)
-            appWheel(pid: pid, windowId: CGWindowID(w.listed.id), at: p, lines: Int32(clamping: Int((-dy * 3).rounded())))
-            return movedNote(["ok": true, "route": "pid"], d)
+            let wheel = routedWheel(pid: pid, windowId: CGWindowID(w.listed.id), at: p, lines: Int32(clamping: Int((-dy * 3).rounded())), foreground: params["foreground"] as? Bool == true)
+            return movedNote(wheel, d)
 
         case "app.filePanel":
             return try filePanel(&scope, params)

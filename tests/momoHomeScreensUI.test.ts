@@ -192,6 +192,22 @@ test('Notes when empty offer Connect and Write your own; a disconnected source s
   await g.click('Reconnect');
   assert.ok(!g.text().includes('needs you to sign in again'));
   await g.close();
+  // the home's cause words what Google ended; a cause this version does not know keeps the general line
+  for (const [cause, words] of [
+    ['revoked', 'You removed MoMo’s access in Google.'],
+    ['testing_expired', 'Google’s test sign-in ran out.'],
+    ['scope_missing', 'Google didn’t give MoMo the access it needs.'],
+    ['client_rejected', 'Google rejected MoMo’s sign-in settings.'],
+    ['wrong_account', 'That is not the account MoMo was set up with.'],
+    ['from-a-newer-home', 'Google ended the sign-in.'],
+    [null, 'Google ended the sign-in.'],
+  ] as const) {
+    const v = scenarioView('source-gone');
+    v.home.sources = v.home.sources.map((x) => ({ ...x, cause }));
+    const w = await mountView(v, 'notes');
+    assert.ok(w.text().includes(words), String(cause));
+    await w.close();
+  }
   const r = await mount('source-gone', 'notes');
   await r.click('Remove Gmail');
   assert.ok(!r.text().includes('needs you to sign in again'));

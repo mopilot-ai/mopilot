@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { HostRefusal } from './hostFs.mjs';
+import { mayWipe } from '../../shared/host/momoHomeSafety.mjs';
 import { HOST_OWN } from './momoHome.mjs';
 import { newMoveKey, sealBundle, openBundle, collectFiles, safeRel, receiptText, signReceipt, receiptOk } from './momoBundle.mjs';
 import { createFileSafeStorage } from './secretStore.mjs';
@@ -58,6 +59,8 @@ export function createMomoMove({ home }) {
   const holdsData = () => fs.existsSync(dir) && collectFiles(dir, stays).length > 0;
   /** MoMo's files on this machine and its data key, deleted (a move that did not go through, or a copy that is no longer wanted). */
   const wipeData = () => {
+    // a retired home's data is the owner's to delete (Reset), never a move's: nothing here wipes it; and nothing wipes on a record nobody could read
+    if (!mayWipe(home.record())) return;
     for (const f of collectFiles(dir, stays)) fs.rmSync(path.join(dir, f.path), { force: true });
     wipe(path.join(dir, 'audit'));
     wipe(keyDir);
@@ -204,7 +207,7 @@ export function createMomoMove({ home }) {
         const { outcome } = await applyOld((r) => oldHome.finish(r, { moveId, leaseEpoch, receiptOk: okReceipt }));
         if (outcome.noop) {
           // finished already; a copy a cut-short finish left behind (the tombstone is written first) goes now
-          if (holdsData()) {
+          if (!outcome.keep && holdsData()) {
             await home.close();
             wipeData();
           }
@@ -224,6 +227,8 @@ export function createMomoMove({ home }) {
       queued(async () => {
         const h = home.record();
         if (!h) throw new HostRefusal('home_unavailable', 'MoMo’s home record on this machine cannot be read.');
+        // a machine that still keeps an older MoMo is no target: a move would mix the two sets of data
+        if (h.retired) throw new HostRefusal('retired_copy_here', `${home.machine()} still has an older MoMo. Use it or delete it first.`);
         const t = offers.get(moveId);
         const rule = targetRules.offer(t && { phase: t.phase, expiresAt: t.expiresAt }, { homeState: h.state, now: home.now() });
         if ('error' in rule) throw h.state !== 'none' ? new HostRefusal('home_exists', `MoMo's home is ${h.name}.`) : raise(rule);

@@ -2,13 +2,32 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decisionIdOf } from '../shared/momoNotice/views.ts';
+import { answer, mail, minutes, rig } from './support/host/momoNoticeRig.ts';
 import { createNoticeIntents } from '../host/src/momoNoticeIntents.mjs';
 
-function fake(senderStatus: string | undefined = 'pass', fromDomain: string | undefined = 'acme.com') {
+function fake(senderStatus: string | undefined = 'pass', fromDomain: string | undefined = 'first.example') {
   const reactions: any[] = [];
   const decisions: any[] = [
-    { changeId: 'gmail:a', at: 'A', matterKey: 'M', decidedBy: 'model:x', outcome: 'told', senderStatus },
-    { changeId: 'gmail:b', at: 'B', matterKey: 'M', decidedBy: 'model:x', outcome: 'told', senderStatus },
+    {
+      changeId: 'gmail:a',
+      at: 'A',
+      matterKey: 'M',
+      decidedBy: 'model:x',
+      outcome: 'told',
+      senderStatus,
+      fromDomain: 'acme.com',
+      fromAddress: 'ana@acme.com',
+    },
+    {
+      changeId: 'gmail:b',
+      at: 'B',
+      matterKey: 'M',
+      decidedBy: 'model:x',
+      outcome: 'told',
+      senderStatus,
+      fromDomain: 'acme.com',
+      fromAddress: 'ana@acme.com',
+    },
   ];
   const matter: any = {
     state: 'open',
@@ -87,4 +106,48 @@ test('signals and offers are refused while the home knows none (the defaults)', 
   const w = fake();
   await assert.rejects(w.intents['signal.make']({ id: 's' }), /no longer has that notice/);
   await assert.rejects(w.intents['brief.hide']({ offerId: 'o' }), /no longer has that notice/);
+});
+
+test('what a tap teaches is the sender of the decision it saw, never the matter’s first sender', async () => {
+  const w = fake('pass');
+  assert.equal(w.matter.fromDomain, 'first.example');
+  await w.intents['row.notNeeded']({ rowId: 'gmail:b', decisionId: decisionIdOf(w.decisions[1]) });
+  assert.deepEqual([w.reactions[0].fromDomain, w.reactions[0].fromAddress], ['acme.com', 'ana@acme.com']);
+  const blind = fake('pass');
+  delete blind.decisions[1].fromDomain;
+  await blind.intents['row.notNeeded']({ rowId: 'gmail:b', decisionId: decisionIdOf(blind.decisions[1]) });
+  assert.deepEqual(
+    [blind.reactions[0].fromDomain, blind.reactions[0].fromAddress],
+    [null, null],
+    'a decision with no sender teaches nothing',
+  );
+});
+
+test('through the real pipeline: a thread from sender A then sender B (both pass) teaches B, never A', async (t) => {
+  const w = rig(t);
+  await w.store.learnDomains(['acme.com', 'other.com']);
+  await w.notice.tick();
+  w.clock.at += minutes(10);
+  w.world.threads.t1 = mail('t1', { date: '2026-11-24T12:05:00Z', body: 'A big sale on shoes.' });
+  w.answers.push(answer('tell_now'));
+  await w.notice.tick();
+  w.clock.at += minutes(10);
+  w.world.threads.t1 = mail('t1', {
+    id: 'm-t1-2',
+    date: '2026-11-24T12:20:00Z',
+    from: 'Dan <dan@other.com>',
+    headers: { 'Authentication-Results': 'mx.google.com; dmarc=pass header.from=other.com' },
+    body: 'Another sale on boots.',
+  });
+  w.answers.push(answer('tell_now'));
+  await w.notice.tick();
+  assert.equal((await w.store.notice.getMatter('gmail:t1')).fromDomain, 'acme.com', 'the matter keeps its first sender');
+  const intents: any = createNoticeIntents({ store: w.store, home: {} as any, now: () => w.clock.at });
+  const seen = w.notice.views.decisions({ ids: ['gmail:t1'] }).at(-1);
+  await intents['row.notNeeded']({ rowId: 'gmail:t1', decisionId: seen.decisionId });
+  const [reaction] = w.store.reactions();
+  assert.deepEqual(
+    [reaction.fromDomain, reaction.fromAddress, reaction.senderStatus, reaction.decisionId],
+    ['other.com', 'dan@other.com', 'pass', seen.decisionId],
+  );
 });

@@ -2,6 +2,7 @@
 import { expect, hostUp, session } from '../steps.mjs';
 import { eventOf, framesOf } from '../milestones/common.mjs';
 import { awaitReply, drive, fileIs, mark, newChat, startChat, target, turnEnd, watch } from './common.mjs';
+import { workFolder } from '../workFolder.mjs';
 
 const TOOL = 'accept_echo';
 
@@ -165,7 +166,7 @@ export function journeySteps(key) {
       const second = mark(ctx);
       const c = await session(ctx);
       try {
-        const cwd = t.start.cwd ?? ctx.state.dataDir;
+        const cwd = t.start.cwd ?? workFolder(ctx.state);
         const harness = t.w.id;
         const prep = await c.request('chat.prepareContinue', {
           chatId: id,
@@ -257,7 +258,7 @@ export function journeySteps(key) {
               epoch: 1,
               key: `accept-j11-${row.id}`,
               harness: kindOf(row),
-              cwd: ctx.state.dataDir,
+              cwd: workFolder(ctx.state),
               handoff: 'x',
             })
             .then(

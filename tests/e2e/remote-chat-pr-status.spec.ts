@@ -125,10 +125,14 @@ test('remote sidebar badges recover saved merges and refresh live PRs from GitHu
   await expect(renamedRow.locator('.thread-pr-badge')).toHaveAttribute('aria-label', 'PR #5390 · merged', { timeout: 30_000 });
   await expect(noPrRow.locator('.host-mark')).toBeVisible();
   await expect(noPrRow.locator('.thread-pr-badge')).toHaveCount(0);
-  const locationXs = await Promise.all(
-    [tableRow, branchRow, noPrRow].map(async (row) => (await row.locator('.host-mark').boundingBox())!.x),
-  );
-  expect(locationXs.slice(1)).toEqual([locationXs[0], locationXs[0]]);
+  // Each row names its machine after its title; the PR glyphs share one column beside the status slot.
+  for (const row of [tableRow, branchRow, noPrRow]) await expect(row.locator('.side-row-name > .host-mark')).toBeVisible();
+  const right = async (row: typeof tableRow, selector: string) => {
+    const box = (await row.locator(selector).boundingBox())!;
+    return box.x + box.width;
+  };
+  expect(await right(branchRow, '.thread-pr-icon')).toBe(await right(tableRow, '.thread-pr-icon'));
+  expect(await right(noPrRow, '.row-status')).toBe(await right(tableRow, '.row-status'));
   expect(await harness.app.evaluate(() => (globalThis as any).__remotePrRepro.hostReads)).toContainEqual({
     machine: 'remote-box',
     path: '/remote/work/branch',

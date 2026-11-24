@@ -1,4 +1,5 @@
 // Every skill the user has, merged from each harness's own source into one list, and the one short line a row says about where it is missing or off.
+import { ownGet } from '../../../shared/ownTable.mjs';
 import type { ReachFamily } from '../../../shared/plugins/reach.mjs';
 import type { InstalledPlugin } from '../../lib/native/plugins';
 import { titleOfName } from '../plugins/pluginView';
@@ -36,6 +37,8 @@ export interface SkillRow {
 export interface SkillSources {
   codex: CodexSkill[];
   claude: string[];
+  /** where Claude's listed skills are on this Mac (the catalog's `skillFiles`) */
+  claudeFiles?: Record<string, { path: string; description: string }>;
   plugins: InstalledPlugin[];
 }
 
@@ -43,7 +46,7 @@ export interface SkillSources {
 export const skillTitle = (name: string, display?: string | null) => display || titleOfName(name.split(':').at(-1)!);
 
 /** The merged list, by title. A store plugin's skill reaches every family its plugin is on for; a harness's own source says what it has. */
-export function mergeSkills({ codex, claude, plugins }: SkillSources): SkillRow[] {
+export function mergeSkills({ codex, claude, claudeFiles = {}, plugins }: SkillSources): SkillRow[] {
   const rows = new Map<string, SkillRow>();
   const row = (name: string, description = '', display?: string | null) => {
     const key = name.toLowerCase();
@@ -82,11 +85,11 @@ export function mergeSkills({ codex, claude, plugins }: SkillSources): SkillRow[
     r.codex = k;
     r.copies.codex = { on: k.enabled, file: k.path };
   }
-  for (const name of claude)
-    row(name).copies.claude = {
-      ...rows.get(name.toLowerCase())?.copies.claude,
-      on: true,
-    };
+  for (const name of claude) {
+    const found = ownGet(claudeFiles, name);
+    const r = row(name, found?.description);
+    r.copies.claude = { ...r.copies.claude, on: true, ...(found && !r.copies.claude?.file && { file: found.path }) };
+  }
   return [...rows.values()].sort((a, b) => a.title.localeCompare(b.title));
 }
 

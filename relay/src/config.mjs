@@ -135,6 +135,8 @@ export function loadConfig(env) {
     /** /metrics answers only a request carrying this bearer token; empty leaves the endpoint off */
     metricsToken: (env.METRICS_TOKEN ?? '').trim(),
     trustProxy: env.TRUST_PROXY === '1',
+    /** pairing two computers by a code (rendezvous.mjs, #5576): off unless RENDEZVOUS=1, and then its routes answer like any path the relay does not have */
+    rendezvous: env.RENDEZVOUS === '1',
     /** where Add by command boots are served (an https origin of its own, finding H-2); empty: on whatever host reaches the relay */
     bootOrigin: originOf(env.BOOT_ORIGIN),
     /** how long the database may take to answer /healthz and /readyz before they say it is down */

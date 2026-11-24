@@ -23,6 +23,36 @@ beforeEach(() => {
   set({ conn: 'ready', home: '/home/me', route: { name: 'home' } });
 });
 
+test('a new chat selected from a project carries that Host registration through to start', async () => {
+  const host = { ...MINI, scope: 'original' };
+  setNewChatHostFolder(host, '/srv/app');
+  assert.equal(newChatHostPick()?.scope, host.scope);
+  set({ newChatHost: { ...newChatHostPick()!, agent: 'kimi' } });
+  setNewChatHostFolder(MINI, '/srv/app/src');
+  assert.equal(newChatHostPick()?.scope, host.scope);
+  assert.equal(newChatHostPick()?.agent, 'kimi');
+  impl['acp.startHostAcpThread'] = async () => 'acp:host-codex:scoped-project';
+  set({ newChatWorktree: true });
+  impl['host.gitBranches'] = async () => ({ error: { code: 'machine_changed', message: 'This machine changed.' } });
+  assert.equal(await S.createChatThread('Hello'), null);
+  assert.deepEqual(callsOf('host.gitBranches'), [[host.id, { path: '/srv/app/src', expectedHostKey: host.scope }]]);
+  assert.equal(callsOf('acp.startHostAcpThread').length, 0);
+  set({ newChatWorktree: false });
+  await S.createChatThread('Hello');
+  assert.equal(callsOf('acp.startHostAcpThread')[0][0].host.scope, host.scope);
+});
+
+test('a new pairing for the same Host id replaces the previous registration and its agent', () => {
+  set({ newChatHost: { ...MINI, path: '/srv/app', agent: 'kimi' } });
+  const host = { ...MINI, scope: 'first' };
+  setNewChatHostFolder(host, '/srv/app/src');
+  assert.equal(newChatHostPick()?.agent, 'kimi');
+  setNewChatHostFolder(host, '/srv/app');
+  assert.equal(newChatHostPick()?.agent, 'kimi');
+  setNewChatHostFolder({ ...host, scope: 'second' }, '/work/repo');
+  assert.deepEqual(plain(newChatHostPick()), { ...MINI, scope: 'second', path: '/work/repo' });
+});
+
 test('picking a machine makes it the new chat target with no folder yet; This Mac drops the pick', () => {
   set({ newChatProjectId: 'p1', newChatCwd: null });
   assert.deepEqual(plain(pickNewChatHost(MINI)), { ...MINI, path: '' });

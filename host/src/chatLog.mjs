@@ -4,9 +4,10 @@ import { lostCalls } from './callIntents.mjs';
 import { createStreamHub } from './stream.mjs';
 import { createJournalItems } from './journalItems.mjs';
 import { createSessionJournal } from './sessionJournal.mjs';
+import { createChatIndex } from './chatIndex.mjs';
 
-/** @param {{ dataDir?: string, epoch: (chatId: string) => number, live?: (chatId: string) => Record<string, unknown> }} o */
-export function createChatLog({ dataDir, epoch, live }) {
+/** @param {{ dataDir?: string, epoch: (chatId: string) => number, live?: (chatId: string) => Record<string, unknown>, report?: (message: string) => void }} o */
+export function createChatLog({ dataDir, epoch, live, report }) {
   const storage = dataDir ? createSessionJournal({ dataDir, active: (chatId) => hub.active(chatId) }) : undefined;
   /** @type {Map<string, {rev: number, items: object[]}>} */
   const states = new Map();
@@ -26,9 +27,12 @@ export function createChatLog({ dataDir, epoch, live }) {
     if (!indexes.has(chatId)) indexes.set(chatId, createJournalItems());
     return indexes.get(chatId);
   };
-  const hub = createStreamHub({ snapshot, epoch, storage, live });
+  /** The summaries of the chats this Host holds, kept current from what its stream sees (`host.chats`, its events). */
+  const chatIndex = createChatIndex({ load: async () => storage?.chats() ?? [], epoch, report });
+  const hub = createStreamHub({ snapshot, epoch, storage, live, observe: chatIndex.observe });
   return {
     hub,
+    index: chatIndex,
     history(p) {
       if (!storage) throw Object.assign(new Error('This Host cannot read saved history.'), { code: 'unsupported' });
       return storage.history(p);
@@ -43,6 +47,7 @@ export function createChatLog({ dataDir, epoch, live }) {
       states.delete(chatId);
       indexes.delete(chatId);
       hub.remove(chatId);
+      chatIndex.observe(chatId, { t: 'removed' });
     },
     /**
      * The turn's tool calls that had started and not ended, oldest first. One a restart already closed (`settled`) is still one it cut off.

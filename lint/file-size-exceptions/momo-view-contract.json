@@ -1,8 +1,0 @@
-{
-  "exceptions": {
-    "shared/momoView.ts": {
-      "maxLines": 515,
-      "reason": "MoMo's one view contract (what the Mac and the phone draw): the chat row union carries every row kind a Host writes, and the reply-draft row's own shape sits beside the union so a client reads one file. A row kind is a few lines; the contract stays one file so both clients and the Host import the same types."
-    }
-  }
-}

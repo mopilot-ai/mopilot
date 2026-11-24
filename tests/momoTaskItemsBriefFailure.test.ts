@@ -68,6 +68,28 @@ const ctx = (machines: ReturnType<typeof machine>[], over: Partial<f.FailureCont
 const mini = (over = {}) => machine('mini', 'Mac mini', over);
 const studio = machine('studio', 'Studio');
 
+test("a machine that does not take MoMo's key as its home's says to allow MoMo again, with the one-click fix and no dead end", () => {
+  const c = ctx([mini(), studio]);
+  for (const code of ['home_lease_held', 'home_lease_unassigned', 'home_handover_failed']) {
+    const out = f.fromRefusal({ code }, c);
+    assert.equal(out.code, 'machine_not_allowed', code);
+    assert.match(out.message, /Allow MoMo again/, code);
+    assert.deepEqual([out.fixes[0]?.action, out.fixes[0]?.label, out.retry], ['allow', 'Allow MoMo to use Mac mini', false], code);
+  }
+});
+
+test('a machine that waits for the owner to allow MoMo again says so, and a start whose connection was lost says it may have started', () => {
+  const waiting = f.preflight(ctx([mini({ needsAllow: true }), studio])) as any;
+  assert.deepEqual(
+    [waiting.code, waiting.fixes[0].action, waiting.fixes[0].label, waiting.retry],
+    ['machine_not_allowed', 'allow', 'Allow MoMo to use Mac mini', false],
+  );
+  const lost = f.fromRefusal({ code: 'machine_lost' }, ctx([mini(), studio]));
+  assert.equal(lost.code, 'machine_offline');
+  assert.match(lost.message, /lost while starting, so it may have started/);
+  assert.deepEqual([lost.retry, lost.fixes[0].action], [true, 'retry']);
+});
+
 test('before anything is sent: offline, out of date, agent missing or signed out, each with the real cause and a fix', () => {
   assert.equal(f.preflight(ctx([mini()])), null);
   const offline = f.preflight(ctx([mini({ online: false }), studio])) as any;
@@ -120,6 +142,19 @@ test('"Run on another machine" lists only machines where the same agent is ready
     f.alternatives(ctx([mini()])).map((x) => x.label),
     ['Run on another machine'],
   );
+});
+
+test('a machine MoMo is not allowed to use says so and offers to allow it, then other machines', () => {
+  const c = ctx([mini(), studio]);
+  const out = f.fromRefusal({ code: 'machine_not_allowed' }, c);
+  assert.equal(out.code, 'machine_not_allowed');
+  assert.match(out.message, /^MoMo isn't allowed to use .+ yet\.$/);
+  assert.deepEqual(
+    [out.fixes[0]?.action, out.fixes[0]?.label, out.retry],
+    ['allow', `Allow MoMo to use ${out.fixes[0]?.label.slice('Allow MoMo to use '.length)}`, false],
+  );
+  assert.match(out.fixes[0]?.label ?? '', /^Allow MoMo to use /);
+  assert.ok(out.fixes.length > 1, 'it also names where else the task could run');
 });
 
 test('the Host refuses the start: same words as a Remote Run chat, with the fix it offers', () => {
@@ -200,4 +235,12 @@ test('stopped, interrupted, cap, repeat, busy, check and watch failures say what
     ['review', 'openSession'],
   );
   assert.deepEqual([f.watchFailed(c, 'why').code, f.watchFailed(c, 'why').retry], ['watch_failed', true]);
+});
+
+test("a machine's refusal with no words from the Host still says to allow MoMo again", () => {
+  const c = ctx([mini(), studio], { words: { ...words, refusalWords: () => undefined } as any });
+  const out = f.fromRefusal({ code: 'home_lease_held' }, c);
+  assert.equal(out.code, 'machine_not_allowed');
+  assert.match(out.message, /isn't allowed to use Mac mini/);
+  assert.equal(out.fixes[0]?.action, 'allow');
 });

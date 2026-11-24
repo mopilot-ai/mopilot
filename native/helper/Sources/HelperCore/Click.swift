@@ -91,3 +91,10 @@ public func selectAfterClick(plain: Bool, hit: HitElement?, selectedAfter: Bool?
     guard let hit, plain, hit.selectable, !hit.pressable else { return false }
     return selectedAfter == false
 }
+
+/// Whether a wheel event at `target` needs the pointer moved there first: the wheel lands under the pointer, so only a pointer
+/// already on the point (within a point) can stay. An unknown pointer position is moved.
+public func wheelNeedsPointerMove(pointer: CGPoint?, target: CGPoint) -> Bool {
+    guard let pointer else { return true }
+    return abs(pointer.x - target.x) > 1 || abs(pointer.y - target.y) > 1
+}

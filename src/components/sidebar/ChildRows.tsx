@@ -23,7 +23,6 @@ type Props = {
   activeThread: string | null;
   view: NestedView;
   projectHostId?: string;
-  indent?: boolean;
 };
 
 /** A flat chat reads only lineage; a family additionally observes every member's current state. */
@@ -34,7 +33,7 @@ export function ChildRows(props: Props) {
 
 const NO_ROWS: string[] = [];
 
-function ChildList({ parentId, activeThread, view, projectHostId, indent = true }: Props) {
+function ChildList({ parentId, activeThread, view, projectHostId }: Props) {
   const v = useSidebarLineage();
   const threads = useStore((s) => s.threads);
   const initialTitles = useStore((s) => s.chatInitialTitles);
@@ -86,50 +85,31 @@ function ChildList({ parentId, activeThread, view, projectHostId, indent = true 
   }
   if (!family.length) return null;
   return (
-    <div className={['side-children', indent && 'indent'].filter(Boolean).join(' ')} role="group" aria-label="Sessions this chat started">
+    <div className="side-children" role="group" aria-label="Sessions this chat started">
       {kept.map((id) => (
         <ThreadRow
           key={id}
           thread={threads[id]}
           active={id === activeThread}
-          indent={indent}
           depth={1}
           projectHostId={projectHostId}
           startedBy={threadTitle(threads[v.children[id].parentId], initialTitles)}
         />
       ))}
       {tucked.length > 0 && (
-        <HiddenSummary
-          ids={tucked}
-          counts={counts}
-          more={kept.length > 0}
-          onShow={() => setNestedHidden(view, [parentId], false)}
-          indent={indent}
-        />
+        <HiddenSummary ids={tucked} counts={counts} more={kept.length > 0} onShow={() => setNestedHidden(view, [parentId], false)} />
       )}
     </div>
   );
 }
 
 /** Hidden sessions count failed, unread and working states; attention rows remain directly accessible. */
-function HiddenSummary({
-  ids,
-  counts,
-  more,
-  onShow,
-  indent,
-}: {
-  ids: string[];
-  counts: NestedCounts;
-  more: boolean;
-  onShow: () => void;
-  indent: boolean;
-}) {
+function HiddenSummary({ ids, counts, more, onShow }: { ids: string[]; counts: NestedCounts; more: boolean; onShow: () => void }) {
   const summary = nestedSummary(ids.length, counts, more);
   return (
     <button
       type="button"
-      className={['side-row nested-summary linked-child', indent && 'indent'].filter(Boolean).join(' ')}
+      className="side-row nested-summary linked-child"
       style={{ '--depth': 1 } as CSSProperties}
       aria-label={summary.aria}
       onClick={onShow}

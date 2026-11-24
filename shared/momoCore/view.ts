@@ -1,4 +1,5 @@
 // What the clients draw from the core's records (the contract of shared/momoView.ts, #5482): an approval card, a note with its lines and history, a rule and the early signals one reaction short of a rule. Pure: the Host passes in what it knows (the viewing device, undo entries, how often a rule was used).
+import { MOMO_RULE_HELP } from '../momoRuleHelp.ts';
 import type { MomoApprovalView, MomoNoteView, MomoRuleSignalView, MomoRuleView } from '../momoView.ts';
 import type { Card } from './approvalGate.ts';
 import type { JournalEntry } from './noteOps.ts';
@@ -31,7 +32,8 @@ export function approvalView(card: Card, input: ApprovalViewInput): MomoApproval
   const outcome = input.outcome ?? card.outcome;
   // a status a newer Host made up is passed on as it is: the client shows it as unknown and offers nothing
   // a card of a home that is no longer the home is `void`: it can no longer be answered, and asking again is not offered on it
-  const voided = card.status === 'expired' && ['moved', 'changed', 'dropped', 'superseded'].includes(card.expiredWhy ?? '');
+  const voided =
+    card.status === 'expired' && ['moved', 'changed', 'dropped', 'superseded', 'taint_changed'].includes(card.expiredWhy ?? '');
   const status = outcome ?? (voided ? 'void' : (APPROVAL[card.status] ?? card.status));
   const decided = card.decidedBy !== undefined && DECIDED.has(card.status);
   const elsewhere = decided && card.decidedBy !== input.device;
@@ -58,9 +60,15 @@ export function approvalView(card: Card, input: ApprovalViewInput): MomoApproval
         ? { cause: 'The note changed after you were asked, so nothing was applied.', fix: null }
         : voided && card.expiredWhy === 'superseded'
           ? { cause: card.failure?.cause ?? 'You changed this card: the new one replaces it.', fix: null }
-          : outcome === 'failed' && (input.failure ?? card.failure)
-            ? ((input.failure ?? { cause: (card.failure as { cause: string }).cause, fix: null }) as MomoApprovalView['failure'])
-            : null,
+          : voided && card.expiredWhy === 'taint_changed'
+            ? {
+                cause:
+                  'This chat read outside content after you allowed it, so this card no longer counts. MoMo will ask again if it still needs your OK.',
+                fix: null,
+              }
+            : outcome === 'failed' && (input.failure ?? card.failure)
+              ? ((input.failure ?? { cause: (card.failure as { cause: string }).cause, fix: null }) as MomoApprovalView['failure'])
+              : null,
     canAskAgain: (card.status === 'expired' && !voided) || card.status === 'denied' || outcome === 'uncertain',
     editable: !!input.editable && card.status === 'open',
   };
@@ -121,23 +129,34 @@ const STATE = { on: 'on', proposed: 'suggested', suggested: 'suggested', decline
 /**
  * `instructionsApplied`: whether something already reads the owner's rules in words (the notice judge and the brain's turn). Until it does, such a rule that is on is `saved`, never `on`: the page must not show it as active while nothing applies it.
  */
-export function ruleView(rule: LearnedRule, uses: number, instructionsApplied = true): MomoRuleView {
+export function ruleView(rule: LearnedRule, uses: number, instructionsApplied = true, briefOn = true): MomoRuleView {
+  const effect = EFFECT[rule.stance] ?? rule.ownerEffect ?? (rule.stance === 'instruction' ? 'instruction' : 'draft_style');
   return {
     id: rule.id,
     text: ruleTextOf(rule),
     kind: turnsOnAtOnce(rule.stance) || rule.ownerEffect === 'stay_quiet' || rule.ownerEffect === 'ask_first' ? 'quieter' : 'does-more',
-    effect: EFFECT[rule.stance] ?? rule.ownerEffect ?? (rule.stance === 'instruction' ? 'instruction' : 'draft_style'),
+    effect,
     origin: rule.reactions.length ? 'learned' : 'yours',
     state: rule.stance === 'instruction' && rule.status === 'on' && !instructionsApplied ? 'saved' : (STATE[rule.status] ?? rule.status),
-    appliesTo: rule.label,
+    appliesTo:
+      rule.stance === 'quieter' && rule.pattern.startsWith('notice:sender:')
+        ? `All ${rule.label} is held ${briefOn ? 'for the brief' : 'in Watching (your brief is off)'}, except mail that must be told (money, credentials, a deadline, urgent, or a sender that did not pass).`
+        : rule.label,
     evidence: rule.reactions.map((r) => ({ at: r.at, reaction: r.kind, item: r.label })),
     useCount: uses,
-    inBrief: rule.stance === 'quieter',
+    inBrief: rule.stance === 'quieter' && briefOn,
+    // only a rule the owner wrote: a learned rule that also tells now is nobody's to name a sender for
+    help: rule.ownerEffect && Object.hasOwn(MOMO_RULE_HELP, rule.ownerEffect) ? (MOMO_RULE_HELP[rule.ownerEffect] as string) : null,
   };
 }
 
-export const ruleViews = (state: LearnState, uses: Readonly<Record<string, number>> = {}, instructionsApplied = true): MomoRuleView[] =>
-  state.rules.map((r) => ruleView(r, uses[r.id] ?? 0, instructionsApplied));
+/** `briefOn` is false when the owner turned the brief off: quiet mail is then held in Watching, and a rule is not "in the brief". */
+export const ruleViews = (
+  state: LearnState,
+  uses: Readonly<Record<string, number>> = {},
+  instructionsApplied = true,
+  briefOn = true,
+): MomoRuleView[] => state.rules.map((r) => ruleView(r, uses[r.id] ?? 0, instructionsApplied, briefOn));
 
 /** Patterns with one reaction that counts and no rule yet: "Make it a rule" or "Ignore". */
 export function signalViews(state: LearnState): MomoRuleSignalView[] {

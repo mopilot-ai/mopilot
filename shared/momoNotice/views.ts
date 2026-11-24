@@ -14,6 +14,8 @@ const HOLDS: Record<string, string> = {
   quiet_hours: 'Held for the brief: quiet hours.',
   daily_cap: 'Held for the brief: the daily limit was reached.',
   snoozed: 'Held for the brief: snoozed.',
+  quiet_rule: 'Held for the brief: kept quiet by your rule for this sender.',
+  quiet_rule_watching: 'Held in Watching (your brief is off): kept quiet by your rule for this sender.',
   already_told: 'Not told again: you already heard about this.',
   dismissed: 'Not told: you dismissed this.',
   first_connect: 'Held for the brief: it was already in your inbox when MoMo connected.',
@@ -43,8 +45,15 @@ export function decisionView(decision: StoredDecision): MomoDecisionView {
   if (decision.heldFor) checks.push(HOLDS[decision.heldFor] ?? 'Held for the brief.');
   if (decision.injection.length > 0) checks.push('The mail told the assistant what to do; that was ignored.');
   if (decision.private) checks.push('Holds a sign-in code or reset link, kept private.');
-  checks.push(decision.decidedBy.startsWith('rule:') ? 'Decided by a plain rule, no model.' : 'Read by the model with no tools.');
-  const rule = decision.decidedBy.startsWith('rule:') ? { id: decision.decidedBy.slice(5), text: decision.reason } : null;
+  if (decision.decidedBy.startsWith('rule:quiet-sender:')) checks.push('Read by the model, then kept quiet by your rule for this sender.');
+  else checks.push(decision.decidedBy.startsWith('rule:') ? 'Decided by a plain rule, no model.' : 'Read by the model with no tools.');
+  const QUIET = 'rule:quiet-sender:';
+  // a learned quiet rule is named by its own id, so Undo on the row reaches the real rule
+  const rule = decision.decidedBy.startsWith(QUIET)
+    ? { id: decision.decidedBy.slice(QUIET.length), text: decision.reason }
+    : decision.decidedBy.startsWith('rule:')
+      ? { id: decision.decidedBy.slice(5), text: decision.reason }
+      : null;
   return {
     id: decision.changeId,
     decisionId: decisionIdOf(decision),
@@ -89,7 +98,10 @@ export function watchingTask(matter: Matter, decision: StoredDecision | null, ma
 }
 
 /** The brief card. `leftOut`: the quiet mail since the last brief, each with the rule or model reason that left it out. */
-export function briefView(brief: Brief, leftOut: StoredDecision[]): MomoBriefView {
+/** What the brief card shows beyond the contract so far: each mail an accepted rule kept quiet, once, with the rule's id for Undo. */
+export type KeptQuietView = { id: string; title: string; ruleId: string | null; label: string };
+
+export function briefView(brief: Brief, leftOut: StoredDecision[]): MomoBriefView & { keptQuiet: KeptQuietView[] } {
   const first = brief.needsYou[0];
   return {
     day: brief.dayKey,
@@ -97,6 +109,13 @@ export function briefView(brief: Brief, leftOut: StoredDecision[]): MomoBriefVie
     attention: first ? { text: first.suspect ? first.title : `${first.title}: ${first.summary}`, source: sourceOf(first.matterKey) } : null,
     offers: [],
     overnight: { read: brief.checked.mail, notesUpdated: 0, rulesLearned: 0 },
+    // each mail a rule kept quiet is listed once, here, with the rule (its id is the Undo's)
+    keptQuiet: brief.keptQuiet.map((m) => ({
+      id: m.matterKey,
+      title: cleanText(m.title, 160),
+      ruleId: m.quietRule?.ruleId ?? null,
+      label: cleanText(m.quietRule?.label ?? '', 120),
+    })),
     leftOut: leftOut.map((decision) => ({ id: decision.changeId, reason: cleanText(decision.reason, 160) })),
   };
 }
@@ -108,6 +127,10 @@ export function renderBrief(brief: Brief, timeZone: string): string {
     out.push('', 'Needs you:');
     for (const m of brief.needsYou)
       out.push(m.suspect ? `- ${m.title} Check the sender before you act on it.` : `- ${m.title}: ${m.summary}`);
+  }
+  if (brief.keptQuiet.length > 0) {
+    out.push('', 'Kept quiet by your rules:');
+    for (const m of brief.keptQuiet) out.push(`- ${m.title} (your rule for ${m.quietRule?.label ?? 'this sender'})`);
   }
   if (brief.watching.length > 0) {
     out.push('', 'Watching:');

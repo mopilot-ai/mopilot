@@ -123,6 +123,8 @@ test('a record that is not the right shape reads as an empty one', () => {
     lastBriefAt: 0,
     connectDay: '',
     reactions: [],
+    storeId: '',
+    reactionSeq: 0,
     hiddenOffers: [],
     reads: { day: '', count: 0 },
     backoff: { until: 0, tries: 0 },
@@ -172,6 +174,14 @@ test('reactions and hidden offers are kept once, capped, and read back', async (
   assert.deepEqual([make().reactions().length, make().hiddenOffers()], [1, ['o1']]);
   for (let i = 0; i < 510; i++) await s.addReaction({ kind: 'signal_make', rowId: `r${i}` });
   assert.equal(s.reactions().length, 500);
+  // every reaction carries the store's id and the next number, which only grows, even as the oldest are trimmed
+  const all = s.reactions();
+  assert.equal(new Set(all.map((r: any) => r.store)).size, 1);
+  assert.deepEqual([all[0].seq, all.at(-1).seq], [12, 511]);
+  assert.deepEqual(
+    [noticeShape({ storeId: 5, reactionSeq: -1 }).storeId, noticeShape({ storeId: 5, reactionSeq: -1 }).reactionSeq],
+    ['', 0],
+  );
   for (let i = 0; i < 510; i++) await s.hideOffer(`h${i}`);
   assert.equal(s.hiddenOffers().length, 500);
   const junk = noticeShape({ reactions: [null, { kind: 1, rowId: 'x' }, { kind: 'k', rowId: 'x' }], hiddenOffers: ['a', 5] });

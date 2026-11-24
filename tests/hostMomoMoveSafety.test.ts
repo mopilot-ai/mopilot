@@ -201,6 +201,26 @@ test('B5: a switch that is refused leaves nothing on the target: before a file m
   assert.equal(again.ok, true);
 });
 
+test('B5: a machine that turns out to keep a retired copy while a switch fails keeps it: a move never wipes a retired home’s data', async (t) => {
+  const a = await studio(t);
+  const b = await host(t, B);
+  await untilCopied(a, b);
+  const real = b.home.adopt;
+  // the target is retired by something else in the middle of the switch, and the switch is then refused
+  b.home.adopt = async () => {
+    await b.home.swap((b.home.record() as any).leaseEpoch, (r: any) => {
+      r.retired = { at: 1, lastActive: 1 };
+      r.movedTo = { name: 'Elsewhere', homeId: 'elsewhere', at: 1 };
+      return false;
+    });
+    throw new Error('the record could not be written');
+  };
+  await assert.rejects(commit(b), /could not be written/);
+  const kept = fs.readdirSync(b.momoDir).filter((f) => !['grant.json', 'home.json'].includes(f));
+  assert.ok(kept.length > 0, 'what was received stays: it is the retired copy’s now, to be deleted only by the owner');
+  b.home.adopt = real;
+});
+
 test('B5: a target that is a home, or has data, refuses the switch before anything changes, and a second offer replaces the first’s stage', async (t) => {
   const a = await studio(t);
   const b = await host(t, B);

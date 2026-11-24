@@ -320,7 +320,14 @@ export function createSessionJournal({
       s.checkpointBytes = size;
       s.bytes += Buffer.byteLength(text);
       s.failure = null;
-      if (body.kind === 'state' && (body.patch.title !== undefined || body.patch.harness !== undefined)) summaries.keep(s);
+      if (
+        body.kind === 'state' &&
+        (body.patch.title !== undefined ||
+          body.patch.harness !== undefined ||
+          body.patch.origin !== undefined ||
+          body.patch.attention !== undefined)
+      )
+        summaries.keep(s);
     } catch (e) {
       budget.invalidate();
       s.failure =

@@ -19,9 +19,16 @@ const WORDS: Record<string, string> = {
   'policy.changed': 'Rules changed',
   'schedule.run': 'Scheduled run',
   'git.write': 'Folder changed',
+  'controller.connected': 'Mac connected by code',
+  'client.refused': 'Request refused',
 };
 /** Where a line came from when the Host names no one, only the kind of client. */
-const FROM: Record<string, string> = { desktop: 'from a computer', phone: 'from a phone', cli: 'from this machine’s command line' };
+const FROM: Record<string, string> = {
+  desktop: 'from a computer',
+  phone: 'from a phone',
+  cli: 'from this machine’s command line',
+  controller: 'from a Mac paired by code',
+};
 /** Repeats this close together are one row. */
 const SAME_MINUTE_MS = 60_000;
 

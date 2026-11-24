@@ -19,6 +19,7 @@ const WHY: Record<string, string> = {
   'stamps.json': 'the newest lease this Host has seen of any home: a fence kept per machine',
   'google-revoke-owed.json':
     'Google grants this Host disconnected while Google could not be reached: this Host tries the revoke again, wherever the home has gone, and a Reset must not forget them',
+  'entitlement.json': "per-Host replay floor and clock mark, bound to this Host's id",
 };
 const B = { homeId: 'home-bbbb-2222', name: 'Mac mini' };
 const A = { homeId: 'home-aaaa-1111', name: 'Studio' };

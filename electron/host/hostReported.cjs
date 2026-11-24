@@ -1,4 +1,5 @@
-// What a Host reports about itself, checked before the app keeps or uses it: the socket path that goes into `ssh -L` and the capability flags that gate tools.
+// Validates Host registry facts before the app stores or uses them.
+const { isJsonRecord } = require('../../shared/jsonRecord.mjs');
 
 const MAX_SOCKET_PATH = 200;
 const MAX_CAPABILITIES = 16;
@@ -32,4 +33,17 @@ function booleanFlags(v) {
   );
 }
 
-module.exports = { validSocketPath, validHostKey, booleanFlags };
+/** A saved wait can keep its original deadline once the Host confirms the staged build again. @param {unknown} value */
+function savedPendingUpdate(value) {
+  if (
+    !isJsonRecord(value) ||
+    typeof value.build !== 'string' ||
+    typeof value.since !== 'number' ||
+    !Number.isSafeInteger(value.since) ||
+    value.since < 0
+  )
+    return null;
+  return { build: value.build, since: value.since, awaitingStatus: /** @type {const} */ (true) };
+}
+
+module.exports = { validSocketPath, validHostKey, booleanFlags, savedPendingUpdate };

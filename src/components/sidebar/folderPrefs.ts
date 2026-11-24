@@ -15,38 +15,40 @@ export const folderEntryOf = (g: Pick<ProjectGroupData, 'path' | 'machine' | 're
  */
 export function folderPrefsPatch(
   groups: ProjectGroupData[],
-  prefs: { sidebarFolders?: string[]; sidebarProjectOrder?: string[]; hiddenFolders?: string[] },
+  prefs: { sidebarFolders?: string[]; sidebarProjectOrder?: string[]; pinnedProjects?: string[]; hiddenFolders?: string[] },
   resolve: (path: string) => string,
+  machineKeyOf: (key: string) => string = machineProjectKey,
 ): { sidebarFolders: string[]; sidebarProjectOrder: string[] } | null {
   const known = prefs.sidebarFolders ?? [];
   const here = (a: string, b: string) => samePath(resolve(a), resolve(b));
+  const onMachine = (g: ProjectGroupData, path: string) => {
+    if (!g.machine) return false;
+    const folded = machineProjectPath(path);
+    return [...(g.machineFolders ?? [g.path])].some((raw) => raw === path || (g.path === folded && machineProjectPath(raw) === folded));
+  };
   // a bare path that is a machine's folder and no folder of this Mac's chats
   const legacy = (p: string) =>
     !machineFolderOf(p) &&
-    groups.some((g) => g.machine && g.path === machineProjectPath(p)) &&
-    !groups.some((g) => !g.machine && g.threads.length > 0 && here(g.path, p));
+    !prefs.hiddenFolders?.includes(p) &&
+    !prefs.pinnedProjects?.some((pin) => !machineFolderOf(pin) && here(pin, p)) &&
+    groups.some((g) => onMachine(g, p)) &&
+    !groups.some((g) => !g.machine && (g.saved || g.threads.length > 0) && here(g.path, p));
+  // A folder may be a distinct checkout once the Host answers. Retain its original key and saved position.
   const kept = [
     ...new Set(
-      known.flatMap((p) =>
-        legacy(p)
-          ? groups.filter((g) => g.machine && g.path === machineProjectPath(p)).map(folderEntryOf)
-          : [prefs.hiddenFolders?.includes(p) ? p : machineProjectKey(p)],
-      ),
+      known.flatMap((p) => (legacy(p) ? groups.filter((g) => onMachine(g, p)).map((g) => machineFolderKey(g.machine!.id, p)) : [p])),
     ),
   ];
-  const remembered = (g: ProjectGroupData) => (g.machine ? kept.includes(folderEntryOf(g)) : kept.some((p) => here(p, g.path)));
+  const rememberedKeys = new Set(kept.map((key) => machineKeyOf(key)));
+  const remembered = (g: ProjectGroupData) => (g.machine ? rememberedKeys.has(folderEntryOf(g)) : kept.some((p) => here(p, g.path)));
   const added = groups.filter((g) => !g.saved && g.threads.length > 0 && !remembered(g)).map(folderEntryOf);
-  const priorOrder = prefs.sidebarProjectOrder ?? [];
-  const order = [...new Set(priorOrder.map(machineProjectKey))];
+  const order = prefs.sidebarProjectOrder ?? [];
+  const ordered = new Set(order.map((key) => machineKeyOf(key)));
   const keys = groups
     .filter((g) => g.saved || g.threads.length > 0 || remembered(g))
     .map(groupKey)
-    .filter((key) => !order.includes(key));
-  const moved =
-    kept.length !== known.length ||
-    kept.some((p, i) => p !== known[i]) ||
-    order.length !== priorOrder.length ||
-    order.some((p, i) => p !== priorOrder[i]);
+    .filter((key) => !ordered.has(key));
+  const moved = kept.length !== known.length || kept.some((p, i) => p !== known[i]);
   if (!moved && !added.length && !keys.length) return null;
   return { sidebarFolders: [...kept, ...added], sidebarProjectOrder: [...order, ...keys] };
 }

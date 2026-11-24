@@ -54,7 +54,19 @@ test("a chat request before hello is refused; hello answers with this Host's ver
   assert.deepEqual(
     res.agreed.features,
     helloParams({ switching: false, continueFamilies: false }).features.filter(
-      (f) => !['journalLifecycle', 'historyPages', 'momo', 'momoHome', 'chatList', 'commands', SIDE_CHAT_FEATURE].includes(f),
+      (f) =>
+        ![
+          'journalLifecycle',
+          'historyPages',
+          'momo',
+          'momoHome',
+          'momoLook',
+          'chatList',
+          'chatPaging',
+          'chatEvents',
+          'commands',
+          SIDE_CHAT_FEATURE,
+        ].includes(f),
     ),
   );
   assert.equal(res.features.includes('switch'), false, 'a runtime that cannot settle a switch does not offer one');

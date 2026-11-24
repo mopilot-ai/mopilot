@@ -48,7 +48,7 @@ for (const theme of THEMES) {
         PATH: withPath([FAKE_SSH_BIN]),
       },
       seed: {
-        uiState: { prefs: { ...themeSeed(theme).prefs, sshHosts: ['me@old', 'me@gone'] } },
+        uiState: { prefs: { ...themeSeed(theme).prefs, autoUpdate: false, sshHosts: ['me@old', 'me@gone'] } },
         userData: {
           'host-registry.json': {
             version: 1,

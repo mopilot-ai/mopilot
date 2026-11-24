@@ -48,17 +48,20 @@ test('the status carries the pending update only when there is one', () => {
   });
 });
 
-test('a Host that has a staged update says so in its registry record, and the flag is not kept across a restart', async (t) => {
+test('the registry keeps a staged build’s recovery deadline and waits for a fresh report after restart', async (t) => {
   const { createRequire } = await import('node:module');
+  const { useFakeClock } = await import('./support/ports/clock.ts');
+  const clock = useFakeClock(t, 1_000);
   const { createRegistry } = createRequire(import.meta.url)('../electron/host/registry.cjs');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pending-reg-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const file = path.join(root, 'host-registry.json');
   let pending = true;
+  let build = 'b9';
   const answer = async () => ({
     harnesses: [],
     capabilities: {},
-    ...(pending ? { pendingUpdate: { version: '1.2.0', build: 'b9' } } : {}),
+    ...(pending ? { pendingUpdate: { version: '1.2.0', build } } : {}),
   });
   const registry = createRegistry({ file, status: answer });
   t.after(() => registry.dispose());
@@ -69,12 +72,18 @@ test('a Host that has a staged update says so in its registry record, and the fl
   assert.equal(seen.build, 'b9');
   await registry.check();
   assert.equal(registry.list()[0].hostPending.since, seen.since, 'it has waited since it was first seen, not since the last look');
-  const again = createRegistry({ file, status: async () => ({ harnesses: [], capabilities: {} }) });
+  clock.advance(30 * 60_000);
+  const again = createRegistry({ file, status: answer });
   t.after(() => again.dispose());
-  assert.equal(again.list()[0].hostPending, null, 'it is only what the Host last said');
+  assert.equal(again.list()[0].hostPending, null, 'saved age alone does not prove an update is still staged');
+  await again.check();
+  assert.deepEqual(again.list()[0].hostPending, seen, 'the same live build keeps its original wait');
+  build = 'b10';
+  await again.check();
+  assert.deepEqual(again.list()[0].hostPending, { build, since: clock.now() });
   pending = false;
-  await registry.check();
-  assert.equal(registry.list()[0].hostPending, null);
+  await again.check();
+  assert.equal(again.list()[0].hostPending, null);
   // a Host that names no build for it still has one staged
   const bare = createRegistry({
     file: path.join(root, 'bare.json'),
@@ -84,4 +93,33 @@ test('a Host that has a staged update says so in its registry record, and the fl
   bare.add({ id: 'h2', name: 'box2', address: 'me@box2' });
   await bare.check();
   assert.equal(bare.list()[0].hostPending.build, '');
+});
+
+test('unusable saved pending times cannot hide manual recovery', async (t) => {
+  const { createRequire } = await import('node:module');
+  const { useFakeClock } = await import('./support/ports/clock.ts');
+  const clock = useFakeClock(t, 1_000);
+  const { createRegistry } = createRequire(import.meta.url)('../electron/host/registry.cjs');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pending-invalid-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, 'host-registry.json');
+  for (const hostPending of [
+    null,
+    [],
+    { since: 0 },
+    { build: 'b', since: '0' },
+    { build: 'b', since: 0.5 },
+    { build: 'b', since: -1 },
+    { build: 'b', since: 10_000 },
+  ]) {
+    fs.writeFileSync(file, JSON.stringify({ version: 1, hosts: [{ id: 'h', name: 'box', address: 'me@box', hostPending }] }));
+    const registry = createRegistry({
+      file,
+      status: async () => ({ harnesses: [], capabilities: {}, pendingUpdate: { build: 'b' } }),
+    });
+    assert.equal(registry.list()[0].hostPending, null);
+    await registry.check();
+    assert.deepEqual(registry.list()[0].hostPending, { build: 'b', since: clock.now() });
+    registry.dispose();
+  }
 });

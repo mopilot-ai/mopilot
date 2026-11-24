@@ -82,7 +82,7 @@ test('a chat row re-renders only when its own props change, so opening a chat re
   function Rows() {
     const [selected, setSelected] = useState('other');
     select = setSelected;
-    return h(ThreadRow, { thread: chat as any, active: selected === 'r0', indent: false, onOpen });
+    return h(ThreadRow, { thread: chat as any, active: selected === 'r0', onOpen });
   }
   const view = await render(h(Rows));
   resetCommits();
@@ -157,7 +157,7 @@ test('chat rows show status in priority order and badges', async () => {
   assert.equal(row('approve').querySelector('.row-dot')!.getAttribute('aria-label'), 'Awaiting approval');
   assert.ok(row('run').querySelector('.row-dot.working'));
   assert.ok(row('run').querySelector('.shimmer-text'));
-  assert.match(row('run').className, /indent selected/);
+  assert.match(row('run').className, /thread-row selected/);
   assert.ok(row('active').querySelector('.row-dot.working'));
   assert.ok(row('active').querySelector('.shimmer-text'));
   assert.ok(row('away').querySelector('.row-dot.elsewhere'));
@@ -204,9 +204,8 @@ test('chat rows open, rename inline and offer matching context and ellipsis menu
   reset({ pinned: { 'claude-1': true } });
   const opened: string[] = [];
   const t = thread('claude-1', { name: 'Original', cwd: '/work/c' });
-  const view = await render(h(ThreadRow, { thread: t as any, active: false, indent: false, onOpen: () => opened.push('open') }));
+  const view = await render(h(ThreadRow, { thread: t as any, active: false, onOpen: () => opened.push('open') }));
   const row = () => view.$('.thread-row');
-  assert.doesNotMatch(row().className, /indent/);
   await click(row());
   assert.deepEqual(opened, ['open']);
   assert.deepEqual(getState().route, { name: 'thread', id: 'claude-1' });
@@ -350,7 +349,13 @@ test('a linked Cloud task follows its project, and the project plus opens its lo
   fx.repositories['/work/app'] = 'github.com/o/app';
   const view = await mountSidebar();
   const project = view.host.querySelector('.project-group')!;
-  assert.equal(project.querySelector('[data-sidebar-cloud="task_known"]')?.textContent, 'Cloud changeCodex Cloud');
+  const cloudRow = project.querySelector('[data-sidebar-cloud="task_known"]')!;
+  assert.equal(cloudRow.textContent, 'Cloud change');
+  assert.ok(
+    cloudRow.querySelector('.side-row-label + .host-mark[aria-label="Codex Cloud"] .lucide-cloud'),
+    'the cloud mark follows the name',
+  );
+  assert.equal(cloudRow.querySelector('.row-status')!.childElementCount, 0, 'a finished task keeps an empty status slot');
   assert.equal(view.host.querySelectorAll('[data-sidebar-cloud="task_known"]').length, 1);
   await click(project.querySelector('[aria-label="New chat in App project"]')!);
   assert.equal(getState().newChatProjectId, 'p1');

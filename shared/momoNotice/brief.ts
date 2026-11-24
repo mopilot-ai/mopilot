@@ -28,7 +28,14 @@ export type BriefInput = {
   mailMatched?: number;
 };
 
-export type BriefMatter = { matterKey: string; title: string; summary: string; pending: boolean; suspect: boolean };
+export type BriefMatter = {
+  matterKey: string;
+  title: string;
+  summary: string;
+  pending: boolean;
+  suspect: boolean;
+  quietRule?: { ruleId: string; label: string };
+};
 export type BriefEvent = { id: string; summary: string; start: string; end: string; location?: string };
 
 export type Brief = {
@@ -36,6 +43,8 @@ export type Brief = {
   at: string;
   name: string | null;
   needsYou: BriefMatter[];
+  /** What an accepted quiet rule kept out of tell-now, each once, with the rule that did it (and so the Undo). */
+  keptQuiet: BriefMatter[];
   watching: (BriefMatter & { nextCheck?: string })[];
   today: BriefEvent[];
   couldNotSort: UnsortedItem[];
@@ -64,16 +73,22 @@ export function buildBrief(input: BriefInput): Brief {
     summary: cleanText(matter.summary, 300),
     pending: matter.pendingDelivery !== undefined,
     suspect: matter.suspect === true,
+    ...(matter.quietRule ? { quietRule: matter.quietRule } : {}),
   });
+  const keptByRule = (matter: Matter) => matter.pendingDelivery === 'quiet_rule';
   const snoozed = (matter: Matter) => matter.snoozedUntil !== undefined && Date.parse(matter.snoozedUntil) > now.getTime();
   const needsYou = input.matters
-    .filter((matter) => matter.state === 'open' && !snoozed(matter))
+    .filter((matter) => matter.state === 'open' && !snoozed(matter) && !keptByRule(matter) && !(matter.quietShownAt && !matter.notifiedAt))
     .sort(
       (a, b) =>
         Number(b.pendingDelivery !== undefined) - Number(a.pendingDelivery !== undefined) ||
         b.updatedAt.localeCompare(a.updatedAt) ||
         a.matterKey.localeCompare(b.matterKey),
     )
+    .map(asMatter);
+  const keptQuiet = input.matters
+    .filter((matter) => matter.state === 'open' && keptByRule(matter))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.matterKey.localeCompare(b.matterKey))
     .map(asMatter);
   const watching = input.matters
     .filter((matter) => matter.state === 'watching')
@@ -100,6 +115,7 @@ export function buildBrief(input: BriefInput): Brief {
     at: now.toISOString(),
     name: input.name === null ? null : cleanText(input.name, 60),
     needsYou,
+    keptQuiet,
     watching,
     today,
     // the caller supplies these: cleaned here too, so no secret, link or control character reaches a brief whatever the caller did
@@ -111,7 +127,7 @@ export function buildBrief(input: BriefInput): Brief {
 
 /** Whether the brief has anything worth saying. */
 export const briefHasContent = (brief: Brief): boolean =>
-  brief.needsYou.length + brief.today.length + brief.couldNotSort.length + brief.couldNotCheck.length > 0;
+  brief.needsYou.length + brief.keptQuiet.length + brief.today.length + brief.couldNotSort.length + brief.couldNotCheck.length > 0;
 
 /** `lastBriefAt`: when the Host last showed a brief; a new one within `MIN_BRIEF_GAP_MS` is refused, so changing the home zone cannot send a second brief the same morning. */
 export type BriefGate = { enabled: boolean; now: Date; settings: NoticeSettings; lastActiveAt?: Date; lastBriefAt?: Date };
@@ -154,5 +170,12 @@ export async function markBriefed(store: NoticeStore, brief: Brief, now: Date): 
     const next: Matter = { ...matter, notifiedAt: matter.notifiedAt ?? now.toISOString() };
     delete next.pendingDelivery;
     await store.putMatter(next);
+  }
+  // what a rule kept quiet is shown once and marked as shown, not counted as told: it is not listed as needing the owner in a later brief, and a later mail that must be told still is
+  for (const item of brief.keptQuiet) {
+    const matter = await store.getMatter(item.matterKey);
+    if (!matter) continue;
+    const { pendingDelivery: _held, quietRule: _by, ...next } = matter;
+    await store.putMatter({ ...next, quietShownAt: now.toISOString() });
   }
 }

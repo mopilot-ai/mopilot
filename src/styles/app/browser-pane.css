@@ -45,7 +45,7 @@
   flex-direction: column;
 }
 .side-pane:not(.full) .browser-stage {
-  /* the page is a native surface that paints over the resize handle's inner 3px; leave that strip uncovered */
+  /* the page is a native surface that paints over the resize handle's inner 4px; leave that strip uncovered */
   margin-left: 4px;
 }
 .browser-view {

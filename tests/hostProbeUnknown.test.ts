@@ -7,7 +7,7 @@ import path from 'node:path';
 // @ts-ignore: plain ESM without declarations
 import { UNSURE_MS, listHarnesses, probeHarness } from '../host/src/harnessState.mjs';
 // @ts-ignore: plain ESM without declarations
-import { harnessList } from '../host/src/harnessList.mjs';
+import { harnessList, reportedHarnesses } from '../host/src/harnessList.mjs';
 import { createCodexFamily } from '../host/src/codexFamily.mjs';
 
 const killed = Object.assign(new Error('timed out'), { killed: true, signal: 'SIGTERM' });
@@ -174,4 +174,54 @@ test('a CLI that ignores its kill and never closes its pipes cannot hold the pro
   const second = probeHarness('claude', { env: {}, which, exec: gone });
   t.mock.timers.tick(6000);
   assert.equal(await second, null);
+});
+
+test('the Host status lists each harness as its family reports it, and marks the missing agents this Host can install', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'probe-list-'));
+  const exec = execOf({ 'claude auth status': [null, JSON_IN], 'codex login status': [null, 'ok'] });
+  const found = (name: string) => (name === 'claude' || name === 'codex' ? `/bin/${name}` : null);
+  const rows = await reportedHarnesses({
+    paths: { dataDir },
+    env: {},
+    signedIn: { get: () => false },
+    noSignIn: undefined as any,
+    exec,
+    which: found,
+    installer: { installable: (list: any[]) => list.filter((h) => !h.detected).map((h) => h.id) },
+    codex: { models: async () => ['gpt'] } as any,
+    sessions: { modelsOf: () => ['m'] } as any,
+    leases: { has: () => false } as any,
+    ownRuns: { chatCredentials: undefined },
+  });
+  const claude: any = rows.find((r: any) => r.id === 'claude');
+  assert.equal(claude.signedIn, true);
+  assert.equal(claude.installable, undefined, 'an installed agent is not offered an install');
+  assert.deepEqual((rows.find((r: any) => r.id === 'codex') as any).models, ['gpt']);
+  assert.ok(rows.some((r: any) => r.installable === true && r.detected === false));
+  fs.rmSync(dataDir, { recursive: true, force: true });
+});
+
+test('the status harness builder runs everything on the env it is given: the opener env reaches every probe, and nothing falls back to the bare process env', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'probe-env-'));
+  const env = { PATH: '/opener/bin', MOPILOT_OPENED: '1' };
+  const seen: unknown[] = [];
+  await reportedHarnesses({
+    paths: { dataDir },
+    env,
+    signedIn: { get: () => false },
+    noSignIn: undefined as any,
+    exec: ((_bin: string, _args: string[], _o: any, cb: Function) => cb(null, JSON_IN, '')) as any,
+    which: ((name: string, e: unknown) => (seen.push(e), name === 'claude' || name === 'codex' ? `/bin/${name}` : null)) as any,
+    installer: { installable: () => [] },
+    codex: { models: async () => [] } as any,
+    sessions: { modelsOf: () => [] } as any,
+    leases: { has: () => false } as any,
+    ownRuns: { chatCredentials: undefined },
+  });
+  assert.ok(seen.length > 0, 'the binaries were looked up');
+  for (const e of seen) assert.strictEqual(e, env, 'a binary is looked up on exactly the env the builder was given');
+  // no fallback to the process env anywhere in the builder or the list it builds
+  const src = fs.readFileSync(new URL('../host/src/harnessList.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /process\.env/);
+  fs.rmSync(dataDir, { recursive: true, force: true });
 });

@@ -6,6 +6,7 @@ import { useStore, get as getState, set as setState } from '../../../store/core'
 import { claudeCommands, codexCommands, type CommandProvider } from '../../../harness/commands';
 import { useComposerFamily } from '../select';
 import { claudeChatAccount } from './accounts';
+import type { ClaudeSkillFile } from '../../../../shared/model/native';
 export const catalogKey = (account: string, cwd: string) => `${account}\u0000${cwd}`;
 const fetchingCatalog = new Set<string>();
 
@@ -54,3 +55,12 @@ export function useClaudeSkills(threadId: string | null, cwd: string): string[] 
   const cat = useStore((s) => s.claudeCatalogs[catalogKey(account, cwd)]);
   return claude ? (cat?.skills ?? []) : null;
 }
+
+/** Where Claude's skills are on this Mac, from the catalog: name -> SKILL.md (null for a chat on another harness). */
+export function useClaudeSkillFiles(threadId: string | null, cwd: string): Record<string, ClaudeSkillFile> | null {
+  const claude = useComposerFamily(threadId) === 'claude';
+  const account = useStore((s) => (threadId ? claudeChatAccount(threadId) : s.claudeAccounts.active));
+  const cat = useStore((s) => s.claudeCatalogs[catalogKey(account, cwd)]);
+  return claude ? (cat?.skillFiles ?? NO_FILES) : null;
+}
+const NO_FILES: Record<string, ClaudeSkillFile> = {};

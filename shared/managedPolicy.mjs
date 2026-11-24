@@ -166,7 +166,12 @@ export function parseManagedPolicy(doc, bad) {
     }
     if (b.clients !== undefined) {
       const c = block(b.clients, 'hosts.clients', bad);
-      out.hosts.clients = c.phone === undefined ? {} : { phone: flag(c.phone, 'hosts.clients.phone', bad) };
+      out.hosts.clients = {
+        ...(c.phone === undefined ? {} : { phone: flag(c.phone, 'hosts.clients.phone', bad) }),
+        // a Mac paired by an 8-character code (R2b of #5576): `false` keeps this Host from making one
+        ...(c.controller === undefined ? {} : { controller: flag(c.controller, 'hosts.clients.controller', bad) }),
+        ...(c.home === undefined ? {} : { home: flag(c.home, 'hosts.clients.home', bad) }),
+      };
     }
     if (b.credentials !== undefined) {
       const c = block(b.credentials, 'hosts.credentials', bad);
@@ -207,14 +212,14 @@ export function parseManagedPolicy(doc, bad) {
 
 /**
  * What applies when a file exists but has never been valid: the strict fallback. No full computer use, no "Always allow", rotation off, permission at
- * Default, no phone clients. Never the same as "no policy".
+ * Default, no phone clients, no Macs paired by a code. Never the same as "no policy".
  */
 export const STRICT_FALLBACK = Object.freeze({
   version: MANAGED_VERSION,
   permission: Object.freeze({ max: 'default' }),
   accounts: Object.freeze({ rotation: false }),
   computerUse: Object.freeze({ maxLevel: 'click', allowAlways: false }),
-  hosts: Object.freeze({ clients: Object.freeze({ phone: false }) }),
+  hosts: Object.freeze({ clients: Object.freeze({ phone: false, home: false, controller: false }) }),
 });
 
 /** The less trusting of two values on an ordered scale; a missing side yields the other. @param {readonly string[]} order @param {string | undefined} a @param {string | undefined} b */

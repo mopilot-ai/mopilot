@@ -166,7 +166,7 @@ export async function runHostPhoneScenario(base: string) {
     mark('phoneEnrolled');
     // the agent raises a card on a turn the app started, then the app is killed: nothing is left that could answer but the phone
     const app = await host.connect();
-    const sent: any = await app.request('send', { key: CHAT, text: 'PERMIT it', cwd: host.dir });
+    const sent: any = await app.request('send', { key: CHAT, text: 'PERMIT it', cwd: path.dirname(host.dir) });
     host.killApp();
     mark('appKilled');
     await waitFor(() => phoneRig.hostOnline(), 'the Host on the relay', { timeoutMs: 20_000 });

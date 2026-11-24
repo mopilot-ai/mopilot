@@ -17,6 +17,7 @@ const KEEP_DURABLE = 500;
  * @param {number} [o.maxQueue]
  * @param {string} [o.generation] names this hub's numbering: without a data dir revisions restart from 1 whenever the Host process does (with one the journal keeps the numbering across restarts), so a client keeps its resume point together with this
  * @param {(chatId: string) => Record<string, unknown>} [o.live] the part of a chat's lane only a running Host holds (a held choice of another agent): a lane this Host loads from its journal is corrected with it, so a restart never shows what it lost
+ * @param {(chatId: string, frame: Record<string, any>) => void} [o.observe] told of each durable item and state patch once it is kept (the Host's chat index)
  * @param {ReturnType<typeof import('./sessionJournal.mjs').createSessionJournal>} [o.storage] the journal owned by this Host's data-dir lock
  */
 export function createStreamHub({
@@ -27,6 +28,7 @@ export function createStreamHub({
   storage,
   maxCachedChats = 128,
   live,
+  observe,
 }) {
   /** @type {Map<string, { generation: string, seq: number, tail: { seq: number, rev: number, item: object, promotes?: string }[], inflight: Map<string, { deltas: unknown[], truncated: boolean }>, state: Record<string, unknown>, subs: Set<ReturnType<typeof makeSub>> }>} */
   const chats = new Map();
@@ -119,6 +121,7 @@ export function createStreamHub({
       if (c.tail.length > KEEP_DURABLE) c.tail.splice(0, c.tail.length - KEEP_DURABLE);
     }
     if (body.t === 'state') c.state = { ...c.state, .../** @type {object} */ (body.patch) };
+    if (body.t === 'durable' || body.t === 'state') observe?.(chatId, frame);
     for (const s of [...c.subs]) {
       s.push(frame);
       if (s.closed) c.subs.delete(s);

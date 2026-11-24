@@ -43,7 +43,7 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
   const shortcut = useShortcutHint();
   // `groups` keeps the unlisted ones in their places, so a drag moves a project past them without moving them;
   // `homeKey` is the home page's row, the one marked current there
-  const { groups, listed, recents, homeKey, cloud } = useProjectGroups(true);
+  const { groups, listed, recents, homeKey, cloud, machineKeyOf } = useProjectGroups(true);
   // the launch timeline: the sidebar's first frame, and the first frame with a chat in a project
   useEffect(() => {
     launchMark('sidebar:firstFrame', listed.length, true);
@@ -184,8 +184,8 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
                             collapsed[groupKey(g)] ??
                             (g.repository ? collapsed[`repo:${g.repository}`] : undefined) ??
                             (g.machine
-                              ? machineProjectCollapsed(collapsed, groupKey(g))
-                              : !!g.machineGroups?.some((key) => machineProjectCollapsed(collapsed, key)))
+                              ? machineProjectCollapsed(collapsed, groupKey(g), machineKeyOf)
+                              : !!g.machineGroups?.some((key) => machineProjectCollapsed(collapsed, key, machineKeyOf)))
                           }
                           revealed={revealed[groupKey(g)] ?? 0}
                           activeThread={activeThread}

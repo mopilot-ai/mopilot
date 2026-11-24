@@ -60,6 +60,8 @@ export function createMomoKept({ dir, hostSafe, dataSafe, now, report }) {
       });
       voided = null;
     },
+    /** The newest lease epoch this Host has seen in any stamp (0 before any): a new home, a stand-down and an adopted move clear it, not only this Host's own record. */
+    newestEpoch: () => sink.newest()?.leaseEpoch ?? 0,
     /** The ids came in a bundle (or the key changed): read them afresh. */
     forgetCache() {
       voided = null;

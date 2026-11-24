@@ -3,7 +3,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { withTrustWrite } from './trustWrite.mjs';
-import { cleanName, readPairing, writeTrustState } from './trustState.mjs';
+import { createRefusalAudit } from './refusalAudit.mjs';
+import { cleanName, readControllers, readPairing, writeControllers, writeTrustState } from './trustState.mjs';
 
 /** A code is valid this long after the Host printed it. */
 export const CODE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -46,7 +47,7 @@ function keyOf(b64) {
  * @param {object} o
  * @param {string} o.configDir where `pairing.json` (0600) lives
  * @param {() => number} [o.now]
- * @param {(e: { kind: string, by: { fingerprint: string, name: string, kind: string } }) => void} [o.audit] told when a client is added or removed (the audit record's `client.added` and `client.removed`)
+ * @param {(e: { kind: string, by: { fingerprint: string, name: string, kind: string }, what?: Record<string, string | number> }) => void} [o.audit] told when a client is added or removed (the audit record's `client.added` and `client.removed`) and of a controller's sessions (`controller.connected`) and of the requests a kind was refused (`client.refused`, coalesced)
  * @param {(fingerprint: string) => void} [o.onSeen] told each time a registered client proves its key (update keys, not heard from for 180 days, are refused)
  */
 export function createPairing({ configDir, now = Date.now, onSeen = () => undefined, audit = () => undefined }) {
@@ -54,10 +55,23 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
   const idFile = path.join(configDir, 'host-id');
   /** @type {string | null} */
   let ownId = null;
+  /** Told when a client is forgotten, whichever way it happened (the owner, the CLI, a signed revocation). @type {((fingerprint: string, kind: string) => void)[]} */
+  const forgotten = [];
+  /** Told when a client is registered new, with the key it says it succeeds (a MoMo home key the owner's device registers as the old one's successor). @type {((fingerprint: string, kind: string, succeeds: string | undefined) => Promise<unknown> | undefined | void)[]} */
+  const added = [];
+  /** What the listeners of a client just added are still doing, by its fingerprint. @type {Map<string, Promise<unknown>>} */
+  const settling = new Map();
   /** Single-use challenges, in memory only: a restart retires them. @type {Map<string, number>} */
   const nonces = new Map();
 
+  const refusals = createRefusalAudit({ write: (e) => audit(e), now });
   const load = () => readPairing(configDir);
+  /** The Macs paired by a code, from their own file (see trustState.readControllers). A key in both tables is the owner's client: the controller record is the one that gives way. */
+  const controllers = () => {
+    const mine = readControllers(configDir);
+    const clients = load().clients;
+    return Object.fromEntries(Object.entries(mine).filter(([fingerprint]) => !Object.hasOwn(clients, fingerprint)));
+  };
   /** @param {ReturnType<typeof load>} state */
   function save(state) {
     fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
@@ -116,12 +130,13 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
     /**
      * Register a client key without a code: a signed update that adds a key (key rotation) says this app's next key is trusted, and an app that can replace the Host's code may as well connect. A key already registered stays as it is (one record per key, its kind never changed by a later add). Answers its fingerprint.
      * @param {unknown} publicKey base64 SPKI DER of an Ed25519 key
-     * @param {{ name?: unknown, kind?: 'desktop' | 'phone' | 'cli', addedBy?: string }} [o]
+     * @param {{ name?: unknown, kind?: 'desktop' | 'phone' | 'cli' | 'home' | 'controller', addedBy?: string, succeeds?: string }} [o]
      */
-    add(publicKey, { name = '', kind = 'desktop', addedBy = 'code' } = {}) {
+    add(publicKey, { name = '', kind = 'desktop', addedBy = 'code', succeeds } = {}) {
       const { fingerprint } = keyOf(publicKey);
       const state = load();
-      if (Object.hasOwn(state.clients, fingerprint)) return fingerprint;
+      const mine = controllers();
+      if (Object.hasOwn(state.clients, fingerprint) || Object.hasOwn(mine, fingerprint)) return fingerprint;
       const record = {
         key: /** @type {string} */ (publicKey),
         name: cleanName(name),
@@ -129,20 +144,35 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
         addedAt: now(),
         addedBy,
       };
-      save({ ...state, clients: { ...state.clients, [fingerprint]: record } });
-      audit({ kind: 'client.added', by: { fingerprint, name: record.name, kind: record.kind } });
+      if (kind === 'controller') writeControllers(configDir, { ...mine, [fingerprint]: record });
+      else save({ ...state, clients: { ...state.clients, [fingerprint]: record } });
+      audit({
+        kind: 'client.added',
+        by: { fingerprint, name: record.name, kind: record.kind },
+        what: { addedBy, ...(succeeds ? { succeeds } : {}) },
+      });
+      // what a listener starts (a MoMo home key's handover of the lease) is waited for by whoever asked for the key (`settled`)
+      const started = added.map((tell) => tell(fingerprint, kind, succeeds)).filter(Boolean);
+      if (started.length > 0) settling.set(fingerprint, Promise.all(started));
       return fingerprint;
     },
     /** Every registered client, newest last. */
-    list: () => Object.entries(load().clients).map(([fingerprint, { key: _key, ...rest }]) => ({ fingerprint, ...rest })),
+    list: () =>
+      Object.entries({ ...load().clients, ...controllers() }).map(([fingerprint, { key: _key, ...rest }]) => ({ fingerprint, ...rest })),
     /** Who `fingerprint` is, or null when it is not registered. @param {string} fingerprint */
     principal(fingerprint) {
-      const c = Object.hasOwn(load().clients, fingerprint) ? load().clients[fingerprint] : null;
+      const all = { ...load().clients, ...controllers() };
+      const c = Object.hasOwn(all, fingerprint) ? all[fingerprint] : null;
       return c ? { fingerprint, name: c.name, kind: c.kind } : null;
     },
     /** Give a registered client a new name; false when it is not registered. @param {string} fingerprint @param {unknown} name */
     rename(fingerprint, name) {
       const state = load();
+      const mine = controllers();
+      if (Object.hasOwn(mine, fingerprint) && !Object.hasOwn(state.clients, fingerprint)) {
+        writeControllers(configDir, { ...mine, [fingerprint]: { ...mine[fingerprint], name: cleanName(name) } });
+        return true;
+      }
       if (!Object.hasOwn(state.clients, fingerprint)) return false;
       save({
         ...state,
@@ -159,16 +189,34 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
     /** Forget a registered client, as a signed revocation or its owner says (a key that is not registered is left alone; answers whether one was forgotten). @param {string} fingerprint */
     remove(fingerprint) {
       const state = load();
+      const mine = controllers();
+      if (Object.hasOwn(mine, fingerprint) && !Object.hasOwn(state.clients, fingerprint)) {
+        const { [fingerprint]: gone, ...rest } = mine;
+        writeControllers(configDir, rest);
+        audit({ kind: 'client.removed', by: { fingerprint, name: gone.name, kind: gone.kind } });
+        return true;
+      }
       if (!Object.hasOwn(state.clients, fingerprint)) return false;
       const { [fingerprint]: _gone, ...clients } = state.clients;
       save({ ...state, clients });
       audit({ kind: 'client.removed', by: { fingerprint, name: _gone.name, kind: _gone.kind } });
+      for (const tell of forgotten) tell(fingerprint, _gone.kind);
       return true;
     },
+    /** Hear every client that is registered new from now on. @param {(fingerprint: string, kind: string, succeeds: string | undefined) => Promise<unknown> | undefined | void} fn */
+    onAdded: (fn) => void added.push(fn),
+    /** What the listeners of a client just added were doing, once (so a request that adds a key can wait for it); none when they had nothing to do. @param {string} fingerprint */
+    settled(fingerprint) {
+      const done = settling.get(fingerprint);
+      settling.delete(fingerprint);
+      return done;
+    },
+    /** Hear every client that is forgotten from now on. @param {(fingerprint: string, kind: string) => void} fn */
+    onForgotten: (fn) => void forgotten.push(fn),
     /** How many clients are registered. */
     paired: () => Object.keys(load().clients).length,
     /** Whether `fingerprint` is a registered client. @param {string} fingerprint */
-    knows: (fingerprint) => Object.hasOwn(load().clients, fingerprint),
+    knows: (fingerprint) => Object.hasOwn(load().clients, fingerprint) || Object.hasOwn(controllers(), fingerprint),
     /** This Host's name, which the proofs are signed over. */
     hostId,
     /** A fresh challenge for one pair or auth attempt. */
@@ -218,15 +266,24 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
         wrong: 0,
         clients: { ...state.clients, [fingerprint]: record },
       });
+      const mine = readControllers(configDir);
+      if (Object.hasOwn(mine, fingerprint)) {
+        const { [fingerprint]: _controller, ...rest } = mine;
+        writeControllers(configDir, rest);
+      }
       if (!known) audit({ kind: 'client.added', by: { fingerprint, name: record.name, kind: record.kind } });
       onSeen(fingerprint);
       return { fingerprint, name: record.name, kind: record.kind };
     },
+    /** One line for the audit record (a method refused to a controller). @param {Parameters<typeof audit>[0]} e */
+    record: (e) => (e.kind === 'client.refused' ? refusals.note(/** @type {any} */ (e)) : audit(e)),
     /** Accept a registered client that proves it holds its key. @param {{ publicKey: unknown, nonce: unknown, signature: unknown }} p */
     verify(p) {
       const fingerprint = prove('auth', p);
       const who = pairing.principal(fingerprint);
       if (!who) throw new PairingError('unknown_client', 'This client is not paired with the Host.');
+      // every session of a controller (a Mac paired by a code) is on the record before it starts: with `audit.required`, a line that cannot be written ends it here
+      if (who.kind === 'controller') audit({ kind: 'controller.connected', by: who });
       onSeen(fingerprint);
       return who;
     },
@@ -247,7 +304,7 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
     /** Whether `fingerprint` is still registered, read without the write lock: every write replaces the file whole, so a read sees one state or the other. Used on each request of a live connection. @param {string} id */
     stillKnows: (id) => {
       try {
-        return Object.hasOwn(readPairing(configDir).clients, id);
+        return Object.hasOwn(readPairing(configDir).clients, id) || Object.hasOwn(readControllers(configDir), id);
       } catch {
         return false;
       }

@@ -295,6 +295,8 @@ async function answer(method, params, say) {
     case 'git.status':
       return { result: process.env.FAKE_HOST_GIT_STATUS ? { isRepo: true, ...JSON.parse(process.env.FAKE_HOST_GIT_STATUS) } : { isRepo: false } };
     case 'git.inspect':
+      if (params.checkout && process.env.FAKE_HOST_CHECKOUT)
+        return { result: { sidebarCheckout: true, path: process.env.FAKE_HOST_CHECKOUT } };
       return { result: process.env.FAKE_HOST_REPO ? { isRepo: true, ...JSON.parse(process.env.FAKE_HOST_REPO) } : { isRepo: false } };
     case 'chat.prepareContinue':
       if (!fs.existsSync(params.cwd)) return { error: 'That folder is not on this machine.', code: 'directory_missing' };

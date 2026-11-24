@@ -4,8 +4,10 @@ const { LOCAL_HOST_ID } = require('./ownership.cjs');
 const { parseParams } = require('../../shared/host/schema.mjs');
 const { readCommands } = require('../../shared/host/hostCommandsWire.mjs');
 const { GIT_BRANCH_FEATURE } = require('../../shared/host/gitBranch.mjs');
+const { isWinPath } = require('../../shared/paths.mjs');
 const { macSignIn: readMacSignIn } = require('./macSignIn.cjs');
 const { createFolderSearch } = require('./folderSearch.cjs');
+const { legacyCheckout } = require('./legacyCheckout.cjs');
 const { sayHello } = require('./helloFirst.cjs');
 
 /** A clone may take as long as the repository needs; a listing or a worktree must answer. */
@@ -18,6 +20,8 @@ const WRITE_MS = 6 * 60_000;
 
 const text = (/** @type {unknown} */ v) => typeof v === 'string' && v.length > 0;
 const unreadable = (/** @type {string} */ what) => new HostError('invalid', `The Host sent ${what} this app cannot read.`);
+const checkoutPath = (/** @type {unknown} */ p) =>
+  typeof p === 'string' && p.length <= 4096 && !p.includes('\0') && (p.startsWith('/') || isWinPath(p));
 
 /** The listing the picker draws, or null when the Host sent something else. @param {any} v */
 function readListing(v) {
@@ -251,6 +255,39 @@ function createHostFolders({
           if (out?.isRepo === true && typeof out.remote === 'string') return out.remote;
         }
         throw unreadable('a repository identity');
+      });
+    },
+
+    /** @param {string} hostId @param {{path: string}} q */
+    async checkout(hostId, q) {
+      const params = parseParams('git.inspect', { ...q, sidebar: true, checkout: true });
+      return withSession(hostId, async (s) => {
+        const out = await callRead(s, 'git.inspect', params, 'identify its checkout');
+        if (out?.sidebarCheckout === true) {
+          if (out.path === null || out.path === undefined || checkoutPath(out.path)) return out.path;
+          throw unreadable('a checkout path');
+        }
+        // Older Hosts know this checkout's root through the branch picker.
+        if (out?.sidebar === true || out?.isRepo === true) {
+          const branches = readBranches(await callRead(s, 'host.gitBranches', { path: params.path }, 'identify its checkout'));
+          if (branches?.isRepo && checkoutPath(branches.top)) {
+            return legacyCheckout(
+              params.path,
+              branches.top,
+              async (path) => {
+                const file = readFileView(await callRead(s, 'fs.read', { path, limit: 8192 }));
+                return file?.kind === 'text' && !file.truncated ? file.text : undefined;
+              },
+              async (path) => {
+                const root = readListing(await s.call('fs.list', { path }, { timeoutMs: LIST_MS }))?.path;
+                return checkoutPath(root) ? root : undefined;
+              },
+            );
+          }
+          if (branches?.isRepo === false) return undefined; // Older Hosts also report this when Git fails.
+        }
+        if (out?.isRepo === false) return undefined;
+        throw unreadable('a checkout path');
       });
     },
 

@@ -1,4 +1,5 @@
 // The one method set both clients call for MoMo's home (agreed with the phone and Mac UI lanes, #5474): `momo.home.view` → `{ view, movedAwayTo? }`, `momo.home.intent { intent }` → `{ ok: true, view? }` or `{ ok: false, cause, fix?, fixLabel? }`, and the event `momo.home.changed` carrying the same payload as the view. The view is the whole `MomoView` of #5482. This file is the behaviour behind those names, over what the caller injects (the Host's answers, the app's machine list, the move runner and the other lanes' intent handlers), so the Mac's IPC and the phone's channel serve the same answers and a scripted fake can stand in for both.
+import { parseFixId } from './momoFixId.mjs';
 import { userError } from './userError.mjs';
 
 export const VIEW_METHOD = 'momo.home.view';
@@ -58,12 +59,12 @@ export function createHomeApi({ compose, intents = {} }) {
   };
 
   /**
-   * A fix the view offered (`{ kind: 'fix', id }`) is the intent it names: `update-machine:<machineId>`, `sign-in-agent:<machineId>:<agent>`,
-   * `install-agent:<machineId>:<agent>`. An id that names nothing is no intent. @param {any} raw
+   * A fix the view offered (`{ kind: 'fix', id }`) is the intent it names: `update-machine`, `sign-in-agent` and `install-agent`, each with its encoded fields (shared/momoFixId.mjs). An id that names nothing is no intent. @param {any} raw
    */
   const unfix = (raw) => {
     if (raw?.kind !== 'fix' || typeof raw.id !== 'string') return raw;
-    const [kind, machineId, agent] = raw.id.split(':');
+    const [machineId, agent] = parseFixId(raw.id)?.fields ?? [];
+    const kind = parseFixId(raw.id)?.kind;
     if (kind === 'update-machine' && machineId) return { kind, machineId };
     if ((kind === 'sign-in-agent' || kind === 'install-agent') && machineId) return { kind, machineId, agent: agent ?? '' };
     return { kind: 'fix', id: raw.id };

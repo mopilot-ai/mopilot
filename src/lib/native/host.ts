@@ -1,6 +1,7 @@
 // window.native.host's types (Host's closed-alpha gate and the user's remote machines), merged into NativeApi; the calls are declared in electron/bridge/host.cjs.
 import type { ChatGoal } from '../../../shared/model/store';
 import type { ChatConfig } from '../../../shared/model/window';
+import type { HostSidebarRepositoryQuery } from '../../../shared/model/repositorySidebar';
 type HostSideChat = { chatId: string; hostId: string; cwd: string; config: ChatConfig };
 /** What a machine's Host says about the repository in a folder (host/src/hostRead.mjs): files with their added and removed lines against the base branch, untracked ones listed, with their lines counted (`counted`) for the first 20 small text files. */
 export type HostGitStatus =
@@ -303,7 +304,7 @@ declare module '../native' {
       /** the slash commands and skills an agent on a machine offers for a folder (`harness`: `claude`, `codex` or `acp:<agent>`); `listed: false` when the agent has none to give yet, `outdated` when the machine's Host cannot list them */
       commands(id: string, q: { harness: string; cwd?: string }): Promise<HostReply<HostCommandList>>;
       /** the branch and changes of the repository in `path` on a machine, read-only; refusals carry `code` (`outside_roots`, `directory_missing`, `read_timed_out`, `host_outdated`, …) */
-      sidebarRepository(id: string, q: { path: string; fresh?: true; expectedHostKey?: string }): Promise<HostReply<string | null>>;
+      sidebarRepository(id: string, q: HostSidebarRepositoryQuery): Promise<HostReply<string | null>>;
       gitStatus(id: string, q: { path: string }): Promise<HostReply<HostGitStatus>>;
       /** the branches of the repository holding `path` on a machine, for the new-chat branch picker; refusals carry `code` (`outside_roots`, `directory_missing`, `read_timed_out`, `host_outdated`, …) */
       gitBranches(id: string, q: { path: string; expectedHostKey?: string }): Promise<HostReply<HostBranches>>;

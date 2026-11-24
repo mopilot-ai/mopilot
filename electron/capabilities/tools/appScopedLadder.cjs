@@ -2,11 +2,22 @@
 const { ownTable } = require('../../../shared/ownTable.mjs');
 const P = require('../contract/desktopPolicy.cjs');
 
-/** The actions the brief-foreground rung may retry: input an app can ignore while it is in the background, a file panel's Go to Folder, and a menu item the app keeps disabled until it is active. */
-const FOREGROUND_ACTIONS = new Set(['click', 'type', 'key', 'file_panel', 'menu']);
+/** The actions the brief-foreground rung may retry: input an app can ignore while it is in the background (a wheel scroll too: WeChat ignores one posted to its process), a file panel's Go to Folder, and a menu item the app keeps disabled until it is active. drag is not one yet (#5579). */
+const FOREGROUND_ACTIONS = new Set(['click', 'type', 'key', 'scroll', 'file_panel', 'menu']);
 
 /** What each retried action is called in the one-line note ("TextEdit needs brief foreground for typing"). */
-const WHAT = ownTable({ click: 'clicks', type: 'typing', key: 'keys', file_panel: 'Go to Folder', menu: 'menu commands' });
+const WHAT = ownTable({
+  click: 'clicks',
+  type: 'typing',
+  key: 'keys',
+  scroll: 'scrolling',
+  file_panel: 'Go to Folder',
+  menu: 'menu commands',
+});
+
+/** The scroll hint's advice for a result the ladder did not run on (a batch step): a single call retries in front. Dropped from a record the ladder already handled. */
+const SCROLL_RETRY_HINT =
+  ' A single desktop_app_scroll (not a step of desktop_app_batch) at full control retries with the app briefly in front when brief switching is allowed; otherwise open the app with desktop_open_application and use desktop_scroll.';
 
 /** Window states the helper refuses posted input in, as its unsupported(<reason>) names them. */
 const WINDOW_STATE_RE = /^unsupported\((minimized|app_hidden|off_space)\)/;
@@ -57,6 +68,7 @@ function foregroundNote(appName, action, fg) {
  */
 function laddered(record, rung, o = {}) {
   const out = { ...record, rung };
+  if (out.hint?.endsWith(SCROLL_RETRY_HINT)) out.hint = out.hint.slice(0, -SCROLL_RETRY_HINT.length);
   if (o.from) out.background_effect = o.from;
   if (o.note) out.ladder = o.note;
   if (o.fg?.userTookOver)
@@ -65,6 +77,7 @@ function laddered(record, rung, o = {}) {
 }
 
 module.exports = {
+  SCROLL_RETRY_HINT,
   FOREGROUND_ACTIONS,
   NO_LADDER,
   mayForeground,

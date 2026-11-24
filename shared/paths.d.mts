@@ -2,6 +2,7 @@
 export const isWinPath: (p: string) => boolean;
 /** A Windows path's comparable form: lower-cased, '\\' separators, no trailing one. */
 export const winPathKey: (p: string) => string;
+export function foldHostWorktreePath(folder: string): string;
 export function basename(p: string): string;
 /** The last `depth` parent folders of `p`, to tell two same-named projects apart ("work/api"). */
 export function parentHint(p: string, depth: number): string;

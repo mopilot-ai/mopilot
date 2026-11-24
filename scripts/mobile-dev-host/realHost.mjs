@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { agentsOf as hostAgentsOf } from '../../shared/host/agentReadiness.mjs';
+import { workFolder } from '../host-accept/workFolder.mjs';
 
 /** The cheapest model at low effort for each agent a run may start a chat on. */
 const PICKS = { fake: {}, claude: { model: 'haiku', effort: 'low' }, codex: { model: 'gpt-5.6-luna', effort: 'low' } };
@@ -150,7 +151,7 @@ export async function startRealHost({
       try {
         const chatId = `acp:fake:card${(raised += 1)}${randomUUID().slice(0, 8).replaceAll('-', '')}`;
         await c.request('chat.subscribe', { chatId, epoch: 1, fromRev: 0 });
-        await c.request('chat.start', { chatId, epoch: 1, key: `dev-${chatId}`, harness: 'acp:fake', text, cwd: ctx.state.dataDir });
+        await c.request('chat.start', { chatId, epoch: 1, key: `dev-${chatId}`, harness: 'acp:fake', text, cwd: workFolder(ctx.state) });
         return chatId;
       } finally {
         c.close();
@@ -177,7 +178,7 @@ export async function startRealHost({
           key: `dev-${chatId}`,
           harness: harness === 'fake' ? 'acp:fake' : harness,
           text,
-          cwd: ctx.state.dataDir,
+          cwd: workFolder(ctx.state),
           ...picked,
         });
         return chatId;

@@ -1,4 +1,4 @@
-// The wire methods of MoMo's home on a Host (M1, designs/momo-m1-home): the feature a Host that can be MoMo's home declares, the grant of an invited account, the home record and its status; an older Host has none, so an app is never sent a `momo.*` method it would drop.
+// The wire methods of MoMo's home on a Host (M1, designs/momo-m1-home): the feature a Host that can be MoMo's home declares, the grant of an invited account, the home record and its status; an older Host has none, so an app is never sent a `momo.*` method it would drop. Everything but the grant needs a live grant, EXCEPT `host.momoHomeLook` and `host.momoStandDown` (feature `momoLook`, advertised to a paired owner device whatever the grant): what a Host holds is presence only, and a client that read a missing grant as "no home" could start a second one.
 
 import { PROACTIVITY, parseClock } from '../../momoRoutine.mjs';
 import { parseKind } from '../../harnessKind.mjs';
@@ -7,6 +7,8 @@ import { parseKind } from '../../harnessKind.mjs';
 export const MOMO_FEATURE = 'momo';
 /** Offered only by a Host that runs MoMo's home right now (and only to a client that may see MoMo): the clients show the home screens on it. */
 export const MOMO_HOME_FEATURE = 'momoHome';
+/** Advertised to the owner's devices whatever the grant: this Host can say what it holds (`host.momoHomeLook`). A Host without it may still hold a home, so a client reads its silence as "not heard". */
+export const MOMO_LOOK_FEATURE = 'momoLook';
 
 /** A grant that is not one is refused as a request no Host knows, so a client with no grant learns nothing from its mistakes. */
 const UNKNOWN_GRANT = 'Unknown request: host.momoGrant';
@@ -44,7 +46,7 @@ export default ({ bad, matchOf }) => {
     return v;
   };
   return {
-    features: [MOMO_FEATURE, MOMO_HOME_FEATURE],
+    features: [MOMO_FEATURE, MOMO_HOME_FEATURE, MOMO_LOOK_FEATURE],
     methods: {
       // an invited account's client says so (and again every 30 minutes); a Host answers every other momo.* as unknown until it has one
       'host.momoGrant': {
@@ -146,7 +148,15 @@ export default ({ bad, matchOf }) => {
         },
       },
       // Reset MoMo on this Host: every file its stores kept is deleted and the home goes on, empty
-      'host.momoReset': { access: 'open', requires: [MOMO_FEATURE], parse: () => ({}) },
+      // `ifRetired`/`expectEpoch`: "Delete the old MoMo": only a copy still retired at that epoch is deleted (a revive that landed first is refused)
+      'host.momoReset': {
+        access: 'open',
+        requires: [MOMO_FEATURE],
+        parse: (/** @type {any} */ p) => ({
+          ...(p.ifRetired === true ? { ifRetired: true } : {}),
+          ...(Number.isSafeInteger(p.expectEpoch) && p.expectEpoch >= 0 ? { expectEpoch: p.expectEpoch } : {}),
+        }),
+      },
       // one step of moving MoMo's home (design 3.1): the old home pauses, seals, cancels or finishes; the new one offers a key, receives, commits or discards
       'host.momoMove': {
         access: 'open',
@@ -234,7 +244,40 @@ export default ({ bad, matchOf }) => {
         access: 'open',
         requires: [MOMO_FEATURE],
         // the home is this Host: a `homeId` a client sends is not read, so it cannot name another machine
-        parse: (/** @type {any} */ p) => ({ name: nameOf(p.name) }),
+        // `floor`: the highest lease epoch the caller has seen on any Host (absent: none); the new home starts above it and above this Host's own; `revive`: take back a retired home
+        parse: (/** @type {any} */ p) => ({
+          name: nameOf(p.name),
+          ...(p.floor === undefined
+            ? {}
+            : {
+                floor:
+                  Number.isSafeInteger(p.floor) && p.floor >= 0
+                    ? p.floor
+                    : (() => {
+                        throw bad('That is not an epoch.');
+                      })(),
+              }),
+          // the owner takes back a retired home (its data kept) instead of starting an empty one
+          ...(p.revive === true ? { revive: true } : {}),
+        }),
+      },
+      // what this Host holds (a home, none, moved away, or unreadable) and whether its grant is live: answered with no grant, to the owner's devices only
+      // (the deliberate exception to "MoMo is veiled": it answers a paired owner device even for an uninvited account, presence only, no MoMo data)
+      'host.momoHomeLook': { access: 'open', requires: [MOMO_LOOK_FEATURE], parse: () => ({}) },
+      // a newer home exists at a higher epoch: a running or moving home here of another id and a lower epoch is retired
+      'host.momoStandDown': {
+        access: 'open',
+        requires: [MOMO_LOOK_FEATURE],
+        parse: (/** @type {any} */ p) => ({
+          homeId: matchOf(p.homeId, /^[A-Za-z0-9:._-]{1,200}$/, 'That is not a home id.'),
+          leaseEpoch:
+            Number.isSafeInteger(p.leaseEpoch) && p.leaseEpoch > 0
+              ? p.leaseEpoch
+              : (() => {
+                  throw bad('That is not an epoch.');
+                })(),
+          ...(p.name === undefined ? {} : { name: nameOf(p.name) }),
+        }),
       },
     },
   };

@@ -221,8 +221,10 @@ export async function startRemoteHost({
     },
     pid: () => child.pid ?? 0,
     async restart({ agents: next = agents, kill = false } = {}) {
-      const gone = new Promise((r) => child.once('exit', r));
-      child.kill(kill ? 'SIGKILL' : 'SIGTERM');
+      // a Host that was stopped has already exited: there is nothing to wait for
+      const exited = child.exitCode !== null || child.signalCode !== null;
+      const gone = exited ? Promise.resolve() : new Promise((r) => child.once('exit', r));
+      if (!exited) child.kill(kill ? 'SIGKILL' : 'SIGTERM');
       await gone;
       env = configure(setOf(next));
       child = await launch();

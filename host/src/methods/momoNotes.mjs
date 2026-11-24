@@ -1,6 +1,7 @@
 // The Host's handlers for MoMo's notes, cards and rules (#5474, shared/host/methods/momoNotes.mjs): thin calls into the gate, notes and learning services, read with `momo.service(id)` inside each call (never at load). Like every MoMo method they are veiled: a client that is not paired, or while no live grant is held, gets an unknown request. Answering a card, changing a note or a rule and recording a reaction are the owner's: only a paired desktop or phone may, never the local command line, which any process on this machine can reach. A tap names the device that made it from the connection's own standing, never from the request.
 import { deviceOf } from '../momoDevice.mjs';
 import { isOwner } from '../momoOwner.mjs';
+import { onlyAtHome } from '../momoHomeGuard.mjs';
 
 /** @param {{ momo?: ReturnType<typeof import('../momoHome.mjs').createMomoHome> }} deps */
 export default ({ momo }) => {
@@ -12,6 +13,7 @@ export default ({ momo }) => {
   /** @param {string} id */
   const service = (id) => /** @type {any} */ (home.service(id));
   return {
+    guard: onlyAtHome(momo),
     veils: {
       'host.momoCards': owner,
       'host.momoCardAnswer': owner,

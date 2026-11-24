@@ -12,13 +12,16 @@ test('a remote session and Codex Cloud task join a local project and use its sur
   const chatId = 'acp:kimi:remote';
   const local = '/home/local/checkout';
   const remote = '/srv/remote/checkout';
+  const remoteSource = `${remote}/src`;
   const repo = 'github.com/org/app';
   const hostChats = [chatId, 'acp:host-codex:remote', 'acp:host-claude:remote'];
   const cloud = { id: 'task_cloud', title: 'Cloud change', status: 'ready', environment_id: 'env', updated_at: 100 };
   reset({
     savedProjects: [project('local', local, 'Shared project')],
     threadOrder: hostChats,
-    threads: Object.fromEntries(hostChats.map((id, index) => [id, thread(id, { cwd: remote, updatedAt: 10 - index })])),
+    threads: Object.fromEntries(
+      hostChats.map((id, index) => [id, thread(id, { cwd: index === 1 ? remoteSource : remote, updatedAt: 10 - index })]),
+    ),
     cloudTasks: [cloud],
     cloudSidebar: { account: '[null,null]', environments: [{ id: 'env', label: 'Cloud app', repo: 'org/app' }] },
     route: { name: 'cloud', id: cloud.id },
@@ -42,7 +45,9 @@ test('a remote session and Codex Cloud task join a local project and use its sur
         return () => undefined;
       },
       remoteChats: async () => hostChats.map((id) => ({ chatId: id, hostId: machineId })),
-      sidebarRepository: async (_id: string, query: { path: string }) => ({ value: query.path === remote ? repo : null }),
+      sidebarRepository: async (_id: string, query: { path: string; checkout?: true }) => ({
+        value: query.checkout ? remote : query.path === remote ? repo : null,
+      }),
     },
   }).host;
   t.after(() => {
@@ -61,7 +66,6 @@ test('a remote session and Codex Cloud task join a local project and use its sur
     assert.ok(terminal?.parentElement?.nextElementSibling?.classList.contains('project-disclosure'));
     const chat = () => group().querySelector(`[data-sidebar-chat="${chatId}"]`)!;
     assert.ok(chat().querySelector('.host-mark .lucide-square-terminal'));
-    assert.equal(chat().classList.contains('indent'), false);
     assert.equal(view.$$('.project-row').length, 1);
     assert.ok(named('folderAvailability').every(([paths]) => !paths.includes(remote)));
 
@@ -165,7 +169,11 @@ test('a remote session and Codex Cloud task join a local project and use its sur
     const repository = view.$('.project-row[aria-label="app · org"]')!.closest('.project-group')!;
     await click(repository.querySelector('[data-tooltip="Project actions"] button')!);
     await click(byText(view.$('[data-menu]'), 'button', 'Remove from sidebar'));
-    assert.deepEqual(getState().prefs.hiddenFolders, ['repo:github.com/org/app']);
+    assert.deepEqual(getState().prefs.hiddenFolders, [
+      'repo:github.com/org/app',
+      machineFolderKey(machineId, remote),
+      machineFolderKey(machineId, remoteSource),
+    ]);
     await flush();
     assert.equal(view.$$('.project-row').length, 0);
     assert.equal(view.$$('.thread-row[data-sidebar-cloud="task_cloud"]').length, 1);

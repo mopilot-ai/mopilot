@@ -111,7 +111,6 @@ test('projectless and attachment-only submissions appear in Recents with no phan
     });
     assert.equal(view.$$('[data-chat-start]').length, 1);
     assert.equal(view.$('[data-chat-start] .side-row-label').textContent, 'New chat');
-    assert.equal(view.$('[data-chat-start]').classList.contains('indent'), false);
     assert.equal(view.$('.project-group'), null);
     assert.equal(view.$('.empty-note.recents'), null);
     assert.deepEqual(prefsCalls(), []);

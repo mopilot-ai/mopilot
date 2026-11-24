@@ -37,6 +37,7 @@ function world(t: any, o: { harnesses?: any[]; allowed?: boolean; bare?: boolean
     safeStorage: keySafe,
     dir,
     allowed: () => gate.allowed,
+    autoUpdateOn: () => false,
     watch: (fn: any) => gate.fns.add(fn),
     registry,
     installer: {},

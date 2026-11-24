@@ -75,3 +75,28 @@ test('the one line says only what differs', () => {
   assert.equal(skillException(row({ codex: off, claude: off })), 'Off');
   assert.equal(skillException(row({})), 'Off');
 });
+
+test("Claude's own skills take their file and description from the catalog's skillFiles, never over another source's", () => {
+  const rows = mergeSkills({
+    codex: [],
+    claude: ['mine', 'acme:s', 'plain'],
+    claudeFiles: {
+      mine: { path: '/h/mine/SKILL.md', description: 'Mine does things' },
+      'acme:s': { path: '/h/acme/s/SKILL.md', description: 'from disk' },
+    },
+    plugins: [plugin('acme', ['s'])],
+  });
+  const by = (t: string) => rows.find((r) => r.title === t)!;
+  assert.deepEqual(by('Mine').copies.claude, { on: true, file: '/h/mine/SKILL.md' });
+  assert.equal(by('Mine').description, 'Mine does things');
+  assert.deepEqual(by('Plain').copies.claude, { on: true });
+  // the store plugin's file and description stay
+  assert.deepEqual(by('S').copies.claude, { on: true, file: '/p/acme/s.md' });
+  assert.equal(by('S').description, 's from acme');
+});
+
+test('a Claude skill named like an Object.prototype member takes no file from the catalog', () => {
+  const [row] = mergeSkills({ codex: [], claude: ['constructor'], claudeFiles: {}, plugins: [] });
+  assert.deepEqual(row.copies.claude, { on: true });
+  assert.equal(row.description, '');
+});

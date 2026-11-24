@@ -5,6 +5,7 @@
 // minutes); the open after it finishes launches the browser. MOPILOT_HOST_BROWSER_DOWNLOAD=0 turns the download off.
 import path from 'node:path';
 import { createBrowserHost } from './browserHost.mjs';
+import { withLocalFileGate } from './browserLocalFiles.mjs';
 import { createBrowserProtocol } from './browserProtocol.mjs';
 import { ChromiumError, findChromium, launchChromium } from './chromium.mjs';
 import { installHeadlessShell, installedShell, platformKey } from './headlessShell.mjs';
@@ -18,6 +19,7 @@ import { installHeadlessShell, installedShell, platformKey } from './headlessShe
  * @param {typeof installedShell} [o.installed] @param {typeof installHeadlessShell} [o.install]
  * @param {NodeJS.Platform} [o.platform] @param {string} [o.arch]
  * @param {Parameters<typeof createBrowserProtocol>[0]['intents']} [o.intents]
+ * @param {{ resolve: (p: unknown) => Promise<string> }} [o.hostFs] the Host's folders: a page is handed a local file only through them (./browserLocalFiles.mjs)
  */
 export function createHostBrowser({
   dataDir,
@@ -30,6 +32,7 @@ export function createHostBrowser({
   platform = process.platform,
   arch = process.arch,
   intents,
+  hostFs,
 }) {
   const shellDir = path.join(dataDir, 'browser-bin');
   const canDownload = env.MOPILOT_HOST_BROWSER_DOWNLOAD !== '0' && platformKey(platform, arch) !== null;
@@ -46,7 +49,7 @@ export function createHostBrowser({
       )
       .finally(() => void (installing = null));
   };
-  const service = createBrowserHost({
+  const inner = createBrowserHost({
     downloadsDir: path.join(dataDir, 'downloads'),
     launch: async () => {
       const executable = locate();
@@ -65,6 +68,8 @@ export function createHostBrowser({
       throw new ChromiumError('downloading', 'This host is downloading a headless browser (about 100 MB). Try again in a minute.');
     },
   });
+  // no tab command reaches the browser before the rule of which local files and addresses it may name
+  const service = withLocalFileGate(inner, hostFs);
   return {
     protocol: createBrowserProtocol({ browser: service, epochs, intents }),
     /** Whether this Host can run a browser for a chat: one is there, or it can be downloaded. */

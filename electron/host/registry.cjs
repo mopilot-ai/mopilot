@@ -4,7 +4,7 @@ const { readStoreFile, writeAtomic } = require('../platform/fsutil.cjs');
 const { cloudOf } = require('./cloudRecord.cjs');
 const { isJsonRecord: isObject } = require('../../shared/jsonRecord.mjs');
 const { HostError } = require('./interface.cjs');
-const { validSocketPath, validHostKey, booleanFlags } = require('./hostReported.cjs');
+const { validSocketPath, validHostKey, booleanFlags, savedPendingUpdate } = require('./hostReported.cjs');
 const { validIdentity } = require('./sshKey.cjs');
 const { normalizeHarness } = require('../../shared/host/logins.mjs');
 const { computerNameOf, addressName } = require('../../shared/host/computerName.mjs');
@@ -97,7 +97,7 @@ function setupReason(s) {
 }
 
 /**
- * @typedef {{ id: string, name: string, kind: 'ssh' | 'cloud', cloud: ReturnType<typeof cloudOf>, address: string, socketPath: string, hostKey: string, capabilities: Record<string, boolean>, harnesses: { id: string, detected: boolean, signedIn: boolean, installable?: boolean }[], lastHeartbeat: number | null, setup: string, identity: string, localNetwork: 'allowed' | 'denied' | 'unknown', startup: Startup, platform: 'darwin' | 'linux' | '', hostBuild: string, hostAppVersion: string, hostPending: { build: string, since: number } | null, computerName: string, renamed: boolean, policy: ReturnType<typeof policyOf>, pushSkipped: number, cloudState: ReturnType<typeof cloudStateOf> }} HostRecord `computerName`: the name of the computer as its Host last said it ('' before it has, or from an older Host); `renamed`: a person chose `name` (Settings › My machines › Rename), or it is this Mac's or a cloud machine's own, so no answer replaces it; `policy`: the managed policy the Host last reported (null when none); `hostBuild`: the build its Host last said it runs ('' before it has answered, or from a Host that names none); `hostAppVersion`: the version of the app that built it ('' when it names none); `hostPending`: the build a staged update on its Host will become, and since when this app has seen one waiting (null: none; never kept across a restart); `identity`: the key file the machine signs in with ('' for this Mac's own ssh setup); `localNetwork`: what the Host last said of its reach into the local network; `startup`: whether it last said it starts at boot, and FileVault; `platform`: the system it runs on; `pushSkipped`: the waiting cards it last said found no phone linked (never kept across a restart); `cloudState`: what a cloud machine's Host last said of its idle stop (never kept across a restart)
+ * @typedef {{ id: string, name: string, kind: 'ssh' | 'cloud', cloud: ReturnType<typeof cloudOf>, address: string, socketPath: string, hostKey: string, capabilities: Record<string, boolean>, harnesses: { id: string, detected: boolean, signedIn: boolean, installable?: boolean }[], lastHeartbeat: number | null, setup: string, identity: string, localNetwork: 'allowed' | 'denied' | 'unknown', startup: Startup, platform: 'darwin' | 'linux' | '', hostBuild: string, hostAppVersion: string, hostPending: { build: string, since: number, awaitingStatus?: true } | null, computerName: string, renamed: boolean, policy: ReturnType<typeof policyOf>, pushSkipped: number, cloudState: ReturnType<typeof cloudStateOf> }} HostRecord `computerName`: the name of the computer as its Host last said it ('' before it has, or from an older Host); `renamed`: a person chose `name` (Settings › My machines › Rename), or it is this Mac's or a cloud machine's own, so no answer replaces it; `policy`: the managed policy the Host last reported (null when none); `hostBuild`: the build its Host last said it runs ('' before it has answered, or from a Host that names none); `hostAppVersion`: the version of the app that built it ('' when it names none); `hostPending`: the staged build and first observed time (null when there is none); a saved wait needs a fresh status before publication; `identity`: the key file the machine signs in with ('' for this Mac's own ssh setup); `localNetwork`: what the Host last said of its reach into the local network; `startup`: whether it last said it starts at boot, and FileVault; `platform`: the system it runs on; `pushSkipped`: the waiting cards it last said found no phone linked (never kept across a restart); `cloudState`: what a cloud machine's Host last said of its idle stop (never kept across a restart)
  * @typedef {'restarted' | 'signed-out' | 'locked' | 'host-stopped'} LoginWait `host-stopped`: ssh answers and nobody waits to sign in, yet the Host does not answer
  * @typedef {HostRecord & { rawName: string, status: 'online' | 'offline' | 'needs-setup', reason: string, checked: boolean, linkDroppedAt: number | null, waitingForLogin: Exclude<LoginWait, 'host-stopped'> | null, hostStopped: boolean }} HostRow `name`: what surfaces show (with the address when another machine has the same name); `rawName`: the name itself, which Rename starts from; `waitingForLogin`: an offline machine nobody is signed in on (it restarted since it last answered, or was signed out)
  */
@@ -180,7 +180,7 @@ function createRegistry({
         renamed:
           typeof raw.renamed === 'boolean' ? raw.renamed : Boolean(cloudOf(raw.cloud)) || raw.name !== addressName(String(raw.address)),
         hostAppVersion: text(raw.hostAppVersion) ? raw.hostAppVersion : '',
-        hostPending: null,
+        hostPending: savedPendingUpdate(raw.hostPending),
         policy: policyOf(raw.policy),
         pushSkipped: 0,
         cloudState: null,
@@ -231,6 +231,7 @@ function createRegistry({
       state === 'offline' ? (failures.get(r.id) ?? (r.lastHeartbeat === null ? 'Not reached yet.' : 'No answer for 90 seconds.')) : r.setup;
     return {
       ...r,
+      hostPending: r.hostPending?.awaitingStatus ? null : r.hostPending,
       name: shownName(r),
       rawName: r.name,
       status: state,
@@ -309,6 +310,10 @@ function createRegistry({
     failures.delete(asked.id);
     waiting.delete(asked.id);
     const next = new Map(records);
+    const now = clock.now();
+    /** @type {string} */
+    const pendingBuild = text(s.pendingUpdate?.build) ? s.pendingUpdate.build : '';
+    const since = asked.hostPending?.build === pendingBuild ? Math.min(asked.hostPending.since, now) : now;
     next.set(asked.id, {
       ...asked,
       computerName,
@@ -316,15 +321,13 @@ function createRegistry({
       capabilities: booleanFlags(s.capabilities),
       harnesses: s.harnesses.map(normalizeHarness),
       setup,
-      lastHeartbeat: clock.now(),
+      lastHeartbeat: now,
       localNetwork: localNetworkOf(s.localNetwork),
       startup: startupOf(s.startup),
       platform: platformOf(s.platform),
       hostBuild: text(s.build) ? s.build : '',
       hostAppVersion: text(s.appVersion) ? s.appVersion : '',
-      hostPending: s.pendingUpdate
-        ? { build: text(s.pendingUpdate.build) ? s.pendingUpdate.build : '', since: asked.hostPending?.since ?? clock.now() }
-        : null,
+      hostPending: s.pendingUpdate ? { build: pendingBuild, since } : null,
       policy: policyOf(s.policy),
       pushSkipped: pushSkippedOf(s.push),
       cloudState: cloudStateOf(s.cloud),
@@ -393,7 +396,7 @@ function createRegistry({
     pin(id, hostKey) {
       const record = need(id);
       if (!validHostKey(hostKey) || record.hostKey === hostKey) return;
-      commit(new Map(records).set(id, { ...record, hostKey }));
+      commit(new Map(records).set(id, { ...record, hostKey, hostPending: null }));
     },
     /**
      * The name every surface shows for the machine (Settings › My machines › Rename), trimmed; refused empty, too long or with control characters.

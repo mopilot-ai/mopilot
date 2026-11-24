@@ -15,6 +15,11 @@ const EXEMPT: Record<string, string> = {
   brief_missed_asleep: 'a delivery problem in the status view, with its own cause and fix',
   push_disabled: 'a delivery problem in the status view, with its own cause and fix',
   relay_unreachable: 'a delivery problem in the status view, with its own cause and fix',
+  // the client rules' own answers (shared/host/momoHomeClient.mjs `execute`): a climb that never got above its target, and a stand-down with no lease to give; the client words them in its own view, they are not a Host's refusal of a request
+  climb_failed: 'the client rules’ own answer, shown as a problem in the home view',
+  no_lease: 'the client rules’ own answer, shown as a problem in the home view',
+  // a list cursor is one the Host made, so a client only sends one it was given: a refusal means the client lists again
+  bad_cursor: 'a client lists again; the person is never shown it',
   // the browser tool: the error goes back to the agent in the tool result, which the agent words
   browser_exited: 'browser tool error, returned to the agent',
   disposed: 'browser tool error, returned to the agent',

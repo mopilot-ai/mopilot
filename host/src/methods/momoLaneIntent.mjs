@@ -1,11 +1,13 @@
 // The Host's handler for `host.momoLaneIntent` (shared/host/methods/momoLaneIntent.mjs): one intent of a lane that lives here, run through the home's registry (the kind and its arguments checked against the table, and that this Host is the running home), for a paired desktop or phone with a live grant, never the local command line. A refusal is an answer, `{ ok: false, cause }`, with the words the person reads; only the lanes' own refusals are worded, anything else is "MoMo couldn't do that".
 import { deviceOf } from '../momoDevice.mjs';
 import { isOwner } from '../momoOwner.mjs';
+import { onlyAtHome } from '../momoHomeGuard.mjs';
 import { IntentError } from '../../../shared/momoHomeApi.mjs';
 import { HostRefusal } from '../hostFs.mjs';
 
 /** @param {{ momo?: ReturnType<typeof import('../momoHome.mjs').createMomoHome> }} deps */
 export default ({ momo }) => ({
+  guard: onlyAtHome(momo),
   veils: { 'host.momoLaneIntent': (/** @type {unknown} */ principal) => !!momo && isOwner(principal) && !!momo.granted() },
   handlers: {
     'host.momoLaneIntent': async (

@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { cleanup as cleanMachine, expect, provideFakeAgent, restart, until } from '../host-accept/steps.mjs';
 import { launchdStart, launchdStop } from '../../shared/host/launchd.mjs';
+import { workFolder } from '../host-accept/workFolder.mjs';
 
 /** The chat ids of this run (a Host keeps a chat's keys across runs). @param {any} ctx @param {string} name */
 const chat = (ctx, name) => `acp:fake:${name}-${ctx.nonce}`;
@@ -129,7 +130,7 @@ export const STEPS = [
       const id = chat(ctx, 'one');
       await follow(ctx, host, id);
       const started = Date.now();
-      await host.start(id, { harness: 'acp:fake', text: 'hello from the app', cwd: ctx.state.dataDir });
+      await host.start(id, { harness: 'acp:fake', text: 'hello from the app', cwd: workFolder(ctx.state) });
       const got = await reply(ctx, id, (i) => i.t === 'assistant', 'the reply');
       expect(got.text === 'fake-acp: hello from the app', `The reply was "${got.text}".`);
       return `reply "${got.text}" ${Date.now() - started} ms after start`;
@@ -142,7 +143,7 @@ export const STEPS = [
       const host = await online(ctx);
       const id = chat(ctx, 'stop');
       await follow(ctx, host, id);
-      await host.start(id, { harness: 'acp:fake', text: 'SLOW please', cwd: ctx.state.dataDir });
+      await host.start(id, { harness: 'acp:fake', text: 'SLOW please', cwd: workFolder(ctx.state) });
       await until(async () => (await ctx.m.run("pgrep -f '[f]ake-acp-agent'")).stdout.trim(), {
         what: 'the agent of the running turn',
         every: 200,
@@ -161,7 +162,7 @@ export const STEPS = [
       const host = await online(ctx);
       const id = chat(ctx, 'crash');
       await follow(ctx, host, id);
-      await host.start(id, { harness: 'acp:fake', text: 'SLOW please', cwd: ctx.state.dataDir });
+      await host.start(id, { harness: 'acp:fake', text: 'SLOW please', cwd: workFolder(ctx.state) });
       await until(async () => (await ctx.m.run("pgrep -f '[f]ake-acp-agent'")).stdout.trim(), {
         what: 'the agent of the running turn',
         every: 200,
@@ -221,7 +222,7 @@ export const STEPS = [
         every: 200,
       });
       send.begin(id, { harness: 'acp:fake' });
-      const receipt = await send.send(id, { text: 'sent while away', cwd: ctx.state.dataDir });
+      const receipt = await send.send(id, { text: 'sent while away', cwd: workFolder(ctx.state) });
       expect(receipt.action === 'queued', `The send was ${receipt.action}, not queued.`);
       const waiting = queue(id).find((q) => q.waitingFor === 'host');
       expect(waiting, `The queue shows ${JSON.stringify(queue(id).map((q) => q.waitingFor))}, not "Waiting for host".`);
@@ -257,7 +258,7 @@ export const STEPS = [
       const host = await online(ctx);
       const id = chat(ctx, 'update');
       await follow(ctx, host, id);
-      await host.start(id, { harness: 'acp:fake', text: 'SLOW please', cwd: ctx.state.dataDir });
+      await host.start(id, { harness: 'acp:fake', text: 'SLOW please', cwd: workFolder(ctx.state) });
       await until(async () => (await ctx.m.run("pgrep -f '[f]ake-acp-agent'")).stdout.trim(), {
         what: 'the agent of the running turn',
         every: 200,

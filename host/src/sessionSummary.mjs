@@ -11,6 +11,14 @@ const CHUNK = 200;
 const FILL_MAX_BYTES = 8 * 1024 * 1024;
 /** How much of a checkpoint's start is read to find the chat id. */
 const HEAD_BYTES = 4096;
+/** The folder a chat was started in and who started it, as its state carries them. @param {any} state */
+const originOf = (state) => ({
+  ...(typeof state?.origin?.folder === 'string' ? { folder: state.origin.folder } : {}),
+  ...(typeof state?.origin?.by === 'string' ? { by: state.origin.by.slice(0, 80) } : {}),
+  ...(typeof state?.origin?.fp === 'string' ? { fp: state.origin.fp } : {}),
+  // what still holds after a restart (a paused or blocked chat, a missing credential), never a card, which a restart closes
+  ...(typeof state?.attention?.kind === 'string' && state.attention.kind !== 'approval' ? { attn: state.attention.kind } : {}),
+});
 /** The title a chat's state carries: its own name, else the cut-short one it replaces. @param {any} state */
 const titleOf = (state) => String(state?.title?.name || state?.title?.provisional || '').slice(0, 200);
 
@@ -69,6 +77,13 @@ export function createSessionSummaries({
         return null;
       if (row.harness !== undefined && typeof row.harness !== 'string') return null;
       if (row.provisional !== undefined && row.provisional !== true) return null;
+      if (
+        (row.folder !== undefined && typeof row.folder !== 'string') ||
+        (row.by !== undefined && typeof row.by !== 'string') ||
+        (row.fp !== undefined && typeof row.fp !== 'string') ||
+        (row.attn !== undefined && typeof row.attn !== 'string')
+      )
+        return null;
       return chatId !== null && row.chatId !== chatId ? null : row;
     } catch {
       return null;
@@ -129,8 +144,18 @@ export function createSessionSummaries({
           createdAt: prev?.createdAt ?? Date.now(),
           title: titleOf(s.state),
           ...(harness ? { harness } : {}),
+          ...originOf(s.state),
         };
-        if (prev && prev.title === next.title && prev.harness === harness) return;
+        if (
+          prev &&
+          prev.title === next.title &&
+          prev.harness === harness &&
+          prev.folder === next.folder &&
+          prev.by === next.by &&
+          prev.fp === next.fp &&
+          prev.attn === next.attn
+        )
+          return;
         atomic(path.join(s.dir, 'summary'), encode(next));
         s.summary = next;
       } catch (error) {
@@ -184,7 +209,14 @@ export function createSessionSummaries({
       }
       if (state === null) return { status: 'deferred' };
       const harness = typeof state.harness === 'string' ? state.harness : undefined;
-      const next = { v: 1, chatId, createdAt: prior?.createdAt ?? born(name), title: titleOf(state), ...(harness ? { harness } : {}) };
+      const next = {
+        v: 1,
+        chatId,
+        createdAt: prior?.createdAt ?? born(name),
+        title: titleOf(state),
+        ...(harness ? { harness } : {}),
+        ...originOf(state),
+      };
       try {
         atomic(file, encode(next));
       } catch (error) {
@@ -249,6 +281,10 @@ export function createSessionSummaries({
           chatId: row.chatId,
           title: row.title,
           ...(row.harness ? { harness: row.harness } : {}),
+          ...(row.folder ? { folder: row.folder } : {}),
+          ...(row.by ? { startedBy: row.by } : {}),
+          ...(row.fp ? { byFp: row.fp } : {}),
+          ...(row.attn ? { attn: row.attn } : {}),
           ...(standIn ? { standIn: true } : {}),
           createdAt: row.createdAt,
           updatedAt,

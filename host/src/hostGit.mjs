@@ -2,9 +2,11 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { noteIgnored } from '../../electron/ignored.cjs';
 import { CarryRefusal, applyCarry, dropCarry, planCarry, pushCarry } from '../../shared/host/codeCarry.mjs';
 import { inspectRepo, repoKey } from '../../shared/host/codeTransfer.mjs';
 import { readSidebarOrigin } from '../../shared/sidebarRepository.mjs';
+import { decodeGitPath, parseGitPathLine } from '../../shared/gitPathLine.mjs';
 import { HostRefusal } from './hostFs.mjs';
 import { INDETERMINATE } from './ledger.mjs';
 
@@ -166,7 +168,10 @@ export function createHostGit({ hostFs, run = runGit, onProgress = noProgress, l
     if (typeof dest !== 'string') throw new HostRefusal('invalid_path', 'Pick a folder by its full path.');
     const name = path.basename(dest);
     if (!name || name === '.' || name === '..') throw new HostRefusal('invalid_path', 'Pick a name for the new folder.');
-    return path.join(await hostFs.requireDirectory(path.dirname(dest)), name);
+    const place = path.join(await hostFs.requireDirectory(path.dirname(dest)), name);
+    // a new folder is no place in the Host's own folders either, even by a name that does not exist yet
+    await hostFs.refuseDenied(place);
+    return place;
   }
 
   const exists = (/** @type {string} */ p) =>
@@ -251,6 +256,7 @@ export function createHostGit({ hostFs, run = runGit, onProgress = noProgress, l
       await hostFs.resolve(path.dirname(root)); // the worktree goes beside the repo, which must stay inside the roots
       if (!(await run(['check-ref-format', '--branch', branch])).ok) throw new HostRefusal('invalid_path', 'That is not a branch name.');
       const target = path.join(path.dirname(root), `${path.basename(root)}.worktrees`, folderOf(branch));
+      await hostFs.refuseDenied(target);
       if (await exists(target)) {
         const head = await run(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target });
         if (head.ok && head.stdout.trim() === branch) return { path: target, existed: true };
@@ -283,6 +289,108 @@ export function createHostGit({ hostFs, run = runGit, onProgress = noProgress, l
     const dir = await hostFs.existingDirectory(p);
     const origin = await readSidebarOrigin((args) => run(args, { cwd: dir, timeout: INSPECT_MS }));
     return { sidebar: true, origin };
+  }
+
+  /** The primary working checkout of this repository, including from a linked worktree. @param {{ path: string }} q */
+  async function sidebarCheckout({ path: p }) {
+    const cwd = await hostFs.existingDirectory(p);
+    const options = { cwd, timeout: INSPECT_MS, maxBytes: 256 * 1024, env: { LC_ALL: 'C' } };
+    const notRepository = /not a git repository/i;
+    const nulList = await run(['worktree', 'list', '--porcelain', '-z'], options);
+    // Git before 2.36 reports a usage error for -z and has a line-delimited porcelain form.
+    const legacy = nulList.code === 129;
+    const list = legacy ? await run(['worktree', 'list', '--porcelain'], options) : nulList;
+    if (!list.ok) return { sidebarCheckout: true, path: notRepository.test(list.stderr) ? null : undefined };
+    const sharedCheckout = async (/** @type {string} */ candidate) => {
+      try {
+        return await hostFs.requireDirectory(candidate);
+      } catch (error) {
+        if (!(error instanceof HostRefusal)) throw error;
+        return null;
+      }
+    };
+    const commonDirectory = async (/** @type {string} */ folder) => {
+      const result = await run(['rev-parse', '--git-common-dir'], { ...options, cwd: folder });
+      if (!result.ok) return notRepository.test(result.stderr) ? null : undefined;
+      return path.resolve(folder, parseGitPathLine(result.stdout));
+    };
+    const common = legacy ? await commonDirectory(cwd) : null;
+    if (legacy && !common) return { sidebarCheckout: true, path: undefined };
+    const primary = common && path.basename(common) === '.git' ? path.dirname(common) : null;
+    const knownPrimary = primary && list.stdout.startsWith(`worktree ${primary}\nHEAD `);
+    if (knownPrimary) {
+      const checkout = await sharedCheckout(primary);
+      if (checkout) return { sidebarCheckout: true, path: checkout };
+    }
+    /** Validate a Git-reported legacy candidate against the source repository and its own checkout root. */
+    const verifyLegacyRoot = async (/** @type {string} */ checkout, /** @type {string} */ commonDir) => {
+      const candidate = await commonDirectory(checkout);
+      if (candidate === undefined) return undefined;
+      if (candidate === null || path.relative(commonDir, candidate)) return null;
+      const top = await run(['rev-parse', '--show-toplevel'], { ...options, cwd: checkout });
+      if (!top.ok) return undefined;
+      return path.relative(checkout, parseGitPathLine(top.stdout)) ? null : checkout;
+    };
+    const separator = legacy ? '\n' : '\0';
+    // Require a Git attribute and an absolute next path to distinguish record headers from literal path text.
+    const legacyBreak =
+      /(?<=\n(?:bare|HEAD [a-f0-9]{40,64}|branch refs\/[^\n]+|detached|(?:locked|prunable)(?: [^\n]*)?))\n\n(?=worktree "?(?:\/|[a-z]:[\\/]|\\\\))/i;
+    const records = list.stdout.split(legacy ? legacyBreak : '\0\0');
+    let identified = false;
+    let pathPrefix = '';
+    // The primary checkout is first; for a bare repository, choose its first available linked checkout.
+    for (const part of records) {
+      const record = pathPrefix + part;
+      const fields = record.split(separator);
+      const kind = legacy ? fields.findLastIndex((field) => field === 'bare' || /^HEAD (?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(field)) : 1;
+      // A header-looking fragment inside a path can appear before its actual HEAD or bare marker.
+      if (kind < 1) {
+        pathPrefix = `${record}\n\n`;
+        continue;
+      }
+      pathPrefix = '';
+      if (!fields[0].startsWith('worktree ')) continue;
+      const entry = fields.slice(0, kind).join(separator);
+      const [attribute, ...flags] = fields.slice(kind);
+      if (attribute !== 'bare' && !attribute?.startsWith('HEAD ')) continue;
+      identified = true;
+      if (attribute === 'bare' || flags.some((flag) => /^prunable(?: |$)/.test(flag))) continue;
+      const checkout = await sharedCheckout(decodeGitPath(entry.slice('worktree '.length)));
+      if (!checkout) continue;
+      // Older line-delimited output can contain text that looks like a separate checkout inside a filename.
+      if (common) {
+        const verified = await verifyLegacyRoot(checkout, common);
+        if (!verified) continue;
+      }
+      return { sidebarCheckout: true, path: checkout };
+    }
+    if (!common) return { sidebarCheckout: true, path: identified ? null : undefined };
+    // Git stores each linked checkout's .git pointer separately. These paths remain intact even when the old listing is ambiguous.
+    const registrations = path.join(common, 'worktrees');
+    const entries = await fs.promises.readdir(registrations, { withFileTypes: true }).catch((error) => {
+      if (error?.code === 'ENOENT') return [];
+      throw error;
+    });
+    let complete = true;
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (!entry.isDirectory()) continue;
+      const registration = path.join(registrations, entry.name);
+      const pointer = await fs.promises.readFile(path.join(registration, 'gitdir'), 'utf8').catch((error) => {
+        noteIgnored('read a Git worktree registration', error, ['ENOENT']);
+      });
+      const gitFile = pointer && path.resolve(registration, parseGitPathLine(pointer));
+      if (!gitFile || path.basename(gitFile) !== '.git') {
+        complete = false;
+        continue;
+      }
+      const checkout = await sharedCheckout(path.dirname(gitFile));
+      if (!checkout) continue;
+      const verified = await verifyLegacyRoot(checkout, common);
+      if (verified) return { sidebarCheckout: true, path: verified };
+      if (verified === undefined) complete = false;
+    }
+    const knownBare = list.stdout.startsWith(`worktree ${common}\nbare\n`);
+    return { sidebarCheckout: true, path: complete && (knownPrimary || knownBare) ? null : undefined };
   }
 
   /** A carry's failure as the Host's own refusal, which the wire carries with its code. */
@@ -342,5 +450,5 @@ export function createHostGit({ hostFs, run = runGit, onProgress = noProgress, l
     return dropCarry(runIn(await hostFs.existingDirectory(p)), { branch });
   }
 
-  return { clone, worktree, inspect, sidebarOrigin, carryPush, carryPlan, carryApply, carryDrop };
+  return { clone, worktree, inspect, sidebarOrigin, sidebarCheckout, carryPush, carryPlan, carryApply, carryDrop };
 }

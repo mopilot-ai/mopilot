@@ -7,8 +7,8 @@ export const MOVE_GRACE_MS = 2 * 60_000;
 export const CLOSED_KEEP = 20;
 
 /** @typedef {{ error: { code: string, message: string, details?: object } }} Refusal */
-/** @typedef {{ state: 'none' | 'running' | 'moving', leaseEpoch: number, moveId: string | null, bundleHash: string | null, moveDeadline: number | null, targetSignKey: string | null, closedMoves: string[], movedTo?: unknown }} OldRecord the fields of the home record a move reads */
-/** @typedef {Refusal | { noop: true } | { again: true } | { set: Record<string, unknown>, epoch: false | number } | { wipe: true }} OldOutcome `epoch`: false keeps the lease, a number is the lease to give; `wipe`: the copy is deleted (the caller does it, then records the tombstone) */
+/** @typedef {{ state: 'none' | 'running' | 'moving', leaseEpoch: number, moveId: string | null, bundleHash: string | null, moveDeadline: number | null, targetSignKey: string | null, closedMoves: string[], movedTo?: unknown, retired?: unknown }} OldRecord the fields of the home record a move reads */
+/** @typedef {Refusal | { noop: true, keep?: true } | { again: true } | { set: Record<string, unknown>, epoch: false | number } | { wipe: true }} OldOutcome `epoch`: false keeps the lease, a number is the lease to give; `wipe`: the copy is deleted (the caller does it, then records the tombstone) */
 
 /** @param {string} code @param {string} message @param {object} [details] @returns {Refusal} */
 const refuse = (code, message, details) => ({ error: { code, message, ...(details ? { details } : {}) } });
@@ -81,6 +81,8 @@ export const oldHome = {
   },
   /** The copy is deleted only on the target's signed receipt for this move, lease, machine and bundle. @param {OldRecord} r @param {{ moveId: string, leaseEpoch: number, receiptOk: boolean }} i @returns {OldOutcome} */
   finish(r, { moveId, leaseEpoch, receiptOk }) {
+    // a retired home's data is the owner's to delete (Reset) and nothing a move says may: it is never wiped here
+    if (r.state === 'none' && r.retired) return { noop: true, keep: true };
     if (r.state === 'none' && r.movedTo && r.leaseEpoch >= leaseEpoch) return { noop: true };
     if (!isMoving(r, moveId)) return refuse('move_unknown', 'MoMo is not being moved by that move.');
     if (!(leaseEpoch > r.leaseEpoch)) return refuse('home_lease_stale', 'That lease is not newer than this one.');

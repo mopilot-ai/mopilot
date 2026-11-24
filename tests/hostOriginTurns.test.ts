@@ -70,6 +70,9 @@ test('ACP: a peer’s queued message is not a person’s turn, the typed one aft
       'and then': false,
       'after the switch': false, // ACP: a handoff-prefixed message is not the user's own, as on this Mac (acpTurns.test.ts)
     });
+    // the folder the chat runs in is the runtime's own reading of its session (what a message with no folder of its own is held to); a chat this Host has no record of has none
+    assert.equal(typeof (await sessions.chatRuntime.folderOf('acp:fake:o')), 'string');
+    assert.equal(await sessions.chatRuntime.folderOf('acp:fake:unknown'), null);
   } finally {
     sessions.close();
     runtime.close();

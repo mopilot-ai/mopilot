@@ -92,7 +92,15 @@ test('the lease is sealed for each phone alone: it opens only with that phone’
   // another phone's root, another push's handle, a tampered blob, a truncated one and a wrong version open nothing
   assert.equal(open(one, rootOf('pair2')), null);
   assert.equal(open(one, rootOf('pair1'), chatRef('pair1', 'other')), null);
-  assert.equal(open({ ...one, sealedStamp: one.sealedStamp.slice(0, -2) + 'AA' }, rootOf('pair1')), null);
+  // a character in the middle of the ciphertext changed to one that differs (swapping the last two characters for 'AA' left the stamp whole one time in ~4096: they can be 'AA' already, or only unused padding bits)
+  const mid = one.sealedStamp.length >> 1;
+  assert.equal(
+    open(
+      { ...one, sealedStamp: one.sealedStamp.slice(0, mid) + (one.sealedStamp[mid] === 'A' ? 'B' : 'A') + one.sealedStamp.slice(mid + 1) },
+      rootOf('pair1'),
+    ),
+    null,
+  );
   assert.equal(open({ ...one, sealedStamp: one.sealedStamp.slice(0, 20) }, rootOf('pair1')), null);
   assert.equal(open({ ...one, sealedStamp: 'A'.repeat(80) }, rootOf('pair1')), null, 'a version nobody wrote');
   assert.equal(open({ ...one, sealedStamp: 'AAAA'.repeat(80) }, rootOf('pair1')), null, 'longer than a stamp ever is');

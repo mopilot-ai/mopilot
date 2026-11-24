@@ -222,7 +222,7 @@ function createMachines({
     allowed,
     on: autoUpdateOn,
     appBuild: () => (buildId ||= appHostBuild(root)),
-    update: (id) => service.updateHost(id),
+    update: (id) => service.updateHost(id, true),
     store: triesFile(path.join(dir, 'host-auto-update.json')),
   });
   const offChange = registry.onChange(() => {
@@ -337,6 +337,8 @@ function createMachines({
 
   const service = {
     list,
+    /** The Host build this app carries: what a machine's Host must run to serve MoMo's home. */
+    appBuild: () => (buildId ||= appHostBuild(root)),
     /** Every machine takes back the user's key and `orgIdentity`'s leases and signs Claude Code and Codex out; each one's result, then the list is read again. @param {string | null} [orgIdentity] */
     signOutEverywhere: async (orgIdentity = null) => {
       const results = await signOutEverywhere({ machines: registry.list(), hostFor, orgIdentity });
@@ -412,13 +414,13 @@ function createMachines({
     pair,
     check: async () => (refuseUnlessAllowed(), registry.check()), // ask every machine now: a row's Check again
     startHost: (id) => (refuseUnlessAllowed(), starter(id)), // the machine answers over ssh and its Host does not: start it there
-    /** Sends this app's Host build to a paired machine, signed for that Host, and asks it to restart into the build once idle. @param {string} id */
-    async updateHost(id) {
+    /** Sends this app's signed Host build and asks for an idle restart. Automatic updates recheck live status and the opt-in before uploading. @param {string} id */
+    async updateHost(id, automatic = false) {
       refuseUnlessAllowed();
       updates.refuseNewer(registry.list().find((r) => r.id === id));
       return updates.run(
         id,
-        () => updater.update(id),
+        (ownsUpdate) => updater.update(id, undefined, { ownsUpdate, automaticEnabled: automatic ? autoUpdate.enabled : undefined }),
         () => onChange(list()),
       );
     },

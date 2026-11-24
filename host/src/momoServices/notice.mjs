@@ -58,6 +58,7 @@ export default ({ home, env = process.env, report }) => {
       store: lazyStore,
       home,
       signalIds: () => signalsOf(home.service('learning')),
+      learning: () => /** @type {any} */ (home.service('learning')),
       remind: (key) => notice.remind(key),
       draft: (key) => notice.draft(key),
       offerShown: (id) => shownOffer(id) !== null,

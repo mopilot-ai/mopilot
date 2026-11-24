@@ -45,6 +45,7 @@ export function useAllSkills(codexOk: boolean): AllSkillsView {
           rows: mergeSkills({
             codex: codex.status === 'fulfilled' ? codex.value : [],
             claude: claude.status === 'fulfilled' ? (claude.value?.skills ?? []) : [],
+            claudeFiles: claude.status === 'fulfilled' ? claude.value?.skillFiles : undefined,
             plugins: storeList.plugins,
           }),
           errors: [

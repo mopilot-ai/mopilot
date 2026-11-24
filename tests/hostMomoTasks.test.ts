@@ -201,7 +201,7 @@ test('nothing acts while this Host is not the running home', async (t) => {
     () => w.tasks.deliver(),
     () => w.tasks.act('x', 'retry'),
   ])
-    await assert.rejects(call(), /not running on this machine/);
+    await assert.rejects(call(), /not running on/);
   assert.equal(await w.tasks.originOf('x'), null);
 });
 

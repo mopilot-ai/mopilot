@@ -3,13 +3,12 @@ import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { createAcpRuntime } from './acp.mjs';
-import { reportedHarness } from './harnessState.mjs';
-import { harnessList } from './harnessList.mjs';
+import { harnessList, reportedHarnesses } from './harnessList.mjs';
 import { createSignedIn } from './signedIn.mjs';
 import { createNoSignIn } from './noSignIn.mjs';
 import { installElectronPorts } from './electronPorts.mjs';
-import { createHostFs } from './hostFs.mjs';
-import { auditFor } from './auditWiring.mjs';
+import { createHostFs, hostFolders } from './hostFs.mjs';
+import { auditFor, pairingAuditOf } from './auditWiring.mjs';
 import { auditCommand } from './auditExport.mjs';
 import { createHostDirs } from './hostDirs.mjs';
 import { daemonInfo, dropAgentUnderDaemon, installUnit } from './install.mjs';
@@ -20,6 +19,7 @@ import { createLogin } from './login.mjs';
 import { createInstaller, hostPath } from './agentInstall.mjs';
 import { createHostTools } from './tools.mjs';
 import { createPairing } from './pairing.mjs';
+import { homeGateFor } from './homeGate.mjs';
 import { activeCli, createUpdater, hasUpdateKey, markHealthy, stageUpdate, updateFacts, updateKeysOf, writeUpdateKey } from './update.mjs';
 import { createContinueWiring } from './continueWiring.mjs';
 import { createHostBrowser } from './browserService.mjs';
@@ -164,7 +164,6 @@ export async function main(
       dropAgentUnderDaemon({ platform, home, env });
       const signedIn = createSignedIn(paths.dataDir);
       const noSignIn = createNoSignIn({ env: hostEnv, quirksOf: momoOverrides.quirks });
-      // the audit record: its settings come from the managed policy, which is made below
       const momoHidden = createMomoHidden();
       const audit = auditFor({ dataDir: paths.dataDir, report: err, policy: () => policy });
       audit.redactWith(momoHidden.redact);
@@ -205,20 +204,11 @@ export async function main(
       const login = createLogin({ runtime, signedIn, families: [codex, claude], env: hostEnv, opened: opener, gitSignInCheck });
       const installer = createInstaller({ dataDir: paths.dataDir, env: hostEnv });
       // the models an installed, signed-in Codex or Claude Code offers ride on its entry; a missing agent this Host can install says so (`installable`), so the app can offer them
-      const harnesses = async () => {
-        const list = await harnessList({ paths, env: hostEnv, signedIn, noSignIn });
-        const installable = new Set(installer.installable(list));
-        return Promise.all(
-          list.map(async (h) => {
-            const reported = await reportedHarness(h, { codex, sessions, leases, credentials: ownRuns.chatCredentials, env: hostEnv });
-            return installable.has(h.id) ? { ...reported, installable: true } : reported;
-          }),
-        );
-      };
+      const harnesses = () => reportedHarnesses({ paths, env: hostEnv, signedIn, noSignIn, installer, codex, sessions, leases, ownRuns });
       const pairing = createPairing({
         configDir: paths.configDir,
         onSeen: (fingerprint) => updateKeysOf(paths.configDir).markSeen(fingerprint),
-        audit: (e) => audit.note(e),
+        audit: pairingAuditOf(audit),
       });
       const updater = createUpdater({
         dataDir: paths.dataDir,
@@ -228,7 +218,7 @@ export async function main(
         pollMs: updatePollMs,
       });
       const roots = policy.roots() ?? (env.MOPILOT_HOST_ROOTS ? env.MOPILOT_HOST_ROOTS.split(path.delimiter).filter(Boolean) : undefined);
-      const hostFs = createHostFs({ roots });
+      const hostFs = createHostFs({ roots, denied: hostFolders(paths) });
       const epochs = createEpochStore(path.join(paths.dataDir, 'epochs.json'), { report: err });
       const ledger = createLedger(path.join(paths.dataDir, 'ledger'), { report: err });
       // clone and worktree keys are kept in the ledger too, so a repeat after a restart gets the first request's answer
@@ -246,13 +236,14 @@ export async function main(
         ledger,
         report: err,
       });
-      const browser = createHostBrowser({ dataDir: paths.dataDir, env, epochs, intents: recovery.intents });
+      const browser = createHostBrowser({ dataDir: paths.dataDir, env, epochs, intents: recovery.intents, hostFs });
       const desktop = makeDesktop({ dataDir: paths.dataDir, env, epochs, platform, intents: recovery.intents });
       const { relayLinks, approvalPush } = relayWithPush({ configDir: paths.configDir, socketPath: paths.socketPath, policy, report: err });
       managedFile.onChange((s) => audit.note({ kind: 'policy.changed', what: { generation: s.generation ?? 'none' } }));
       const hostId = pairing.hostId();
       const { ready: momoReady, ...momoParts } = momoOverrides;
       const momo = momoHomeFor({ paths, report: err, sessions, epochs, env, hidden: momoHidden, tools, harnesses, hostId }, momoParts);
+      const homeGate = homeGateFor({ paths, pairing, sessions, epochs, policy, audit, report: err });
       const protocol = createProtocol({
         policy,
         audit,
@@ -262,6 +253,7 @@ export async function main(
         report: err,
         images: createHostImages({ dir: path.join(paths.dataDir, 'images') }),
         knownClients: pairing.fingerprints,
+        homeGate,
         journal: recovery.journal,
         runtime: refuseWhenStopping(sessions.chatRuntime, () => stopping),
         existingFolder: hostFs.existingDirectory,
@@ -334,12 +326,13 @@ export async function main(
           login,
           updater,
           pairing,
+          homeGate,
           runningVersion: delegated || undefined,
           dirs,
           protocol,
           harnesses,
           updateKey: hasUpdateKey(paths.configDir),
-          afterLock: () => recovery.run(protocol),
+          afterLock: () => recovery.run(protocol).then(() => homeGate.sweep(pairing.stillKnows, protocol)),
           onActivity: cloudIdle.touch,
         });
       } catch (e) {

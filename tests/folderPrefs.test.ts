@@ -72,17 +72,20 @@ test('folders of this Mac match by the real path this Mac resolves them to', () 
   assert.equal(folderPrefsPatch(groups, { sidebarFolders: ['/tmp/x'], sidebarProjectOrder: ['/private/tmp/x'] }, resolve), null);
 });
 
-test('legacy machine worktree entries and ordering fold once, including bare paths, while local work stays local', () => {
+test('legacy bare worktree paths become machine entries without rewriting folder aliases or custom order', () => {
   const wt = '/srv/app.worktrees/mopilot%2fabcd';
   const alias = machineFolderKey('m1', wt);
   const prefs = { sidebarFolders: [alias, wt, KEY], sidebarProjectOrder: [alias, 'p1', KEY] };
   const groups = [studio('/srv/app')];
   const patch = folderPrefsPatch(groups, prefs, same)!;
-  assert.deepEqual(patch, { sidebarFolders: [KEY], sidebarProjectOrder: [KEY, 'p1'] });
+  assert.deepEqual(patch, { sidebarFolders: [alias, KEY], sidebarProjectOrder: [alias, 'p1', KEY] });
   assert.equal(folderPrefsPatch(groups, patch, same), null);
-  assert.deepEqual(folderPrefsPatch([...groups, group(wt)], prefs, same)?.sidebarFolders, [KEY, wt]);
-  assert.deepEqual(folderPrefsPatch(groups, { sidebarFolders: [KEY], sidebarProjectOrder: [alias] }, same), {
-    sidebarFolders: [KEY],
-    sidebarProjectOrder: [KEY],
-  });
+  assert.deepEqual(folderPrefsPatch([...groups, group(wt)], prefs, same)?.sidebarFolders, [alias, wt, KEY]);
+  assert.equal(folderPrefsPatch(groups, { sidebarFolders: [KEY], sidebarProjectOrder: [alias] }, same), null);
+});
+
+test('an unresolved worktree spelling cannot erase a saved checkout or its custom order', () => {
+  const nested = machineFolderKey('m1', '/srv/app.worktrees/feature/nested');
+  const prefs = { sidebarFolders: [nested, KEY], sidebarProjectOrder: [nested, 'other', KEY] };
+  assert.equal(folderPrefsPatch([studio('/srv/app')], prefs, same), null);
 });
