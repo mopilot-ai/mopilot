@@ -3,6 +3,7 @@ import { test, mock, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import edition from '../shared/edition.json' with { type: 'json' };
 import { loadMain, unloadMain, flush } from './support/electron-main-harness.ts';
 mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
 after(() => unloadMain());
@@ -14,7 +15,7 @@ test('ready: accounts, the relay, providers and the server intercepts', async ()
   const accounts = h.one('Accounts');
   assert.equal(accounts.opts.userData, h.userData);
   assert.equal(await accounts.opts.findBin(), 'codex', 'no copy installed: left to PATH');
-  assert.deepEqual(accounts.opts.clientInfo, { name: 'sage_codex_accounts', title: 'MoPilot', version: '1.2.3' });
+  assert.deepEqual(accounts.opts.clientInfo, { name: 'sage_codex_accounts', title: edition.desktop.name, version: '1.2.3' });
   const server = h.one('AppServer');
   assert.deepEqual(server.threadConfig, { openai_base_url: 'http://relay' });
   const providers = h.one('CodexProviders');

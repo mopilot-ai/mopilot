@@ -101,7 +101,7 @@ test('real helper: launches, answers permission status, refuses input without co
   const helper = new ComputerHelper({ appPath });
   t.after(() => helper.stop());
   const hello = await helper.start();
-  assert.equal(hello.bundleId, 'ai.mopilot.code.computer-use');
+  assert.equal(hello.bundleId, `${edition.desktop.appId}.computer-use`);
   assert.ok(hello.pid > 0 && hello.pid !== process.pid);
 
   const status = await helper.permissionStatus();
