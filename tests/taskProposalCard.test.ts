@@ -8,7 +8,7 @@ import { fakeStore, render, click } from './support/pages-kit.ts';
 import { installNativeStub } from './support/ports/native.ts';
 import { stubStore } from './support/stubs.ts';
 
-const { createElement: h, act } = await import('react');
+const { createElement: h, act, useSyncExternalStore } = await import('react');
 const calls: any[] = [];
 // no token usage known for any chat (the card's SessionUsage reads it)
 const store = fakeStore<any>({ runtime: {}, segments: {}, claudeArchived: {}, agentTabs: {} });
@@ -40,11 +40,17 @@ installNativeStub({
 });
 // the chat's row state is the sidebar dot's (tests/sidebarSessionIndicators.test.ts); here it is set by hand
 let rowState: any = null;
+// the real hook follows the stores; the stand-in follows `rowState`, told by `show`
+const rowListeners = new Set<() => void>();
+const watchRowState = (fn: () => void) => (rowListeners.add(fn), () => void rowListeners.delete(fn));
 let parentTurn = 'idle';
 let sessionRead: string | undefined;
 mock.module('../src/session/useChatRowState.ts', {
   namedExports: {
-    useChatRowState: () => rowState && { state: rowState },
+    useChatRowState: () => {
+      const state = useSyncExternalStore(watchRowState, () => rowState);
+      return state && { state };
+    },
     useChatTurn: (id: string | undefined) => ((sessionRead = id), parentTurn),
     retryChatState: async () => {},
   },
@@ -161,7 +167,12 @@ test('a started or proposed session is read on every harness’s shape; anything
 
 const startedCall = (o: any = {}) =>
   sessionToolCall(item({ ...started, ...o })) as Extract<ReturnType<typeof sessionToolCall>, { kind: 'started' }>;
-const show = (v: any) => act(async () => notify({ children: {}, deliveries: {}, proposals: {}, queue: [], plans: {}, wrapUps: {}, ...v }));
+let rev = 0;
+const show = (v: any) =>
+  act(async () => {
+    rowListeners.forEach((fn) => fn());
+    notify({ children: {}, deliveries: {}, proposals: {}, queue: [], plans: {}, wrapUps: {}, ...v, rev: ++rev });
+  });
 
 test('a started session is its live card: where it runs until it has more to say, and a click opens it', async () => {
   calls.length = 0;

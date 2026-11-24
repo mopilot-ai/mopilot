@@ -6,7 +6,7 @@ import { createElement as h, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { fakeNative } from './support/ports/native.ts';
 import { installNative } from '../src/lib/native.ts';
-import { COMMANDS_FRESH_MS, askHostCommands, resetHostCommands, useHostCommands } from '../src/lib/hostCommands.ts';
+import { COMMANDS_FRESH_MS, askHostCommands, resetHostCommands, useHostCommands, type CatalogRequest } from '../src/lib/hostCommands.ts';
 
 const compact = { name: 'compact', description: 'Summarize', kind: 'command' as const, insert: '/compact ' };
 let reply: (id: string, q: any) => Promise<any>;
@@ -64,18 +64,21 @@ test('an agent with no list yet, a Host that cannot list, and a failure are show
 });
 
 let seen: unknown[] = [];
-type Props = { machine: string | null; harness: string | null; folder: string; want: boolean };
-function Probe(p: Props) {
-  seen.push(useHostCommands(p.machine, p.harness, p.folder, p.want));
+type Props = { machine: string | null; harness: string | null; folder: string; want: CatalogRequest };
+type Observe = (answer: ReturnType<typeof useHostCommands>) => void;
+function Probe(p: Props & { observe?: Observe }) {
+  const answer = useHostCommands(p.machine, p.harness, p.folder, p.want);
+  seen.push(answer);
+  p.observe?.(answer);
   return null;
 }
-async function mount(p: Props) {
+async function mount(p: Props, observe?: Observe) {
   seen = [];
   const el = document.createElement('div');
   document.body.append(el);
   const root = createRoot(el);
-  await act(async () => root.render(h(Probe, p)));
-  return { set: (n: Props) => act(async () => root.render(h(Probe, n))), end: () => root.unmount() };
+  await act(async () => root.render(h(Probe, { ...p, observe })));
+  return { set: (n: Props) => act(async () => root.render(h(Probe, { ...n, observe }))), end: () => root.unmount() };
 }
 
 test('the menu asks nothing until it is open, says loading until the machine answers, and has nothing for a chat with no machine or agent', async () => {
@@ -104,4 +107,56 @@ test('an answer that comes after the menu moved on is not shown for it', async (
   await act(async () => release({ value: { listed: true, commands: [compact] } }));
   assert.deepEqual(seen.at(-1), { state: 'loading' }, 'the closed menu keeps no answer');
   await m.end();
+});
+
+test('opening the slash menu over an expired draft catalog waits for current commands', async (t) => {
+  let now = 1000;
+  t.mock.method(Date, 'now', () => now);
+  const props = { machine: 'box', harness: 'claude', folder: '/p' };
+  const m = await mount({ ...props, want: 'draft' });
+  try {
+    assert.deepEqual(seen.at(-1), { state: 'ready', listed: true, commands: [compact] });
+    assert.equal(asks().length, 1);
+    now += COMMANDS_FRESH_MS;
+    let release: (value: unknown) => void = () => assert.fail('the menu did not refresh');
+    reply = () => new Promise((resolve) => (release = resolve));
+    await m.set({ ...props, want: true });
+    assert.deepEqual(seen.at(-1), { state: 'loading' });
+    assert.equal(asks().length, 2);
+    await act(async () => release({ value: { listed: true, commands: [] } }));
+    assert.deepEqual(seen.at(-1), { state: 'ready', listed: true, commands: [] });
+    await m.set({ ...props, want: false });
+    await m.set({ ...props, want: true });
+    assert.equal(asks().length, 2, 'the fresh list is reused without another request');
+    await m.set({ ...props, folder: '/other', want: false });
+    assert.deepEqual(seen.at(-1), { state: 'loading' }, 'a closed menu on a different folder has no previous list');
+    assert.equal(asks().length, 2);
+  } finally {
+    await act(async () => m.end());
+  }
+});
+
+test('a draft refresh retires expired rows in a menu that is already open for the same Host catalog', async (t) => {
+  let now = 1000;
+  t.mock.method(Date, 'now', () => now);
+  const props = { machine: 'box', harness: 'claude', folder: '/p' };
+  let menu: unknown;
+  const open = await mount({ ...props, want: true }, (answer) => (menu = answer));
+  try {
+    assert.deepEqual(menu, { state: 'ready', listed: true, commands: [compact] });
+    now += COMMANDS_FRESH_MS;
+    let release: (value: unknown) => void = () => assert.fail('the draft did not refresh');
+    reply = () => new Promise((resolve) => (release = resolve));
+    const draft = await mount({ ...props, want: 'draft' });
+    try {
+      assert.equal(asks().length, 2);
+      assert.deepEqual(menu, { state: 'loading' });
+      await act(async () => release({ value: { listed: true, commands: [] } }));
+      assert.deepEqual(menu, { state: 'ready', listed: true, commands: [] });
+    } finally {
+      await act(async () => draft.end());
+    }
+  } finally {
+    await act(async () => open.end());
+  }
 });

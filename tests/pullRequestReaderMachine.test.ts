@@ -164,6 +164,41 @@ for (const [harness, family] of [
   });
 }
 
+test('a saved sync report retries verification and recovers the merged badge despite an obsolete checkout', async () => {
+  const url = 'https://github.com/o/r/pull/11';
+  const other = 'https://github.com/o/other/pull/11';
+  const oid = 'fedcba9876543210fedcba9876543210fedcba98';
+  history = [
+    {
+      status: 'completed',
+      items: [
+        {
+          type: 'agentMessage',
+          text:
+            'I verified that merge commit `fedcba9` is on remote `main`. [PR #11](' +
+            url +
+            ')\n\nBackground: [an earlier PR](' +
+            other +
+            ').',
+        },
+      ],
+    },
+  ];
+  status = async () => hostStatus('https://github.com/o/old-repo');
+  gh = (args) => (args[1] === 'list' ? { ok: true, stdout: '[]' } : { ok: false, stdout: '', stderr: 'offline' });
+  assert.equal(await read(folder), null);
+
+  gh = (args) => ({
+    ok: true,
+    stdout: JSON.stringify({
+      url,
+      state: 'MERGED',
+      ...(args[3].split(',').includes('mergeCommit') ? { mergeCommit: { oid } } : {}),
+    }),
+  });
+  assert.equal((await read(folder))?.url, url);
+});
+
 test("a chat of this Mac still reads its own folder's branch with gh pr view in that folder", async () => {
   gh = () => ({ ok: true, stdout: JSON.stringify(PR) });
   const pr = await read('/work/app', 'codex-local-chat');

@@ -1,4 +1,4 @@
-// Settings → Git and Settings → Worktrees: branch prefix, worktree folder and cleanup, local environments.
+// Settings → Git: the branch prefix, then the worktree folder and cleanup and the local environments below it.
 
 import { Group, Row, Toggle } from './Controls';
 import { abbreviateHome, basename, isAbsolutePath } from '../../../lib/paths';

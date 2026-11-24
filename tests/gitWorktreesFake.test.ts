@@ -613,7 +613,7 @@ test('a worktree root typed in Settings: empty is the default, ~ is home, and a 
   assert.equal(git.rootOf('', undefined), git.defaultRoot());
   // nothing is made under wherever main started, and nothing is listed, pruned or restored there
   respond = repoReply({ head: 'main', remote: true });
-  const refused = { ok: false, error: 'The worktree root in Settings → Worktrees must be a full path, like ~/worktrees' };
+  const refused = { ok: false, error: 'The worktree root in Settings → Git must be a full path, like ~/worktrees' };
   assert.deepEqual(await git.worktreeAdd('/src/app', { root: 'worktrees' }), refused);
   assert.equal(
     calls.some((c) => has(c.args, 'worktree', 'add')),

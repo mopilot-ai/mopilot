@@ -32,7 +32,7 @@ test.describe('Mobile Remote is open to a signed-in account with no invite', () 
   test.use({ harnesses: 'codex', seed: account });
   test('the entry shows for an account the server invited to nothing', async ({ page }) => {
     await openConnections(page);
-    await expect(page.getByRole('heading', { name: 'Phone' })).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: 'Devices that can control this Mac' })).toHaveCount(1);
   });
 });
 
@@ -40,7 +40,7 @@ test.describe('Mobile Remote is hidden while its switch is off', () => {
   test.use({ harnesses: 'codex', seed: account, env: { MOPILOT_FLAGS: 'remote.enabled=0' } });
   test('the entry is absent for every account', async ({ page }) => {
     await openConnections(page);
-    await expect(page.getByRole('heading', { name: 'Phone' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Devices that can control this Mac' })).toHaveCount(0);
   });
 });
 
@@ -52,8 +52,10 @@ test.describe('Mobile Remote restores local consent', () => {
   });
   test('the saved opt-in starts the service without toggling it again', async ({ page }) => {
     await openConnections(page);
-    const section = page.locator('section.settings-group', { has: page.getByRole('heading', { name: 'Phone' }) });
-    await expect(section.getByRole('switch', { name: 'Allow phone access' })).toHaveAttribute('aria-checked', 'true');
+    const section = page.locator('section.settings-group', {
+      has: page.getByRole('heading', { name: 'Devices that can control this Mac' }),
+    });
+    await expect(section.getByRole('switch', { name: 'Allow connections' })).toHaveAttribute('aria-checked', 'true');
   });
 });
 
@@ -65,13 +67,15 @@ test.describe('Mobile Remote with its switch enabled', () => {
   });
   test('local opt-in offers the dialog, and an unavailable relay says so there', async ({ page }, testInfo) => {
     await openConnections(page);
-    const section = page.locator('section.settings-group', { has: page.getByRole('heading', { name: 'Phone' }) });
+    const section = page.locator('section.settings-group', {
+      has: page.getByRole('heading', { name: 'Devices that can control this Mac' }),
+    });
     await expect(section).toBeVisible();
-    const toggle = section.getByRole('switch', { name: 'Allow phone access' });
+    const toggle = section.getByRole('switch', { name: 'Allow connections' });
     await expect(toggle).toHaveAttribute('aria-checked', 'false');
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-checked', 'true');
-    await section.getByRole('button', { name: 'Connect' }).click();
+    await section.getByRole('button', { name: 'Add' }).click();
     const dialog = page.locator('.dialog', { hasText: 'Connect your phone' });
     await expect(dialog.getByRole('alert')).toBeVisible({ timeout: 20_000 });
     const screenshot = testInfo.outputPath('connect-phone-no-relay.png');
@@ -81,7 +85,11 @@ test.describe('Mobile Remote with its switch enabled', () => {
     await page.setViewportSize({ width: 640, height: 800 });
     const narrow = await section.boundingBox();
     expect(narrow && narrow.x >= 0 && narrow.x + narrow.width <= 640).toBeTruthy();
+    // turning it off says what it does first
     await toggle.click();
+    const ask = page.getByRole('alertdialog', { name: 'Turn off connections?' });
+    await expect(ask).toContainText('connected now are disconnected');
+    await ask.getByRole('button', { name: 'Turn off' }).click();
     await expect(toggle).toHaveAttribute('aria-checked', 'false');
   });
 });
@@ -170,7 +178,9 @@ test.describe('Mobile Remote with a relay to pair through', () => {
     await testInfo.attach('Connected toast', { path: done, contentType: 'image/png' });
     await expect(page.getByTestId('phone-banner')).toHaveCount(0);
     await openConnections(page);
-    const section = page.locator('section.settings-group', { has: page.getByRole('heading', { name: 'Phone' }) });
+    const section = page.locator('section.settings-group', {
+      has: page.getByRole('heading', { name: 'Devices that can control this Mac' }),
+    });
     await expect(section.getByText('iPhone 18 Pro')).toBeVisible();
     await expect(section.getByText(/Paired /)).toBeVisible();
     await expect(section.getByText(/1 connected · 1 paired/)).toBeVisible();
@@ -191,11 +201,7 @@ test.describe('Mobile Remote with a relay to pair through', () => {
     await section.screenshot({ path: details });
     await testInfo.attach('Phone connection details', { path: details, contentType: 'image/png' });
     // Linux has no login item, so that row is not drawn there
-    const rows = [
-      'Keep running in the menu bar',
-      'Stay awake when plugged in',
-      ...(process.platform === 'linux' ? [] : ['Start at login']),
-    ];
+    const rows = ['Keep running in the menu bar', 'Keep this Mac awake', ...(process.platform === 'linux' ? [] : ['Start at login'])];
     for (const name of rows) await expect(page.getByRole('switch', { name })).toHaveAttribute('aria-checked', 'true');
   });
 });

@@ -30,6 +30,18 @@ const EXEMPT: Record<string, string> = {
   bad_stream_frame: 'stream framing fault: the stream closes and the app reconnects',
   too_large: 'a frame over what one message carries: the stream ends with a reason the app reads',
   hello_required: 'handshake fault: the app says hello again on reconnect',
+  // pairing by code (host/src/codePairService.mjs): the answers go to the app's own pairing sheet over the CLI connection, which words each one beside the code and the question; they are never a refusal of a machine chat's message
+  bad_credential: 'pairing by code: the pairing sheet words it',
+  approval_unavailable: 'pairing by code: the pairing sheet words it',
+  failed: 'pairing by code: the pairing sheet words it',
+  relay: 'pairing by code: the pairing sheet words it',
+  connections_off: 'pairing by code: the pairing sheet words it',
+  paused: 'pairing by code: the pairing sheet words it',
+  limited: 'pairing by code: the pairing sheet words it',
+  burned: 'pairing by code: the pairing sheet words it',
+  no_approval_helper: 'pairing by code: the pairing sheet words it',
+  no_such_offer: 'pairing by code: the pairing sheet words it',
+  not_asked: 'pairing by code: the pairing sheet words it',
   // updating a Host from Settings: the update button's own toast says it
   trust_busy: "Settings › My machines update flow: the Update button's toast",
   trust_recovery_failed: "Settings › My machines update flow: the Update button's toast",

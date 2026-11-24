@@ -7,12 +7,12 @@ import { visibleChats } from '../../store/split';
 import { ensureSession, useSessions } from '../../store/session/useSession';
 import { adapterTasksOf, useAdapterTaskActivity } from '../../store/backgroundTasks';
 import { chatRowStatus, rowRuntime } from '../../session/chatRowState';
-import { useSidebarLineage } from '../../session/harness/claude/desktopLineage';
+import { useFamilyLineage } from '../../session/harness/claude/desktopLineage';
 import { familiesOf } from '../../lib/sidebarFamilyIndex';
 
 /** Only the owning list passes its roots; duplicate Pinned/Recents copies need not unfold too. */
 export function useRequiredChats(roots: readonly Thread[], activeThread: string | null): ReadonlySet<string> {
-  const lineage = useSidebarLineage();
+  const lineage = useFamilyLineage();
   const threads = useStore((s) => s.threads);
   const listed = useStore((s) => s.threadOrder);
   const momo = useStore((s) => s.momoChats);

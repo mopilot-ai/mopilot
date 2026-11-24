@@ -4,7 +4,7 @@ import { chatBasicHarness } from '../store/chats';
 import { agentOfKind } from '../store/machineChatSwitch';
 import { hostFamilyOfHarness, isHostFamily } from '../../shared/host/chatIds.mjs';
 import { useChatMachine } from '../lib/chatMachine';
-import { useHostCommands, type CommandsAnswer } from '../lib/hostCommands';
+import { useHostCommands, type CatalogRequest, type CommandsAnswer } from '../lib/hostCommands';
 import { useHostAgentChoice } from './useHostAgentChoice';
 
 /** What the machine's agent lists, and where. */
@@ -16,8 +16,8 @@ export const wireHarnessOf = (agent: string) => (isHostFamily(agent) ? agent : n
 /** What an agent the Host cannot list for says: nothing listed, and nothing asked. */
 const NOT_LISTED: CommandsAnswer = { state: 'ready', listed: false, commands: [] };
 
-/** @param threadId the chat, or null for the new chat @param want whether the menu is open: the machine is asked only then */
-export function useMachineCommands(threadId: string | null, want: boolean): MachineCommands | null {
+/** @param threadId the chat, or null for the new chat @param want whether the slash menu or draft needs the catalog */
+export function useMachineCommands(threadId: string | null, want: CatalogRequest): MachineCommands | null {
   const { machine } = useChatMachine(threadId);
   const draft = useHostAgentChoice();
   // the agent a chat on a machine runs on there: the one the Host moved it to, else the one its id names

@@ -87,7 +87,7 @@ test('the Mac mini row: Online with the agent that runs there and who needs sign
   assert.equal(root.host.querySelector('.machine-dot')?.className, 'machine-dot ok');
   assert.equal(button(root.host, 'Sign in to Gemini on mini').textContent, 'Sign in');
   await click(button(root.host, 'More for mini'));
-  assert.deepEqual(options(root.host), ['Sign in to Grok', 'Open terminal', 'Rename', 'Remove']);
+  assert.deepEqual(options(root.host), ['Details', 'Rename', 'Sign in to Grok', 'Open terminal', 'Remove']);
   await click(button(root.host, 'Sign in to Grok'));
   await flush();
   assert.deepEqual(
@@ -104,7 +104,7 @@ test('an agent whose state is still being read is no sign-in need: not in the ro
   await flush(5);
   assert.equal(status(root.host), 'Online · Claude Code · Gemini needs sign-in');
   await click(button(root.host, 'More for mini'));
-  assert.deepEqual(options(root.host), ['Open terminal', 'Rename', 'Remove']);
+  assert.deepEqual(options(root.host), ['Details', 'Rename', 'Open terminal', 'Remove']);
 });
 
 test('nothing runs there: who needs sign-in, one Sign in for the first, the next one in the menu', async (t) => {
@@ -116,7 +116,7 @@ test('nothing runs there: who needs sign-in, one Sign in for the first, the next
   assert.equal(root.host.querySelector('.machine-dot')?.className, 'machine-dot warn');
   assert.equal(button(root.host, 'Sign in to Gemini on mini').textContent, 'Sign in');
   await click(button(root.host, 'More for mini'));
-  assert.deepEqual(options(root.host).slice(0, 1), ['Sign in to Grok']);
+  assert.deepEqual(options(root.host).slice(2, 3), ['Sign in to Grok']);
   await click(button(root.host, 'Sign in to Gemini on mini'));
   await flush();
   assert.deepEqual(
@@ -137,7 +137,7 @@ test('a running sign-in shows its agent, Open page reopens the vendor page, Canc
     [['shell.openExternal', 'https://accounts.google.com/o/oauth2/x']],
   );
   await click(button(root.host, 'More for mini'));
-  assert.deepEqual(options(root.host).slice(0, 1), ['Sign in to Grok'], 'the running one is not offered again');
+  assert.deepEqual(options(root.host).slice(2, 3), ['Sign in to Grok'], 'the running one is not offered again');
   await click(button(root.host, 'Cancel signing in to Gemini on mini'));
   assert.deepEqual(
     calls.filter((c) => c[0] === 'host.cancelSignin'),
@@ -215,7 +215,7 @@ test('an offline machine says when it was last seen and offers no agent action, 
   assert.equal(root.host.querySelectorAll('.machine-controls .btn-pill').length, 1, 'no agent action: the one button asks again');
   assert.equal(buttons(root.host, 'Check again mini').length, 1);
   await click(button(root.host, 'More for mini'));
-  assert.deepEqual(options(root.host), ['Open terminal', 'Rename', 'Remove']);
+  assert.deepEqual(options(root.host), ['Details', 'Rename', 'Open terminal', 'Remove']);
   // it comes back: the row's action returns
   await act(() => pushMachines({ machines: [signedOut], resolved: true }));
   assert.equal(buttons(root.host, 'Sign in to Gemini on mini').length, 1);

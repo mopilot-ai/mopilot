@@ -1,6 +1,7 @@
 // The composer's contenteditable input: atomic skill, chat, tab and file reference chips, and serializing the draft to prompt text.
 
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ClipboardEvent, type Ref } from 'react';
+import { noteRenderer, type BusyWhy } from '../../lib/rendererNote';
+import { useEffect, useLayoutEffect, useReducer, useRef, useState, type KeyboardEvent, type ClipboardEvent, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import type { Attachment } from '../../store/types';
 import { openSkill } from '../markdown/SkillLink';
@@ -13,7 +14,8 @@ import { fileMentions } from '../../lib/fileMentions';
 import { deleteAdjacentSkill } from '../../lib/skillDeletion';
 import { useComposerComposition } from '../../lib/composerComposition';
 import { imeComposing } from '../../lib/focus';
-import { readEditor, caretOffset, placeCaret, selectedText } from '../../lib/composerEditorDocument';
+import { readEditor, caretOffset, placeCaret, selectedText, editorTextRanges } from '../../lib/composerEditorDocument';
+import type { slashCommandPresentation } from '../../lib/composerSkills';
 import { editComposerList, restoreComposerLists, startComposerList } from '../../lib/composerLists';
 import { clearComposerBoundaries, pasteComposerBlocks } from '../../lib/composerBlockEdit';
 
@@ -72,8 +74,10 @@ function referenceFragment(text: string) {
 export function ComposerInput({
   ref,
   value,
+  commandPresentation,
   attachments,
   disabled,
+  busyWhy = null,
   hidden,
   placeholder,
   onChange,
@@ -85,8 +89,11 @@ export function ComposerInput({
 }: {
   ref: Ref<ComposerInputElement>;
   value: string;
+  commandPresentation?: ReturnType<typeof slashCommandPresentation>;
   attachments: Attachment[];
   disabled: boolean;
+  /** why it is busy, for the record of what it refused (components/composer/useBusyRelease.ts) */
+  busyWhy?: BusyWhy | null;
   hidden: boolean;
   placeholder: string;
   onChange: (text: string, attachments: Attachment[], caret: number) => void;
@@ -98,19 +105,41 @@ export function ComposerInput({
 }) {
   const elRef = useRef<ComposerInputElement | null>(null);
   const rendered = useRef('');
+  // Browser edits can replace text nodes even when they serialize to the same draft.
+  const editRevision = useRef(0);
+  const previousRanges = useRef<NonNullable<typeof commandPresentation>['ranges']>([]);
+  const nextRanges = commandPresentation?.ranges ?? [];
+  if (
+    nextRanges.length !== previousRanges.current.length ||
+    nextRanges.some(({ start, end }, i) => start !== previousRanges.current[i].start || end !== previousRanges.current[i].end)
+  )
+    previousRanges.current = nextRanges;
+  const commandRanges = previousRanges.current;
   // a caret position setCaretAfter asked for, placed by the render that draws its text
   const pendingCaret = useRef<{ text: string; position: number } | null>(null);
   const [iconHosts, setIconHosts] = useState<HTMLElement[]>([]);
   const [sessionMenu, setSessionMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const archive = useRef(new Map<string, Attachment>());
   const sequence = useRef(0);
-  const composition = useComposerComposition(() => sync());
+  // a busy editor takes no edit of any kind: the plain keys are refused below, and what an input method composed meanwhile
+  // (which the browser does not let beforeinput cancel) is drawn away again, rather than half the keys landing (#5402)
+  const busy = useRef(disabled);
+  busy.current = disabled;
+  const busyWhyRef = useRef(busyWhy);
+  busyWhyRef.current = busyWhy;
+  const [, redraw] = useReducer((n: number) => n + 1, 0);
+  const composition = useComposerComposition(() => {
+    if (!busy.current) return sync();
+    noteRenderer({ what: 'composerRefused', inputType: 'insertCompositionText', count: 1, why: busyWhyRef.current ?? undefined });
+    rendered.current = '';
+    redraw();
+  });
   const editingList = useRef(false);
   const { composing } = composition;
   const skills = attachments.flatMap((a) =>
     a.kind === 'skill' ? [{ a, offset: Math.max(0, Math.min(value.length, a.textOffset ?? 0)) }] : [],
   );
-  const signature = JSON.stringify([value, skills.map(({ a, offset }) => [a.path, a.displayName ?? a.name, offset])]);
+  const signature = JSON.stringify([value, skills.map(({ a, offset }) => [a.path, a.displayName ?? a.name, offset]), editRevision.current]);
   useEffect(() => {
     if (!sessionMenu) return;
     const dismiss = (event: globalThis.KeyboardEvent | MouseEvent) => {
@@ -132,9 +161,27 @@ export function ComposerInput({
   useLayoutEffect(() => {
     const el = elRef.current;
     if (!el || !disabled) return;
-    const block = (event: Event) => event.preventDefault();
+    // what it refuses is noted once a second at most, as a count (content-free: the kind of input, never what it was)
+    let refused = 0;
+    let kind = '';
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const flush = () => {
+      timer = undefined;
+      if (refused) noteRenderer({ what: 'composerRefused', inputType: kind, count: refused, why: busyWhyRef.current ?? undefined });
+      refused = 0;
+    };
+    const block = (event: Event) => {
+      event.preventDefault();
+      refused += 1;
+      kind = (event as InputEvent).inputType || 'input';
+      timer ??= setTimeout(flush, 1000);
+    };
     el.addEventListener('beforeinput', block);
-    return () => el.removeEventListener('beforeinput', block);
+    return () => {
+      el.removeEventListener('beforeinput', block);
+      clearTimeout(timer);
+      flush();
+    };
   }, [disabled]);
 
   useLayoutEffect(() => {
@@ -171,6 +218,22 @@ export function ComposerInput({
     else if (focused) placeCaret(el, Math.min(caret, value.length));
   });
 
+  // Color the command's text without touching the editable DOM or its undo history.
+  useLayoutEffect(() => {
+    const el = elRef.current;
+    const highlights = globalThis.CSS?.highlights;
+    if (!el || rendered.current !== signature || !commandRanges.length || composition.active || !highlights) return;
+    const name = 'composer-slash-command';
+    const ranges = editorTextRanges(el, commandRanges);
+    const highlight = highlights.get(name) ?? new Highlight();
+    for (const range of ranges) highlight.add(range);
+    highlights.set(name, highlight);
+    return () => {
+      for (const range of ranges) highlight.delete(range);
+      if (!highlight.size) highlights.delete(name);
+    };
+  }, [commandRanges, composition.active, signature]);
+
   const sync = () => {
     const el = elRef.current!;
     clearComposerBoundaries(el);
@@ -180,7 +243,11 @@ export function ComposerInput({
       return a ? [{ ...a, textOffset: offset }] : [];
     });
     const nextAttachments = [...attachments.filter((a) => a.kind !== 'skill'), ...nextSkills];
-    rendered.current = JSON.stringify([next.text, nextSkills.map((a) => [a.path, a.displayName ?? a.name, a.textOffset])]);
+    rendered.current = JSON.stringify([
+      next.text,
+      nextSkills.map((a) => [a.path, a.displayName ?? a.name, a.textOffset]),
+      ++editRevision.current,
+    ]);
     onChange(next.text, nextAttachments, caretOffset(el));
   };
 
@@ -223,6 +290,8 @@ export function ComposerInput({
         aria-label="Message"
         aria-multiline="true"
         aria-disabled={disabled}
+        aria-description={composition.active ? undefined : commandPresentation?.hint}
+        data-command-hint={composition.active ? undefined : commandPresentation?.hint}
         data-placeholder={!composition.active && !value && !skills.length ? placeholder : ''}
         contentEditable
         spellCheck={false}

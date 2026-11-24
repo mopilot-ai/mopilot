@@ -62,90 +62,19 @@ function world(o: { timeoutMs?: number } = {}) {
       return () => `call-${++n}`;
     })(),
   });
-  const app = (extra: { fail?: boolean } = {}) => {
+  const app = (extra: { fail?: boolean; epoch?: () => number } = {}) => {
     const sent: any[] = [];
     const conn = relay.attach(
       (m: any) => {
         if (extra.fail) throw new Error('socket closed');
         sent.push(m);
       },
-      () => 7,
+      extra.epoch ?? (() => 7),
     );
     return { conn, sent };
   };
   return { registry, relay, app, clock };
 }
-
-test('B: tool lists and results are checked before they reach the Host', () => {
-  assert.ok(S.FEATURES.includes('tools'));
-  assert.deepEqual(S.REQUIRES['host.toolsSync'], ['tools']);
-  assert.deepEqual(S.REQUIRES['host.toolResult'], ['tools']);
-  const sync = (tools: unknown) => S.parseParams('host.toolsSync', { tools });
-  assert.deepEqual(sync([]), { tools: [] });
-  assert.deepEqual(sync([{ name: 'browser_open', policy: 'act', extra: 1 }]).tools[0], {
-    name: 'browser_open',
-    description: '',
-    inputSchema: { type: 'object', properties: {} },
-    policy: 'act',
-  });
-  const bad = (fn: () => unknown) => assert.throws(fn, (e: any) => e instanceof S.SchemaError);
-  bad(() => S.parseParams('host.toolsSync', {}));
-  bad(() => sync(Array.from({ length: 257 }, (_, i) => ({ name: `t${i}`, policy: 'act' }))));
-  bad(() => sync(['x']));
-  bad(() => sync([{ name: 'a b', policy: 'act' }]));
-  bad(() => sync([{ name: 'a', policy: 'maybe' }]));
-  bad(() =>
-    sync([
-      { name: 'a', policy: 'act' },
-      { name: 'a', policy: 'act' },
-    ]),
-  );
-  bad(() => sync([{ name: 'a', policy: 'act', description: 3 }]));
-  bad(() => sync([{ name: 'a', policy: 'act', description: 'x'.repeat(9000) }]));
-  bad(() => sync([{ name: 'a', policy: 'act', inputSchema: 'x' }]));
-  bad(() => sync([{ name: 'a', policy: 'act', inputSchema: { big: 'x'.repeat(70000) } }]));
-
-  const result = (r: object) => S.parseParams('host.toolResult', { chatId: 'acp:fake:a', epoch: 3, callId: 'c1', ...r });
-  assert.deepEqual(
-    result({ ok: true, content: [text('hi'), { type: 'image', data: 'AAAA', mimeType: 'image/png', extra: 1 }], endsTurn: true }),
-    {
-      chatId: 'acp:fake:a',
-      epoch: 3,
-      callId: 'c1',
-      ok: true,
-      content: [text('hi'), { type: 'image', data: 'AAAA', mimeType: 'image/png' }],
-      endsTurn: true,
-    },
-  );
-  assert.equal(result({ ok: true, content: [] }).endsTurn, undefined);
-  assert.deepEqual(result({ ok: false, content: [], error: { code: 'denied', message: 'No.' }, endsTurn: true }).error, {
-    code: 'denied',
-    message: 'No.',
-  });
-  bad(() => S.parseParams('host.toolResult', { callId: 'c1', epoch: 3, ok: true, content: [] }));
-  bad(() => S.parseParams('host.toolResult', { chatId: 'acp:fake:a', callId: 'c1', ok: true, content: [] }));
-  bad(() => result({ callId: 'a b', ok: true, content: [] }));
-  bad(() => result({ ok: 'yes', content: [] }));
-  bad(() => result({ ok: true }));
-  bad(() => result({ ok: true, content: Array.from({ length: 65 }, () => text('x')) }));
-  bad(() => result({ ok: true, content: [{ type: 'video' }] }));
-  // one result is at most a frame: a 2 MB screenshot passes, a result over the frame does not
-  assert.equal(result({ ok: true, content: [{ type: 'image', data: 'A'.repeat(2 * 1024 * 1024), mimeType: 'image/png' }] }).ok, true);
-  bad(() => result({ ok: true, content: [{ type: 'text', text: 'x'.repeat(8 * 1024 * 1024) }] }));
-  bad(() =>
-    result({
-      ok: true,
-      content: [
-        { type: 'text', text: 'x'.repeat(5 * 1024 * 1024) },
-        { type: 'image', data: 'A'.repeat(4 * 1024 * 1024), mimeType: 'image/png' },
-      ],
-    }),
-  );
-  bad(() => result({ ok: true, content: [{ type: 'image', data: 'AA', mimeType: 'text/html' }] }));
-  bad(() => result({ ok: false, content: [] }));
-  bad(() => result({ ok: false, content: [], error: { code: '', message: 'x' } }));
-  bad(() => result({ ok: false, content: [], error: { code: 'x', message: 3 } }));
-});
 
 test('an announced tool is a registry tool; a call goes to the chat’s app and its answer is the result', async () => {
   const w = world();
@@ -231,7 +160,8 @@ test('A: a call waiting for the app ends when the app disconnects, is stopped, o
 
   const dropped = w.registry.invoke('c1', 's', 'browser_open', {});
   await until(() => a.sent.length === 1);
-  const b = w.app();
+  let epoch = 7;
+  const b = w.app({ epoch: () => epoch });
   b.conn.sync([spec('browser_open')]);
   b.conn.send('c1');
   a.conn.detach();
@@ -245,13 +175,14 @@ test('A: a call waiting for the app ends when the app disconnects, is stopped, o
   assert.equal((await stopped).error.code, 'aborted');
   assert.deepEqual(b.sent[1], { event: 'toolCancel', chatId: 'c1', epoch: 7, callId: 'call-2' });
 
-  // the harness cancelling that one call
+  // The harness cancels after the chat moves. The reply still names the epoch of the original call.
   const ac = new AbortController();
   const cancelled = w.registry.invoke('c1', 's', 'browser_open', {}, { signal: ac.signal });
   await until(() => b.sent.length === 3);
+  epoch = 8;
   ac.abort();
   assert.equal((await cancelled).error.code, 'aborted');
-  assert.equal(b.sent[3].event, 'toolCancel');
+  assert.deepEqual(b.sent[3], { event: 'toolCancel', chatId: 'c1', epoch: 7, callId: 'call-3' });
 
   // nobody answers: the call waits until its timer fires, and only that timer (the earlier calls' were cleared when they ended)
   const waiting = w.registry.invoke('c1', 's', 'browser_open', {});

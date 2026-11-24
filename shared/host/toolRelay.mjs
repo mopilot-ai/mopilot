@@ -19,6 +19,9 @@ const MAX_MESSAGE = 16 * 1024;
 
 const isRecord = (/** @type {unknown} */ v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
+/** @param {unknown} id @returns {id is string} */
+export const isToolCallId = (id) => typeof id === 'string' && ID.test(id);
+
 /**
  * @param {(p: any) => { chatId: string, epoch: number }} scoped the chat and epoch a request names
  * @param {(message: string) => Error} bad the schema's error for a request the client got wrong
@@ -55,7 +58,7 @@ export function toolParsers(scoped, bad) {
       return { tools: p.tools.map((t) => toolOf(t, seen)) };
     },
     'host.toolResult': (p) => {
-      if (typeof p.callId !== 'string' || !ID.test(p.callId)) throw bad('That tool call is not one this Host knows.');
+      if (!isToolCallId(p.callId)) throw bad('That tool call is not one this Host knows.');
       if (typeof p.ok !== 'boolean') throw bad('Say whether the tool call worked.');
       if (!Array.isArray(p.content) || p.content.length > MAX_BLOCKS) throw bad('That tool result has no usable content.');
       const content = p.content.map(blockOf);

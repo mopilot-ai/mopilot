@@ -121,9 +121,9 @@ function createRemoteChats({
 
   /**
    * One finished item of the Host's stream at `rev`: written to the transcript when it leaves a record, shown, and counted.
-   * @param {Follow} f @param {number} rev @param {any} item @param {string | undefined} promotes the unfinished message it completes @param {Set<number>} [quiet] revisions to count and record but not show
+   * @param {Follow} f @param {number} rev @param {any} item @param {string | undefined} promotes the unfinished message it completes @param {Set<number>} [quiet] revisions to count and record but not show @param {string | null} [openTurn] the active turn of a replay batch
    */
-  function applyDurable(f, rev, item, promotes, quiet) {
+  function applyDurable(f, rev, item, promotes, quiet, openTurn) {
     const cursor = /** @type {{ gen: string, rev: number }} */ (f.cursor);
     if (rev <= cursor.rev) return void (f.replay !== null && replayCard(f, rev, item, /** @type {Set<number>} */ (quiet)));
     const other = otherFamily(item);
@@ -143,7 +143,7 @@ function createRemoteChats({
         : []
       : f.pairs.take(item.user ? { ...item, user: scopeHostPictures(item.user, f.hostId) } : item, eventOf(item));
     for (const ev of events) {
-      applyEvent(f, rev, ev, promotes, quiet);
+      applyEvent(f, rev, ev, promotes, quiet, openTurn);
       if (ev.kind === 'turnStart') {
         const text = ev.user?.content?.find?.((/** @type {any} */ c) => c?.type === 'text')?.text;
         if (typeof text === 'string') sent.seen(f.chatId, text, ev.user?.messageKey ?? ev.user?.clientId);
@@ -157,8 +157,8 @@ function createRemoteChats({
     if (item?.t === 'user' && typeof item.messageKey === 'string') sent.seen(f.chatId, undefined, item.messageKey);
   }
 
-  /** One event of the Host's stream at `rev`. @param {Follow} f @param {number} rev @param {any} ev @param {string | undefined} promotes @param {Set<number>} [quiet] */
-  function applyEvent(f, rev, ev, promotes, quiet) {
+  /** One event of the Host's stream at `rev`. @param {Follow} f @param {number} rev @param {any} ev @param {string | undefined} promotes @param {Set<number>} [quiet] @param {string | null} [openTurn] */
+  function applyEvent(f, rev, ev, promotes, quiet, openTurn) {
     // the Host's own paths mean nothing here, and a snapshot of one would be taken of whatever lives at that path on this Mac
     // a turn's start told after its end (an older Host's journal holds such a turn, and the stream could say it again) opens nothing: the chat would stay running with no end to come
     if (ev.kind === 'turnStart' && f.ended.has(ev.turnId)) return;
@@ -193,8 +193,9 @@ function createRemoteChats({
     }
     // the call's whole output replaces the live view of it
     if (promotes !== undefined) f.shown.delete(promotes);
-    // a card is held in the chat's session state, which exists only once something asked for it: made now, so a card told before any window opened the chat (an app that just started, a chat nobody looks at) waits there, where the controller drops it otherwise (#4542)
-    if (event.kind === 'permission' || event.kind === 'question') state()?.get(f.chatId);
+    // Initialize live state only for a current turn or card. A replay of completed history should not start a live session.
+    const liveStart = event.kind === 'turnStart' && (quiet === undefined || event.turnId === openTurn);
+    if (liveStart || event.kind === 'permission' || event.kind === 'question') state()?.get(f.chatId);
     // the cards waiting for the user, by id: an answer given in this app finds its chat here (the unanswered period and the push are the controller's and remoteSend's, from the session state)
     if (event.kind === 'question') return void chatState.question(f, event);
     // a Host's card id is made the chat's own before anything else sees it (chatState.cardId): an id another Host or chat uses, or one of this Mac's, is a different card here
@@ -246,7 +247,15 @@ function createRemoteChats({
     // a new numbering that starts after its first record: what came before is not here
     if (f.cursor?.rev === 0 && entries.length && entries[0].rev > 1) f.complete = false;
     const quiet = closedCards(entries);
-    for (const e of entries) applyDurable(f, e.rev, e.item, e.promotes, quiet);
+    const start = entries.findLastIndex((e) => eventOf(e.item)?.kind === 'turnStart');
+    const turn = eventOf(entries[start]?.item)?.turnId;
+    const ended =
+      turn &&
+      entries.slice(start + 1).some(({ item }) => {
+        const ev = eventOf(item);
+        return ev?.kind === 'turnEnd' && ev.turnId === turn;
+      });
+    for (const e of entries) applyDurable(f, e.rev, e.item, e.promotes, quiet, ended ? null : turn);
     applyInflight(f, res.inflight);
     await chatState.apply(f, res.chatState);
     journalStatus.show(f, res.snapshot.storageError?.code);
@@ -272,6 +281,7 @@ function createRemoteChats({
           // the read goes on while this job takes the machine's records: those reach the session as events, so it stops here
           const upTo = await items.size(f.chatId);
           if (f.gone) return;
+          state()?.get(f.chatId);
           emit({
             kind: 'turnStart',
             key: f.chatId,

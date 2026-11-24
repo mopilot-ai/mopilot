@@ -16,7 +16,7 @@ files to copy). They have not been checked against a live Conductor install.
   `<repo>/.git/worktrees/<name>/`. Nothing in the workspace, its branch or its commits changes.
 - An adopted worktree is never removed, pruned or cleaned up by MoPilot, and archiving a chat in it runs no cleanup
   script. Removing it is done in Conductor or with `git worktree remove`.
-- The import is offered on the welcome page and in Settings → Worktrees only when there is something to import. It is
+- The import is offered on the welcome page and in Settings → Git only when there is something to import. It is
   safe to repeat.
 
 ## Working in an imported workspace
@@ -39,7 +39,7 @@ not imported.
 | `scripts.archive` | Cleanup script, run before a worktree MoPilot made is removed |
 | `scripts.run.<id>.command`, legacy `scripts.run` | Actions in the chat's menu |
 
-Conductor's files are read each time and never rewritten. Settings → Worktrees → Environments shows them read-only
+Conductor's files are read each time and never rewritten. Settings → Git → Environments shows them read-only
 with **Convert to environment.toml**. Config that cannot be read is reported with its file and reason.
 
 Scripts and terminals in any managed or adopted worktree get `MOPILOT_*` and the same values as `CONDUCTOR_*`:

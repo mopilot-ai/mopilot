@@ -4,6 +4,7 @@ const { OriginGrants } = require('../capabilities/browser/origins.cjs');
 const { SiteRisk, remoteLookup } = require('../capabilities/browser/siteRisk.cjs');
 const { chatAnchorOf } = require('../capabilities/anchor.cjs');
 const { usesSavedSites } = require('./computerAccess.cjs');
+const { thisMacControl } = require('../capabilities/contract/thisMacControl.cjs');
 
 /** The sensitive actions (siteRisk.cjs) a phone never approves: money moving and a password changing are confirmed on the Mac. */
 const MAC_ONLY_KINDS = new Set(['payment', 'payment_entry', 'purchase', 'transfer', 'password_change']);
@@ -22,10 +23,11 @@ function siteTables({ live, dir, prefs, isFlagEnabled }) {
   const autoThisTurn = new Set();
   const anchor = ({ chatId }) => {
     const a = chatAnchorOf(chatId, { sessions: live.sessions, controller: live.controller, prefs, remote: live.remoteOwners });
-    return a === 'ask' && autoThisTurn.has(chatId) ? 'auto' : a;
+    return a === 'ask' && autoThisTurn.has(chatId) && !thisMacControl(chatId) ? 'auto' : a;
   };
   // a remote owner of computer access (#1364) neither gets nor adds to the saved sites
-  const usesSaved = usesSavedSites(live);
+  const savedSites = usesSavedSites(live);
+  const usesSaved = (/** @type {string} */ chatId) => !thisMacControl(chatId) && savedSites(chatId);
   // an ACP harness working with no prompt has nobody to answer a site or action card (#1319 G11): both refuse at once
   const attended = ({ chatId }) =>
     live.controller.adapterOf(chatId)?.toolsOutsidePrompt === true && !live.sessions.get(chatId)?.activeTurn
@@ -48,7 +50,7 @@ function siteTables({ live, dir, prefs, isFlagEnabled }) {
   /** The card a table asks on (electron/capabilities/contract/approvals.cjs): the level needed and the levels to choose from; it names its browser. */
   /** @param {Parameters<ConstructorParameters<typeof OriginGrants>[0]['ask']>[0]} req */
   const askSite = async ({ chatId, browser, origin, need, allowAlways, risk: siteRisk, signal }) => {
-    const onMachine = machineOf(chatId);
+    const onMachine = browser === 'iab' ? machineOf(chatId) : null;
     const answer = await live.computerUse.broker.ask(
       chatId,
       'browserOrigin',
@@ -69,7 +71,7 @@ function siteTables({ live, dir, prefs, isFlagEnabled }) {
     );
     // Allow and switch to Auto: this step once, and Auto for the rest of the turn; a remote owner (#1364) never goes above Ask
     if (answer?.decision !== 'allow' || answer.then !== 'auto') return answer;
-    if (!live.remoteOwners?.get(chatId)) autoThisTurn.add(chatId);
+    if (!live.remoteOwners?.get(chatId) && !thisMacControl(chatId)) autoThisTurn.add(chatId);
     return { ...answer, scope: 'once' };
   };
   // the chat's turn ended (either table tells it): a switch to Auto made on a site card is the chat's mode's from now on
@@ -93,7 +95,7 @@ function siteTables({ live, dir, prefs, isFlagEnabled }) {
     commits,
     always,
   }) => {
-    const onMachine = machineOf(chatId);
+    const onMachine = browser === 'iab' ? machineOf(chatId) : null;
     const answer = await live.computerUse.broker.ask(
       chatId,
       'computerConfirm',

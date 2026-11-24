@@ -88,7 +88,7 @@ test('missing readings stay explicitly unavailable; over-capacity ones keep thei
   assert.equal(one(r.host, '.summary-context-value').textContent, '—');
   assert.equal(r.host.querySelector('.summary-context-tokens'), null, 'no token counts without a reading');
   assert.equal((one(r.host, 'details') as HTMLElement).dataset.level, undefined, 'no reading, no level');
-  assert.match(r.host.textContent!, /Usage shows here when this chat's next turn ends\./);
+  assert.match(r.host.textContent!, /No context usage reported yet\./);
   assert.equal(r.host.querySelector('meter'), null);
   // a chat that worked and has nothing reported says so, never 0%
   await act(async () => store.set({ runtime: { 'new-chat': { turns: [{ status: 'completed' }, { status: 'inProgress' }] } } }));

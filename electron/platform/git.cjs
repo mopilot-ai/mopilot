@@ -32,7 +32,7 @@ const { adopt, adoptedInfo, listAdopted } = require('./worktreeAdopt.cjs');
 const MARKER = '.mopilot-worktree.json';
 
 const defaultRoot = (home = os.homedir()) => path.join(home, '.mopilot', 'worktrees');
-const ROOT_NOT_FULL = 'The worktree root in Settings → Worktrees must be a full path, like ~/worktrees';
+const ROOT_NOT_FULL = 'The worktree root in Settings → Git must be a full path, like ~/worktrees';
 
 /**
  * Where worktrees go, from Settings (typed by hand): empty is the default folder, `~` is the home folder, and a
@@ -56,7 +56,7 @@ const codexWorktreeDirs = () => {
   return [path.join(os.homedir(), '.codex', 'worktrees'), ...(home ? [path.join(home, 'worktrees')] : [])];
 };
 const CODEX_OWNED =
-  "The Codex app deletes worktrees in its own worktree folder, even ones a chat is using. Choose another folder in Settings → Worktrees, or leave it empty for MoPilot's own.";
+  "The Codex app deletes worktrees in its own worktree folder, even ones a chat is using. Choose another folder in Settings → Git, or leave it empty for MoPilot's own.";
 const CODEX_DELETED = "This chat's worktree was in the Codex app's worktree folder, whose cleanup deleted it. Its branch is kept.";
 /**
  * `p` as the file system names it, for comparing folders: symlinks resolved through its nearest existing folder, and

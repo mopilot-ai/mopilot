@@ -54,8 +54,12 @@ test('anything not allowed is refused: a denied method, a method nobody decided,
   assert.doesNotThrow(() => refuseByKind({ kind: 'controller' }, 'chat.send'));
   assert.doesNotThrow(() => refuseByKind({}, 'host.modelKey'), "a principal that names no kind is a desktop's, as the rule gate reads it");
   assert.throws(() => refuseByKind({ kind: 'unknown' }, 'host.modelKey'), { code: 'forbidden' });
-  for (const kind of ['desktop', 'phone', 'cli', undefined])
-    assert.doesNotThrow(() => refuseByKind(kind ? { kind } : null, 'host.modelKey'));
+  for (const kind of ['desktop', 'cli', undefined]) assert.doesNotThrow(() => refuseByKind(kind ? { kind } : null, 'host.modelKey'));
+  assert.throws(
+    () => refuseByKind({ kind: 'phone' }, 'host.modelKey'),
+    { code: 'forbidden' },
+    'a phone has its own list (tests/phoneRefusals.invariant.test.ts)',
+  );
 });
 
 test("a controller answers its chats' approval cards and sets their permission mode as a desktop does (the owner's decision)", () => {
@@ -166,11 +170,13 @@ test('every session of a controller and every method refused to it is a line in 
   await assert.rejects(authenticate(again.request, id), /could not|audit/i);
 });
 
-test("every kind is classified at the entry: the owner's own computer, the CLI and the phone as they were, a controller by its list, any other kind only to pair or prove a key", async (t) => {
+test("every kind is classified at the entry: the owner's own computer and the CLI as they were, a phone and a controller by their lists, any other kind only to pair or prove a key", async (t) => {
   assert.deepEqual([...UNKNOWN_ALLOWED].sort(), ['host.auth', 'host.challenge', 'host.hello', 'host.pair']);
-  for (const kind of ['desktop', 'cli', 'phone'])
+  for (const kind of ['desktop', 'cli'])
     for (const m of ['host.clients', 'host.modelKey', 'host.policy', 'update', 'chat.send'])
       assert.equal(kindAllows(kind, m), true, `${kind} ${m}`);
+  assert.equal(kindAllows('phone', 'chat.send'), true);
+  assert.equal(kindAllows('phone', 'host.modelKey'), false);
   for (const kind of ['unknown', 'guest', '', undefined, 'someday']) {
     for (const m of UNKNOWN_ALLOWED) assert.equal(kindAllows(kind, m), true, `${kind} ${m}`);
     for (const m of [

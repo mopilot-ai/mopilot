@@ -3,4 +3,5 @@ const { send } = require('./spec.cjs');
 
 module.exports = {
   samples: send('perf:samples', 1),
+  record: send('perf:record', 1),
 };

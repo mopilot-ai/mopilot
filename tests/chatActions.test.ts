@@ -9,7 +9,8 @@ const url = new URL('../src/session/chatActions.ts', import.meta.url).href;
 const f = 'const f=globalThis.__chatActions;';
 const stubs: Record<string, string> = {
   '../store/chats':
-    f + 'export const chatFamily=()=>f.harness; export const usageHarnessOf=()=>f.harness; export const openSettings=()=>()=>{};',
+    f +
+    'export const chatFamily=()=>f.harness; export const usageHarnessOf=()=>f.harness; export const openSettings=()=>()=>{}; export const openMachines=()=>{};',
   // these chats run on this Mac
   '../lib/hostChats': 'export const hostOfChatNow=()=>""; export const onMachineNow=()=>false;',
   '../store/core': f + 'export const get=()=>({prefs:{shareUsageData:f.consent}}); export const toast=(...a)=>{f.toasts.push(a);};',

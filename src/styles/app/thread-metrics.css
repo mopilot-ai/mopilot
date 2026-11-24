@@ -75,6 +75,8 @@
   /* a section's label steps down from the project headings under it, as the Projects label does (sidebar-metrics.css) */
   font-size: var(--fs-micro);
   color: var(--text-4);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .side-section-label .icon-btn {
   opacity: 0;

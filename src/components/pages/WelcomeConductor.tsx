@@ -1,4 +1,4 @@
-// The welcome page's Conductor row: shown only on a machine with Conductor workspaces, it brings them over in place (the same import as Settings → Worktrees).
+// The welcome page's Conductor row: shown only on a machine with Conductor workspaces, it brings them over in place (the same import as Settings → Git).
 // @plain-copy: user text here names no ACP, CLI, endpoint, Basic or billing type (tests/userCopyJargon.invariant.test.ts)
 
 import { FolderInput } from 'lucide-react';

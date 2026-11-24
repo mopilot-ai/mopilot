@@ -1,4 +1,5 @@
 // The composer's line (and the hook behind it) when a Host chat's agent's git failed for a missing sign-in (src/lib/hostGitSignIn.ts), read from the chat's latest finished turn; null for a chat on this Mac, while a turn runs, or when nothing failed that way.
+import { connectionsRoute } from '../../lib/connectionsRoute';
 import { useMemo } from 'react';
 import { useStore } from '../../store/core';
 import { navigate } from '../../store/panes';
@@ -34,7 +35,7 @@ export function GitSignInNote({ threadId }: { threadId: string }) {
       machine={machine}
       host={host}
       recoveryKey={recoveryKey}
-      onOpenMachines={() => navigate({ name: 'settings', section: 'connections' })}
+      onOpenMachines={() => navigate(connectionsRoute('other'))}
     />
   );
 }

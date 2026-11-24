@@ -28,7 +28,7 @@ import { openMessageLink } from '../../../session/open';
 import { PeerContext } from '../PeerMessages';
 import { ReceivedMessage } from '../ReceivedMessage';
 import { peerForItem } from '../../../lib/peerItem';
-import { sideSessionEntryForItem, useOrchestration } from '../../../lib/sideSessions';
+import { sideSessionEntryForItem, useOrchestrationSelect } from '../../../lib/sideSessions';
 import { SideSessionCard } from '../SideSessionCard';
 import { AuthoredInputCard } from '../AuthoredInputCard';
 import { authoredFor, markedInputFor } from '../../../lib/authoredInput';
@@ -86,7 +86,9 @@ export function UserMessage({
   // Claude chats rewind to a file checkpoint; messages from before checkpoints can't (D-68)
   const blocked = useStore((st) => editBlockedFor(st, threadId, turnId));
   // a brief, wake-up or family message main delivered is shown as that, never as the user's words
-  const side = sideSessionEntryForItem(useOrchestration(), item);
+  const sideKey = useOrchestrationSelect((v) => sideSessionEntryForItem(v, item)?.key ?? null);
+  const sideDelivery = useOrchestrationSelect((v) => sideSessionEntryForItem(v, item)?.delivery ?? null);
+  const side = sideKey && sideDelivery ? { key: sideKey, delivery: sideDelivery } : null;
   // and an input main sent that no human wrote (MoMo's routine result) as its author's: never its text, nor as the user's
   const recorded = useStore((st) => authoredFor(st.authoredInputs, threadId, item));
   const authored = recorded ?? markedInputFor(item);

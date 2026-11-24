@@ -64,7 +64,9 @@ const child = (o: any = {}) => ({
   createdAt: 1,
   ...o,
 });
-const show = (children: any, more: any = {}) => act(async () => notify({ ...empty, children, ...more }));
+// these tests change what the rows read outside the view; an equal view wakes nobody (#5398), so each broadcast carries a new revision
+let rev = 0;
+const show = (children: any, more: any = {}) => act(async () => notify({ ...empty, children, ...more, rev: ++rev }));
 const line = (v: any) => v.host.querySelector('.tasks-status-row')?.textContent ?? null;
 const prCount = (open: number, merged = 0) => inboxCount({ needs: [], moving: Array<InboxRow>(open), landed: Array<InboxRow>(merged) });
 

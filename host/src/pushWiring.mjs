@@ -136,3 +136,6 @@ export function relayWithPush({ configDir, socketPath, policy, report }) {
   const relayLinks = createRelayLinks({ configDir, socketPath, report });
   return { relayLinks, approvalPush: pushWiringFor({ policy, relay: relayLinks, machineName: os.hostname, report }) };
 }
+
+// pairing by code is built beside the relay links it enrols on (./codePairWiring.mjs)
+export { codePairFor } from './codePairWiring.mjs';

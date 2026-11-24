@@ -127,7 +127,7 @@ test('a done issue says so; a branch name git can’t take, or none, is left out
 
 test('not connected, a revoked key, rate limits, no answer, and an issue no one can see are each said plainly', async (t) => {
   const plain = linear(t, () => ({ json: { data: {} } }));
-  assert.deepEqual(await plain.l.find('ENG-12'), { ok: false, error: 'Connect Linear in Settings → Connections first.' });
+  assert.deepEqual(await plain.l.find('ENG-12'), { ok: false, error: 'Connect Linear in Settings → Connectors first.' });
   assert.match((await plain.l.find('main')).error, /Linear issue’s key/);
   const warn = t.mock.method(console, 'warn', () => {});
   const cases: [ReturnType<Parameters<typeof linear>[1]>, RegExp][] = [

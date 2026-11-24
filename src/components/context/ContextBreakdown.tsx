@@ -1,7 +1,7 @@
 // The top of a chat's context panel, the same in the composer ring's popover and the summary card: how full the window is (a headline share, a segmented bar with the compaction reserve at its end and where auto-compact starts, a plain-name legend), or what is known instead (nothing yet, tokens without a window), and how fresh it is.
 import type { ReactNode } from 'react';
 import { emptySnapshot, estimatedCategories, sinceBreakdown, type ContextSnapshot } from '../../../shared/contextSnapshot.mjs';
-import { contextLevel, contextShare, contextTokens } from '../../lib/contextFormat';
+import { CONTEXT_UNREPORTED, contextLevel, contextShare, contextTokens } from '../../lib/contextFormat';
 import type { ContextState } from '../../session/useChatContext';
 import { contextReading } from '../../store/contextUsage';
 import { contextMeter, shareOf, type ContextMeterModel } from './contextMeter';
@@ -155,7 +155,7 @@ function ReadFailure({ known = false, onRetry }: { known?: boolean; onRetry: (()
   );
 }
 
-/** Nothing reported yet: a ghost of the meter and when it fills in, or a failed read with recovery. */
+/** Nothing reported yet, or a failed read with recovery. */
 function Waiting({ unavailable, onRetry }: { unavailable: boolean; onRetry: (() => void) | null }) {
   return (
     <div className="ctx-top" data-empty="">
@@ -165,7 +165,7 @@ function Waiting({ unavailable, onRetry }: { unavailable: boolean; onRetry: (() 
       </div>
       <span className="ctx-big ctx-ghost">—</span>
       <div className="ctx-bar-ghost" aria-hidden="true" />
-      {unavailable ? <ReadFailure onRetry={onRetry} /> : <p className="ctx-note">Usage shows here when this chat's next turn ends.</p>}
+      {unavailable ? <ReadFailure onRetry={onRetry} /> : <p className="ctx-note">{CONTEXT_UNREPORTED}</p>}
     </div>
   );
 }

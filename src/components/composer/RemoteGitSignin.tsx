@@ -49,7 +49,7 @@ export function RemoteGitSignin({
   const line = machine.away
     ? `${machine.name} is offline. Reconnect to sign in or retry.`
     : needsUpdate
-      ? `The last sign-in attempt required a Host update. Check ${machine.name} in Settings › Connections › My machines for update options.`
+      ? `The last sign-in attempt required a Host update. Check ${machine.name} in Settings › Connections › Control other devices for update options.`
       : view?.state === 'cancelled'
         ? 'Sign-in cancelled. You can try again.'
         : done

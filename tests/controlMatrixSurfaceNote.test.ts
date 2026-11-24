@@ -110,6 +110,12 @@ test('CM-X11: a Claude Code session is told as its first tool server’s MCP ins
   assert.doesNotMatch(inChrome, /mopilot_chrome|no tool in this chat acts in it/);
   // without Claude in Chrome and without MoPilot's Chrome tools, it does say so
   assert.match((await run({ names: ['browser_navigate'] }))!, /no tool in this chat acts in it/);
+  const host = (await run({ names: ['browser_navigate', 'desktop_app_click', 'this_mac_control'] }))!;
+  assert.match(host, /built-in browser on the Host/);
+  assert.match(host, /signed-in Chrome and desktop apps on this Mac.*mcp__sage_\w+__this_mac_control/);
+  assert.match(host, /approve each call on the Mac/);
+  assert.match(host, /Apps on the Host/);
+  assert.doesNotMatch(host, /no tool in this chat acts in it/);
   // no tools these lines describe: no instructions
   assert.equal(await run({ names: ['sage_debug_echo'] }), undefined);
 });

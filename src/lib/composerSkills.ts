@@ -29,18 +29,60 @@ export function composerPopup(value: string, caret: number, applied: readonly st
   return null;
 }
 
+/** Editable invocation text, without the separating space. Only local native skills preserve the typed trigger. */
+type SlashCompletion = { text: string; hint?: string; keepTrigger?: boolean };
+
 export interface ComposerSlashItem {
+  /** Skills can be selected within prose as well as at the beginning. */
   skill?: boolean;
-  nativeSkill?: string;
+  completion?: SlashCompletion;
+  aliases?: string[];
+  disabled?: string;
   run?: () => unknown;
+}
+
+const commandTokens = (text: string) => text.matchAll(/(?<!\S)[/$]\S+/gu);
+export const hasSlashCommandToken = (text: string) => !commandTokens(text).next().done;
+
+/** Text ranges and the argument hint for a bare command. The native Claude SDK requires "/" at the start of the message. */
+export function slashCommandPresentation(text: string, items: ComposerSlashItem[]) {
+  const ranges: { start: number; end: number }[] = [];
+  const matches = [...commandTokens(text)];
+  let hint: string | undefined;
+  if (!matches.length) return { ranges, hint };
+
+  const commands = new Map<string, SlashCompletion>();
+  const skills = new Map<string, SlashCompletion>();
+  // The first matching row in the menu owns a token.
+  for (const { completion, disabled, skill, aliases } of items.toReversed()) {
+    if (!completion || disabled) continue;
+    const names = [completion.text.slice(1), ...(aliases ?? [])];
+    for (const trigger of completion.keepTrigger ? ['/', '$'] : [completion.text[0]]) {
+      for (const name of names) {
+        const token = trigger + name;
+        commands.set(token, completion);
+        if (skill) skills.set(token, completion);
+      }
+    }
+  }
+  for (const { 0: token, index: start } of matches) {
+    const completion = (start === 0 ? commands : skills).get(token);
+    if (!completion) continue;
+    const end = start + token.length;
+    ranges.push({ start, end });
+    if (start === 0 && token[0] === completion.text[0] && /^[^\S\r\n\u2028\u2029]*$/.test(text.slice(end))) hint = completion.hint;
+  }
+  return { ranges, hint };
 }
 
 /** The draft a command pick leaves: the text around its `/name`, the space or line break after a command at the start dropped. */
 export function slashPickRest(text: string, popup: ComposerPopup): string {
   const before = text.slice(0, popup.start);
   const after = text.slice(popup.start + popup.query.length + 1);
-  return before + (before ? after : after.replace(/^[ \t]*\n?/, ''));
+  return before + (before ? after : afterCommandSeparator(after));
 }
+
+const afterCommandSeparator = (after: string) => after.replace(/^[ \t]*\n?/, '');
 
 export function composerSlashItems<T extends ComposerSlashItem>(items: T[], popup: ComposerPopup): T[] {
   return popup.skillsOnly ? items.filter((item) => item.skill) : items;
@@ -61,14 +103,19 @@ export function applyComposerSlashItem(
     restoreCaret: (position: number) => void;
   },
 ): void {
-  if (item.skill) {
-    const before = text.slice(0, popup.start);
-    const after = text.slice(popup.start + popup.query.length + 1);
-    // Codex uses skill attachments; native harnesses retain the textual invocation.
-    const token = item.nativeSkill ? `${text[popup.start]}${item.nativeSkill} ` : '';
-    ui.setText(before + token + after);
-    if (!item.nativeSkill) item.run?.();
+  const before = text.slice(0, popup.start);
+  const after = text.slice(popup.start + popup.query.length + 1);
+  if (item.completion) {
+    const { text: command, keepTrigger } = item.completion;
+    const token = (keepTrigger ? text[popup.start] + command.slice(1) : command) + ' ';
+    const rest = item.skill || before ? after.replace(/^ /, '') : afterCommandSeparator(after);
+    ui.setText(before + token + rest);
     ui.restoreCaret(before.length + token.length);
+  } else if (item.skill) {
+    // A Codex skill is carried as an attachment beside the text.
+    ui.setText(before + after);
+    item.run?.();
+    ui.restoreCaret(popup.start);
   } else {
     ui.setText(slashPickRest(text, popup));
     item.run?.();

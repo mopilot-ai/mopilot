@@ -814,7 +814,7 @@
       "The harness's own slash commands pass through as typed (goal, review, init, compact, skills and so on) once it lists them.",
       "Plan chip: only when its quirks mark which mode or option is plan.",
       "Modes and permissions under the harness's own names; model and thinking-level options as generic controls.",
-      "Fork from a message when the harness can fork; the context ring when it reports usage; Copy resume command when its quirks provide it."
+      "Fork from a message when the harness can fork; context readings when the harness reports usage; Copy resume command when its quirks provide it."
     ],
     "notProvided": [
       "MoPilot does not fill in goal, plan, review, init, compact, ! shell, one-turn deeper thinking or speed tiers.",

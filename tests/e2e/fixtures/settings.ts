@@ -34,14 +34,17 @@ export async function openSettingsSection(page: Page, section: string): Promise<
   await search.fill('');
 }
 
-/** Settings → Connections (its Machines list) through the sidebar's Settings entry: the Run on menu's Add machine… opens the add sheet in place instead. */
-export async function openConnections(page: Page): Promise<void> {
+/** Settings → Connections on one tab (by default Control other devices, the Machines list) through the sidebar's Settings entry: the Run on menu's Add machine… opens the add sheet in place instead. */
+export async function openConnections(page: Page, tab: 'this-mac' | 'other' | 'ssh' = 'other'): Promise<void> {
   // already in Settings (another section): only the section changes
   if (!(await page.locator('.settings-nav').isVisible())) {
     await page.locator('.sidebar-title').first().click();
     await settingsEntry(page).click();
   }
   await openSettingsSection(page, 'connections');
+  await page
+    .getByRole('tab', { name: { 'this-mac': 'Control this Mac', other: 'Control other devices', ssh: 'SSH' }[tab], exact: true })
+    .click();
 }
 
 /** The select button of the Settings row titled `row` (its label is the current choice). */

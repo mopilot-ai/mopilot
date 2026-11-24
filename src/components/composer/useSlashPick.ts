@@ -1,6 +1,6 @@
-// The composer's "/" picks: an entry runs on the draft its /name leaves, a command line it writes keeps that draft.
+// Applies a slash pick in the current draft and restores input when a picked action fails.
 
-import { useRef, type RefObject } from 'react';
+import type { RefObject } from 'react';
 import { applyComposerSlashItem, type ComposerPopup, type ComposerSlashItem } from '../../lib/composerSkills';
 import { setDraft, toast, get as getState } from '../../store/core';
 import { errorText } from '../../lib/ignored';
@@ -19,8 +19,6 @@ export function useSlashPick(o: {
   currentOptions: RefObject<{ attachments: Attachment[] }>;
 }) {
   const { draftKey, text, attachments, input } = o;
-  // the draft a / pick leaves while its entry runs: a command line the entry writes goes in front of it
-  const rest = useRef('');
 
   const runPopupCommand = async (run: () => unknown, expectedText: string) => {
     // put back what was typed before the pick, as long as the box shows only what the pick left
@@ -43,19 +41,6 @@ export function useSlashPick(o: {
     }
   };
 
-  /**
-   * A / pick's text, with the caret at `caret` (its end) in the same step: a key typed right after follows it (#1719).
-   * Focusing again on the next frame keeps the keyboard here when the pick came from a menu that closes after it.
-   */
-  const putText = (value: string, caret = value.length) => {
-    o.setText(value);
-    input.current?.focus();
-    input.current?.setCaretAfter(value, caret);
-    requestAnimationFrame(() => input.current?.focus());
-  };
-  /** A command line a / pick writes: what the draft held besides the command follows it as its text, the caret after the command. */
-  const putCommand = (line: string) => putText(line + rest.current, line.length);
-
   const pick = (popup: ComposerPopup, item: ComposerSlashItem) => {
     let expectedText = text;
     applyComposerSlashItem(
@@ -65,7 +50,6 @@ export function useSlashPick(o: {
       {
         setText: (value) => {
           expectedText = value;
-          rest.current = value;
           o.setText(value);
         },
         close: o.closePopup,
@@ -76,8 +60,7 @@ export function useSlashPick(o: {
         },
       },
     );
-    rest.current = '';
   };
 
-  return { runPopupCommand, putCommand, pick };
+  return { runPopupCommand, pick };
 }

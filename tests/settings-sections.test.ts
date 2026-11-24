@@ -35,6 +35,7 @@ beforeEach(() => {
 });
 
 test('ssh hosts: add with validation, connect in a terminal, and remove', async () => {
+  useStore.setState({ route: { name: 'settings', section: 'connections', tab: 'ssh' } } as any);
   const { host, unmount } = await section('connections');
   assert.match(text(host), /Connect to a remote device/);
   await click(button(host, 'Add'));
@@ -64,12 +65,15 @@ test('ssh hosts: add with validation, connect in a terminal, and remove', async 
   await unmount();
 });
 
-test('connections: the built-in connectors and Quick Actions follow the SSH hosts when they are offered', async () => {
+test('connectors: the built-in connectors and Quick Actions are their own page, not part of Connections', async () => {
   responses['plugins.builtin.list'] = [{ id: 'github', title: 'GitHub', description: 'Official server.', version: '2.0.3', state: 'off' }];
   responses['app.quickActions.status'] = { state: 'off', installed: 0, total: 3 };
-  const { host, unmount } = await section('connections');
+  const { host, unmount } = await section('connectors');
   assert.match(text(host), /Built-in connectors.*GitHub.*macOS.*Quick Actions/);
   await unmount();
+  const connections = await section('connections');
+  assert.doesNotMatch(text(connections.host), /Built-in connectors|Quick Actions/);
+  await connections.unmount();
 });
 
 test('ssh: while adding with saved hosts, the add-another row is hidden', async () => {
@@ -94,7 +98,7 @@ test('git branch prefix edits the pref', async () => {
 test('worktrees list loads, refreshes, opens, and the options write prefs', async () => {
   let resolve!: (v: any) => void;
   responses['git.worktreeList'] = () => new Promise((r) => (resolve = r));
-  const { host, unmount } = await section('worktrees');
+  const { host, unmount } = await section('git');
   assert.equal(calls.find((c) => c[0] === 'git.worktreeList')![1], '/Users/me/.mopilot/worktrees');
   assert.ok(host.querySelector('.settings-pad .spinner, .settings-pad svg, .settings-pad'));
   assert.match(text(host), /No worktrees yet/);
@@ -174,7 +178,7 @@ test('worktrees list loads, refreshes, opens, and the options write prefs', asyn
 test('worktrees: only the latest list is shown when an earlier read answers late', async () => {
   const reads: ((v: any) => void)[] = [];
   responses['git.worktreeList'] = () => new Promise((r) => reads.push(r));
-  const { host, unmount } = await section('worktrees');
+  const { host, unmount } = await section('git');
   await click(host.querySelector('[title=Refresh]')!);
   reads[1]([{ path: '/w/new', branch: 'b' }]);
   await flush();
@@ -190,7 +194,7 @@ test("local environments: an environment file that can't be read says why and of
   responses['git.worktreeList'] = [];
   useStore.setState({ savedProjects: [{ id: 'p1', name: 'Proj', roots: [{ path: '/w/p' }] }] });
   ctl.env = new Error('EACCES');
-  const { host, unmount } = await section('worktrees');
+  const { host, unmount } = await section('git');
   await click(button(host, 'Environments'));
   await click(row(host, 'Proj'));
   await flush();
@@ -215,7 +219,7 @@ test("local environments: an environment file that can't be read says why and of
 test('local environments: pick a project, add one, and edit then save its environment', async () => {
   responses['git.worktreeList'] = [];
   useStore.setState({ savedProjects: [{ id: 'p1', name: 'Proj', roots: [{ path: '/w/p' }] }] });
-  const { host, unmount } = await section('worktrees');
+  const { host, unmount } = await section('git');
   await click(button(host, 'Environments'));
   assert.ok(host.querySelector('.tabs-seg .on') && text(host.querySelector('.tabs-seg .on')) === 'Environments');
   await click(host.querySelector('.env-lead a')!);

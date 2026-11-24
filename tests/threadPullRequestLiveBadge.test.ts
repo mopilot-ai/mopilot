@@ -7,7 +7,7 @@ import { stubStore } from './support/stubs.ts';
 
 // what the reader asks `gh pr view` for (src/session/pullRequestReader.ts)
 const FIELDS =
-  'url,state,isDraft,title,mergeable,mergeStateStatus,statusCheckRollup,additions,deletions,labels,autoMergeRequest,mergedAt,headRefOid,reviewRequests';
+  'url,state,isDraft,title,mergeable,mergeStateStatus,statusCheckRollup,additions,deletions,labels,autoMergeRequest,mergedAt,mergeCommit,headRefOid,reviewRequests';
 
 let state = 'OPEN';
 let head = 'topic';

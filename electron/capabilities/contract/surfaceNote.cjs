@@ -73,12 +73,16 @@ function surfaceNote(names, { yourChrome: userChrome, ownChrome = false, naming 
   const { family, name } = naming;
   const pane = has('browser_') ? 'browser_' : !yourChrome && has('sage_browser_') ? 'sage_browser_' : null;
   const chrome = has('chrome_') ? 'chrome_' : yourChrome && has('sage_browser_') ? 'sage_browser_' : null;
+  const thisMac = names.includes('this_mac_control');
   const lines = [];
   if (pane) {
     const start = pane === 'browser_' && names.includes('browser_navigate') ? ` (start with ${name('browser_navigate')})` : '';
     const script = names.includes('browser_script') ? `; for many steps, prefer one ${name('browser_script')} call` : '';
+    const browser = thisMac
+      ? 'The built-in browser on the Host, shown in MoPilot’s browser pane'
+      : "The built-in browser, MoPilot's browser pane that the user sees in this app";
     lines.push(
-      `- The built-in browser, MoPilot's browser pane that the user sees in this app: the ${family(pane)} tools${start}${script}. Use them when the user means the built-in browser, the browser pane, or a page MoPilot opened.`,
+      `- ${browser}: the ${family(pane)} tools${start}${script}. Use them when the user means the built-in browser, the browser pane, or a page MoPilot opened.`,
       `- ${paneConfirmNote(`the ${family(pane)} tools`)}`,
     );
   }
@@ -106,9 +110,13 @@ function surfaceNote(names, { yourChrome: userChrome, ownChrome = false, naming 
       "- Tabs you open in the user's Chrome stay in this chat's group when your turn ends. Explicit close removes a tab; idle, archive or clear releases the group and leaves its tabs open in Chrome.",
     );
   if (pane && chrome) lines.push('- The two browsers share no pages, cookies or sign-ins.');
+  if (thisMac)
+    lines.push(
+      `- For signed-in Chrome and desktop apps on this Mac, use ${name('this_mac_control')} with action "list" to see the available tools. Use action "call" to request a tool. The user must approve each call on the Mac.`,
+    );
   // no route to the user's Chrome (#1483): said plainly, so a model doesn't keep retrying a browser it can only look at
   const apps = has('desktop_') || has('computer_');
-  if (!chrome && !ownChrome && (pane || apps)) {
+  if (!chrome && !ownChrome && !thisMac && (pane || apps)) {
     const look = apps
       ? ', and the tools for apps on this Mac can only look at a browser, never click or type in it, whatever the user grants'
       : '';
@@ -120,7 +128,7 @@ function surfaceNote(names, { yourChrome: userChrome, ownChrome = false, naming 
     const access = names.includes('desktop_request_access') ? `load and call ${name('desktop_request_access')} for the apps first; ` : '';
     const background = has('desktop_app_') ? `the ${family('desktop_app_')} tools work in an app in the background, and ` : '';
     lines.push(
-      `- Apps on this Mac: ${access}${background}the other ${family('desktop_')} tools take over the screen for a step that needs the real pointer and keyboard.`,
+      `- Apps ${thisMac ? 'on the Host' : 'on this Mac'}: ${access}${background}the other ${family('desktop_')} tools take over the screen for a step that needs the real pointer and keyboard.`,
     );
   } else if (has('computer_')) lines.push(`- Apps on this Mac: the ${family('computer_')} tools.`);
   if (!lines.length) return null;

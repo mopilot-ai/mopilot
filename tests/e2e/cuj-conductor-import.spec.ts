@@ -54,7 +54,7 @@ function savedProjects(dir: string) {
 async function openWorktreeSettings(page: Page) {
   await page.locator('.sidebar-title').first().click();
   await settingsEntry(page).click();
-  await page.locator('.side-row', { hasText: 'Worktrees' }).click();
+  await page.locator('.side-row', { hasText: 'Git', hasNotText: 'GitHub' }).click();
 }
 
 test.describe('Import from Conductor', () => {

@@ -11,7 +11,7 @@ const ENDPOINT = 'https://api.linear.app/graphql';
 const TIMEOUT_MS = 20_000;
 const MAX_TITLE = 256;
 const FIELDS = 'identifier title url branchName state { name type } team { key name }';
-const NOT_CONNECTED = 'Connect Linear in Settings → Connections first.';
+const NOT_CONNECTED = 'Connect Linear in Settings → Connectors first.';
 
 /**
  * @typedef {(url: string, init: { method: string, headers: Record<string, string>, body: string, signal: AbortSignal }) =>
@@ -64,7 +64,7 @@ function createLinear({ dir, safe, fetch: send = /** @type {Fetch} */ (/** @type
     if (r.status === 401 || codes.includes('AUTHENTICATION_ERROR'))
       return {
         ok: false,
-        error: 'Linear refused the API key: it was revoked or is wrong. Connect Linear again in Settings → Connections.',
+        error: 'Linear refused the API key: it was revoked or is wrong. Connect Linear again in Settings → Connectors.',
       };
     if (r.status === 429 || codes.includes('RATELIMITED'))
       return { ok: false, error: 'Linear is limiting requests right now. Try again in a minute.' };

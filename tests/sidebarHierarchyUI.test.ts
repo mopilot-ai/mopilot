@@ -110,6 +110,9 @@ test('a section label and a list foot step down from the heading, in the thread 
     const label = byText(view.host, '.side-label', 'Projects');
     assert.equal(css(label).color, TOKENS['--text-4']);
     assert.equal(css(label).fontSize, TOKENS['--fs-micro']);
+    // capitals set it apart from the headings under it; the text itself keeps its case
+    assert.equal(css(label).textTransform, 'uppercase');
+    assert.equal(label.textContent, 'Projects');
     const foot = byText(view.host, '.show-more', 'Show 2 more');
     assert.equal(css(foot).color, TOKENS['--text-4']);
     assert.equal(css(foot).fontSize, TOKENS['--fs-small']);
@@ -117,6 +120,7 @@ test('a section label and a list foot step down from the heading, in the thread 
     const own = byText(view.host, '.side-section-label', 'Work');
     assert.equal(css(own).color, TOKENS['--text-4']);
     assert.equal(css(own).fontSize, TOKENS['--fs-micro']);
+    assert.equal(css(own).textTransform, 'uppercase');
     // an empty project's actions are not a foot: they stay brighter than the note over them
     const bare = byText(view.host, '.project-row .side-row-label', 'Bare').closest('.project-group')!;
     assert.equal(css(byText(bare, '.empty-note', 'No active chats')).color, TOKENS['--text-4']);
@@ -128,6 +132,7 @@ test('a section label and a list foot step down from the heading, in the thread 
     document.body.append(elsewhere);
     assert.equal(css(elsewhere).color, TOKENS['--text-3']);
     assert.equal(css(elsewhere).fontSize, TOKENS['--fs-small']);
+    assert.notEqual(css(elsewhere).textTransform, 'uppercase');
     elsewhere.remove();
   } finally {
     await view.unmount();
@@ -163,6 +168,16 @@ test('projects and nested sessions share one disclosure glyph, and a long name f
     const layer = css(name.querySelector('.morph-layer')!);
     assert.equal(layer.overflow, 'visible');
     assert.equal(layer.minWidth, 'max-content');
+    // a name crossfading out is held inside the box, so a long one leaving does not make the label overflow and
+    // fade the short one coming in
+    const leaving = document.createElement('span');
+    leaving.className = 'morph-layer morph-out';
+    name.querySelector('.morph-text')!.prepend(leaving);
+    const out = css(leaving);
+    assert.equal(out.overflow, 'hidden');
+    assert.equal(out.minWidth, '0');
+    assert.equal(out.maxWidth, '100%');
+    assert.notEqual(out.textOverflow, 'ellipsis');
     name.remove();
     assert.match(sheet('sidebar-families'), /@keyframes side-label-clipped \{\s*from,\s*to \{\s*--label-fade: 18px;/);
   } finally {

@@ -1,9 +1,9 @@
 // Shared fixture for the Settings, Accounts and related component tests: stubs the store, the
 // native bridge and heavy child components, and offers small DOM helpers. Call setup() once per
 // test file, before anything imports the units under test.
+import { remoteControlStubs } from './remote-control-stubs.ts';
 import { resolvedEnvironment } from './environment.ts';
 import { registerHooks } from 'node:module';
-import './dom.ts';
 import { window } from './dom.ts';
 import { defaultHarnessExports } from './default-harness-fakes.ts';
 import { storeSliceStubs } from './stubs.ts';
@@ -370,7 +370,7 @@ export async function setup(platform: { isMac?: boolean; isWin?: boolean } = {})
   });
   m('lib/mopilot.ts', { useMoPilot: () => ({ user: ctl.mopilotUser }) });
   m('components/pages/MoPilotSettings.tsx', { PrivacySettings: stub('PrivacySettings') });
-  m('components/pages/settings/RemoteControl.tsx', { ControlThisComputer: stub('ControlThisComputer') });
+  m('components/pages/settings/RemoteControl.tsx', remoteControlStubs(stub));
   m('components/pages/settings/OtherHarnesses.tsx', { OtherHarnesses: stub('OtherHarnesses') });
   m('components/pages/settings/ComputerUse.tsx', { ComputerUseSettings: stub('ComputerUseSettings') });
   m('components/pages/settings/ComputerHistory.tsx', { ComputerHistorySettings: stub('ComputerHistorySettings') });

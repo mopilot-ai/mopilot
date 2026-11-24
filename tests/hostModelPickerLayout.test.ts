@@ -159,7 +159,7 @@ test("the account the agent runs on is in the panel, and opens the list; Manage 
     await click(account);
     assert.ok($('.hp-harnesses'), 'the list gave way to the panel');
     await click($$('.menu-item').find((x) => /Manage harnesses/.test(x.textContent ?? ''))!);
-    assert.deepEqual(calls.at(-1), ['navigate', { name: 'settings', section: 'connections' }]);
+    assert.deepEqual(calls.at(-1), ['navigate', { name: 'settings', section: 'connections', tab: 'other' }]);
   } finally {
     await m.unmount();
   }

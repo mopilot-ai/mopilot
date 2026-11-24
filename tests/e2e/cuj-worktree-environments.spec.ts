@@ -66,10 +66,10 @@ async function journey(page: Page, harness: Harness, fake: string, cwdOf: () => 
   expect(fs.readFileSync(path.join(worktree, 'setup-ran.txt'), 'utf8').trim()).toBe(branch);
   expect(fs.existsSync(path.join(repo, 'setup-ran.txt'))).toBe(false);
 
-  // Settings → Worktrees lists it
+  // Settings → Git lists it
   await page.locator('.sidebar-title').first().click();
   await settingsEntry(page).click();
-  await page.locator('.side-row', { hasText: 'Worktrees' }).click();
+  await page.locator('.side-row', { hasText: 'Git', hasNotText: 'GitHub' }).click();
   await expect(page.locator('.settings-row', { hasText: worktree })).toContainText(branch);
   await page.locator('.side-row', { hasText: 'Back to app' }).click();
 

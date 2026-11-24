@@ -13,7 +13,7 @@ import { machineBranch } from '../lib/machinePullRequest';
 
 /** The fields a PR read takes from `gh`, whether it finds the PR by its link, by its checkout or by its repository and branch. */
 const PR_FIELDS =
-  'url,state,isDraft,title,mergeable,mergeStateStatus,statusCheckRollup,additions,deletions,labels,autoMergeRequest,mergedAt,headRefOid,reviewRequests';
+  'url,state,isDraft,title,mergeable,mergeStateStatus,statusCheckRollup,additions,deletions,labels,autoMergeRequest,mergedAt,mergeCommit,headRefOid,reviewRequests';
 
 /** The PR of a branch on a machine, looked up by this Mac's own `gh` (the machine's `origin` and branch come from its Host): `gh pr view`'s answer, or `null` for a branch with no PR. */
 async function machinePullRequest(cwd: string): Promise<{ ok: boolean; stdout: string; stderr?: string }> {

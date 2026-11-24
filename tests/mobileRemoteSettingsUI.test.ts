@@ -1,7 +1,7 @@
 // Settings → Connections → Phone: the local opt-in and the paired phones; adding one opens Connect your phone.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { setup, responses, resetCtl, render, click, text, button, toggle, flush, calls } from './support/settings-harness.ts';
+import { setup, responses, resetCtl, render, click, text, button, buttons, toggle, flush, calls } from './support/settings-harness.ts';
 await setup();
 const { createElement: h, act } = await import('react');
 const { MobileRemote } = await import('../src/components/pages/settings/MobileRemote.tsx');
@@ -24,12 +24,12 @@ test('hidden until main says visible; the opt-in starts nothing, and Connect ope
     return true;
   };
   const v = await render(h(MobileRemote));
-  assert.doesNotMatch(text(v.host), /Connect your phone/);
-  await toggle(v.host, 'Allow phone access');
+  assert.equal(buttons(v.host, 'Add').length, 0, 'no Add while connections are off');
+  await toggle(v.host, 'Allow connections');
   await flush(100);
   assert.equal(count('remoteSettings.begin'), 0, 'no pairing starts behind the page');
   assert.equal(v.host.querySelector('img'), null, 'the QR lives in the dialog');
-  await click(button(v.host, 'Connect'));
+  await click(button(v.host, 'Add'));
   assert.equal(isConnectPhoneOpen(), true);
   closeConnectPhone();
   state = {
@@ -49,7 +49,6 @@ test('hidden until main says visible; the opt-in starts nothing, and Connect ope
     ],
   };
   await flush(1100);
-  assert.match(text(v.host), /Add another phone/);
   assert.match(text(v.host), /Connected · Paired \w+ \d+/);
   assert.match(text(v.host), /1 connected · 1 paired/);
   assert.match(text(v.host), /Pairings stay saved when a phone goes offline or MoPilot restarts/);
@@ -97,7 +96,7 @@ test('paired phones: name, last seen, a quiet terminal-and-screen switch, Remove
   );
   assert.match(text(v.host), /Connected/);
   assert.match(text(v.host), /1 connected · 2 paired/);
-  assert.match(text(v.host), /Disconnected\. Remove it from this Mac/);
+  assert.match(text(v.host), /Disconnected\. Revoke its access to take it off this Mac/);
   assert.equal(text(v.host).match(/Terminal and screen/g)?.length, 2, 'a quiet label for each live phone');
   await click(v.host.querySelector('[role=switch][aria-label="Terminal and screen for Phone A"]')!);
   assert.deepEqual(
@@ -107,10 +106,14 @@ test('paired phones: name, last seen, a quiet terminal-and-screen switch, Remove
   responses['remoteSettings.setMirrors'] = false;
   await click(v.host.querySelector('[role=switch][aria-label="Terminal and screen for Phone B"]')!);
   assert.match(text(v.host), /connection changed/);
-  const removes = [...v.host.querySelectorAll('button')].filter((b) => text(b) === 'Remove');
-  await click(removes[1]);
+  const confirm = async (name: string) => {
+    await click(button(v.host, `Revoke access for ${name}`));
+    assert.match(text(v.host), new RegExp(`Revoke access for ${name}\\?`));
+    await click(button(v.host.querySelector('[role=alertdialog]')!, 'Revoke access'));
+  };
+  await confirm('Phone B');
   assert.match(text(v.host), /connection changed/);
-  await click(removes[0]);
+  await confirm('Phone A');
   assert.deepEqual(calls.filter((c) => c[0] === 'remoteSettings.revoke').at(-1), ['remoteSettings.revoke', 'a', 'pa']);
   await v.unmount();
 });
@@ -226,4 +229,22 @@ test('a Mac the relay is turning away says why above its phones, and nothing whe
   assert.match(text(v.host), /Sign in to MoPilot to connect a phone/);
   assert.doesNotMatch(text(v.host), /can't reach this Mac/);
   await v.unmount();
+});
+
+test('Refresh reads the phones again; a change that fails and whose re-read fails too says the change failed and logs the read', async (t) => {
+  resetCtl();
+  let reads = 0;
+  let broken = false;
+  responses['remoteSettings.state'] = () => (++reads, broken ? Promise.reject(new Error('Status unavailable')) : base);
+  responses['remoteSettings.setEnabled'] = () => Promise.reject(new Error('Could not save'));
+  const v = await render(h(MobileRemote));
+  t.after(() => v.unmount());
+  const before = reads;
+  await click(button(v.host, 'Refresh'));
+  assert.ok(reads > before, 'Refresh asked main again');
+  broken = true;
+  await toggle(v.host, 'Allow connections');
+  await click(button(v.host.querySelector('[role=alertdialog]')!, 'Turn off'));
+  await flush(20);
+  assert.match(text(v.host), /Could not save/);
 });

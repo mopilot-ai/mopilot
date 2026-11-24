@@ -24,10 +24,10 @@ import {
   ArrowUpRight,
   ArrowLeft,
   GitBranch,
-  FolderTree,
   Globe,
   MousePointerClick,
   X,
+  Plug,
 } from '../ui/icons';
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useStore } from '../../store/core';
@@ -40,17 +40,13 @@ import { ComputerHistorySettings } from './settings/ComputerHistory';
 import { ComputerAccessSettings } from './settings/ComputerAccess';
 import { isEnabled } from '../../lib/flags';
 import { NAV, GROUPS, GROUP_LABEL, resolveSection, splitTab, type SettingsGroup } from '../../lib/settingsNav';
-import { highlight, KEYWORDS, searchSettings } from '../../lib/settingsSearch';
+import { highlight, KEYWORDS, searchSettings, tabOfWord } from '../../lib/settingsSearch';
 import { withKeys } from '../../lib/listKeys';
 import { focusSettingRow } from '../../lib/settingsFocus';
 import { General } from './settings/General';
 import { Appearance } from './settings/Appearance';
 import { Shortcuts } from './settings/Shortcuts';
-import { SshConnections } from './settings/Connections';
-import { HostMachines } from './settings/HostMachines';
-import { ControlThisComputer } from './settings/RemoteControl';
-import { MobileRemote } from './settings/MobileRemote';
-import { MobileRemoteAlwaysOn } from './settings/MobileRemoteAlwaysOn';
+import { ConnectionsTabs } from './settings/ConnectionsTabs';
 import { BuiltinConnectors, QuickActions } from './settings/Integrations';
 import { LinearConnection } from './settings/LinearConnection';
 import { GitSettings, Worktrees } from './settings/Git';
@@ -115,8 +111,8 @@ const ICONS: Record<string, ReactNode> = {
   browser: <AppWindow {...I} />,
   voice: <Mic {...I} />,
   connections: <Globe {...I} />,
+  connectors: <Plug {...I} />,
   git: <GitBranch {...I} />,
-  worktrees: <FolderTree {...I} />,
   archived: <Archive {...I} />,
   about: <Info {...I} />,
 };
@@ -173,9 +169,10 @@ function Nav() {
     <button
       key={s.tab ?? s.id}
       className={`side-row ${current === (s.section ?? s.id) && (!s.tab ? !harnessTab?.startsWith('harness:') : harnessTab === s.tab) ? 'selected' : ''} ${hint ? 'has-hint' : ''}`}
-      onClick={() =>
-        navigate({ name: 'settings', section: s.section ?? s.id, ...(s.tab ? { tab: s.tab } : {}), ...(find ? { find } : {}) })
-      }
+      onClick={() => {
+        const tab = s.tab ?? tabOfWord(s.id, find);
+        navigate({ name: 'settings', section: s.section ?? s.id, ...(tab ? { tab } : {}), ...(find ? { find } : {}) });
+      }}
     >
       <span className="side-row-icon">{s.icon}</span>
       <span className="side-row-label">
@@ -296,18 +293,22 @@ export function Settings({ section: rawSection = 'general' }: { section?: string
         {section === 'other-harnesses' && <OtherHarnesses key={basicId} harnessId={basicId} />}
         {section === 'connections' && (
           <>
-            <MobileRemote />
-            <MobileRemoteAlwaysOn />
-            <ControlThisComputer />
-            <SshConnections />
-            <HostMachines />
+            <ConnectionsTabs tab={tab} />
+          </>
+        )}
+        {section === 'connectors' && (
+          <>
             <BuiltinConnectors />
             <LinearConnection />
             <QuickActions />
           </>
         )}
-        {section === 'git' && <GitSettings />}
-        {section === 'worktrees' && <Worktrees />}
+        {section === 'git' && (
+          <>
+            <GitSettings />
+            <Worktrees />
+          </>
+        )}
         {section === 'archived' && <Archived />}
         {section === 'about' && <About />}
         {section === 'voice' && <VoiceSettings />}

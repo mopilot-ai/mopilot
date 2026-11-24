@@ -50,6 +50,14 @@
   min-width: max-content;
   overflow: visible;
 }
+/* A leaving name stays inside the box as it glides to the new name's width: left to spill, a long name leaving
+   made the label overflow and faded the end of the short name coming in. */
+.side-row-name .side-row-label .morph-layer.morph-out {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+}
 @keyframes side-label-clipped {
   from,
   to {

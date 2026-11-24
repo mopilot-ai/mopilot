@@ -11,11 +11,11 @@ import { typo } from '../typography';
 
 const MAC_STEPS = (account: string | null | undefined) => [
   account ? `Open MoPilot on your Mac, signed in as ${account}.` : 'Open MoPilot on your Mac, signed in with this account.',
-  'Click Connect your phone in the sidebar, or open Settings › Connections.',
+  'Click Connect your phone in the sidebar, or open Settings › Connections › Control this Mac and click Add.',
   'Scan the code it shows.',
 ];
 const HOST_STEPS = [
-  'On your Mac, open Settings › Connections › My machines.',
+  'On your Mac, open Settings › Connections › Control other devices.',
   'Click Add a machine, and follow the steps there.',
   'Allow the new machine on your Mac.',
 ];

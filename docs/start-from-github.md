@@ -8,7 +8,7 @@ The new-chat branch picker's search takes `#12`, or a GitHub pull request's or i
 
 ## Linear
 
-With Linear connected (Settings → Connections → Linear), the same search takes a Linear issue's key (`ENG-12`, upper case as Linear shows it) or its `linear.app` link (`electron/platform/linearSource.cjs`). Without Linear connected, such a key is a branch search like any other, and with it, branches named like it stay listed under the issue.
+With Linear connected (Settings → Connectors → Linear), the same search takes a Linear issue's key (`ENG-12`, upper case as Linear shows it) or its `linear.app` link (`electron/platform/linearSource.cjs`). Without Linear connected, such a key is a branch search like any other, and with it, branches named like it stay listed under the issue.
 
 - **The key.** It is the user's own personal API key, pasted by them. It is checked with Linear (`viewer`), kept encrypted with safeStorage in an owner-only file under the app's data folder, and only its last four characters are ever shown. It goes to `api.linear.app` and nowhere else.
 - **Reading the issue.** The issue is read again when the chat starts, and its text is carried like a GitHub issue's (below). Linear's errors are said plainly: a revoked or wrong key, rate limits, no answer, and an issue no one can see. An outage is never reported as a missing issue.

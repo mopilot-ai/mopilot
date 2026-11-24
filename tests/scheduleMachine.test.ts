@@ -96,6 +96,8 @@ const row = (o: Partial<HostMachineRow> = {}): HostMachineRow => ({
   localNetwork: 'unknown',
   waitingForLogin: null,
   startsAtBoot: 'unknown',
+  address: '',
+  hostVersion: '',
   fileVault: 'unknown',
   platform: '',
   ...o,

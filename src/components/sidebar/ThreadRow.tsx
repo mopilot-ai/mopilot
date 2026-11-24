@@ -17,8 +17,8 @@ import { cancelOnEscape, isEnter, onActivate } from '../../lib/focus';
 import { type ReorderChat } from './projectGroups';
 import { errorText } from '../../lib/ignored';
 import { useRowDrag } from '../../lib/rowDrag';
-import { useOrchestration } from '../../lib/sideSessions';
-import { useSidebarLineage } from '../../session/harness/claude/desktopLineage';
+import { useOrchestrationSelect } from '../../lib/sideSessions';
+import { useSidebarNests } from './useSidebarNests';
 import { setNestedHidden, useNestedHidden, type NestedView } from '../../lib/nestedHidden';
 import { titleIfClipped } from '../../lib/clippedTitle';
 import { useChatRowState } from '../../session/useChatRowState';
@@ -27,7 +27,6 @@ import { ShimmerSpan } from '../ui/ShimmerBand';
 import type { SideSessionChild } from '../../../shared/orchestration';
 import { SidebarChatShortcut } from '../../session/sidebarShortcuts';
 import { usePullRequestFolder } from '../../lib/chatMachine';
-import { familiesOf } from '../../lib/sidebarFamilyIndex';
 import { ThreadMachineLine, useRowMachineLine } from './ThreadMachineLine';
 import { HostMark } from '../ui/HostMark';
 import { onMachineHint } from '../../lib/machineFolder';
@@ -67,13 +66,10 @@ export const ThreadRow = memo(function ThreadRow({
   const folder = usePullRequestFolder(thread.id, thread.cwd);
   const title = useStore((s) => threadTitle(thread, s.chatInitialTitles));
   // Legacy or retryable input waits behind this receiving session, never an app-wide concurrency cap.
-  const orchestration = useOrchestration();
-  const queued = orchestration.queue.indexOf(thread.id) + 1;
-  const lineage = useSidebarLineage();
+  const queued = useOrchestrationSelect((v) => v.queue.indexOf(thread.id) + 1);
+  const linked = useOrchestrationSelect((v) => v.children[thread.id]);
   // its started chats nest under it in this list: one toggle hides or shows them
-  const nests = useStore(
-    (s) => !!nestedView && !!familiesOf(lineage, s.threadOrder, s.threads, s.momoChats, false).descendants.get(thread.id)?.length,
-  );
+  const nests = useSidebarNests(thread.id, !!nestedView);
   const nestedHidden = useNestedHidden(nestedView ?? 'project', thread.id);
   const nestedLabel = nestedHidden ? 'Show nested sessions' : 'Hide nested sessions';
   const toggleNested = () => setNestedHidden(nestedView!, [thread.id], !nestedHidden);
@@ -160,7 +156,7 @@ export const ThreadRow = memo(function ThreadRow({
             <span className="side-row-name">
               <span ref={labelRef} className="side-row-label" onPointerEnter={(e) => titleIfClipped(e.currentTarget, undefined, title)}>
                 {/* a new name (the generated title replacing the first words, or a rename elsewhere) crossfades in */}
-                <RowName thread={thread} title={title} linked={orchestration.children[thread.id]} />
+                <RowName thread={thread} title={title} linked={linked} />
               </span>
               {/* Where it runs follows the name, as on a project heading; the trailing columns stay PR and status. */}
               {machineLine && machineLine.id !== projectHostId && (
@@ -203,7 +199,7 @@ export const ThreadRow = memo(function ThreadRow({
       <SidebarChatShortcut row={rowRef} />
       <SidebarInboxCount threadId={thread.id} row={rowRef} />
       <ThreadPullRequestBadge threadId={thread.id} cwd={folder} updatedAt={thread.updatedAt} row={rowRef} />
-      <ThreadActivityIndicator thread={thread} linked={orchestration.children[thread.id]} />
+      <ThreadActivityIndicator thread={thread} linked={linked} />
       {/* The menu takes the status dot's place on hover (sidebar.css). */}
       <span className="row-actions">
         <Tooltip label="More options">

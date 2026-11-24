@@ -75,7 +75,7 @@ test('a Mac added over SSH offers it in its ⋯ menu, checked when on; other mac
     }
   };
   const root = await open();
-  assert.deepEqual(options(root.host), ['Open terminal', 'Keep running after restart', 'Rename', 'Remove']);
+  assert.deepEqual(options(root.host), ['Details', 'Rename', 'Open terminal', 'Keep running after restart', 'Remove']);
   root.unmount();
   assert.equal(await offered(MAC), 'false');
   assert.equal(await offered({ ...MAC, startsAtBoot: 'yes' }), 'true');

@@ -10,8 +10,7 @@ const { createMachines, chatCapabilities, hostOwnership } = require('../../host/
 const { createHostFolders } = require('../../host/folders.cjs');
 const { createGitSignInRead } = require('../../host/gitSignInRead.cjs');
 const { registerHostSignin } = require('./hostSignin.cjs');
-const { createToolRelay, hostToolsFor } = require('../../host/toolRelay.cjs');
-const { desktopAnnounce } = require('../../host/desktopAnnounce.cjs');
+const { bindHostCapabilityRelay } = require('../hostCapabilityRelay.cjs');
 const { createSshChannel, createSshProbe } = require('../../host/sshChannel.cjs');
 const { ensureKey, revokeKey, identityArgs } = require('../../host/sshKey.cjs');
 const { createAskpass } = require('../../host/sshAskpass.cjs');
@@ -42,7 +41,6 @@ const { registerHostCloud } = require('./hostCloud.cjs');
 const { createRelayPaths, relayUrl } = require('../../host/relayPaths.cjs');
 const { createHostPhone, phonePlan } = require('../hostPhone.cjs');
 const { ProjectsStore } = require('../../platform/projects.cjs');
-const NONE = Object.freeze({ machines: [], resolved: true });
 // refusals the window shows as they are: not worth a line in the ignored-error log
 const OWN = new Set([
   'not_allowed',
@@ -165,6 +163,7 @@ function register(
         })),
         controlDir: sshDir,
       }),
+      chats: require('../hostChatHooks.cjs').chatIndexHooks({ deps: d, allowed, service }),
       onChange: (snapshot) => {
         d.broadcastAll('host:machines', snapshot);
         phoneChanged();
@@ -196,32 +195,10 @@ function register(
       safeStorage: safeStorage ?? require('electron').safeStorage,
       // connection loss retires machine tabs. Registry removal retires the saved device choice.
       ...machineRetirement(d),
-      // a harness on the machine calls the app's browser tools through the relay (electron/host/toolRelay.cjs); it ends with the connection
+      // The machine's tools are relayed through this app for the lifetime of the connection.
       onRemoteHost: (id, host) => {
         void ownerPolicy.push(id, host);
-        const registry = d.live?.capabilities;
-        // the desktop's tools are announced only while this machine says it has a desktop, and again when that changes (desktopAnnounce.cjs)
-        /** @type {ReturnType<typeof desktopAnnounce>} */
-        const desktop = desktopAnnounce({
-          has: () => service().row(id)?.capabilities?.desktop === true,
-          resync: () => relay?.resync(),
-        });
-        const relay =
-          registry &&
-          createToolRelay({
-            host,
-            registry,
-            include: hostToolsFor(desktop.announced),
-            // a call is served only for a chat that runs on this machine (the ownership file), never for one of this Mac's own
-            owns: (chatId) => d.live?.hostOwnership?.get(chatId).hostId === id,
-            report: noteIgnored,
-          });
-        const unwatch = service().onRowChange(desktop.onRow);
-        return () => {
-          unwatch?.();
-          desktop.dispose();
-          relay?.dispose();
-        };
+        return bindHostCapabilityRelay({ live: d.live, hostId: id, host, machines: service() });
       },
     }));
     if (first)
@@ -294,7 +271,7 @@ function register(
     deps.live.connectedHostFor = (/** @type {string} */ id) => service().connectedHost(id);
     deps.live.hostNameOf = (/** @type {string} */ id) => service().row(id)?.name ?? null;
   }
-  ipcMain.handle('host:machines', () => (allowed() ? service().list() : NONE));
+  require('./hostLists.cjs').registerHostLists({ ipcMain, allowed, service });
   /** @type {ReturnType<typeof createHostFolders> | null} */
   let folders = null;
   // made on the first folder request, which comes only once the gate is open

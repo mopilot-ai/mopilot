@@ -1,7 +1,7 @@
 // The composer's quick context view: one usage value and meter, with honest loading, stale and retry states.
 import type { ContextState } from '../../session/useChatContext';
 import { contextPercent, contextReading } from '../../store/contextUsage';
-import { contextLevel, contextShare, contextTokens } from '../../lib/contextFormat';
+import { CONTEXT_UNREPORTED, contextLevel, contextShare, contextTokens } from '../../lib/contextFormat';
 
 export function ContextSummary({
   used,
@@ -26,7 +26,7 @@ export function ContextSummary({
         : stale
           ? 'Last reported usage.'
           : used === null
-            ? 'Usage appears after the next turn.'
+            ? CONTEXT_UNREPORTED
             : null;
   return (
     <div className="ctx-top ctx-summary" aria-busy={state === 'reading'}>

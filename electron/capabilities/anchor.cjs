@@ -1,6 +1,7 @@
 // Which permission anchor a chat's computer-use and browser tools run under, on every harness: the live chat's mode, else the app default.
 
 const { anchorOf } = require('./contract/policy.cjs');
+const { thisMacControl } = require('./contract/thisMacControl.cjs');
 
 /**
  * The anchor of a chat on harness `kind` whose session state is `s`: its reported mode (an ACP mode through its quirks
@@ -21,7 +22,8 @@ const sessionAnchorOf = (kind, s, fallback = null) =>
 function chatAnchorOf(chatId, { sessions, controller, prefs, remote = null }) {
   const owner = remote?.get(chatId);
   if (owner) return owner.anchor;
-  return sessionAnchorOf(controller.ref(chatId).kind, sessions.get(chatId), prefs?.()?.permission);
+  const anchor = sessionAnchorOf(controller.ref(chatId).kind, sessions.get(chatId), prefs?.()?.permission);
+  return thisMacControl(chatId) && anchor !== 'readOnly' ? 'ask' : anchor;
 }
 
 module.exports = { chatAnchorOf, sessionAnchorOf };

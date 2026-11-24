@@ -1,6 +1,7 @@
 // The composer's round Send button (its morph between send, stop and voice is the caller's): sends the draft, or stays off with why when the chat's agent can't take it yet ("Sign in first", useHostSigninNeed.ts).
 import { Tooltip } from '../ui/Popover';
 import { ArrowUp } from '../ui/icons';
+import { RETURN_GLYPH } from '../../lib/composerSendKeys';
 import type { SendMorph } from '../../lib/sendMorph';
 
 /**
@@ -9,7 +10,7 @@ import type { SendMorph } from '../../lib/sendMorph';
  */
 export function SendButton({
   label,
-  shortcut = '↵',
+  shortcut = RETURN_GLYPH,
   block,
   morph,
   onAnimationEnd,
