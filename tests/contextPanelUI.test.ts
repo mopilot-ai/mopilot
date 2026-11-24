@@ -107,7 +107,7 @@ test('nothing reported waits with a ghost meter; tokens without a window say the
     assert.equal(text(r.host, '.ctx-status'), 'Waiting for a report');
     assert.equal(text(r.host, '.ctx-big'), '—');
     assert.ok(r.host.querySelector('.ctx-bar-ghost'));
-    assert.deepEqual(notes(r.host), ["Usage shows here when this chat's next turn ends."]);
+    assert.deepEqual(notes(r.host), ['No context usage reported yet.']);
     await r.unmount();
   }
   const r = await draw(snapshotOf('o', { used: 38_200, cost: { amount: 0.38, currency: 'USD' } }));

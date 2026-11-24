@@ -1,6 +1,7 @@
 // A basic harness's modes, config options and command catalog, in the real app. With no catalog a
 // typed /xxx goes out as typed; once one is pushed, an unlisted /xxx offers "Send as plain text". A new chat shows
 // what the harness offers before its session opens and starts on what was chosen there.
+// e2e-covers: src/components/composer/Composer.tsx
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures/app';
 import { standaloneNewChat } from './fixtures/sidebar';

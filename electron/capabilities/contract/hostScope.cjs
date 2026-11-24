@@ -1,5 +1,6 @@
 // Which registry tools a chat's owner Host can serve (design 2.9): desktop_* needs `desktop` (the Host's own desktop), computer_* needs `cu` (this Mac's), chrome_* needs `bu`, browser_* needs `iab`. Local browser stores always require a fresh local owner; surface capabilities are read once and kept until its turn ends, so every channel lists the same tools whenever its session starts and a Host's change applies from the next turn.
 const { localBrowserData } = require('./localBrowserData.cjs');
+const { thisMacControl } = require('./thisMacControl.cjs');
 
 const NEEDS = /** @type {const} */ ([
   // a chat on a Host uses that Host's own desktop (`desktop`, capabilities/hostDesktop.cjs); `cu` is this Mac's and no Host has it
@@ -39,9 +40,9 @@ class HostScope {
     return this.kept.get(chatId) ?? null;
   }
 
-  /** Whether the chat's Host lacks the surface `need` names (null: the tool needs none). @param {string} chatId @param {string | null} need */
-  lacks(chatId, need) {
-    if (!need) return false;
+  /** Whether the chat's Host lacks the surface `need` names. @param {string} chatId @param {string | null} need @param {string} [tool] */
+  lacks(chatId, need, tool) {
+    if (!need || ((need === 'desktop' || need === 'bu') && tool && thisMacControl(chatId, tool))) return false;
     // Local stores never follow a remote chat, even when its surface capabilities are frozen for this turn; nor do the
     // gateway's tools (`thisMac`: the user's MCP servers and their credentials are this Mac's)
     if (need === 'localBrowserData' || need === 'thisMac') {

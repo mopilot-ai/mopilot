@@ -63,7 +63,7 @@ export async function runRefusalAction(r: Refusal, queued?: QueuedRefusal, folde
         return;
       }
       // where a machine is added again or its access granted; imported here because the store reaches this file through the queue
-      (await import('../store/chats')).openSettings('connections')();
+      (await import('../store/chats')).openMachines();
       return;
     }
     case 'newChat':

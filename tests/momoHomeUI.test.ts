@@ -483,7 +483,7 @@ test('a machine that is no longer home says where MoMo went and nothing else, no
   await act(async () =>
     [...(window.document.body as any).querySelectorAll('button')].find((b: any) => b.textContent === 'Open Studio').click(),
   );
-  assert.deepEqual(nav.pop(), { name: 'settings', section: 'connections' });
+  assert.deepEqual(nav.pop(), { name: 'settings', section: 'connections', tab: 'other' });
   await act(async () => root.unmount());
   host.remove();
 });

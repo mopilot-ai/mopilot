@@ -12,6 +12,7 @@ import { auditFor, pairingAuditOf } from './auditWiring.mjs';
 import { auditCommand } from './auditExport.mjs';
 import { createHostDirs } from './hostDirs.mjs';
 import { daemonInfo, dropAgentUnderDaemon, installUnit } from './install.mjs';
+import { pairCommand, resetApprovalCommand } from './pairingCommands.mjs';
 import { uninstallCommand } from './uninstallCommand.mjs';
 import { loginShellPath, withDir } from './loginPath.mjs';
 import { createPorts } from './ports.mjs';
@@ -33,7 +34,7 @@ import { createOwnerRules } from './ownerRules.mjs';
 import { hostSchedulesFor } from './schedules.mjs';
 import { scheduleRules } from '../../shared/schedule.mjs';
 import rrule from 'rrule';
-import { relayWithPush } from './pushWiring.mjs';
+import { relayWithPush, codePairFor } from './pushWiring.mjs';
 import { createMomoHidden, momoHomeFor, momoRunsFor } from './momoWiring.mjs';
 import { enroll } from './relayEnroll.mjs';
 import { enrollCommand } from './enrollCommand.mjs';
@@ -57,7 +58,7 @@ import { createLocalNetworkCheck } from './localNetwork.mjs';
 import { createStartupCheck } from './startup.mjs';
 import { DAEMON_PLIST } from '../../shared/host/launchDaemon.mjs';
 const USAGE =
-  'Usage: mopilot-host <serve|status|login <harness>|update|trust-update-key|install|uninstall|pair|enroll|audit export> [--data-dir <dir>]';
+  'Usage: mopilot-host <serve|status|login <harness>|update|trust-update-key|install|uninstall|pair|enroll|reset-approval|audit export> [--data-dir <dir>]';
 /** @param {string[]} argv */
 function parse(argv) {
   const rest = [...argv];
@@ -254,6 +255,7 @@ export async function main(
         images: createHostImages({ dir: path.join(paths.dataDir, 'images') }),
         knownClients: pairing.fingerprints,
         homeGate,
+        codePair: codePairFor({ env, paths, relayLinks, pairing, policy, audit, report: err }),
         journal: recovery.journal,
         runtime: refuseWhenStopping(sessions.chatRuntime, () => stopping),
         existingFolder: hostFs.existingDirectory,
@@ -384,8 +386,7 @@ export async function main(
       await server.close();
       restoreProc();
       restorePorts();
-      // the lock and socket are free: the staged version takes over in a new process
-      // under a supervisor (the unit `install` writes) it restarts the Host itself; a second copy would only fight it for the lock
+      // the lock and socket are free: the staged version takes over in a new process; under a supervisor (the unit `install` writes) the supervisor restarts it, and a second copy would only fight it for the lock
       if (why === 'restart' && !env.MOPILOT_HOST_SUPERVISED)
         spawnFn(process.execPath, [fileURLToPath(new URL('../bin/mopilot-host.mjs', import.meta.url)), ...argv], {
           detached: true,
@@ -475,10 +476,9 @@ export async function main(
       out(daemon ? `Starts at boot from ${file}\nRestart it with: ${start}` : `Wrote ${file}\nStart it with: ${start}`);
       return 0;
     }
-    case 'pair': {
-      out(`Pairing code: ${createPairing({ configDir: paths.configDir }).issueCode()}`);
-      return 0;
-    }
+    case 'pair':
+    case 'reset-approval': // codes and the way out of a lost approval key (./pairingCommands.mjs)
+      return (command === 'pair' ? pairCommand : resetApprovalCommand)({ argv, configDir: paths.configDir, out, err });
     case 'audit':
       return auditCommand({ dataDir: paths.dataDir, argv, out, err });
     case 'enroll':

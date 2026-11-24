@@ -343,12 +343,19 @@ test("sdkMcp: a paired computer's tool names reach Claude as they are, in its to
       throw Object.assign(new Error('desktop_screenshot is not something this device may use on this Mac'), { code: 'not_allowed' });
     },
   });
+  r.register({
+    name: 'this_mac_control',
+    policy: 'observe',
+    handler: () => JSON.stringify({ tools: [{ name: 'desktop_screenshot' }] }),
+  });
   const sage = await connect(sdkMcpServers({ sdk, z, registry: r, serverName: SAGE, owner }).get(SAGE));
   const listed: any = await sage.callTool({ name: 'remote_computer_tools', arguments: {} });
   assert.equal(listed.content[0].text, JSON.stringify({ tools: [{ name: 'browser_navigate' }, { name: 'desktop_screenshot' }] }));
   const refused: any = await sage.callTool({ name: 'remote_computer_call', arguments: {} });
   assert.equal(refused.isError, true);
   assert.match(refused.content[0].text, /^desktop_screenshot is not something/);
+  const mac: any = await sage.callTool({ name: 'this_mac_control', arguments: {} });
+  assert.equal(mac.content[0].text, JSON.stringify({ tools: [{ name: 'desktop_screenshot' }] }));
   // this session's own tools are still rewritten as before
   const echo: any = await sage.callTool({ name: 'sage_debug_echo', arguments: { text: 'x' } });
   assert.equal(echo.content[0].text, 'sage_debug_echo ran');

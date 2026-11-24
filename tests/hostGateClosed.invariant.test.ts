@@ -122,10 +122,20 @@ test('every Host channel answers cheaply and inertly: the gate, an empty list, n
   assert.deepEqual(handlers.get('host:machines')!(), { machines: [], resolved: true });
   assert.equal(handlers.get('host:owner')!({}, 'acp:kimi:u1'), null);
   assert.deepEqual(handlers.get('host:remoteChats')!({}), []);
+  assert.deepEqual(handlers.get('host:chatIndex')!(), []);
   assert.deepEqual(handlers.get('host:attentions')!({}), {});
   assert.deepEqual(await handlers.get('host:openSideChat')!({}, 'acp:kimi:u1'), { value: null });
   const others = [...handlers].filter(
-    ([c]) => !['host:access', 'host:machines', 'host:owner', 'host:remoteChats', 'host:attentions', 'host:openSideChat'].includes(c),
+    ([c]) =>
+      ![
+        'host:access',
+        'host:machines',
+        'host:chatIndex',
+        'host:owner',
+        'host:remoteChats',
+        'host:attentions',
+        'host:openSideChat',
+      ].includes(c),
   );
   assert.ok(others.length > 5, 'the mutating channels exist and are checked');
   for (const [channel, fn] of others) {

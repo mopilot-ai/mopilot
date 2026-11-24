@@ -14,6 +14,8 @@ const SIGNERS: Record<string, string> = {
   'electron/host/pairingClient.cjs':
     "the Host's challenges: `<label>\\n<hostId>\\n<nonce>`, label 'pair' or 'auth', and update manifests through updateSignature",
   'shared/remote/phoneHost.mjs': "a phone's login to its Mac: `auth\\n<hostId>\\n<nonce>`",
+  'host/src/codePairWiring.mjs':
+    "this Host's own device key for pairing by code: it signs only what shared/host/codePair.mjs asks of it (the protocol's proof of holding the key)",
   'shared/host/updateSignature.mjs': 'an update manifest: `mopilot-host-update\\nv2|v3\\n...`',
   'shared/host/codePair.mjs':
     "the code pairing's proof of holding a device key: lv(`mopilot-code-pair-v1|device-proof`, role, transcript hash)",

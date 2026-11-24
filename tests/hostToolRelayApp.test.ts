@@ -7,7 +7,7 @@ import { parseParams } from '../shared/host/schema.mjs';
 import { tick } from './support/host-wire-kit.ts';
 
 const require = createRequire(import.meta.url);
-const { createToolRelay, fit, answerOf } = require('../electron/host/toolRelay.cjs');
+const { createToolRelay, answerOf } = require('../electron/host/toolRelay.cjs');
 
 const TOOLS = [
   {
@@ -31,7 +31,7 @@ const call = (patch: object = {}) => ({
 });
 
 /** A remote Host as the relay sees it: what it was asked, the events and states it can be given. */
-function world(o: { state?: string; owned?: (chatId: string) => boolean } = {}) {
+function world(o: { state?: string; owned?: (chatId: string, epoch: number) => boolean } = {}) {
   let state = o.state ?? 'online';
   const events = new Set<(e: any) => void>();
   const states = new Set<(s: string) => void>();
@@ -207,9 +207,12 @@ test('A: the Host cancelling a call aborts that call, stops the chat’s tabs as
   w.push(call({ callId: 'a' }));
   w.push(call({ callId: 'b' }));
   await tick();
-  w.push({ event: 'toolCancel', chatId: 'c1', callId: 'a' });
-  w.push({ event: 'toolCancel', chatId: 'other', callId: 'b' });
-  w.push({ event: 'toolCancel', chatId: 'c1', callId: 'unknown' });
+  w.push({ event: 'toolCancel', chatId: 'c1', callId: 'a', epoch: 3 });
+  w.push({ event: 'toolCancel', chatId: 'c1', callId: 'b' });
+  assert.equal(w.runs[0].args[4].signal.aborted, false);
+  w.push({ event: 'toolCancel', chatId: 'c1', callId: 'a', epoch: 4 });
+  w.push({ event: 'toolCancel', chatId: 'other', callId: 'b', epoch: 4 });
+  w.push({ event: 'toolCancel', chatId: 'c1', callId: 'unknown', epoch: 4 });
   assert.equal(w.runs[0].args[4].signal.aborted, true);
   assert.equal(w.runs[1].args[4].signal.aborted, false, 'another chat’s cancel is not this call’s');
   assert.deepEqual(
@@ -223,6 +226,32 @@ test('A: the Host cancelling a call aborts that call, stops the chat’s tabs as
   assert.deepEqual(
     results(w).map((r) => r.callId),
     ['b'],
+  );
+});
+
+test('the relay withholds results and limits cancellation after the call loses its chat or turn', async () => {
+  let epoch = 4;
+  const w = world({ owned: (_chat, mine) => mine === epoch });
+  w.push(call({ callId: 'move' }));
+  w.push(call({ callId: 'cancel' }));
+  await tick();
+  epoch = 5;
+  w.push({ event: 'toolCancel', chatId: 'c1', callId: 'cancel', epoch: 4 });
+  assert.equal(w.runs[1].args[4].signal.aborted, true);
+  assert.deepEqual(w.stopped, []);
+  const privateResult = { ok: true, content: [{ type: 'text', text: 'private' }] };
+  w.runs[1].finish(privateResult);
+  w.runs[0].finish(privateResult);
+  w.push(call({ callId: 'turn', epoch: 5 }));
+  await tick();
+  w.runs[2].finish({ ...privateResult, canDeliver: () => false });
+  await tick();
+  assert.deepEqual(
+    w.sent.slice(1).map(({ params }) => [params.callId, params.ok, params.content]),
+    [
+      ['move', false, []],
+      ['turn', false, []],
+    ],
   );
 });
 
@@ -288,48 +317,6 @@ test('B: an answer the Host cannot take is reported, not thrown; a registry that
   throwing.dispose();
 });
 
-test('fit: text and images pass; another block or a bad image becomes words; nothing is silently dropped', () => {
-  const image = { type: 'image', data: 'AAAA', mimeType: 'image/png' };
-  assert.deepEqual(fit([{ type: 'text', text: 'a' }, image]), [{ type: 'text', text: 'a' }, image]);
-  assert.deepEqual(fit([{ type: 'resource', uri: 'file:///x' }]), [{ type: 'text', text: '{"type":"resource","uri":"file:///x"}' }]);
-  assert.deepEqual(fit([{ type: 'image', data: 'AAAA', mimeType: 'text/html' }]), [
-    { type: 'text', text: '{"type":"image","data":"AAAA","mimeType":"text/html"}' },
-  ]);
-  assert.deepEqual(fit([undefined, 3]), [
-    { type: 'text', text: '' },
-    { type: 'text', text: '3' },
-  ]);
-  assert.deepEqual(fit(undefined), []);
-  assert.deepEqual(fit('text'), []);
-});
-
-test('fit: a text over 1 MB is cut with a note, an image over 8 MB is told in words, more than 64 blocks end in one note, and what is left of the message is shared out', () => {
-  const [cut] = fit([{ type: 'text', text: 'x'.repeat(2 * 1024 * 1024) }]);
-  assert.equal(cut.text.length, 1024 * 1024);
-  assert.match(cut.text, /\[cut: too long to pass on\]$/);
-  assert.deepEqual(fit([{ type: 'image', data: 'A'.repeat(9 * 1024 * 1024), mimeType: 'image/png' }]), [
-    { type: 'text', text: 'An image was too large to pass on.' },
-  ]);
-  const many = fit(Array.from({ length: 100 }, (_, i) => ({ type: 'text', text: String(i) })));
-  assert.equal(many.length, 64);
-  assert.deepEqual(many.at(-1), { type: 'text', text: '[37 more blocks were not passed on]' });
-  // a message holds about 7 MB in all: two big images fit, the third is told in words
-  const big = { type: 'image', data: 'A'.repeat(3 * 1024 * 1024), mimeType: 'image/png' };
-  const shared = fit([big, big, big, { type: 'text', text: 'after' }]);
-  assert.deepEqual(
-    shared.map((b: any) => b.type),
-    ['image', 'image', 'text', 'text'],
-  );
-  // no room at all: the rest is one note
-  const full = fit([
-    { type: 'image', data: 'A'.repeat(8 * 1024 * 1024 - 65 * 1024), mimeType: 'image/png' },
-    { type: 'text', text: 'late' },
-    { type: 'text', text: 'later' },
-  ]);
-  assert.equal(full.length, 2);
-  assert.match(full[1].text, /more blocks were not passed on/);
-});
-
 test('every answer the relay can make is one the wire takes: the shared parser accepts it', () => {
   const huge = [
     { type: 'text', text: 'x'.repeat(5 * 1024 * 1024) },
@@ -378,7 +365,7 @@ test('the defaults: every tool is offered, and a problem nobody asked to hear of
   );
   push({ event: 'tool', chatId: 'c1', segmentId: 's', callId: 'z', name: 'browser_read', arguments: {}, epoch: 1 });
   await tick();
-  assert.doesNotThrow(() => push({ event: 'toolCancel', chatId: 'c1', callId: 'z' }));
+  assert.doesNotThrow(() => push({ event: 'toolCancel', chatId: 'c1', callId: 'z', epoch: 1 }));
   push({ event: 'tool', chatId: 'c1' });
   await tick();
   // without an ownership check the call for 'z' was refused (and answered as such); a call that names nothing runs nothing and has nothing to answer
@@ -389,12 +376,6 @@ test('the defaults: every tool is offered, and a problem nobody asked to hear of
   push(call());
   await tick();
   assert.equal(sent.length, 2);
-});
-
-test('fit: when the message has almost no room left, a text is cut to what is left and carries no note', () => {
-  const image = { type: 'image', data: 'A'.repeat(8 * 1024 * 1024 - 65 * 1024 - 10), mimeType: 'image/png' };
-  const [, text] = fit([image, { type: 'text', text: 'abcdefghijklmnopqrstuvwxyz' }]);
-  assert.equal(text.text, 'abcdefghij');
 });
 
 test('a Host can call only the tools it was announced, and only for a chat that runs on it', async () => {

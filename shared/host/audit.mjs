@@ -20,6 +20,8 @@ export const AUDIT_KINDS = Object.freeze([
   'client.removed',
   'controller.connected',
   'client.refused',
+  'code.offered',
+  'code.refused',
   'lease.handed',
   'lease.floor',
   'lease.repaired',

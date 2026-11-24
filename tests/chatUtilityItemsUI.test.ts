@@ -30,7 +30,20 @@ installNativeStub({
     },
   },
 });
-mock.module('../src/lib/sideSessions.ts', { namedExports: { useOrchestration: () => ({ children }) } });
+// the test replaces `children` between renders: the view reads it as it is now
+const sideView = {
+  get children() {
+    return children;
+  },
+};
+mock.module('../src/lib/sideSessions.ts', {
+  namedExports: {
+    useOrchestration: () => sideView,
+    useOrchestrationSelect: (select: any) => select(sideView),
+    orchestrationNow: () => sideView,
+    subscribeOrchestration: () => () => {},
+  },
+});
 mock.module('../src/components/ui/Popover.tsx', { namedExports: popoverExports });
 const { ChatUtilityItems } = await import('../src/components/titleBar/ChatUtilityItems.tsx');
 

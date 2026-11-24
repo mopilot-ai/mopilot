@@ -21,6 +21,8 @@ const WORDS: Record<string, string> = {
   'git.write': 'Folder changed',
   'controller.connected': 'Mac connected by code',
   'client.refused': 'Request refused',
+  'code.offered': 'Pairing code made',
+  'code.refused': 'Pairing by code refused',
 };
 /** Where a line came from when the Host names no one, only the kind of client. */
 const FROM: Record<string, string> = {

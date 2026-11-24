@@ -398,7 +398,10 @@ const C =
 const { QueuedList: ActualQueuedList } = await import('../../src/components/composer/QueuedList.tsx');
 mockTsx(new URL('../../src/session/useComposerLocation.ts', import.meta.url), { useComposerLocation: () => fx.location });
 mockTsx(new URL('../../src/session/useAttachmentTarget.ts', import.meta.url), { useAttachmentTarget: () => fx.attachmentTarget });
-mockTsx(new URL('../../src/session/useMachineCommands.ts', import.meta.url), { useMachineCommands: () => fx.machineCommands });
+mockTsx(new URL('../../src/session/useMachineCommands.ts', import.meta.url), {
+  useMachineCommands: (threadId: string | null, wanted: boolean | 'draft') =>
+    typeof fx.machineCommands === 'function' ? fx.machineCommands(threadId, wanted) : fx.machineCommands,
+});
 mockTsx(new URL('../../src/components/composer/QueuedList.tsx', import.meta.url), {
   QueuedList: C('QueuedList', ({ threadId, onEdit }) =>
     fx.realQueuedList

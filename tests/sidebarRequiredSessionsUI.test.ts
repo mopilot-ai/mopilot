@@ -39,7 +39,15 @@ const store = create<any>(() => ({
 }));
 stubStore({ useStore: store });
 const lineage = { children: {}, deliveries: {}, proposals: {}, queue: [] };
-mock.module('../src/session/harness/claude/desktopLineage.ts', { namedExports: { useSidebarLineage: () => lineage } });
+mock.module('../src/session/harness/claude/desktopLineage.ts', {
+  namedExports: {
+    useSidebarLineage: () => lineage,
+    useFamilyLineage: () => lineage,
+    sidebarLineageNow: () => lineage,
+    familyLineageNow: () => lineage,
+    useLineageStamp: () => '',
+  },
+});
 const { useRequiredChats } = await import('../src/components/sidebar/useRequiredChats.ts');
 const { useSessions, startSessions, flushSessionPatches } = await import('../src/store/session/useSession.ts');
 const { EMPTY_SESSION } = await import('../src/store/session/sessionState.ts');

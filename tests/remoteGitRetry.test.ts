@@ -124,7 +124,7 @@ test('Codex, Claude and ACP failures use operation identity, so a historical sig
     const settings = [...ui.host.querySelectorAll('button')].find((b) => b.textContent === 'My machines')!;
     const retriesBeforeSettings = callsTo('store:giveBackToComposer').length;
     await settle(() => settings.click());
-    assert.deepEqual(callsTo('store:navigate').at(-1), [{ name: 'settings', section: 'connections' }]);
+    assert.deepEqual(callsTo('store:navigate').at(-1), [{ name: 'settings', section: 'connections', tab: 'other' }]);
     assert.deepEqual(api.callsTo('host.update'), []);
     assert.equal(callsTo('store:giveBackToComposer').length, retriesBeforeSettings);
     await settle(() =>

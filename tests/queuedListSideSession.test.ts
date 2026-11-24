@@ -29,6 +29,7 @@ stubStore({
 mock.module('../src/lib/sideSessions.ts', {
   namedExports: {
     useOrchestration: () => ({ children: {}, deliveries }),
+    useOrchestrationSelect: (select: any) => select({ children: {}, deliveries }),
     sideSessionForItem: (v: any, item: any) => v.deliveries[item.clientId ?? ''] ?? null,
   },
 });

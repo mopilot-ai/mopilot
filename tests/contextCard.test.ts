@@ -136,11 +136,11 @@ test('a snapshot without a window shows its tokens and no grid', async () => {
   await r.unmount();
 });
 
-test('before any reading the card says when one comes; Chat details hands over to the chat details', async () => {
+test('before any reading the card says none was reported; Chat details hands over to the chat details', async () => {
   reset({ c: [{ harness: 'codex', nativeId: 'c-native' }] });
   let closed = 0;
   const r = await render(h(ContextCard, { threadId: 'c', onClose: () => closed++ }));
-  assert.equal(one(r.host, '.context-card-empty').textContent, "Usage shows here when this chat's next turn ends.");
+  assert.equal(one(r.host, '.context-card-empty').textContent, 'No context usage reported yet.');
   assert.equal(r.host.querySelector('.ctx-card-grid'), null);
   // nothing to compact yet
   assert.equal(r.host.querySelector('.btn-white'), null);

@@ -101,7 +101,7 @@ test('with access open the heartbeat runs and the list shows each machine, its d
         waitingForLogin: null,
         startsAtBoot: 'unknown',
         fileVault: 'unknown',
-        platform: '',
+        ...{ platform: '', address: 'me@box', hostVersion: '' },
       },
     ],
     resolved: true,

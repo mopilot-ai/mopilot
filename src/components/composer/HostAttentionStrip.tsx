@@ -5,7 +5,7 @@ import { useChatAttention } from '../../lib/chatAttention';
 import { attentionLine, RESUME_MESSAGE } from '../../../shared/host/attentionLine.mjs';
 import { RECONNECT_MS } from '../../../shared/host/machineLine.mjs';
 import { sendMessage } from '../../store/send';
-import { openSettings } from '../../store/chats';
+import { openMachines } from '../../store/chats';
 import { useAuthBoxShown } from '../../session/machineAuthBox';
 import { useFlag } from '../../lib/flags';
 import { HostAwayStrip } from './HostAwayStrip';
@@ -34,7 +34,7 @@ export function HostAttentionStrip({ threadId }: { threadId: string }) {
   const act = () => {
     if (line.action?.kind === 'resume') void sendMessage(threadId, RESUME_MESSAGE);
     // signing in (when no failed turn asks for it) and raising a limit are done in the machine's settings
-    else openSettings('connections')();
+    else openMachines();
   };
   return (
     <div className="fa-banner host-away-strip" role="status" aria-label={line.strip}>

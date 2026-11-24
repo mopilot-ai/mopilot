@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useChatContextState, type ContextState } from '../../session/useChatContext';
 import { askContext, useContextOwner } from '../../session/useContextSnapshot';
-import { contextShare, contextTokens } from '../../lib/contextFormat';
+import { CONTEXT_UNREPORTED, contextShare, contextTokens } from '../../lib/contextFormat';
 import { useEffectOn } from '../../lib/effects';
 import { noteIgnored } from '../../lib/ignored';
 import type { ContextSnapshot } from '../../../shared/contextSnapshot.mjs';
@@ -19,7 +19,7 @@ export const OPEN_CONTEXT = 'open-context';
 const EMPTY: Record<Exclude<ContextState, 'ready'>, string> = {
   reading: 'Reading context use…',
   unavailable: "Context use isn't available right now.",
-  none: "Usage shows here when this chat's next turn ends.",
+  none: CONTEXT_UNREPORTED,
 };
 /** The grid's cells, one per percent of the window: a cell is its place in the grid. */
 const CELLS = Array.from({ length: 100 }, (_, n) => `cell-${n}`);

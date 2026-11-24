@@ -33,7 +33,7 @@ import { useRequiredChats } from './useRequiredChats';
 import { focusedChat } from '../../store/split';
 import { isMomoChat } from '../../lib/momoChats';
 import { familiesOf } from '../../lib/sidebarFamilyIndex';
-import { useSidebarLineage } from '../../session/harness/claude/desktopLineage';
+import { useFamilyLineage } from '../../session/harness/claude/desktopLineage';
 import { useChatStarts } from '../../lib/chatStarts';
 import { StartingChatRows } from './StartingChatRows';
 import { useLoadingEmpty } from '../../store/sidebarSnapshot';
@@ -241,7 +241,7 @@ export function OneList({
   activeThread: string | null;
   reorderChat: ReorderChat;
 }) {
-  const v = useSidebarLineage();
+  const v = useFamilyLineage();
   const threads = useStore((s) => s.threads);
   const listed = useStore((s) => s.threadOrder);
   const momoChats = useStore((s) => s.momoChats);

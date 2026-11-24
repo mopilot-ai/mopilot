@@ -77,11 +77,41 @@ function reset(next: Account[]) {
   accounts = next;
   servingId = null;
   unpooledWindows = [];
+  ctx.location = { machine: null, pending: false };
   refreshes.length = opened.length = ctx.ignored.length = 0;
   answer = async () => undefined;
 }
 
 const panel = () => one(document.body, '.ctx-popover');
+
+test('a machine draft keeps the usage action without borrowing this Mac’s plan', async () => {
+  reset([login('claude', 'local', [limit('Weekly', 35)])]);
+  const r = await render(usageRing('claude', null));
+  const open = async () => act(() => one(r.host, '.context-ring').click());
+  await open();
+  assert.match(panel().textContent!, /local@example.com/);
+  ctx.location = { machine: 'box', machineId: 'host:box', pending: false };
+  await r.rerender(usageRing('claude', null));
+  assert.equal(document.querySelector('.ctx-popover'), null);
+  const ring = one(r.host, '.context-ring');
+  assert.equal(ring.getAttribute('aria-label'), 'Usage details');
+  assert.equal(r.host.querySelector('.context-ring-fill'), null);
+  await open();
+  assert.match(panel().textContent!, /No context usage reported yet/);
+  assert.equal(panel().querySelector('.ctx-limits'), null);
+  await r.rerender(usageRing(null, null));
+  assert.equal(one(r.host, '.context-ring').getAttribute('aria-label'), 'Usage details');
+  await open();
+
+  ctx.location = { machine: 'other', machineId: 'host:other', pending: false };
+  await r.rerender(usageRing(null, null));
+  assert.equal(document.querySelector('.ctx-popover'), null);
+  ctx.location = { machine: null, pending: true };
+  await r.rerender(usageRing('claude'));
+  assert.equal(one(r.host, '.context-ring').getAttribute('aria-label'), 'Usage details');
+  assert.deepEqual(refreshes, [['claude', 'surface']]);
+  await r.unmount();
+});
 
 test('the single ring tracks the plan arc and opens every window for the account actually serving the chat', async () => {
   mock.timers.enable({ apis: ['Date'], now: NOW });
@@ -170,7 +200,7 @@ test('a draft can open plan usage before a context reading, and expired windows 
     assert.equal(panel().querySelector('.ctx-limits-foot'), null);
     accounts[0] = login('codex', 'default', [], { kind: 'apiKey' });
     await r.rerender(usageRing('codex', null));
-    assert.equal(r.host.querySelector('.context-ring'), null);
+    assert.equal(one(r.host, '.context-ring').getAttribute('aria-label'), 'Usage details');
     assert.equal(document.querySelector('.ctx-popover'), null);
     accounts[0] = login('codex', 'default', [limit('Weekly', 10)]);
     await r.rerender(usageRing('codex', null));

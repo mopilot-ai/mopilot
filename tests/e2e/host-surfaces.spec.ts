@@ -109,7 +109,7 @@ test('chip menu and Machines: one status line per machine, the ⋯ menu and Rena
   // the ⋯ menu: the other sign-in, Open terminal, Rename, Remove
   await box.getByRole('button', { name: 'More for box' }).click();
   const more = page.getByRole('menu');
-  await expect(more.getByRole('menuitem')).toHaveText(['Sign in to Codex', 'Open terminal', 'Rename', 'Remove']);
+  await expect(more.getByRole('menuitem')).toHaveText(['Details', 'Rename', 'Sign in to Codex', 'Open terminal', 'Remove']);
   await shootBoth(page, harness.app, 'settings-my-machines-menu');
   // Rename goes through main's registry: the list that comes back names it everywhere
   await more.getByRole('menuitem', { name: 'Rename' }).click();

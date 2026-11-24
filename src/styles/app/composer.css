@@ -158,11 +158,25 @@
   overflow-wrap: anywhere;
   overflow-y: auto;
 }
+/* a busy editor (a send preparing, a chat starting, another app running the turn) refuses edits: it looks like it, and its placeholder says why */
+.composer-editor[aria-disabled='true'] {
+  opacity: 0.6;
+}
 .composer-editor::before {
   content: attr(data-placeholder);
   color: var(--placeholder);
   pointer-events: none;
   position: absolute;
+}
+.composer-editor[data-command-hint]::after {
+  content: attr(data-command-hint);
+  color: var(--placeholder);
+  padding-inline-start: 0.2em;
+  pointer-events: none;
+  user-select: none;
+}
+::highlight(composer-slash-command) {
+  color: var(--accent);
 }
 .composer-editor ol,
 .composer-editor ul {
@@ -403,6 +417,10 @@
 .context-ring-track {
   stroke: currentColor;
   opacity: 0.25;
+}
+.context-ring[data-empty] .context-ring-track {
+  stroke: var(--text-2);
+  opacity: 1;
 }
 .context-ring-fill {
   stroke: currentColor;

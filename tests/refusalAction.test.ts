@@ -12,7 +12,7 @@ mock.module('../src/lib/hostSignin.ts', {
   namedExports: { startSignin: async (...a: unknown[]) => void calls.push(['signIn', ...a]), RUNNING: new Set<string>() },
 });
 const opened: unknown[][] = [];
-mock.module('../src/store/chats.ts', { namedExports: { openSettings: (section: string) => () => void opened.push([section]) } });
+mock.module('../src/store/chats.ts', { namedExports: { openMachines: () => void opened.push(['connections', 'other']) } });
 const carried: unknown[][] = [];
 mock.module('../src/session/refusalNewChat.ts', {
   namedExports: { newChatWithMessage: async (...a: unknown[]) => (carried.push(a), true) },
@@ -62,7 +62,7 @@ test('pressing it calls what the app already does elsewhere, on the machine and 
   for (const action of ['install', 'signIn', 'orgSignIn', 'update', 'openMachines', null]) await runRefusalAction(r(action));
   assert.deepEqual(calls, [['install', 'box', 'codex'], ['signIn', 'box', 'codex'], ['orgSignIn'], ['update', 'box']]);
   // the machine's page is where access is granted or the machine added again
-  assert.deepEqual(opened, [['connections']]);
+  assert.deepEqual(opened, [['connections', 'other']]);
   // a refusal that names no agent installs and signs in nothing it cannot name
   calls.length = 0;
   const unnamed = (action: string) => ({ ...r(action), agent: undefined });
@@ -157,5 +157,5 @@ test('a Mac the machine does not know is offered Pair again: over ssh for a mach
   // a machine added by command has no ssh to do it from
   asked.length = 0;
   await runRefusalAction(unknown('relay:abc'));
-  assert.deepEqual([asked, opened], [[], [['connections']]]);
+  assert.deepEqual([asked, opened], [[], [['connections', 'other']]]);
 });

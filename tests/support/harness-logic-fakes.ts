@@ -145,7 +145,7 @@ const STORE_NAMES = (
   'getState setState patchRuntime chatOf nativeOf chatFamily usageHarnessOf chatHarnessLabel startNewChat newChatFamily newTurn buildInput provisionalTitle threadTitle selectionAttachment newChatHarness modelChangeNote ' +
   'applyNotification flushStreamNotifications suggestOtherHarness toast toastFailure upsertThread touchChat setDraft openPaneTab accountNote setElsewhere otherAppDone sendHeld unhideFolder rememberChatProject notify navigate replaceChatInView ' +
   'addAccount login pinCodexChat inheritCodexPin removeAccount setChatConfig setPrefs switchAccount setCodexMode copyChatConfig loadGoal revertThread setGoalState withLease ' +
-  'openSettings ensureResumed turnFromServer sendFeedback blockedReason clearGoal editGoal pauseGoal resumeGoal sendMessage setGoalBudget showGoal editClaudeMessage loadOlderTurns'
+  'openSettings openMachines ensureResumed turnFromServer sendFeedback blockedReason clearGoal editGoal pauseGoal resumeGoal sendMessage setGoalBudget showGoal editClaudeMessage loadOlderTurns'
 ).split(' ');
 
 const useStore: any = (sel: (s: any) => any) => sel(fx.state);

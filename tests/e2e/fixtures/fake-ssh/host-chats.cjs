@@ -5,6 +5,7 @@
 // A message that says "nosignin" runs a git command that failed for a missing sign-in, with the Host's own line in its output.
 // A message that says "cutoff" is cut off once the way a Host restart cuts a turn off (ended as cancelled with `interrupted`), and runs to its end when sent again.
 // A message that says "approve" raises a permission card and waits for chat.answer; one that says "slow" streams until chat.stop; any other is answered with "fake-host: <text>" in two pieces.
+// "report context" waits for the FAKE_HOST_CONTEXT_RELEASE file, then reports context just before ending the turn.
 // Every request it answers is appended to FAKE_HOST_LOG (one JSON line) so a spec can read what the app asked.
 const net = require('node:net');
 const fs = require('node:fs');
@@ -235,6 +236,19 @@ async function run(id, turnId, text) {
   await sleep(300);
   delta(id, key, { ...head, text: reply.slice(mid) });
   await sleep(300);
+  const releaseContext = process.env.FAKE_HOST_CONTEXT_RELEASE;
+  if (text === 'report context' && releaseContext) {
+    let stopped = false;
+    void wait.then(() => {
+      stopped = true;
+    });
+    const { waitFor } = await import('../../../support/waitFor.ts');
+    const released = await waitFor(() => stopped || fs.existsSync(releaseContext), 'the context report to be released', {
+      timeoutMs: 60_000,
+    }).catch(() => false);
+    if (stopped || !released) return end('cancelled');
+    event(id, { kind: 'update', turnId, update: { sessionUpdate: 'usage_update', used: 40_000, size: 1_000_000 } });
+  }
   durable(id, { t: 'event', family: 'acp', event: textUpdate(turnId, reply) }, key);
   end('end_turn');
 }
@@ -386,7 +400,10 @@ net
           c.subs.add(fn);
         });
         for (const frame of out.frames ?? []) say({ event: 'frame', chatId: req.params.chatId, frame });
-        say({ id: req.id, ...(out.error ? { error: out.error } : { result: out.result }) });
+        const reply = () => say({ id: req.id, ...(out.error ? { error: out.error } : { result: out.result }) });
+        // FAKE_HOST_ACK_MS: the Host starts the chat at once but its answer to chat.start comes this late (a flapping link)
+        if (req.method === 'chat.start' && Number(process.env.FAKE_HOST_ACK_MS)) setTimeout(reply, Number(process.env.FAKE_HOST_ACK_MS));
+        else reply();
       }
     });
   })

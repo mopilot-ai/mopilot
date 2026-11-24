@@ -153,7 +153,7 @@ test('the user item and a card answer carry `by`; without a principal they are a
   );
 });
 
-test('the CLI acts as `local-cli`; a phone manages only itself; a desktop manages any client', async (t) => {
+test('the CLI acts as `local-cli`; a phone manages no client (it is held to its own list); a desktop manages any client', async (t) => {
   const w = await servedHost(t);
   const token = fs.readFileSync(`${w.paths.socketPath}.token`, 'utf8');
   const cli = line(w.paths.socketPath, token);
@@ -170,10 +170,11 @@ test('the CLI acts as `local-cli`; a phone manages only itself; a desktop manage
   const phoneRow = listed.find((c: any) => c.fingerprint === fingerprint);
   assert.deepEqual([phoneRow.name, phoneRow.kind, phoneRow.addedBy, phoneRow.connected], ['Pocket iPhone', 'phone', 'local-cli', false]);
   assert.deepEqual(await cli.request('host.clientRename', { name: 'x' }), { renamed: false }, 'the CLI has no record to rename');
-  // the phone: connects, renames itself, may not add or remove another
+  // the phone: connects, and may not list, rename, add or remove clients (its list is its chats: controllerRefusals.mjs PHONE_ALLOWED)
   const phone = await w.reconnect(phoneKey);
-  assert.equal((await phone.request('host.clients')).clients.find((c: any) => c.fingerprint === fingerprint).connected, true);
-  assert.deepEqual(await phone.request('host.clientRename', { name: 'Pocket' }), { renamed: true });
+  assert.equal((await cli.request('host.clients')).clients.find((c: any) => c.fingerprint === fingerprint).connected, true);
+  await assert.rejects(phone.request('host.clients'), (e: any) => e.code === 'forbidden');
+  await assert.rejects(phone.request('host.clientRename', { name: 'Pocket' }), (e: any) => e.code === 'forbidden');
   await assert.rejects(
     phone.request('host.clientAdd', {
       publicKey: w.identity('x').publicKey,
@@ -191,8 +192,8 @@ test('the CLI acts as `local-cli`; a phone manages only itself; a desktop manage
   });
   const row = (await desk.conn.request('host.clients')).clients.find((c: any) => c.fingerprint === added.fingerprint);
   assert.equal(row.addedBy, listed.find((c: any) => c.name === 'Mac').fingerprint);
-  // the phone removes itself and is cut off after it hears the answer
-  assert.deepEqual(await phone.request('host.clientRemove', { fingerprint }), {
+  // the CLI removes the phone, which is cut off after it
+  assert.deepEqual(await cli.request('host.clientRemove', { fingerprint }), {
     removed: true,
   });
   await phone.closed;

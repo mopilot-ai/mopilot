@@ -12,7 +12,11 @@ autoMock('src/components/ui/ImageLightbox.tsx', 'img', { ZoomableImage: stubComp
 autoMock('src/components/markdown/SkillLink.tsx', 'skill', { SkillLink: stubComponent('SkillLink') });
 autoMock('src/components/markdown/Visualization.tsx', 'viz', { Visualization: stubComponent('Visualization') });
 // the linked sessions the windows know (src/lib/sideSessions.ts): one child with its handle
-autoMock('src/lib/sideSessions.ts', 'side', { useOrchestration: () => ({ children: { kid: { name: 'fix-login' } } }) });
+const sideView = { children: { kid: { name: 'fix-login' } } };
+autoMock('src/lib/sideSessions.ts', 'side', {
+  useOrchestration: () => sideView,
+  useOrchestrationSelect: (select: any) => select(sideView),
+});
 const { Markdown } = await import('../src/components/markdown/Markdown.tsx');
 const { chatIdFromHref } = await import('../src/lib/chatLink.ts');
 

@@ -2,6 +2,7 @@
 // "Loaded skill" row open the skill pane (by mouse and by keyboard), a skill the app cannot find on disk stays plain
 // text, and the Skills pages show the definition in their own detail (the pane belongs to a chat). The fake Claude CLI lists the skills it finds under its config
 // folder (fake-claude.mjs) beside `fake-skill`, which has no file here. Everything lives in the launch's own home.
+// e2e-covers: src/components/composer/ComposerSlash.tsx
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Page } from '@playwright/test';

@@ -38,21 +38,21 @@ beforeEach(() => {
 test('nothing is offered while Mobile Remote is off or the state cannot be read', async () => {
   responses['alwaysOn.get'] = Promise.resolve(state({ remoteOn: false }));
   let v = await page();
-  assert.doesNotMatch(text(v.host), /Keep this Mac reachable/);
+  assert.doesNotMatch(text(v.host), /Other settings/);
   await v.unmount();
   responses['alwaysOn.get'] = () => Promise.reject(new Error('main is not ready'));
   v = await page();
-  assert.doesNotMatch(text(v.host), /Keep this Mac reachable/);
+  assert.doesNotMatch(text(v.host), /Other settings/);
   await v.unmount();
 });
 
 test('three switches, off by default; the login switch waits for the menu-bar one; each writes through main', async () => {
   const v = await page();
   const root = v.host;
-  assert.match(text(root), /Keep this Mac reachable/);
+  assert.match(text(root), /Other settings/);
   assert.equal(row(root, 'Start at login').querySelector('[role=switch]')!.hasAttribute('disabled'), true);
   await toggle(root, 'Keep running in the menu bar');
-  await toggle(root, 'Stay awake when plugged in');
+  await toggle(root, 'Keep this Mac awake');
   assert.deepEqual(of('set'), [[{ keepRunning: true }], [{ preventSleep: true }]]);
   // main's answer is the state shown, and a change made in another window arrives the same way
   changed!(state({ prefs: { keepRunning: true, loginItem: false, preventSleep: true } }));
@@ -79,8 +79,8 @@ test('the group sits directly under the Phone section, before the other connecti
   responses['remoteSettings.cancel'] = true;
   const v = await page();
   const titles = [...v.host.querySelectorAll('.settings-group-title')].map((t) => text(t));
-  const at = titles.indexOf('Phone');
+  const at = titles.indexOf('Devices that can control this Mac');
   assert.ok(at >= 0, 'the Phone section is shown');
-  assert.equal(titles[at + 1], 'Keep this Mac reachable');
+  assert.equal(titles[at + 1], 'Other settings');
   await v.unmount();
 });

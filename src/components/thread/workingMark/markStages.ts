@@ -1,4 +1,4 @@
-// The working mark's stage machine: each activity enters, loops and leaves,
+// The working mark's stage machine, as Claude Code's Code tab runs it: each activity enters, loops and leaves,
 // and a new activity takes over only where the playing loop allows it.
 import { MARK_SHEETS, type MarkSheet } from './markSheets';
 import type { MarkActivity } from '../../../session/activityWords';
@@ -64,7 +64,7 @@ export function restFrame(body: MarkActivity): number {
  * When a playing loop may hand over to a newly wanted activity, as ms into the loop, or null to let it play out.
  * Between two animated activities the loop leaves at its next seam (after `SEAM_LEAD_MS`). A switch to or from
  * default or blocked (or from default) winds the loop down at once with a tail when more than `TAIL_THRESHOLD_MS` of
- * it is left.
+ * it is left. Claude's own code also names a two-second minimum here, but it never applies (a shadowed variable).
  */
 export function earlyExit(stage: MarkStage, wanted: MarkActivity, playedMs: number): { atMs: number; to: MarkStage } | null {
   if (stage.kind !== 'loop' || stage.body === wanted) return null;

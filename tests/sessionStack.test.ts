@@ -8,7 +8,7 @@ import { fakeStore, render, click } from './support/pages-kit.ts';
 import { installNativeStub } from './support/ports/native.ts';
 import { stubStore } from './support/stubs.ts';
 
-const { createElement: h, act } = await import('react');
+const { createElement: h, act, useSyncExternalStore } = await import('react');
 const store = fakeStore<any>({ runtime: {}, segments: {}, archived: [], claudeArchived: {}, agentTabs: {} });
 let notify: (v: any) => void = () => {};
 const empty = { children: {}, deliveries: {}, proposals: {}, queue: [], plans: {}, wrapUps: {} };
@@ -16,9 +16,15 @@ stubStore({ useStore: store.useStore, openInSplit: () => {}, navigate: () => {},
 installNativeStub({ orchestration: { snapshot: async () => empty, onChanged: (cb: any) => ((notify = cb), () => {}) } });
 // each chat's row state (the sidebar dot's), set by hand per chat
 const rows: Record<string, string> = {};
+// the real hook follows the stores; the stand-in follows `rows`, told by `show`
+const rowListeners = new Set<() => void>();
+const watchRows = (fn: () => void) => (rowListeners.add(fn), () => void rowListeners.delete(fn));
 mock.module('../src/session/useChatRowState.ts', {
   namedExports: {
-    useChatRowState: (id: string) => (rows[id] ? { state: rows[id] } : null),
+    useChatRowState: (id: string) => {
+      const state = useSyncExternalStore(watchRows, () => rows[id]);
+      return state ? { state } : null;
+    },
     useChatTurn: () => 'idle',
     retryChatState: async () => {},
   },
@@ -46,7 +52,13 @@ const startItem = (chatId: string, title = chatId) => ({
 const startedCall = (chatId: string) => sessionToolCall(startItem(chatId)) as any;
 /** Stack rows for these chats, each keyed by its own call. */
 const rowsOf = (ids: string[]) => ids.map((id, n) => ({ id: `call-${n}`, call: startedCall(id) }));
-const show = (v: any = {}) => act(async () => notify({ ...empty, ...v }));
+// a card reads its own entry of the view and its row state: changing `rows` tells the stand-in, a broadcast carries the view
+let rev = 0;
+const show = (v: any = {}) =>
+  act(async () => {
+    rowListeners.forEach((fn) => fn());
+    notify({ ...empty, ...v, rev: ++rev });
+  });
 const titles = (v: any) => [...v.host.querySelectorAll('.session-stack .session-card-title')].map((e: any) => e.textContent);
 const more = (v: any) => v.host.querySelector('.session-stack-more') as HTMLButtonElement | null;
 

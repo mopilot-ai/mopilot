@@ -480,18 +480,18 @@ test('response history failures preserve GitHub discovery and remain retryable w
 test("a message's PR link reads one PR's status through the chats' cache, and a merged PR is read once", async () => {
   let now = 0;
   const reads: (string | null)[] = [];
-  let state = 'OPEN';
+  const pullRequest = { url, state: 'OPEN', title: 'Fix it', mergeCommit: { oid: 'a'.repeat(40) } };
   const read = createPullRequestReader({
     head: async () => null,
     now: () => now,
     attachments: async () => page([attachment(url)]),
     legacy: async () => null,
-    gh: async (link) => (reads.push(link), { ok: true, stdout: JSON.stringify({ state, title: 'Fix it' }) }),
+    gh: async (link) => (reads.push(link), { ok: true, stdout: JSON.stringify(pullRequest) }),
   });
   await read('chat');
   assert.deepEqual(await read.status(url), { url, number: 42, state: 'open', title: 'Fix it' });
   assert.deepEqual(reads, [url], 'the chat and the link share one read');
-  state = 'MERGED';
+  pullRequest.state = 'MERGED';
   now = 60_001;
   assert.equal((await read.status(url)).state, 'merged');
   now = 999_999;

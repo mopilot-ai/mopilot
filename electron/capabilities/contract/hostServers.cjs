@@ -111,7 +111,7 @@ const VERBATIM_RESULTS = Object.freeze(
  * computer's tool list and what its tools answered). Those names are the ones to pass back to it, so they go to
  * Claude as they are: rewritten to this session's own names, a call would reach for a tool of this Mac's.
  */
-const FOREIGN_RESULTS = Object.freeze(new Set(['remote_computer_tools', 'remote_computer_call']));
+const FOREIGN_RESULTS = Object.freeze(new Set(['remote_computer_tools', 'remote_computer_call', 'this_mac_control']));
 
 /**
  * A tool result with its text items passed through `rewrite` (images and other items as they are): refusals

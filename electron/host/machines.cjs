@@ -33,6 +33,7 @@ const { requestOverSocket } = require('./hostRequest.cjs');
 const { createMachineCall, refusal } = require('./machineCall.cjs');
 const { createSigninWait } = require('./signinWait.cjs');
 const { createStartAtBoot } = require('./startAtBoot.cjs');
+const { createMachineChatIndex } = require('./chatIndexWiring.cjs');
 const { withCredentials, keyedHarnesses, NO_KEYS, NO_ORG } = require('./remoteCredentials.cjs');
 const { signOutEverywhere } = require('./signOut.cjs');
 const { withAppChatIds } = require('./chatIds.cjs');
@@ -103,6 +104,7 @@ function ownedReader(dir) {
  * @param {{ forHarness: (harness: string) => string | null, hasFor: (harness: string) => boolean }} [o.apiKeys] the user's model keys (apiKeys.cjs), lent to a machine with each message; default none
  * @param {{ lend: (host: any, harness: string) => Promise<boolean>, covers: (harness: string) => boolean }} [o.orgAccess] the organization's access (orgAccess/service.cjs), lent before a key; default none
  * @param {ReturnType<typeof import('./relayPaths.cjs').createRelayPaths> | null} [o.relay] the relay path to the machines (#2709); none: SSH only
+ * @param {Partial<Parameters<typeof createMachineChatIndex>[0]>} [o.chats] `notify` and `onChange` of every machine's chat list (chatIndex.cjs)
  * @param {(view: any) => void} [o.onBoot] told how an Add by command stands (machineBoot.cjs), at every change @param {import('../platform/secretFile.cjs').SafeStorage | null} [o.safeStorage] seals this app's Host key
  */
 function createMachines({
@@ -133,6 +135,7 @@ function createMachines({
   orgAccess = NO_ORG,
   relay = null,
   onBoot = () => undefined,
+  chats = {},
   safeStorage = null,
 }) {
   // this Mac's own background Host (localHost.cjs) is reached by local commands and its socket directly; every other machine as before
@@ -200,6 +203,9 @@ function createMachines({
         localNetwork: r.status === 'offline' ? 'unknown' : r.localNetwork, // what its Host last said, while it answers; with waitingForLogin: an offline machine nobody is signed in on
         waitingForLogin: r.waitingForLogin,
         ...(r.hostStopped && { hostStopped: true }), // ssh answers, the Host does not
+        // where it is reached and the app version that built its Host, for the Details dialog
+        address: isLocal(r.address) || r.address.startsWith('relay:') ? '' : r.address,
+        hostVersion: r.hostAppVersion,
         startsAtBoot: r.startup.atBoot, // what the Host last said of starting at boot (Keep running after restart), FileVault and its system
         ...(r.cloud && { cloud: r.cloud, cloudState: r.status === 'offline' ? null : r.cloudState }),
         fileVault: r.startup.fileVault,
@@ -334,9 +340,11 @@ function createMachines({
     // a machine paired over SSH gets its relay path now, so it is reachable from any network later
     await viaRelay.enroll(id);
   }
-
+  const chatIndex = createMachineChatIndex({ registry, openPaired, allowed: () => !disposed && allowed(), ...chats });
+  onChange = chatIndex.wrap(onChange);
   const service = {
     list,
+    chatIndex: () => chatIndex.snapshot(),
     /** The Host build this app carries: what a machine's Host must run to serve MoMo's home. */
     appBuild: () => (buildId ||= appHostBuild(root)),
     /** Every machine takes back the user's key and `orgIdentity`'s leases and signs Claude Code and Codex out; each one's result, then the list is read again. @param {string | null} [orgIdentity] */
@@ -477,6 +485,7 @@ function createMachines({
     },
     dispose() {
       disposed = true;
+      chatIndex.dispose();
       dropHosts();
       offChange();
       boot.dispose();

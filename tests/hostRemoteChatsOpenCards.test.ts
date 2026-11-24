@@ -1,7 +1,12 @@
-// A card a machine's agent waits on is drawn again when the app starts again (#4542): the transcript's resume point can lie past the card, since a card is no record, so a running turn is replayed from its start and only its still-open cards are shown.
+// The live Host turn and its pending approvals survive reopening the app or chat (#4542).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CHAT, FakeItems, createRemoteChats, ev, fakeHost, start, text, world } from './support/host/remoteChatsKit.ts';
+import { createRequire } from 'node:module';
+import { CHAT, FakeItems, createRemoteChats, end, ev, fakeHost, start, text, world } from './support/host/remoteChatsKit.ts';
+
+const require = createRequire(import.meta.url);
+const { ControllerEvents } = require('../electron/session/controllerEvents.cjs');
+const { SessionStore } = require('../electron/session/state.cjs');
 
 const permission = (requestId: string) => ev({ kind: 'permission', requestId, turnId: 't1' });
 const question = (id: string) =>
@@ -154,4 +159,48 @@ test('a card told before any window opened the chat waits in its session state: 
   chats.follow(CHAT);
   await chats.settled(CHAT);
   assert.deepEqual(held, [`${CHAT}|p1`]);
+});
+
+test('a live or restored Host turn starts in main even when no window has initialized that chat', async () => {
+  for (const source of ['live', 'restored', 'snapshot', 'history']) {
+    const host = fakeHost();
+    const items = new FakeItems();
+    if (source === 'restored') {
+      items.records = [{ t: 'user', turnId: 't1', user: { id: 'u1', content: [] }, hostRev: 1, hostGen: 'g1' }];
+      host.reply = { snapshot: { rev: 1 }, patches: [], generation: 'g1', inflight: [] };
+    }
+    if (source === 'snapshot' || source === 'history') {
+      const events = source === 'snapshot' ? [start('old'), end('old'), start()] : [start(), end()];
+      host.reply = { snapshot: { rev: events.length, items: events }, patches: null, generation: 'g1', inflight: [] };
+    }
+    const state = new SessionStore();
+    const runtime = {};
+    const controller = {
+      state,
+      rt: () => runtime,
+      chatOf: (key: string) => key,
+      learnSavedName: () => undefined,
+      rememberName: () => undefined,
+      isCurrentSource: (_chat: string, source: { key: string }) => source.key === CHAT,
+      end: () => assert.fail('completed history is not a live turn'),
+    };
+    const chats = createRemoteChats({
+      items,
+      hostFor: () => host,
+      ownerOf: () => ({ hostId: 'box', folder: '/srv/work' }),
+      emit: (e: object) => ControllerEvents.prototype.onAcpEvent.call(controller, e),
+      state: () => state,
+    });
+    assert.equal(state.has(CHAT), false);
+    chats.follow(CHAT);
+    await chats.settled(CHAT);
+    if (source === 'live') {
+      assert.equal(state.has(CHAT), false, 'idle followed chats do not need live session state');
+      host.fire.patch(CHAT, 1, start());
+      await chats.settled(CHAT);
+    }
+    if (source === 'history') assert.equal(state.has(CHAT), false);
+    else assert.equal(state.get(CHAT).activeTurn?.id, 't1');
+    chats.dispose();
+  }
 });

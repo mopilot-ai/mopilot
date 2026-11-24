@@ -4,7 +4,7 @@ import { earlyExit, nextStage, sheetKey, sheetOf, stageDuration, stageRange, typ
 
 /** A line that mounts this soon after another one left picks up its mark instead of starting over. */
 export const RESUME_MS = 500;
-/** The frame a tail cut away from is dropped this long after the cut. */
+/** The frame a tail cut away from is dropped this long after the cut (Claude keeps it 360ms). */
 export const GHOST_MS = 360;
 
 /** A frame a cut left behind, under the stage that fades in over it. */

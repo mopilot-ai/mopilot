@@ -7,7 +7,7 @@ import { CROSSFADE_MS, nextStage, sheetKey, sheetOf, stageRange, type MarkActivi
 
 /** The mark's size in px. */
 export const MARK_SIZE = 20;
-/** Opacity that keeps a waiting layer painted (its strip decoded) while it shows nothing. */
+/** Opacity that keeps a waiting layer painted (its strip decoded) while it shows nothing, as Claude's does. */
 const WARM = '0.001';
 
 interface Layer {
@@ -44,7 +44,7 @@ export function canAnimate(): boolean {
   return typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function';
 }
 
-/** Decode every strip once, before a mark first needs it. */
+/** Decode every strip once, before a mark first needs it (as Claude preloads its sheets). */
 let preloaded = false;
 export function preloadSheets(): void {
   if (preloaded || typeof Image === 'undefined') return;
@@ -140,7 +140,7 @@ export class MarkView {
     layer.strip.style.transform = frameTransform(index);
   }
 
-  /** A dot under a fresh mark's first frames, so nothing blinks while its strip decodes (a 35% dot). */
+  /** A dot under a fresh mark's first frames, so nothing blinks while its strip decodes (Claude's 35% dot). */
   setDot(on: boolean): void {
     if (on && !this.dot) {
       this.dot = this.root.ownerDocument.createElement('span');

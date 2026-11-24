@@ -9,9 +9,9 @@ const require = createRequire(import.meta.url);
 const { APP_CORE, APP_SURFACE } = require('../electron/capabilities/mcp/appTiers.cjs');
 const { CORE_SAGE } = require('../electron/capabilities/mcp/toolLoading.cjs');
 
-test('CM-X26: the app core is the e2e echo tools only; the task list and wrap-up are the `turn` group, every other app tool is grouped, unknown ones in `other` (G11)', () => {
+test('CM-X26: the app core includes the Host’s This Mac route; the task list and wrap-up are grouped with the other app tools (G11)', () => {
   assert.deepEqual(CORE_SAGE, APP_CORE);
-  assert.deepEqual([...APP_CORE], ['sage_debug_echo', 'sage_debug_poke']);
+  assert.deepEqual([...APP_CORE], ['sage_debug_echo', 'sage_debug_poke', 'this_mac_control']);
   for (const t of APP_CORE) assert.equal(tiers.groupOf(t), null, t);
   assert.deepEqual(tiers.groupOf('update_task_list'), { surface: 'app', group: 'turn' });
   assert.deepEqual(tiers.groupOf('wrap_up'), { surface: 'app', group: 'turn' });
@@ -34,6 +34,15 @@ test('CM-X26: the app core is the e2e echo tools only; the task list and wrap-up
   assert.equal(tiers.moreSurface('app_more_tools'), 'app');
 });
 
+test('CM-X26: a tiered remote session can list and call This Mac control as soon as the Host offers it', async () => {
+  const w = world();
+  w.sessions.open('remote', { chatId: 'c1', segmentId: 's1', tiered: true });
+  assert.ok(!(await w.list('remote')).includes('this_mac_control'));
+  w.registry.register({ name: 'this_mac_control', policy: 'observe', handler: () => 'offered by the Host' });
+  assert.ok((await w.list('remote')).includes('this_mac_control'));
+  assert.equal(textOf(await w.call('remote', 'this_mac_control', { action: 'list' })), 'offered by the Host');
+});
+
 test('CM-X27: app_more_tools: groups in order, `other` sorted, and no skill named', () => {
   const visible = new Set(['update_task_list', 'zeta_tool', 'show_pane', 'alpha_tool', 'start_session']);
   const more = tiers.moreTool('app', visible);
@@ -43,8 +52,8 @@ test('CM-X27: app_more_tools: groups in order, `other` sorted, and no skill name
   assert.match(more.description, /call with arguments: run one now\.$/);
   const other = tiers.visibleGroups('app', visible).find((g: any) => g.id === 'other');
   assert.deepEqual(other.tools, ['alpha_tool', 'zeta_tool']);
-  // only the e2e echo tools are core: with nothing else visible there is nothing to defer
-  assert.equal(tiers.moreTool('app', new Set(['sage_debug_echo'])), null);
+  // Core tools alone do not need a more tool.
+  assert.equal(tiers.moreTool('app', new Set(APP_CORE)), null);
 });
 
 test('CM-X28: autoLoad: only a request_access grant, only when the app group is not callable yet and the session sees its tools', () => {

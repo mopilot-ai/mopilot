@@ -15,6 +15,7 @@ const configured: unknown[][] = [];
 
 const failures: string[] = [];
 /** what the fakes answer, which a test may change: the send's result, the monitor reads and its configure */
+let revision = 0;
 export const kit = {
   sendAnswer: true as boolean | void,
   notify: (_v: any) => {},
@@ -116,7 +117,8 @@ const child = (o: any = {}) => ({
 const facts = (n: number) => ({ facts: { pr: { number: n, state: 'OPEN', url: url(n) } } });
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 0)));
 const show = async (children: any, more: any = {}) => {
-  await act(async () => kit.notify({ ...empty, children, ...more }));
+  // the rows read their states outside the view, and an equal view wakes nobody (#5398): a new revision makes the components read them again
+  await act(async () => kit.notify({ ...empty, children, ...more, rev: ++revision }));
   await settle();
 };
 const tray = () => document.querySelector('[role="dialog"][aria-label="Pull requests"]');

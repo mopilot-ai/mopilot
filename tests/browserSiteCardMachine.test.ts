@@ -44,6 +44,9 @@ test('the site card and the confirmation of a chat on a machine name the machine
   const gone = tables({ owner: 'ssh:gone', name: null });
   await gone.browserGrants.require('http://localhost:8000/', 'read', ctx);
   assert.equal(gone.cards[0].onMachine, 'another machine');
+  await t.chromeGrants.act('https://example.test/', ctx, { sensitive: { verb: 'delete' } });
+  assert.equal(t.cards.at(-1).browser, 'chrome');
+  assert.ok(!('onMachine' in t.cards.at(-1)));
   const mac = tables();
   await mac.browserGrants.require('https://example.test/', 'read', ctx);
   await mac.browserGrants.act('https://example.test/', ctx, { sensitive: { verb: 'delete' } });

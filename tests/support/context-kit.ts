@@ -23,6 +23,7 @@ export function mockContextModules(store: ReturnType<typeof fakeStore>, { mockAc
     compaction: null as string | null,
     activeTurn: null as import('../../shared/model/session').SessionState['activeTurn'],
     pendingSwitch: null as import('../../shared/model/session').SessionState['pendingSwitch'],
+    location: { machine: null, pending: false } as ReturnType<typeof import('../../src/session/useComposerLocation').useComposerLocation>,
     windows: [] as unknown[],
     blocked: null as string | null,
     /** the chat's compact capability as main resolves it, or null while it is not loaded */
@@ -39,6 +40,7 @@ export function mockContextModules(store: ReturnType<typeof fakeStore>, { mockAc
     },
   });
   stubStore(store.exports);
+  mock.module('../../src/session/useComposerLocation.ts', { namedExports: { useComposerLocation: () => ctx.location } });
   installNativeStub({
     context: {
       get: (owner: string) => (ctx.asks.push(['get', owner]), ctx.answer('get', owner)),

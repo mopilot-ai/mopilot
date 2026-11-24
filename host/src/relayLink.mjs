@@ -34,6 +34,15 @@ function readEnrollments(configDir, report = () => undefined) {
   }
 }
 
+/** Whether the enrollments file can be told apart from a Host that has none: absent, or a readable file of the known shape. An unreadable one hides what is enrolled, so a check that an id is not taken cannot pass on it. @param {string} configDir */
+function enrollmentsKnown(configDir) {
+  try {
+    return Array.isArray(JSON.parse(fs.readFileSync(fileOf(configDir), 'utf8'))?.links);
+  } catch (e) {
+    return /** @type {any} */ (e).code === 'ENOENT';
+  }
+}
+
 /** Writes the enrollments whole (0600). @param {string} configDir @param {Enrollment[]} all */
 function writeEnrollments(configDir, all) {
   fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
@@ -45,6 +54,15 @@ function writeEnrollments(configDir, all) {
 /** Keeps one enrollment (replacing one of the same Host id), for a running Host's links to open on their next start. @param {string} configDir @param {Enrollment} e */
 export function keepEnrollment(configDir, e) {
   writeEnrollments(configDir, [...readEnrollments(configDir).filter((x) => x.hostId !== e.hostId), e]);
+}
+
+/** Drops enrollments by Host id from the file, for a command that runs while no Host is serving (a Host that is running keeps its open links until it restarts); an unreadable file is left alone and reported by the throw. @param {string} configDir @param {string[]} hostIds @returns {number} how many were dropped */
+export function dropEnrollments(configDir, hostIds) {
+  if (!enrollmentsKnown(configDir)) throw new Error(`The relay links in ${fileOf(configDir)} cannot be read.`);
+  const all = readEnrollments(configDir);
+  const kept = all.filter((e) => !hostIds.includes(e.hostId));
+  if (kept.length !== all.length) writeEnrollments(configDir, kept);
+  return all.length - kept.length;
 }
 
 /**
@@ -124,10 +142,14 @@ export function createRelayLinks({
     /**
      * `host.relayEnroll`: keeps the app's credential and the pair root both ends derive from fresh X25519 keys of each (the
      * exchange rides the paired, authenticated Host connection), and opens the link. Enrolling the same Host id again replaces it.
-     * @param {{ relayUrl: string, hostId: string, secret: string, pairId: string, appPub: string, appEphPub: string, client?: string }} p
+     * `createOnly` (pairing by code, where the other Mac chose the host id): an id that is already enrolled is another client's link and is refused, never replaced.
+     * @param {{ relayUrl: string, hostId: string, secret: string, pairId: string, appPub: string, appEphPub: string, client?: string }} p @param {{ createOnly?: boolean }} [o]
      */
-    enroll(p) {
+    enroll(p, { createOnly = false } = {}) {
       if (closed) throw new Error('The Host is stopping.');
+      if (createOnly && !enrollmentsKnown(configDir)) throw new Error('The relay links kept on this Host cannot be read.');
+      if (createOnly && (links.has(p.hostId) || read().some((e) => e.hostId === p.hostId)))
+        throw new Error('That relay link is already there.');
       const sk = prim.randomBytes(32);
       const ephSk = prim.randomBytes(32);
       const root = c.deriveRoot(sk, fromBase64(p.appPub), ephSk, fromBase64(p.appEphPub), APP_ID, p.hostId, p.pairId);

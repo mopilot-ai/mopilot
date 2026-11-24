@@ -27,7 +27,7 @@ mockSource('src/lib/chatMachine.ts', {
 const sent: any[] = [];
 const opened: string[] = [];
 mockSource('src/store/send.ts', { sendMessage: async (...a: unknown[]) => void sent.push(a) });
-mockSource('src/store/chats.ts', { openSettings: (s: string) => () => void opened.push(s) });
+mockSource('src/store/chats.ts', { openMachines: () => void opened.push('connections:other') });
 
 let listener: ((e: { chatId: string; attention: any }) => void) | null = null;
 let initial: Record<string, any> = {};
@@ -115,7 +115,7 @@ test('credential: no strip while the failed turn asks for the sign-in; with no s
   r = await strip({ kind: 'credential' });
   assert.match(r.host.textContent!, /^build-box needs this Mac to sign in againSign in$/);
   await act(async () => (one(r.host, 'button', 'Sign in') as HTMLButtonElement).click());
-  assert.deepEqual(opened, ['connections']);
+  assert.deepEqual(opened, ['connections:other']);
   await r.unmount();
 });
 
@@ -124,7 +124,7 @@ test('limit: the Mac’s action opens the machine’s settings; an approval, a m
   assert.match(r.host.textContent!, /^Limit reachedRaise limit$/);
   opened.length = 0;
   await act(async () => (one(r.host, 'button', 'Raise limit') as HTMLButtonElement).click());
-  assert.deepEqual(opened, ['connections']);
+  assert.deepEqual(opened, ['connections:other']);
   await r.unmount();
   r = await strip({ kind: 'approval', since: 1 });
   assert.equal(r.host.textContent, '');

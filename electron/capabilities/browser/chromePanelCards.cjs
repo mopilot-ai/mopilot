@@ -204,6 +204,8 @@ function built(a, agent, options = {}) {
 /** Main publishes controls only; protocol results remain private and are rebuilt against the live request on answer. */
 function cardOf(a, agent, options = {}) {
   const card = built(a, agent, options);
+  if (a.method === 'sage/hostAsk' && a.params?.macOnly === true)
+    return { id: a.id, title: s(a.params.title), inApp: true, macOnly: true, waitingCopy: 'Approve this Mac action in MoPilot.' };
   if (!card) return { id: a.id, title: `${agent} is waiting for you in MoPilot.`, inApp: true };
   const { results, ...fields } = card;
   return { id: a.id, ...fields, detail: detail(card.detail ?? '') };

@@ -343,7 +343,7 @@ test('Settings › a Mac that went to sleep reads Asleep, and its page says how 
   const host = await openSettings({ ...online, phase: 'offline', presence: { [pair.pairId]: { state: 'sleeping', lastSeen: 1 } } });
   assert.match(host.textContent!, /Asleep/);
   await openComputer();
-  assert.match(host.textContent!, /turn on Keep this Mac reachable in Settings › Connections/);
+  assert.match(host.textContent!, /turn on Keep running in the menu bar in Settings › Connections/);
 });
 
 // Mobile Remote left the closed alpha: an account the service lists no invites for is any other account

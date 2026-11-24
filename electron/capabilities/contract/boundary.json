@@ -16,6 +16,7 @@
     "session.cjs",
     "sessionsNote.cjs",
     "surfaceNote.cjs",
+    "thisMacControl.cjs",
     "toolRefusal.cjs",
     "turnTokens.cjs",
     "codexSkyDown.cjs",

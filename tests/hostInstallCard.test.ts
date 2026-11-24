@@ -143,5 +143,5 @@ test('a Host machine row for a non-ssh id has no Open terminal', async (t) => {
   t.after(() => view.unmount());
   await flush(5);
   await click(button(view.host, 'More for me@box'));
-  assert.deepEqual(options(view.host), ['Rename', 'Remove']);
+  assert.deepEqual(options(view.host), ['Details', 'Rename', 'Remove']);
 });

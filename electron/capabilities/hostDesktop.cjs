@@ -20,6 +20,7 @@ const { chatAnchorOf } = require('./anchor.cjs');
 const { hostGrantStore } = require('./hostGrants.cjs');
 const { RemoteHelper } = require('./computerRemote.cjs');
 const { noteIgnored } = require('../ignored.cjs');
+const { thisMacControl } = require('./contract/thisMacControl.cjs');
 
 /** What `hostOwner` answers when it cannot tell where a chat lives: the call fails, and is not run on this Mac instead. */
 
@@ -201,7 +202,7 @@ function createHostDesktop({ ownerOf, epochOf, remoteFor, grantsFor, nameOf, dep
   };
   return {
     /**
-     * The tools as the registry should hold them: a chat on this Mac runs the tool it always did, a chat on a Host runs the same tool in that Host's stack. A chat on a Host, or one whose machine cannot be told, never runs this Mac's.
+     * Desktop tools follow the chat's Host unless the user approved a call to this Mac through the Host relay.
      * @template {{ name: string, handler: (args: any, ctx: any) => any }} T
      * @param {T[]} tools
      */
@@ -209,6 +210,7 @@ function createHostDesktop({ ownerOf, epochOf, remoteFor, grantsFor, nameOf, dep
       tools.map((tool) => ({
         ...tool,
         handler: async (/** @type {any} */ args, /** @type {any} */ ctx) => {
+          if (thisMacControl(ctx?.chatId, tool.name)) return tool.handler(args, ctx);
           const hostId = ownerOf(ctx?.chatId);
           if (hostId === null) return tool.handler(args, ctx);
           if (hostId === UNKNOWN_OWNER)

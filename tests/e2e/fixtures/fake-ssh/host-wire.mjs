@@ -136,6 +136,16 @@ async function run(key, turnId, text) {
     waiting.delete(key);
     emit({ kind: 'turnEnd', turnId, stopReason });
   };
+  if (text === 'use this Mac' || text === 'open Notes on this Mac') {
+    const mac = (tool, args = {}) => registry.invoke(key, 'seg1', 'this_mac_control', { action: 'call', tool, arguments: args });
+    let result = await mac('desktop_list_granted_applications');
+    if (result.ok && text === 'open Notes on this Mac') {
+      result = await mac('desktop_request_access', { apps: ['Notes'], reason: 'Open Notes in the test.' });
+      if (result.ok) result = await mac('desktop_open_application', { app: 'Notes' });
+    }
+    say(key, turnId, `fake-host: this Mac ${result.ok ? 'ok' : result.error.code}`);
+    return end('end_turn');
+  }
   // "desktop <app>": the model asks for the app and looks at the Host's desktop, through the tool relay like any other tool
   const looks = /^desktop (\S+)(?: (click))?(?: (wait))?/.exec(text);
   if (looks) {

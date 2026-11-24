@@ -85,7 +85,7 @@ export function SettingsComputer({
           title="Status"
           detail={
             link.state === 'offline'
-              ? 'To reach it while you are away, turn on Keep this Mac reachable in Settings › Connections on your Mac.'
+              ? 'To reach it while you are away, turn on Keep running in the menu bar in Settings › Connections on your Mac (under Other settings).'
               : undefined
           }
           trailing={<StatusValue state={link.state} word={link.word} />}

@@ -27,7 +27,9 @@ const { markWindowReady } = await import('../src/lib/windowReady.ts');
 markWindowReady();
 
 const child = (o: any) => ({ parentId: 'top', name: 'n', title: '', harness: null, useWorktree: false, lastReport: null, ...o });
-const show = (children: any) => act(async () => notify({ ...empty, children }));
+// these tests change what the rows read outside the view; an equal view wakes nobody (#5398), so each broadcast carries a new revision
+let rev = 0;
+const show = (children: any) => act(async () => notify({ ...empty, children, rev: ++rev }));
 /** Each group's heading and the titles of its cards, in order. */
 const groups = (v: any) =>
   [...v.host.querySelectorAll('.tasks-section')].map((s: any) => [

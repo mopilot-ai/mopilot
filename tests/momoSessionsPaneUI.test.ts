@@ -52,7 +52,7 @@ mockSource('src/store/session/useSession.ts', {
   useSessions: (sel: any) => sel({ sessions: world.sessions }),
   ensureSession: (id: string) => ensured.push(id),
 });
-mockSource('src/session/harness/claude/desktopLineage.ts', { useSidebarLineage: () => ({}) });
+mockSource('src/session/harness/claude/desktopLineage.ts', { useSidebarLineage: () => ({}), useFamilyLineage: () => ({}) });
 mockSource('src/lib/sidebarFamilyIndex.ts', {
   // a root the threads no longer hold (removed between the list and this read) is left out
   familiesOf: (_v: unknown, order: string[]) => (reads.family++, { roots: [...order.filter((id) => id !== 'child'), 'ghost'] }),

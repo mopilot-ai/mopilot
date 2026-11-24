@@ -8,7 +8,7 @@ test('Connections lists the GitHub connector, off, and hides Quick Actions where
   await page.setViewportSize({ width: 1024, height: 682 });
   await page.locator('.sidebar-title').first().click();
   await settingsEntry(page).click();
-  await openSettingsSection(page, 'connections');
+  await openSettingsSection(page, 'connectors');
   const row = page.locator('.settings-row', { hasText: 'GitHub' });
   // the connector ships for macOS and Linux only (electron/platform/builtinConnectors.cjs GITHUB_ASSETS): Windows says so
   if (process.platform === 'win32') {

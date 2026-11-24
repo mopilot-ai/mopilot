@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import type { TurnState } from '../../../store/types';
 import { entrySlots, foldWokenTurns, type ThreadEntry } from '../../../lib/wokenTurns';
-import { sideSessionForItem, useOrchestration } from '../../../lib/sideSessions';
+import { sideSessionForItem, useOrchestrationSelect } from '../../../lib/sideSessions';
 
 export interface ThreadEntries {
   entries: ThreadEntry[];
@@ -13,14 +13,15 @@ export interface ThreadEntries {
 }
 
 export function useThreadEntries(turns: TurnState[], liveId: string | null): ThreadEntries {
-  const orchestration = useOrchestration();
+  // only what main delivered other sessions' items as: a linked session's clock moving does not fold the thread again
+  const deliveries = useOrchestrationSelect((v) => v.deliveries);
   return useMemo(() => {
-    const entries = foldWokenTurns(turns, { liveId, deliveryOf: (item) => sideSessionForItem(orchestration, item) });
+    const entries = foldWokenTurns(turns, { liveId, deliveryOf: (item) => sideSessionForItem({ deliveries }, item) });
     const map = entrySlots(entries);
     return {
       entries,
       slots: entries.map((e) => (e.kind === 'turn' ? e.turn : e.turns[0])),
       slotOf: (id) => (id ? (map.get(id) ?? id) : id),
     };
-  }, [turns, liveId, orchestration]);
+  }, [turns, liveId, deliveries]);
 }

@@ -178,7 +178,7 @@ test("/goal says when main didn't take the goal, so the composer keeps what was 
 
 test('#4278: a signed-out error of a chat on a machine offers that machine’s row and nothing of this Mac; another error there offers nothing', () => {
   const opened: string[] = [];
-  fx.store.openSettings = (section: string) => () => void opened.push(section);
+  fx.store.openMachines = () => void opened.push('connections');
   onMachine[claudeChat] = 'box';
   try {
     fx.state.claudeChats[claudeChat] = { id: 'work' };

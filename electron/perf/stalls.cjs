@@ -11,6 +11,8 @@ const STALL_MS = 500;
 const LONG_TASK_MS = 50;
 /** The log is rotated to stalls.1.jsonl once it reaches this size, so it never grows past about twice this. */
 const MAX_BYTES = 256 * 1024;
+/** A log that cannot be written warns once in this long. */
+const WARN_EVERY_MS = 60_000;
 
 /** How many IPC calls and long tasks the logger remembers, and how many of each a stall line names. */
 const RING = 32;
@@ -86,30 +88,52 @@ const lateness = (/** @type {number} */ prev, /** @type {number} */ at, interval
 /**
  * Appends JSON lines to a file that is rotated to <name>.1.jsonl at `max` bytes; one append at a time, failures noted.
  * @param {string} file
- * @param {{ max?: number, fsp?: Pick<typeof fs.promises, 'appendFile' | 'mkdir' | 'rename' | 'stat'>, warn?: (...a: unknown[]) => void }} [o]
+ * @param {{ max?: number, fsp?: Pick<typeof fs.promises, 'appendFile' | 'mkdir' | 'rename' | 'stat'>, warn?: (...a: unknown[]) => void, now?: () => number }} [o]
  */
-function createBoundedLog(file, { max = MAX_BYTES, fsp = fs.promises, warn = console.warn } = {}) {
+function createBoundedLog(file, { max = MAX_BYTES, fsp = fs.promises, warn = console.warn, now = Date.now } = {}) {
   /** @type {number | null} */
   let size = null;
+  let made = false;
   let chain = Promise.resolve();
   const rotated = file.replace(/\.jsonl$/, '.1.jsonl');
   const write = async (/** @type {string} */ line) => {
-    await fsp.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
+    // the folder is made once, not on every line
+    if (!made) {
+      await fsp.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
+      made = true;
+    }
     size ??= await fsp.stat(file).then(
       (s) => s.size,
       () => 0,
     );
+    const bytes = Buffer.byteLength(line) + 1;
     if (size >= max) {
       await fsp.rename(file, rotated);
       size = 0;
     }
     await fsp.appendFile(file, `${line}\n`, { mode: 0o600 });
-    size += line.length + 1;
+    size += bytes;
+  };
+  // a full or unwritable disk fails every line: one warning a minute, with how many it stood for
+  let warnedAt = -Infinity;
+  let silenced = 0;
+  const failed = (/** @type {unknown} */ error) => {
+    // the folder or the file may have been removed: look again at both on the next line
+    made = false;
+    size = null;
+    const at = now();
+    if (at - warnedAt < WARN_EVERY_MS) {
+      silenced += 1;
+      return;
+    }
+    warnedAt = at;
+    warn('[perf] could not write the stall log:', error, silenced ? `(${silenced} more lines failed since the last warning)` : '');
+    silenced = 0;
   };
   return {
     /** Queues a line; resolves once it is written (or its failure noted). */
     append(/** @type {string} */ line) {
-      chain = chain.then(() => write(line)).catch((error) => warn('[perf] could not write the stall log:', error));
+      chain = chain.then(() => write(line)).catch(failed);
       return chain;
     },
   };

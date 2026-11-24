@@ -21,7 +21,7 @@ for (const family of ['codex', 'claude', 'acp']) {
       }));
       const m = await mountComposer({ threadId: 't1' });
       try {
-        assert.equal(m.editor().dataset.placeholder, family === 'acp' ? '↵ to queue for later' : '↵ to send, ⌘↵ to queue for later');
+        assert.equal(m.editor().dataset.placeholder, family === 'acp' ? '⏎ to queue for later' : '⏎ to send, ⌘⏎ to queue for later');
         for (const [text, keys, steer] of [
           ['send now', {}, true],
           ['after this', { metaKey: true }, false],
@@ -49,7 +49,7 @@ test('Cmd+Enter send preference offers Shift+Cmd/Ctrl+Enter to queue and protect
   store.set((s: any) => ({ prefs: { ...s.prefs, sendWith: 'cmdEnter' } }));
   const m = await mountComposer({ threadId: 't1' });
   try {
-    assert.equal(m.editor().dataset.placeholder, '⌘↵ to send, ⇧⌘↵ to queue for later');
+    assert.equal(m.editor().dataset.placeholder, '⌘⏎ to send, ⇧⌘⏎ to queue for later');
     await m.type('still typing');
     for (const keys of [
       {},

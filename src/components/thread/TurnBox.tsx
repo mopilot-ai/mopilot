@@ -8,7 +8,7 @@ import type { OrchestrationView } from '../../../shared/orchestration';
 import type { TurnState } from '../../store/types';
 import { sendOrDraft } from '../../store/send';
 import { useStore } from '../../store/core';
-import { linkedChildren, sideSessionForItem, useOrchestration } from '../../lib/sideSessions';
+import { linkedChildren, sideSessionForItem, useOrchestrationSelect } from '../../lib/sideSessions';
 import { authoredFor, markedInputFor } from '../../lib/authoredInput';
 import { isMomoChat } from '../../lib/momoChats';
 import { ensureSession, useSessions } from '../../store/session/useSession';
@@ -78,8 +78,8 @@ function WrapUpBox({ wrap, threadId, readOnly }: { wrap: OrchestrationView['wrap
 }
 
 /** Linked work keeps the plan visible while waiting, but only an executing turn animates it. */
-function useChildrenWork(view: OrchestrationView, threadId: string): 'idle' | 'waiting' | 'running' {
-  const key = linkedChildren(view, threadId).join('\n');
+function useChildrenWork(threadId: string): 'idle' | 'waiting' | 'running' {
+  const key = useOrchestrationSelect((v) => linkedChildren(v, threadId).join('\n'));
   const ids = useMemo(() => (key ? key.split('\n') : []), [key]);
   // a child's row may not be mounted anywhere, so nothing else asks main for its session
   useEffect(() => {
@@ -99,17 +99,18 @@ function useChildrenWork(view: OrchestrationView, threadId: string): 'idle' | 'w
 
 /** `turns`: the chat's turns, oldest first; the latest one's status decides when the list shows. */
 export function TurnBox({ threadId, readOnly = false, turns = [] }: { threadId: string; readOnly?: boolean; turns?: TurnState[] }) {
-  const view = useOrchestration();
-  const wrap = view.wrapUps[threadId];
-  const childrenWork = useChildrenWork(view, threadId);
+  const wrap = useOrchestrationSelect((v) => v.wrapUps[threadId]);
+  const planned = useOrchestrationSelect((v) => v.plans[threadId]);
+  const deliveries = useOrchestrationSelect((v) => v.deliveries);
+  const childrenWork = useChildrenWork(threadId);
   // background tasks the turn left running (not those waiting on the user) carry its plan on after it ends
   const tasksRunning = useTasksPill(threadId).running > 0;
   const authored = useStore((st) => st.authoredInputs);
   // only the user's own message makes the list stale: never a delivery or an input no human wrote
   const plan = boxPlan(
     turns,
-    view.plans[threadId],
-    (item) => !!sideSessionForItem(view, item) || !!authoredFor(authored, threadId, item) || !!markedInputFor(item),
+    planned,
+    (item) => !!sideSessionForItem({ deliveries }, item) || !!authoredFor(authored, threadId, item) || !!markedInputFor(item),
   );
   // MoMo's chats show no task list: its main chat takes unrelated requests for ever, so a plan would only ever be an old one (#4927)
   const momo = useStore((st) => isMomoChat(st.momoChats, threadId));

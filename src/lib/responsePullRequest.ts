@@ -4,6 +4,7 @@ import { movedMopilotPullRequestUrl, pullRequestUrl, recordedBeforeMopilotReuse 
 import { PROSE_LINK, splitLinks } from '../../shared/proseLinks.mjs';
 import type { ThreadPullRequest, PullRequestState } from './threadPullRequest';
 import { memoByObject } from './memoByObject';
+import { addMergeCandidates, mixedReportUrl, parseMergeCandidate, withdrawsMerge, type MergeCandidate } from './verifiedMergeReport';
 
 export interface ResponseTurn {
   status: string;
@@ -30,6 +31,7 @@ interface ProseScope {
   structured: boolean;
   deliveryUrl?: string;
   withdrawal?: string;
+  mergeCandidate?: MergeCandidate;
 }
 const cleanProse = (text: string) =>
   text
@@ -168,11 +170,13 @@ function prose(text: string, historical: boolean) {
   visit(parseMarkdown(text));
   const scopes: ProseScope[] = [];
   let from = 0;
+  let previousStart = 0;
   // Split the complete rendered text, so punctuation in emphasis and whitespace outside it remain one boundary.
   for (const end of [...rendered.matchAll(SENTENCE_BOUNDARY)].map((m) => m.index).concat(rendered.length)) {
     const content = rendered.slice(from, end);
     const start = end - content.trimStart().length;
     if (conditionalBlocks.some((block) => block.start <= start && block.end >= end)) {
+      previousStart = end;
       from = end;
       continue;
     }
@@ -185,10 +189,17 @@ function prose(text: string, historical: boolean) {
     const mergeStatement = urls.size === 1 ? linkedMergeStatement(content, from, refs, inlineTokens) : null;
     const text = cleanProse(content);
     const correction =
-      text.includes('\uFFFC') && /\b(?:did not|didn['’]t) merge\b/i.test(text)
+      text.includes('\uFFFC') && /\b(?:did not|didn['’]t) (?:actually )?merge\b/i.test(text)
         ? cleanProse(restoreInlineTokens(content, from, inlineTokens))
         : text;
     const withdrawal = WITHDRAWN_MERGE.exec(correction);
+    // The delivery link must stand alone immediately after the verification in the same paragraph.
+    let mergeCandidate: ProseScope['mergeCandidate'];
+    const [ref] = refs;
+    if (refs.length === 1 && start === ref.start && end === ref.end && /^[^\S\n]+$/.test(rendered.slice(from, start))) {
+      const verified = restoreInlineTokens(rendered.slice(previousStart, from), previousStart, inlineTokens);
+      mergeCandidate = parseMergeCandidate(verified, content.trim(), identity(ref.url));
+    }
     scopes.push({
       // The full suffix must survive validation, including any question punctuation beside an autolink.
       text: mergeStatement ?? text,
@@ -200,8 +211,10 @@ function prose(text: string, historical: boolean) {
       structured: !!block,
       deliveryUrl: block?.deliveryUrl,
       withdrawal: withdrawal ? (withdrawal[1] ?? withdrawal[2] ?? '') : undefined,
+      mergeCandidate,
     });
     // The separator itself contains only whitespace, so leaving it at the start of the next scope is harmless.
+    previousStart = from;
     from = end;
   }
   return { text: cleanProse(rendered), urls: new Set(references.map((r) => identity(r.url))), scopes };
@@ -342,6 +355,7 @@ export function pullRequestReplies(turns: readonly ResponseTurn[]): ResponseTurn
       const report = replyProse(item, historical);
       return (
         report.urls.size > 0 ||
+        report.scopes.some((scope) => scope.withdrawal !== undefined) ||
         /\b(?:PR|pull request)\s*#\d+/i.test(report.text) ||
         reportedState(report.text) !== null ||
         pluralState(report.text) !== null
@@ -356,16 +370,14 @@ export function pullRequestReplies(turns: readonly ResponseTurn[]): ResponseTurn
 }
 
 /**
- * Every PR an unambiguous completed lifecycle report identifies, most recent first. Citations alone supply no identity.
- * A reply
- * may update its own single PR, or a previously identified PR; multiple identities are ambiguous, unless the reply says
- * what happened to all of them ("I've opened two PRs" with their two links, "Both PRs are merged" naming #N of PRs the
- * chat already identified).
+ * Unambiguous completed lifecycle reports, most recent first. Citations supply no ownership.
+ * The optional candidate list receives separate commit claims that still require GitHub verification.
  */
 export function responsePullRequests(
   turns: readonly ResponseTurn[],
   knownUrl?: string | null,
   attachments: readonly string[] = [],
+  mergeCandidates?: MergeCandidate[],
 ): ThreadPullRequest[] {
   const reported = new Map<string, ThreadPullRequest>();
   /** The chat's PRs by number. An attachment may make a number ambiguous before either PR has a report. */
@@ -397,6 +409,7 @@ export function responsePullRequests(
     for (const item of turn.items) {
       if (!isReply(item)) continue;
       const parsed = replyProse(item, historical);
+      if (mergeCandidates && !EXAMPLE.test(parsed.text)) addMergeCandidates(mergeCandidates, parsed.scopes);
       const plural = pluralState(parsed.scopes.map((scope) => scope.text).join('\n'));
       // the PRs it links, and the ones the chat already found that it names as #N
       const several = [
@@ -417,7 +430,8 @@ export function responsePullRequests(
         currentUrl = null;
         continue;
       }
-      if (parsed.urls.size > 1) {
+      const mixedUrl = parsed.urls.size > 1 ? mixedReportUrl(parsed.urls, parsed.scopes) : undefined;
+      if (parsed.urls.size > 1 && !mixedUrl) {
         currentUrl = null;
         continue;
       }
@@ -427,6 +441,12 @@ export function responsePullRequests(
       }
       const neutral = parsed.scopes.filter((s) => s.referencesOnly);
       const delivery = new Set(neutral.flatMap((s) => [...s.urls]));
+      const reportText = mixedUrl
+        ? parsed.scopes
+            .filter((s) => !s.mergeCandidate)
+            .map((s) => s.text)
+            .join('\n')
+        : parsed.text;
       for (const [i, scope] of parsed.scopes.entries()) {
         const following = parsed.scopes.slice(i + 1);
         const after = following.find((s) => s.text || s.urls.size);
@@ -437,6 +457,7 @@ export function responsePullRequests(
         // A standalone delivery link can follow the status; a background sentence or descriptive link cannot.
         const next = state && after?.referencesOnly && after.urls.size === 1 ? after.urls.values().next().value : undefined;
         const linked = scope.urls.values().next().value ?? next;
+        if (mixedUrl && linked !== mixedUrl) continue;
         if (!linked && number && (byNumber.get(number)?.size ?? 0) > 1) {
           currentUrl = null;
           continue;
@@ -452,14 +473,14 @@ export function responsePullRequests(
           continue;
         }
         // A named PR elsewhere in the reply may contradict a newly inferred identity, even after a correction clause.
-        const mismatched = [...parsed.text.matchAll(/\b(?:PR|pull request)\s*#(\d+)/gi)].some((m) => m[1] !== url.split('/').at(-1));
-        if (state && scope.urls.size && url !== currentUrl && mismatched) {
+        const mismatched = [...reportText.matchAll(/\b(?:PR|pull request)\s*#(\d+)/gi)].some((m) => m[1] !== url.split('/').at(-1));
+        if (state && (mixedUrl || scope.urls.size) && url !== currentUrl && mismatched) {
           currentUrl = null;
           continue;
         }
         if (state) {
-          const withdrawal = state === 'merged' ? following.find((s) => s.text && !s.referencesOnly)?.withdrawal : undefined;
-          if (withdrawal !== undefined && (!withdrawal || url.endsWith(`/${withdrawal}`))) {
+          const correction = state === 'merged' ? following.find((s) => s.text && !s.referencesOnly) : undefined;
+          if (correction && withdrawsMerge(correction, url)) {
             currentUrl = url;
             continue;
           }

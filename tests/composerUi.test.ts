@@ -265,13 +265,13 @@ test('running: Stop interrupts, Escape interrupts, and a second Escape offers to
     await m.type('more');
     await mouse($('[aria-label="Send"]').parentElement!, 'mouseover');
     await settle(460);
-    assert.equal($('.tooltip').textContent, 'Queue message⌘↵');
+    assert.equal($('.tooltip').textContent, 'Queue message⌘⏎');
     await mouse($('[aria-label="Send"]').parentElement!, 'mouseout');
     store.set((s: any) => ({ prefs: { ...s.prefs, followUp: 'steer' } }));
     await m.rerender();
     await mouse($('[aria-label="Send"]').parentElement!, 'mouseover');
     await settle(460);
-    assert.equal($('.tooltip').textContent, 'Steer↵');
+    assert.equal($('.tooltip').textContent, 'Steer⏎');
   } finally {
     await m.unmount();
   }
@@ -785,7 +785,7 @@ test('after a turn that used desktop control, the placeholder suggests the next 
   const m = await mountComposer({ threadId: 't1' });
   try {
     // still running: no suggestion
-    assert.equal(m.editor().dataset.placeholder, '↵ to send, ⌘↵ to queue for later');
+    assert.equal(m.editor().dataset.placeholder, '⏎ to send, ⌘⏎ to queue for later');
     await act(async () => store.set({ runtime: { t1: { activeTurnId: null, turns: [{ id: 'turn', items: [newDoc] }] } } }));
     assert.equal(m.editor().dataset.placeholder, 'Close the new TextEdit document without saving');
     assert.equal(m.text, '', 'the placeholder only: nothing in the input');

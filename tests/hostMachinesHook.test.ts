@@ -22,6 +22,8 @@ const ROW = {
   waitingForLogin: null,
   startsAtBoot: 'unknown',
   fileVault: 'unknown',
+  address: '',
+  hostVersion: '',
   platform: '',
 };
 
@@ -57,6 +59,23 @@ test('the list is read once for every consumer, pushes replace it, a malformed p
   assert.deepEqual(seen.at(-1), { machines: [ROW], resolved: false });
   await a();
   await b();
+});
+
+test('a push equal to the held list wakes no reader, and a row that did not change keeps its object (#5398)', async () => {
+  const other = { ...ROW, id: 'ssh:b', name: 'b' };
+  const fake = fakeNative({ host: { access: async () => true, machines: async () => ({ machines: [ROW, other], resolved: true }) } });
+  installNative(fake);
+  const off = await mount();
+  const held = seen.at(-1)!;
+  const renders = seen.length;
+  await act(async () => fake.emit('host.onMachines', JSON.parse(JSON.stringify({ machines: [ROW, other], resolved: true }))));
+  assert.equal(seen.length, renders, 'the same list again renders no reader');
+  assert.equal(seen.at(-1), held);
+  await act(async () => fake.emit('host.onMachines', { machines: [ROW, { ...other, status: 'offline' }], resolved: true }));
+  assert.equal(seen.length, renders + 1);
+  assert.equal(seen.at(-1)!.machines[0], held.machines[0], 'the machine that did not change is the same object');
+  assert.notEqual(seen.at(-1)!.machines[1], held.machines[1]);
+  await off();
 });
 
 test('a read that fails or returns something else leaves the list unresolved', async () => {

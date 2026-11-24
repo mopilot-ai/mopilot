@@ -57,6 +57,7 @@
     "nativeAvailability.ts",
     "perf.ts",
     "projectGroupActions.ts",
+    "rendererRecord.ts",
     "scheduledFocus.ts",
     "shortcutHints.ts",
     "skillToolCall.ts",

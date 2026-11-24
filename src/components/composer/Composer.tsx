@@ -5,7 +5,7 @@ import { useComposerText } from './useComposerText';
 import { useDraftRestore } from './useDraftRestore';
 import { QueuedList } from './QueuedList';
 import { useContext, useEffect, useRef, useState } from 'react';
-import { composerSlashItems } from '../../lib/composerSkills';
+import { composerSlashItems, hasSlashCommandToken, slashCommandPresentation } from '../../lib/composerSkills';
 import { useStore, setDraft, toast, toastFailure, get as getState, threadTitle } from '../../store/core';
 import { sendMessage, giveBackToComposer, loadCloudTasks } from '../../store/send';
 import { navigate } from '../../store/panes';
@@ -74,6 +74,7 @@ import { ComposerModeChips } from './ComposerModeChips';
 import { MomoModel, MomoPlaceholder, useMomoChat } from '../momo/useMomoChat';
 import { momoMenu, momoNames, momoTypedAsText } from '../../../shared/momoCommands.mjs';
 import { ContextBar, FullAccessBanner, VoiceBar } from './ComposerBars';
+import { sayChanged, useComposerBusy } from './useBusyRelease';
 
 export { permissionIcon } from './ComposerMenus';
 
@@ -144,6 +145,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
 
   // another app is running a turn on this chat: nothing can be sent until it finishes
   const lockedOut = !!threadId && session.runningElsewhere;
+  const { busy, busyWhy, busyNote, sayBlocked } = useComposerBusy(lockedOut, preparingReferences, !!starting);
   // the chat's PeerMessages opens its compose dialog, with the recipient preselected ('' lets the user choose)
   const peerCompose = threadId
     ? (targetChatId: string) =>
@@ -223,7 +225,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
   const commandNamed = (typed: string[], names = momoNames(momo, typed)): SlashCommand | undefined =>
     names.includes('plan') ? { name: 'plan', run: () => setPlanMode(!planMode) } : SLASH_COMMANDS.find((c) => names.includes(c.name));
 
-  const { runPopupCommand, putCommand, pick } = useSlashPick({
+  const { runPopupCommand, pick } = useSlashPick({
     draftKey,
     text,
     attachments,
@@ -236,7 +238,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
 
   const submit = async (o?: { raw?: boolean; steer?: boolean }) => {
     const value = text;
-    if (!canSend || sendBlock) return;
+    if (!canSend || sendBlock) return sayBlocked(sendBlock, text, attachments.length);
     if (goalMode && goalOffWhy) return toast(goalOffWhy, 'error');
     if (goalMode && blocked(threadId, 'goal')) return;
     setSlashNote(null);
@@ -295,7 +297,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
       return;
     }
     const prepared = await prepareReferences();
-    if (!prepared?.isCurrent()) return;
+    if (!prepared?.isCurrent()) return void (prepared && sayChanged(taRef.current, value, prepared.isLatest()));
     const { refs, cloudEnv } = prepared;
     // Two Enter events can prepare references before React paints the disabled composer.
     if (submissionRef.current?.draftKey === draftKey) return;
@@ -464,11 +466,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
     threadId,
     planMode,
     setPlanMode,
-    (t) => {
-      // the draft stays: goal mode makes it the objective
-      if (t === '/goal ') return selectGoal();
-      putCommand(t);
-    },
+    selectGoal,
     (name, path, displayName) => {
       setIncoming((a) => [...a, { kind: 'skill', name, path, displayName }]);
     },
@@ -476,22 +474,24 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
   );
   // a basic harness's / menu: Sage's UI commands, then the commands the harness listed
   const basicSlashItems: SlashItem[] = basic
-    ? acpRegistry(basic, acpCommands).menu.map((c) => ({
-        id: `acp:${c.name}`,
-        title: `/${c.name}`,
-        desc: c.description,
-        disabled: c.name === 'goal' ? (goalOffWhy ?? undefined) : planCommandOff(c, planOffWhy),
-        scope: c.dispatch === 'passthrough' ? basicLabel(basic) : undefined,
-        run: () => {
-          if (c.name === 'goal') return selectGoal();
-          const cmd = c.dispatch === 'passthrough' ? null : commandNamed([c.name]);
-          if (cmd) return cmd.run({ threadId, args: '' });
-          putCommand(`/${c.name} `);
-        },
-      }))
+    ? acpRegistry(basic, acpCommands).menu.map((c) => {
+        const cmd = c.dispatch === 'passthrough' ? null : commandNamed([c.name]);
+        const run = c.name === 'goal' ? selectGoal : cmd && (() => cmd.run({ threadId, args: '' }));
+        return {
+          id: `acp:${c.name}`,
+          title: `/${c.name}`,
+          desc: c.description,
+          aliases: c.aliases,
+          disabled: c.name === 'goal' ? (goalOffWhy ?? undefined) : planCommandOff(c, planOffWhy),
+          scope: c.dispatch === 'passthrough' ? basicLabel(basic) : undefined,
+          ...(run ? { run } : { completion: { text: `/${c.name}`, hint: c.hint } }),
+        };
+      })
     : [];
   basicSlashItems.push(...usePluginSlashItems(!attachmentOff && basic ? 'acp' : null, setIncoming));
-  const menu = useMachineMenu(threadId, popup?.kind === 'slash', putCommand, basic ? basicSlashItems : slashItems, !!basic, attachmentOff);
+  const wantsCommands = popup?.kind === 'slash' || (!momo && !goalMode && hasSlashCommandToken(text) && 'draft');
+  const menu = useMachineMenu(threadId, wantsCommands, basic ? basicSlashItems : slashItems, !!basic, attachmentOff);
+  const commandPresentation = goalMode || momo ? undefined : slashCommandPresentation(text, menu);
   // the mention list only shows (and picks) while its popup is open, so `popup` is set here
   const applyMention = (path: string, isDir: boolean) => {
     const token = `@${path}${isDir ? '/' : ''} `;
@@ -561,12 +561,12 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
           onSessionOpen={(id) => navigate({ name: 'thread', id })}
           onSessionSend={peerCompose}
           value={text}
+          commandPresentation={commandPresentation}
           attachments={attachments}
           hidden={voiceOn}
-          placeholder={
-            lockedOut ? RUNNING_ELSEWHERE : (nextStep ?? (running && !goalMode ? sendHint : momo ? momoPlaceholder : 'Do anything'))
-          }
-          disabled={lockedOut || preparingReferences || !!starting}
+          placeholder={busyNote ?? nextStep ?? (running && !goalMode ? sendHint : momo ? momoPlaceholder : 'Do anything')}
+          disabled={busy}
+          busyWhy={busyWhy}
           onChange={(value, nextAttachments, caret) => {
             setText(value);
             setAttachments(nextAttachments);
@@ -695,4 +695,3 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
     </div>
   );
 }
-const RUNNING_ELSEWHERE = whyText({ layer: 'session', code: 'session.runningElsewhere' });

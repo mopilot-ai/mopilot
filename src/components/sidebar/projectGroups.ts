@@ -15,7 +15,7 @@ import type { HostLocationKind } from '../../lib/hostLocation';
 import { machineProjectPath, machineProjectKey, machineProjectChatOrder } from '../../lib/machineProject';
 import { machineOfChat, useHostChats } from '../../lib/hostChats';
 import { useHostMachines } from '../../lib/hostMachines';
-import { useSidebarLineage } from '../../session/harness/claude/desktopLineage';
+import { useFamilyLineage } from '../../session/harness/claude/desktopLineage';
 import { useProjectPaths } from '../../lib/useProjectPaths';
 import { byActivity } from '../../lib/chatActivity';
 import { sidebarFamilies } from '../../lib/sidebarFamilies';
@@ -119,7 +119,7 @@ export function useProjectGroups(withRepositories = false) {
   // a folder picked for it is resolved on every page, so arriving on the home page never waits for its canonical path
   const pickedProject = useStore((s) => s.newChatProjectId);
   const pickedCwd = useStore((s) => s.newChatCwd);
-  const linked = useSidebarLineage();
+  const linked = useFamilyLineage();
   const { owners, status, answered } = useHostChats();
   const { machines } = useHostMachines();
   const cloudState = useStore((s) => (s.cloudSidebar?.account === cloudSidebarAccount(s) ? s.cloudSidebar : undefined));

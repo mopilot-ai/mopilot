@@ -27,7 +27,7 @@ test('a deferred breakdown shows a full loading outline, then the actual composi
   assert.equal(one(r.host, '[role="status"]').getAttribute('aria-busy'), 'true');
   assert.match(r.host.textContent!, /Loading breakdown/);
   assert.equal(r.host.querySelectorAll('.ctx-loading-row').length, 5);
-  assert.doesNotMatch(r.host.textContent!, /Waiting for a report|next turn ends/);
+  assert.doesNotMatch(r.host.textContent!, /Waiting for a report|No context usage reported yet/);
   assert.equal(ctx.asks.length, 1);
   const owner = ownerOf('chat', 'claude', 'native');
   await act(async () => answer.resolve(snapshotOf(owner, { used: 30000, window: 100000 })));

@@ -32,8 +32,8 @@ for (const family of [
         await input.press(sendKey);
         await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
         await expect.poll(() => fs.existsSync(`${log}.hold-next`)).toBe(false);
-        const sendLabel = sendWith === 'enter' ? '↵' : '⌘↵';
-        const queueLabel = sendWith === 'enter' ? '⌘↵' : '⇧⌘↵';
+        const sendLabel = sendWith === 'enter' ? '⏎' : '⌘⏎';
+        const queueLabel = sendWith === 'enter' ? '⌘⏎' : '⇧⌘⏎';
         await expect(input).toHaveAttribute(
           'data-placeholder',
           family.steers ? `${sendLabel} to send, ${queueLabel} to queue for later` : `${sendLabel} to queue for later`,

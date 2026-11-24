@@ -55,6 +55,8 @@ export function useComposerReferences(input: Input, editor: RefObject<ComposerIn
   const owner = useRef(identity);
   if (owner.current.some((value, index) => value !== identity[index])) owner.current = identity;
   const pending = useRef<unknown[] | null>(null);
+  // how many sends have prepared: a send is the latest while no other one has started since
+  const started = useRef(0);
   const [preparing, setPreparing] = useState<unknown[] | null>(null);
 
   const prepareReferences = async () => {
@@ -96,6 +98,7 @@ export function useComposerReferences(input: Input, editor: RefObject<ComposerIn
       );
     };
     pending.current = current;
+    const mine = ++started.current;
     setPreparing(current);
     let refs: Attachment[] | null = null;
     try {
@@ -112,7 +115,7 @@ export function useComposerReferences(input: Input, editor: RefObject<ComposerIn
       repository
         ? native.cloud.exec(id, prompt, 1, { repository: repository.repository, account: state.accounts.active })
         : native.cloud.exec(id, prompt);
-    return refs ? { refs, cloudEnv, isCurrent, launchCloud } : null;
+    return refs ? { refs, cloudEnv, isCurrent, isLatest: () => started.current === mine, launchCloud } : null;
   };
 
   return { preparingReferences: preparing === owner.current, prepareReferences };

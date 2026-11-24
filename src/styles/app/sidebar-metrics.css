@@ -9,10 +9,13 @@
 .project-hint {
   color: var(--text-4);
 }
-/* In the thread sidebar a section's label sits over project headings in that type, so it steps down from them. */
+/* In the thread sidebar a section's label sits over project headings in that type, so it steps down from them and
+   is set in capitals; a section the user created follows it (thread-metrics.css). */
 .thread-sidebar .side-label {
   font-size: var(--fs-micro);
   color: var(--text-4);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .thread-sidebar button.side-label:is(:hover, :focus-visible) {
   color: var(--text-3);

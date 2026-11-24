@@ -23,11 +23,15 @@ delete mocks[url('components/pages/settings/RemoteControl.tsx')];
 mocks[url('store/chats.ts')].codexUsable = () => true;
 const computerSets: boolean[] = [];
 const off = { status: 'disabled', environmentId: null, error: null };
+let codexNow: any = off;
+let codexRefuses = false;
 mocks[url('harness/adapters/codexApi.ts')] = {
   codexApi: {
-    remoteControlRead: async () => off,
+    remoteControlRead: async () => codexNow,
+    remoteControlClients: async () => [],
     remoteControlSet: async (on: boolean) => {
       computerSets.push(on);
+      if (codexRefuses) throw new Error('ChatGPT would not turn it off');
       return { ...off, status: on ? 'connecting' : 'disabled' };
     },
   },
@@ -38,6 +42,8 @@ const { Settings } = await import('../src/components/pages/Settings.tsx');
 beforeEach(() => {
   resetCtl();
   computerSets.length = 0;
+  codexNow = off;
+  codexRefuses = false;
   useStore.setState({ ...defaultState(), route: { name: 'settings', section: 'connections' } }, true);
   responses['remoteSettings.cancel'] = true;
 });
@@ -46,8 +52,8 @@ test('computer control remains reachable when Mobile Remote is hidden and keeps 
   responses['remoteSettings.state'] = { visible: false };
   const view = await render(h(Settings, { section: 'connections' }));
   t.after(() => view.unmount());
-  assert.match(text(view.host), /Control from ChatGPT/);
-  assert.doesNotMatch(text(view.host), /Allow phone access/);
+  assert.match(text(view.host), /Allow this computer to be controlled/);
+  assert.doesNotMatch(text(view.host), /Allow connections/);
   await toggle(view.host, 'Allow this computer to be controlled');
   const dialog = view.host.querySelector('[role=alertdialog]')!;
   assert.ok(dialog);
@@ -69,13 +75,13 @@ test('the phone opt-in leaves computer control unchanged, and leaving the page e
   };
   const view = await render(h(Settings, { section: 'connections' }));
   try {
-    assert.match(text(view.host), /Control from ChatGPT/);
+    assert.match(text(view.host), /Allow this computer to be controlled/);
     const titles = [...view.host.querySelectorAll('.settings-group-title')].map((title) => text(title));
-    assert.equal(titles[0], 'Phone', 'the phone comes first');
-    await toggle(view.host, 'Allow phone access');
+    assert.equal(titles[0], 'Devices that can control this Mac', 'the devices come first');
+    await toggle(view.host, 'Allow connections');
     await flush(50);
     const groups = [...view.host.querySelectorAll('.settings-group')];
-    const computer = groups.find((group) => text(group.querySelector('.settings-group-title')) === 'Control from ChatGPT')!;
+    const computer = groups.find((group) => text(group.querySelector('.settings-group-title')) === 'Other settings')!;
     assert.equal(computer.querySelector('[role=switch]')!.getAttribute('aria-checked'), 'false');
     assert.deepEqual(computerSets, []);
     assert.deepEqual(
@@ -87,4 +93,71 @@ test('the phone opt-in leaves computer control unchanged, and leaving the page e
   } finally {
     await view.unmount();
   }
+});
+
+const phoneState = (o: object = {}) => ({ visible: true, signedIn: true, enabled: true, running: true, pairing: null, devices: [], ...o });
+const setEnabledCalls = () => calls.filter(([name]) => name === 'remoteSettings.setEnabled').map((c) => c[1]);
+
+test('Allow connections off with a ChatGPT device linked: asks first, then turns the phones and the ChatGPT link off', async (t) => {
+  codexNow = { status: 'connected', environmentId: 'env', error: null };
+  responses['remoteSettings.state'] = phoneState();
+  responses['remoteSettings.setEnabled'] = true;
+  const view = await render(h(Settings, { section: 'connections' }));
+  t.after(() => view.unmount());
+  await flush(50);
+  await toggle(view.host, 'Allow connections');
+  assert.match(text(view.host.querySelector('[role=alertdialog]')!), /Phones and other devices connected now are disconnected/);
+  assert.deepEqual([setEnabledCalls(), computerSets], [[], []], 'nothing changes before the answer');
+  await click(button(view.host.querySelector('[role=alertdialog]')!, 'Turn off'));
+  await flush(50);
+  assert.deepEqual([setEnabledCalls(), computerSets], [[false], [false]]);
+});
+
+test('a change that gets halfway says why and leaves the switch on, so it can be tried again', async (t) => {
+  codexNow = { status: 'connected', environmentId: 'env', error: null };
+  codexRefuses = true;
+  let enabled = true;
+  responses['remoteSettings.state'] = () => phoneState({ enabled });
+  responses['remoteSettings.setEnabled'] = (on: boolean) => ((enabled = on), true);
+  const view = await render(h(Settings, { section: 'connections' }));
+  t.after(() => view.unmount());
+  await flush(50);
+  await toggle(view.host, 'Allow connections');
+  await click(button(view.host.querySelector('[role=alertdialog]')!, 'Turn off'));
+  await flush(50);
+  assert.deepEqual(setEnabledCalls(), [false], 'the phones went off');
+  // the link's own refusal is told in its toast (setCodexRemoteControl), with its cause
+  assert.ok(
+    calls.some(
+      ([name, message]) => name === 'toast' && /Couldn't turn off Remote Control: .*ChatGPT would not turn it off/.test(String(message)),
+    ),
+    'the cause is told',
+  );
+  const master = view.host.querySelector('[role=switch][aria-label="Allow connections"]')!;
+  assert.equal(master.getAttribute('aria-checked'), 'true', 'still on: the ChatGPT link is');
+  await toggle(view.host, 'Allow connections');
+  assert.ok(view.host.querySelector('[role=alertdialog]'), 'the same switch asks again');
+});
+
+test('turning Allow connections on turns the phones on and leaves ChatGPT’s link alone', async (t) => {
+  responses['remoteSettings.state'] = phoneState({ enabled: false, running: false });
+  responses['remoteSettings.setEnabled'] = true;
+  const view = await render(h(Settings, { section: 'connections' }));
+  t.after(() => view.unmount());
+  await flush(50);
+  await toggle(view.host, 'Allow connections');
+  await flush(50);
+  assert.deepEqual([setEnabledCalls(), computerSets], [[true], []]);
+});
+
+test('signed out of MoPilot: Allow connections cannot be used, and ChatGPT’s own switch still can (no lock)', async (t) => {
+  responses['remoteSettings.state'] = phoneState({ signedIn: false, enabled: false, running: false });
+  const view = await render(h(Settings, { section: 'connections' }));
+  t.after(() => view.unmount());
+  await flush(50);
+  assert.equal(view.host.querySelector('[role=switch][aria-label="Allow connections"]')!.hasAttribute('disabled'), true);
+  assert.equal(
+    view.host.querySelector('[role=switch][aria-label="Allow this computer to be controlled"]')!.hasAttribute('disabled'),
+    false,
+  );
 });

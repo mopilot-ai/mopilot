@@ -11,6 +11,7 @@ mock.module('../electron/app/routines.cjs', stub(['openRoutines']));
 mock.module('../electron/app/mobileRemote.cjs', stub(['openMobileRemote']));
 mock.module('../electron/capabilities/browser/userTurn.cjs', stub(['installUserTurns']));
 mock.module('../electron/perf/stalls.cjs', stub(['startStallLogger']));
+mock.module('../electron/perf/rendererLog.cjs', stub(['startRendererLog']));
 mock.module('../electron/platform/speechWindows.cjs', stub(['registerSpeechWindows']));
 mock.module('../electron/remote/settingsWindows.cjs', stub(['registerRemoteWindows']));
 

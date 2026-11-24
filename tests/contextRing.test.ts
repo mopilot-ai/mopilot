@@ -1,4 +1,4 @@
-// The composer's context ring and its tooltip: hidden until a reading exists, the share and tokens with what to do next, its tones, main's snapshot for every harness, and the context panel on click.
+// The composer's usage ring before and after a reading, its tooltip and tones, and the chat's context panel on click.
 import { mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import './support/dom.ts';
@@ -52,17 +52,63 @@ test('the tooltip says the share and tokens, then what to do: the breakdown, how
   assert.equal(contextTip({ used: 300, window: 200 }).used, '100%+ used');
 });
 
-test('no ring for a new chat or a chat with no reading yet; a harness without a breakdown is only asked what main holds', async () => {
+test('a draft shows the ring once it has an agent and can explain the missing reading', async () => {
   reset();
   store.set({ runtime: {}, segments: {} });
-  let r = await render(contextRing(null));
+  const r = await render(contextRing(null));
+  assert.equal(r.host.querySelector('.context-ring'), null);
+  for (const selection of ['codex', 'claude', 'acp:kimi'] as const) {
+    await r.rerender(h(ContextRing, { threadId: null, selection }));
+    const ring = one(r.host, '.context-ring');
+    assert.equal(ring.getAttribute('aria-label'), 'Usage details');
+    assert.equal(ring.hasAttribute('data-empty'), true);
+    assert.equal(r.host.querySelector('.context-ring-fill'), null);
+    await act(() => ring.click());
+    assert.match(one(document.body, '.ctx-popover').textContent!, /No context usage reported yet/);
+    assert.equal(document.querySelector('.ctx-popover [role="meter"]'), null);
+  }
+  await r.rerender(h(ContextRing, { threadId: null, selection: 'claude', momo: true }));
   assert.equal(r.host.querySelector('.context-ring'), null);
   assert.deepEqual(ctx.asks, []);
   await r.unmount();
-  store.set({ runtime: { c: { turns: [] } }, segments: { c: [{ harness: 'codex', nativeId: 'c-native' }] } });
-  r = await render(contextRing('c'));
-  assert.equal(r.host.querySelector('.context-ring'), null);
-  assert.deepEqual(ctx.asks, [['get', ownerOf('c', 'codex', 'c-native')]]);
+});
+
+test('the ring stays open through a remote Claude turn’s first and later context reports', async () => {
+  reset();
+  const chat = 'acp:host-claude:chat';
+  const owner = ownerOf(chat, 'acp:host-claude', chat);
+  store.set({ runtime: { [chat]: { turns: [{ status: 'inProgress' }] } }, segments: {} });
+  const r = await render(contextRing(chat));
+  const ring = one(r.host, '.context-ring');
+  assert.equal(ring.getAttribute('aria-label'), 'Usage details');
+  assert.equal(ring.hasAttribute('data-empty'), true);
+  assert.equal(r.host.querySelector('.context-ring-fill'), null);
+  assert.deepEqual(ctx.asks, [['get', owner]]);
+  await act(() => ring.click());
+  await settle(act);
+  const panel = one(document.body, '.ctx-popover');
+  assert.match(panel.textContent!, /No context usage reported yet/);
+  assert.equal(panel.querySelector('[role="meter"]'), null);
+
+  const publish = (used: number | null, window: number | null, at: number) =>
+    act(async () => ctx.push!({ chatId: chat, snapshot: snapshotOf(owner, { used, window, at }) }));
+  await publish(39_340, null, 2000);
+  assert.equal(ring.getAttribute('aria-label'), 'Usage details');
+  assert.equal(one(panel, '.ctx-summary-value').textContent, '39.3k tokens used');
+  assert.equal(panel.querySelector('[role="meter"]'), null);
+  await publish(39_340, 1_000_000, 3000);
+  assert.equal(ring.getAttribute('aria-label'), 'Context: 4% used, 39.3k of 1M tokens');
+  assert.equal(ring.hasAttribute('data-empty'), false);
+  assert.equal(one(panel, '.ctx-summary-value').textContent, '4% used');
+  await publish(70_000, 1_000_000, 4000);
+  assert.equal(one(panel, '.ctx-summary-value').textContent, '7% used');
+  await publish(null, null, 5000);
+  assert.equal(one(r.host, '.context-ring'), ring);
+  assert.equal(ring.getAttribute('aria-expanded'), 'true');
+  assert.equal(ring.getAttribute('aria-label'), 'Usage details');
+  assert.equal(ring.hasAttribute('data-empty'), true);
+  assert.equal(panel.querySelector('[role="meter"]'), null);
+  assert.match(panel.textContent!, /No context usage reported yet/);
   await r.unmount();
 });
 
@@ -180,7 +226,7 @@ test('the ring and the summary card share one ask per owner; a failed ask is not
   };
   let r = await render(h('div', null, contextRing('k'), h(SummaryContext, { threadId: 'k' })));
   assert.equal(ctx.asks.length, 1);
-  assert.equal(ringLabel(r.host), null);
+  assert.equal(ringLabel(r.host), 'Usage details');
   assert.equal(ctx.ignored.length, 1);
   await r.unmount();
   ctx.answer = async () => snapshotOf(owner, { used: 20_000, window: 200_000 });

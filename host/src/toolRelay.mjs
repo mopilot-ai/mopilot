@@ -114,6 +114,7 @@ export function createToolRelay({
     if (!conn || !conns.has(conn))
       throw new ToolError('The MoPilot app that started this chat is not connected, so this tool did not run.', 'app_offline');
     const callId = newId();
+    const epoch = conn.epochOf(ctx.chatId);
     return new Promise((resolve, reject) => {
       /** @param {() => unknown} done */
       const settle = (done) => {
@@ -135,7 +136,7 @@ export function createToolRelay({
       };
       /** The app is told to stop what it is doing for this call, and the call ends. @param {InstanceType<typeof ToolError>} why */
       const stop = (why) => {
-        send(conn, { event: 'toolCancel', chatId: ctx.chatId, epoch: conn.epochOf(ctx.chatId), callId });
+        send(conn, { event: 'toolCancel', chatId: ctx.chatId, epoch, callId });
         settle(() => {
           throw why;
         });
@@ -151,7 +152,7 @@ export function createToolRelay({
         !send(conn, {
           event: 'tool',
           chatId: ctx.chatId,
-          epoch: conn.epochOf(ctx.chatId),
+          epoch,
           segmentId: ctx.segmentId,
           callId,
           name,

@@ -16,6 +16,9 @@ import { CPACE_SPEC, initiate, lvCat, ownConfirmation, respond, sessionIdOf, ver
 import { ed25519 } from '@noble/curves/ed25519';
 import { randomBytes } from '@noble/hashes/utils';
 import { fromBase64, toBase64, utf8 } from '../remote/envelope.mjs';
+import { CodePairError, MAX_CARRY, carryOf } from './codePairErrors.mjs';
+
+export { CodePairError, MAX_CARRY, carryOf };
 
 export const LABEL = 'mopilot-code-pair-v1';
 /** CPace's session id is empty (see the header). */
@@ -31,16 +34,6 @@ export const MAX_NAME = 80;
 /** The relay's offer ids and the claims one offer takes (relay/src/rendezvous.mjs). */
 export const OFFER_ID = /^r_[A-Za-z0-9_-]{22}$/;
 export const MAX_CLAIMS = 5;
-
-/** A run that must stop. `code` is for the caller, never for a person. */
-export class CodePairError extends Error {
-  /** @param {'bad_code' | 'bad_message' | 'bad_confirmation' | 'bad_body' | 'bad_proof' | 'unrecorded' | 'out_of_turn' | 'burned'} code @param {string} message */
-  constructor(code, message) {
-    super(message);
-    this.name = 'CodePairError';
-    this.code = code;
-  }
-}
 
 const concat = (/** @type {Uint8Array[]} */ ...parts) => {
   const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
@@ -295,8 +288,8 @@ export function createInitiator({ crypto: c, secret, hint, rendezvousId, claims,
       });
       return wire({ Y: b64u(started.message.Y), ad: b64u(started.message.ad) });
     },
-    /** m3, from m2: verifies the responder's tag first and only then reveals its own. @param {string} m2 */
-    second(m2) {
+    /** m3, from m2: verifies the responder's tag first and only then reveals its own; `carry` rides in the sealed body (the relay credential the controlling Mac minted). @param {string} m2 @param {Record<string, unknown>} [carry] */
+    second(m2, carry) {
       if (step !== 1) throw stop(new CodePairError('out_of_turn', 'Not the turn of the second message.'));
       step = 2;
       const f = /** @type {{ Y: Uint8Array, ad: Uint8Array, tag: Uint8Array } | null} */ (unwire(m2, ['Y', 'ad', 'tag']));
@@ -314,7 +307,12 @@ export function createInitiator({ crypto: c, secret, hint, rendezvousId, claims,
         const keys = deriveKeys(c, run, device.pub, peerAd.device, ephSecret, peerAd.eph, rendezvousId);
         derived = { keys, peer: peerAd };
         const proof = b64u(device.sign(proofMessage('initiator', keys.transcriptHash)));
-        const sealed = seal(c, keys.toB, keys.transcriptHash, { name: nameOf(device.name), claims, proof });
+        const sealed = seal(c, keys.toB, keys.transcriptHash, {
+          name: nameOf(device.name),
+          claims,
+          proof,
+          ...(carryOf(carry) ? { carry: carryOf(carry) } : {}),
+        });
         return wire({ tag: b64u(ownConfirmation(run)), sealed });
       } catch (error) {
         // a failure anywhere in this step ends the run and leaves nothing of it
@@ -344,6 +342,7 @@ export function createInitiator({ crypto: c, secret, hint, rendezvousId, claims,
         peerDevice: peer.device,
         peerName: nameOf(body.name),
         safety: keys.safety,
+        carry: carryOf(body.carry),
       };
     },
   };
@@ -435,7 +434,7 @@ export function createResponder({ crypto: c, secret, hint, rendezvousId, claims,
         throw stop(error instanceof CodePairError ? error : new CodePairError('bad_message', String(error)));
       }
     },
-    /** The initiator's tag is checked before its body is opened, and its body must prove that it holds the device key it claims; what it says of itself is for the person to see. @param {string} m3 @returns {{ peerDevice: Uint8Array, peerName: string, safety: string }} */
+    /** The initiator's tag is checked before its body is opened, and its body must prove that it holds the device key it claims; what it says of itself is for the person to see. @param {string} m3 @returns {{ peerDevice: Uint8Array, peerName: string, safety: string, carry?: Record<string, unknown> }} */
     receive3(m3) {
       if (step !== 1) throw stop(new CodePairError('out_of_turn', 'Not the turn of the third message.'));
       step = 2;
@@ -451,21 +450,30 @@ export function createResponder({ crypto: c, secret, hint, rendezvousId, claims,
         if (!provedBy(c, mine.derived.peer.device, 'initiator', mine.derived.keys.transcriptHash, body.proof))
           throw new CodePairError('bad_proof', 'The other Mac did not prove it holds its key.');
         mine.derived.name = nameOf(body.name);
-        return { peerDevice: mine.derived.peer.device, peerName: mine.derived.name, safety: mine.derived.keys.safety };
+        return {
+          peerDevice: mine.derived.peer.device,
+          peerName: mine.derived.name,
+          safety: mine.derived.keys.safety,
+          carry: carryOf(body.carry),
+        };
       } catch (error) {
         // whatever fails here ends the run: answer() can never be called on a half-checked one
         throw stop(error instanceof CodePairError ? error : new CodePairError('bad_message', String(error)));
       }
     },
-    /** m4, and the pair root when the person accepted. The caller adds the other Mac's key to its table only now. @param {boolean} accept */
-    answer(accept) {
+    /** m4, and the pair root when the person accepted. The caller adds the other Mac's key to its table only now; `carry` rides in the sealed answer (this Host's half of the relay pair). @param {boolean} accept @param {Record<string, unknown>} [carry] */
+    answer(accept, carry) {
       if (step !== 2) throw stop(new CodePairError('out_of_turn', 'Not the turn of the answer.'));
       step = 3;
       const { keys, peer, name } = /** @type {NonNullable<typeof derived>} */ (derived);
       derived = null;
       run = null;
       const body = accept
-        ? { name: nameOf(device.name), proof: b64u(device.sign(proofMessage('responder', keys.transcriptHash))) }
+        ? {
+            name: nameOf(device.name),
+            proof: b64u(device.sign(proofMessage('responder', keys.transcriptHash))),
+            ...(carryOf(carry) ? { carry: carryOf(carry) } : {}),
+          }
         : { denied: true };
       const sealed = seal(c, keys.toA, keys.transcriptHash, body);
       return { message: wire({ sealed }), ...(accept ? { root: keys.root, peerDevice: peer.device, peerName: name } : {}) };

@@ -75,7 +75,7 @@ export function useSlashItems(
   threadId: string | null,
   planMode: boolean,
   setPlanMode: (v: boolean) => void,
-  setText: (t: string) => void,
+  selectGoal: () => void,
   addSkill: (name: string, path: string, displayName?: string) => void,
   {
     goalOffWhy,
@@ -118,7 +118,6 @@ export function useSlashItems(
   // Claude's catalog: its skills come with it, so Codex's skill list is only fetched without one
   const nativeCmds = useClaudeCommands(threadId, cwd);
   const claudeFiles = useClaudeSkillFiles(threadId, cwd);
-  // Skills follow the commands, like the official menu.
   const codexReady = useStore((s) => s.conn === 'ready');
   // the folder whose Codex skills are listed; null: none are (the chat is on another harness, which has its own,
   // a harness catalog has its own, or Codex isn't ready)
@@ -264,7 +263,7 @@ export function useSlashItems(
       desc: goalOffWhy ?? 'Set a goal to keep pursuing',
       icon: <Target {...I} />,
       disabled: goalOffWhy ?? undefined,
-      run: () => setText('/goal '),
+      run: selectGoal,
     },
     {
       id: 'init',
@@ -453,7 +452,9 @@ export function useSlashItems(
     scope: c.source === 'app' ? 'App' : undefined,
     aliases: c.aliases,
     disabled: c.why ? whyText(c.why, { label: provider.label, semantic: c.semantic }) : undefined,
-    run: () => (c.hint ? setText(`/${c.name} `) : SLASH_COMMANDS.find((x) => x.name === c.name)!.run({ threadId, args: '' })),
+    ...(c.hint
+      ? { completion: { text: `/${c.name}`, hint: c.hint } }
+      : { run: () => SLASH_COMMANDS.find((x) => x.name === c.name)!.run({ threadId, args: '' }) }),
   }));
   for (const it of app) ids.add(it.id);
   return [
@@ -469,9 +470,8 @@ export function useSlashItems(
         icon: c.source === 'skill' ? <Box {...I} /> : <SquareSlash {...I} />,
         scope: c.source === 'skill' ? (CLAUDE_SCOPE[ownGet(claudeFiles, c.name)?.scope ?? ''] ?? 'Skill') : undefined,
         skill: c.source === 'skill',
-        nativeSkill: c.source === 'skill' ? c.name : undefined,
         aliases: c.aliases,
-        run: () => setText(`/${c.name} `),
+        completion: { text: `/${c.name}`, hint: c.hint, keepTrigger: c.source === 'skill' },
       })),
   ];
 }

@@ -26,6 +26,8 @@ const useStore = { getState: () => ({}) };
 stubStore({ boot: () => (calls.push('boot'), bootResult()), toast: (...a: unknown[]) => void toasts.push(a), useStore });
 const probes: unknown[][] = [];
 const reactCommit = () => undefined;
+const records: unknown[][] = [];
+mock.module('../src/session/rendererRecord.ts', { namedExports: { installRendererRecord: (...a: unknown[]) => void records.push(a) } });
 mock.module('../src/session/perf.ts', { namedExports: { installPerfProbe: (...a: unknown[]) => void probes.push(a), reactCommit } });
 mock.module('../src/lib/telemetry.ts', {
   namedExports: { installErrorHandlers: () => calls.push('errors'), reportError: (...a: unknown[]) => void reported.push(a) },
@@ -72,6 +74,10 @@ test('the main window boots the store and renders the app and the quit dialog, e
   // it is handed the native port, which reads the bridge installed here
   assert.equal((probes[0][0] as typeof native).win, native.win);
   assert.equal(probes[0][1], useStore);
+  // the always-on renderer record starts beside it, on the same window and store
+  assert.equal(records.length, 1);
+  assert.equal((records[0][0] as typeof native).win, native.win);
+  assert.equal(records[0][1], useStore);
   // an app on its error screen still answers Quit: the dialog is not inside it
   assert.equal(quit.type === ErrorBoundary, true);
   assert.equal(quit.props.label, 'the quit dialog');

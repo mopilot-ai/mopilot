@@ -7,7 +7,7 @@ import { chatOf } from '../../store/chats';
 import { chatAgentTabs } from '../../lib/agentTabs';
 import { outsideLine } from './SessionUsage';
 import { openChatFrom } from '../../session/openChat';
-import { useOrchestration, waitingCaption } from '../../lib/sideSessions';
+import { useOrchestrationSelect, waitingCaption } from '../../lib/sideSessions';
 import { useChatRowState, useChatTurn } from '../../session/useChatRowState';
 import type { ChatRowState } from '../../session/chatRowState';
 import type { OrchestrationView, SideSessionEnding } from '../../../shared/orchestration';
@@ -136,8 +136,11 @@ export const STATE_DOT: Record<SessionCardState, 'working' | 'queued' | 'needs' 
 
 /** A session's card state, live: what its card, a stack's fold, the tab's groups and the status line's count all read. */
 export function useSessionCardState(chatId: string, notStarted = false): SessionCardState {
-  const view = useOrchestration();
-  const linked = view.children[chatId];
+  // each part is its own selection: another session's clock moving re-renders no card (#5398)
+  const linked = useOrchestrationSelect((v) => v.children[chatId]);
+  const queued = useOrchestrationSelect((v) => v.queue.includes(chatId));
+  const waiting = useOrchestrationSelect((v) => (v.waiting?.[chatId] ? (v.waiting[chatId].held ? 'held' : 'waiting') : null));
+  const asking = useOrchestrationSelect((v) => !!v.wrapUps?.[chatId]?.ask);
   const row = useChatRowState(chatId, linked);
   // the chat's own archive mark (every harness's, loaded with the chat list); the Settings archive list is loaded only
   // when that page opens, so after a restart it would call every archived session live
@@ -146,13 +149,13 @@ export function useSessionCardState(chatId: string, notStarted = false): Session
   const handoff = useStore((s) => !!chatAgentTabs(s.agentTabs, chatId, chatOf)?.tabs.some((t) => t.signin));
   return sessionCardState({
     row: row?.state ?? null,
-    queued: view.queue.includes(chatId),
+    queued,
     archived,
     notStarted,
     awaitingBrief: linked?.awaitingBrief,
-    waiting: view.waiting?.[chatId] ? (view.waiting[chatId].held ? 'held' : 'waiting') : null,
+    waiting,
     report: linked?.lastReport?.how,
-    asks: !!view.wrapUps?.[chatId]?.ask || handoff,
+    asks: asking || handoff,
   });
 }
 
@@ -193,13 +196,13 @@ export function SessionCard({
   /** told each state the card takes, so a stack can count what its fold holds */
   onState?: (chatId: string, state: SessionCardState) => void;
 }) {
-  const view = useOrchestration();
-  const linked = view.children[chatId];
+  const linked = useOrchestrationSelect((v) => v.children[chatId]);
   const parentTurn = useChatTurn(linked?.parentId);
   const foreign = !!linked && !!parentId && linked.parentId !== parentId;
   const state = useSessionCardState(chatId, !!notStarted);
   useEffect(() => onState?.(chatId, state), [onState, chatId, state]);
-  const caption = notStarted ?? sessionCaption(view, chatId, state, fallback);
+  const drawn = useOrchestrationSelect((v) => sessionCaption(v, chatId, state, fallback));
+  const caption = notStarted ?? drawn;
   const lead = LEAD_WORD[state];
   const name = linked?.title || title;
   const moving = state === 'starting' || state === 'working';

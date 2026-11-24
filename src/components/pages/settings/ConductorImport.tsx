@@ -1,4 +1,4 @@
-// Settings → Worktrees → Import from Conductor: the workspaces Conductor left on this machine, and bringing them over in place. Also the hook the welcome page's row shares.
+// Settings → Git → Import from Conductor: the workspaces Conductor left on this machine, and bringing them over in place. Also the hook the welcome page's row shares.
 
 import { useEffect, useRef, useState } from 'react';
 import { Group, Row } from './Controls';

@@ -1,4 +1,4 @@
-// What an agent on a machine offers in its `/` menu (`host.commands` through the app's folder service, #4915): asked when the menu is wanted, kept for a short while per machine, agent and folder, and shared by every composer that asks the same. A failure is never kept: the next open asks again.
+// Catalog requests for a machine's slash menu and draft, cached per machine, agent, folder and chat scope.
 import { useEffect, useState } from 'react';
 import { folderNotice } from './hostFolders';
 import { ignoring } from './ignored';
@@ -14,8 +14,20 @@ export type CommandsAnswer =
   | { state: 'outdated' }
   | { state: 'unavailable'; notice: string };
 
+/** A draft can request the catalog before the menu opens. Opening the menu can refresh that answer. */
+export type CatalogRequest = boolean | 'draft';
+
 const kept = new Map<string, { at: number; answer: CommandsAnswer }>();
 const inflight = new Map<string, Promise<CommandsAnswer>>();
+type CommandListener = (answer: CommandsAnswer | undefined) => void;
+const listeners = new Map<string, Set<CommandListener>>();
+const publish = (key: string, answer: CommandsAnswer | undefined) => {
+  listeners.get(key)?.forEach((receive) => receive(answer));
+};
+const freshCommands = (key: string, now = Date.now()) => {
+  const have = kept.get(key);
+  return have && now - have.at < COMMANDS_FRESH_MS ? have.answer : undefined;
+};
 
 /** For tests: forget every answer. */
 export const resetHostCommands = () => (kept.clear(), inflight.clear());
@@ -23,8 +35,11 @@ export const resetHostCommands = () => (kept.clear(), inflight.clear());
 /** The agent's list on the machine for the folder: the kept answer while it is fresh, else one request shared by whoever asks meanwhile. `scope` is the chat asking (none: the new chat): a chat's own list is asked for again, since its agent may have learned more by running (terminal-only commands, skills) after the new chat's list was kept. */
 export function askHostCommands(machineId: string, harness: string, folder: string, scope = '', now = Date.now()): Promise<CommandsAnswer> {
   const key = `${machineId}\n${harness}\n${folder}\n${scope}`;
-  const have = kept.get(key);
-  if (have && now - have.at < COMMANDS_FRESH_MS) return Promise.resolve(have.answer);
+  const have = freshCommands(key, now);
+  if (have) {
+    publish(key, have);
+    return Promise.resolve(have);
+  }
   const running = inflight.get(key);
   if (running !== undefined) return running;
   const asked = native.host
@@ -41,33 +56,46 @@ export function askHostCommands(machineId: string, harness: string, folder: stri
     .then((answer) => {
       // only a list the agent gave is kept: one it could not give yet, or a failure, is asked for again
       if (answer.state === 'ready' && answer.listed) kept.set(key, { at: now, answer });
+      publish(key, answer);
       return answer;
     })
     .finally(() => inflight.delete(key));
   inflight.set(key, asked);
+  publish(key, undefined);
   return asked;
 }
 
 /**
- * The commands of `harness` (`claude`, `codex`, `acp:<agent>`) in `folder` on `machineId`; null when there is no machine or agent to ask, `loading` until the machine answers. Nothing is asked until `want` (the menu is open), so a chat on a machine opens without a request.
+ * The commands of `harness` (`claude`, `codex`, `acp:<agent>`) in `folder` on `machineId`; null when there is no machine or agent to ask, `loading` until the machine answers. The composer requests them when its slash menu opens or its draft needs command presentation.
  */
 export function useHostCommands(
   machineId: string | null,
   harness: string | null,
   folder: string,
-  want: boolean,
+  want: CatalogRequest,
   scope = '',
 ): CommandsAnswer | { state: 'loading' } | null {
   const key = machineId && harness ? `${machineId}\n${harness}\n${folder}\n${scope}` : null;
-  const [answers, setAnswers] = useState<Record<string, CommandsAnswer>>({});
+  const [saved, setSaved] = useState(() => ({ key, want, answer: key && want ? freshCommands(key) : undefined }));
+  let current = saved;
+  if (saved.key !== key || saved.want !== want) {
+    // An opening menu can only offer a cached list that is still fresh.
+    const answer = key && want ? freshCommands(key) : saved.key === key ? saved.answer : undefined;
+    current = { key, want, answer };
+    setSaved(current);
+  }
   useEffect(() => {
     if (!key || !machineId || !harness || !want) return;
-    let live = true;
-    void askHostCommands(machineId, harness, folder, scope).then((answer) => live && setAnswers((all) => ({ ...all, [key]: answer })));
+    const receive: CommandListener = (answer) => setSaved({ key, want, answer });
+    const active = listeners.get(key) ?? new Set<CommandListener>();
+    active.add(receive);
+    listeners.set(key, active);
+    void askHostCommands(machineId, harness, folder, scope);
     return () => {
-      live = false;
+      active.delete(receive);
+      if (!active.size) listeners.delete(key);
     };
   }, [key, machineId, harness, folder, want, scope]);
   if (!key) return null;
-  return answers[key] ?? { state: 'loading' };
+  return current.answer ?? { state: 'loading' };
 }
