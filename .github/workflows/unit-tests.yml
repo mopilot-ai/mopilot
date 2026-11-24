@@ -13,7 +13,8 @@ concurrency:
 jobs:
   unit-tests:
     runs-on: macos-15
-    timeout-minutes: 60
+    # Leave time for the complete suite after setup. The unit runner enforces individual test deadlines.
+    timeout-minutes: 75
     env:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
