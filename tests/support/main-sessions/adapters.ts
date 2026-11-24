@@ -1,4 +1,5 @@
 // Main session adapters wiring cases using shared fake timers and main harness.
+import edition from '../../../shared/edition.json' with { type: 'json' };
 import { test, mock, assert, fs, path, calls, ready, delegates } from './fixture.ts';
 
 export function registerCodexAdapter() {
@@ -9,7 +10,7 @@ export function registerCodexAdapter() {
     const o = codex.opts;
     assert.equal(o.server, h.one('AppServer'));
     assert.equal(o.state, h.one('SessionStore'));
-    assert.deepEqual(o.clientInfo, { name: 'sage_codex_desktop', title: 'MoPilot', version: '1.2.3' });
+    assert.deepEqual(o.clientInfo, { name: 'sage_codex_desktop', title: edition.desktop.name, version: '1.2.3' });
     assert.equal(o.tools, h.one('CodexToolInjection'), 'the thread tool injection, made at startup');
     assert.deepEqual(o.prefs(), { model: 'gpt', effort: 'high', permission: 'default', serviceTier: null, branchPrefix: 'mopilot/' });
     h.writeState({});

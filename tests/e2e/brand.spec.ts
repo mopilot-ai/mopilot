@@ -1,4 +1,5 @@
-// The app names itself MoPilot in its menu and when it connects to Codex (#82).
+// The app uses its edition's name in its menu and when it connects to Codex.
+import edition from '../../shared/edition.json';
 import { test, expect } from './fixtures/app';
 
 test('brand: the Quit item and the app-server clientInfo use the app name and version', async ({ harness, page }) => {
@@ -8,7 +9,7 @@ test('brand: the Quit item and the app-server clientInfo use the app name and ve
     return { quit: first.find((i) => i.role === 'quit')?.label, version: app.getVersion() };
   });
   // Windows' File menu says Exit, as Windows apps do (electron/app/menu.cjs)
-  expect(quit).toBe(process.platform === 'win32' ? 'Exit' : 'Quit MoPilot');
+  expect(quit).toBe(process.platform === 'win32' ? 'Exit' : `Quit ${edition.desktop.name}`);
   const init = harness.codexLog().find((e) => e.method === 'initialize');
-  expect(init?.params?.clientInfo).toEqual({ name: 'sage_codex_desktop', title: 'MoPilot', version });
+  expect(init?.params?.clientInfo).toEqual({ name: 'sage_codex_desktop', title: edition.desktop.name, version });
 });

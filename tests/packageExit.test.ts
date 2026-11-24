@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
 import { fileURLToPath } from 'node:url';
+import edition from '../shared/edition.json' with { type: 'json' };
 import { packageExit } from '../scripts/package-exit.mjs';
 
 test('a packaging success preserves another failure, while a failure survives conflicting teardown', () => {
@@ -27,9 +28,9 @@ test('a packaging success preserves another failure, while a failure survives co
 test('the real Linux packaging CLI fails when its builder omits artifacts, despite a conflicting teardown listener', (t) => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'package-exit-'));
   t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
-  const app = path.join(temp, 'out/MoPilot-linux-x64');
+  const app = path.join(temp, 'out', `${edition.desktop.name}-linux-x64`);
   fs.mkdirSync(app, { recursive: true });
-  fs.writeFileSync(path.join(app, 'mopilot'), 'fixture');
+  fs.writeFileSync(path.join(app, edition.desktop.linuxExecutable), 'fixture');
   const entry = new URL('../scripts/package-linux.mjs', import.meta.url);
   const builder = createRequire(import.meta.url).resolve('electron-builder');
   const script = [

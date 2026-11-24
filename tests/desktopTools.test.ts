@@ -4,6 +4,7 @@
 // own files (desktopAccess, desktopGrants, desktopGate, desktopActions, desktopCapture).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import edition from '../shared/edition.json' with { type: 'json' };
 import {
   DesktopControl,
   SPECS,
@@ -112,7 +113,7 @@ test('onboarding: names the exact helper, the pane and its link; Screen Recordin
   assert.match(sr, /permission card in this chat/);
   assert.match(sr, /relaunches it on the next try/);
   const ax = onboarding('accessibility');
-  assert.match(ax, /"MoPilot" \(ai\.mopilot\.code\.computer-use\) cannot use Accessibility yet/);
+  assert.ok(ax.includes(`"MoPilot" (${edition.desktop.appId}.computer-use) cannot use Accessibility yet`), ax);
   assert.doesNotMatch(ax, /relaunch/);
   assert.match(onboarding('inputMonitoring'), /pane x-apple\.systempreferences:com\.apple\.preference\.security\?Privacy_ListenEvent\)/);
   assert.match(onboarding('whatever'), /Accessibility/);

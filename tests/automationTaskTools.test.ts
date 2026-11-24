@@ -4,6 +4,7 @@
 import { test, assert, fs, path, setup, base, writeTask, fakeDesktop } from './support/automation-store/fixture.ts';
 import Module, { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import edition from '../shared/edition.json' with { type: 'json' };
 const require = createRequire(import.meta.url);
 
 function entrypoint(t: any, store: any, o: { decision?: string | null; broker?: boolean } = {}) {
@@ -125,7 +126,7 @@ test('delete_scheduled_task asks a computerConfirm card naming the task, then re
   assert.deepEqual([chatId, kind], ['caller', 'computerConfirm']);
   assert.deepEqual(card, {
     harness: 'claude',
-    app: { bundleId: 'ai.mopilot.code', name: 'MoPilot' },
+    app: { bundleId: edition.desktop.appId, name: edition.desktop.name },
     verb: `delete the scheduled task "${'N'.repeat(60)}"`,
     summary: 'It stops running and its run history is removed.',
     allowAlways: false,
