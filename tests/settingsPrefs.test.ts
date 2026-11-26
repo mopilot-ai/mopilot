@@ -88,10 +88,10 @@ test('missing or malformed saved prefs fall back to the defaults', () => {
   assert.deepEqual(loadPrefs([1, 2]), DEFAULT_PREFS);
 });
 
-test('projects default to recent activity for new and existing profiles without a project sort choice', () => {
-  assert.equal(DEFAULT_PREFS.projectSort, 'updated');
-  assert.equal(loadPrefs(undefined).projectSort, 'updated');
-  assert.equal(loadPrefs({ chatSort: 'manual', sidebarProjectOrder: ['older', 'newer'] }).projectSort, 'updated');
+test('projects default to stable placement for new and existing profiles without a project sort choice', () => {
+  assert.equal(DEFAULT_PREFS.projectSort, 'custom');
+  assert.equal(loadPrefs(undefined).projectSort, 'custom');
+  assert.equal(loadPrefs({ chatSort: 'manual', sidebarProjectOrder: ['older', 'newer'] }).projectSort, 'custom');
 });
 
 test('explicit project sort choices survive loading independently of chat sort', () => {
@@ -205,4 +205,25 @@ test("inCodexWorktrees: the Codex app's worktree folder or one inside it, typed 
   // Windows: backslashes and the home folder's own spelling
   assert.equal(inCodexWorktrees('C:\\Users\\me\\.codex\\worktrees\\x', 'C:\\Users\\me', 'C:\\Users\\me\\.codex'), true);
   assert.equal(inCodexWorktrees('~\\.codex\\worktrees', 'C:\\Users\\me', 'C:\\Users\\me\\.codex'), true);
+});
+
+test('what new chats start with loads only in the shapes the app writes', () => {
+  const p = loadPrefs({
+    newChatStart: 'default',
+    lastHarness: 'claude',
+    newChatDefault: { harness: 'codex', model: 'gpt-6.2-sol', effort: '' },
+  });
+  assert.equal(p.newChatStart, 'default');
+  assert.equal(p.lastHarness, 'claude');
+  assert.deepEqual(p.newChatDefault, { harness: 'codex', model: 'gpt-6.2-sol', effort: null });
+  assert.deepEqual(loadPrefs({ newChatDefault: { harness: 'acp:opencode', model: 3, effort: 'high' } }).newChatDefault, {
+    harness: 'acp:opencode',
+    model: null,
+    effort: 'high',
+  });
+  // a hand-edited or older file: the defaults (follow the last used, nothing used yet, no fixed default)
+  const bad = loadPrefs({ newChatStart: 'sometimes', lastHarness: 'acp:', newChatDefault: { harness: 'nobody', model: 'x' } });
+  assert.deepEqual([bad.newChatStart, bad.lastHarness, bad.newChatDefault], ['last', null, null]);
+  assert.equal(loadPrefs({ newChatDefault: 'codex' }).newChatDefault, null);
+  assert.equal(loadPrefs({}).newChatDefault, null);
 });

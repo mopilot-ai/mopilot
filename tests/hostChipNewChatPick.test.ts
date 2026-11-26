@@ -216,7 +216,8 @@ test('a remembered device sends to that machine across Codex, Claude Code and AC
     ['claude', 'claude'],
     ['acp:kimi', 'kimi'],
   ] as const) {
-    set({ prefs: { ...st().prefs, defaultHarness: kind } });
+    // the machine's last agent would win over the default (prefs.hostPicks): each default is tested on a machine with none
+    set({ prefs: { ...st().prefs, defaultHarness: kind, hostPicks: {} } });
     S.clearNewChatProject(true);
     assert.equal(await S.createChatThread('hello'), `host-${id}`);
   }

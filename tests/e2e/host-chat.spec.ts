@@ -4,6 +4,7 @@
 // a card nobody answers pauses the run on the third timeout (the timeout is shortened for the spec), and the machine is told to stop it.
 // e2e-covers: src/components/panels/SummaryPanel.tsx src/components/panels/SummaryEnvironment.tsx src/lib/hostRepo.ts src/store/sideChat.ts src/session/composerAttach.ts
 // e2e-covers: src/components/sidebar/repositoryGroups.ts src/components/sidebar/ProjectGroup.tsx src/store/repositoryDraft.ts
+// e2e-covers: src/components/sidebar/projectLabels.ts src/components/sidebar/projectRows.ts
 // e2e-covers: src/components/composer/ContextRing.tsx src/components/context/ContextSummary.tsx
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -471,9 +472,12 @@ test.describe('a project across execution locations', () => {
     const group = page.locator('.project-group').filter({ has: page.locator('.project-row[aria-label="Shared project"]') });
     await expect(group.locator('.thread-row')).toHaveCount(3, { timeout: 45_000 });
     const projectRow = group.locator('.project-row');
-    await expect(projectRow.locator('.host-mark .lucide-cloud')).toBeVisible();
-    await expect(projectRow.locator('.host-mark .lucide-square-terminal')).toBeVisible();
-    await expect(projectRow.locator('.host-mark + .project-disclosure')).toBeVisible();
+    // a local chat shares the project, so the heading names no location and each remote row names its own
+    await expect(projectRow.locator('.host-mark')).toHaveCount(0);
+    await expect(
+      group.locator('.thread-row', { hasText: 'Machine sidebar chat' }).locator('.host-mark .lucide-square-terminal'),
+    ).toBeVisible();
+    await expect(group.locator('[data-sidebar-cloud="task_sidebar"] .host-mark .lucide-cloud')).toBeVisible();
     await group.locator('[data-sidebar-cloud="task_sidebar"]').click();
     await expect(page.locator('.cloud-title')).toHaveText('Cloud sidebar task');
     await group.locator('.thread-row', { hasText: 'Local sidebar chat' }).click();

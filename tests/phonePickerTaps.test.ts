@@ -47,16 +47,33 @@ test('while a picker is opening, a second tap and the other button do nothing, a
   };
   const unmount = await mount(sheet(media, filesOf(added), () => closed.push('close')));
   await click('Photos');
-  assert.match(document.body.textContent ?? '', /Opening… answer the prompt/, 'a pending pick says so in the app');
+  assert.match(
+    document.body.textContent ?? '',
+    /Getting your selection…/,
+    'one line, true while the picker is open and while the choice is exported: what the app is doing',
+  );
+  assert.doesNotMatch(document.body.textContent ?? '', /answer the prompt/);
   await click('Photos');
   await click('Camera');
   assert.deepEqual(calls, ['library']);
   assert.equal((document.querySelector('button[aria-label="Camera"]') as any)?.disabled, true);
   assert.equal((document.querySelector('button[aria-label="Photos"]') as any)?.disabled, true);
-  await act(async () => gate.release({ name: 'a.png', mime: 'image/png', base64: 'QQ==' }));
+  await act(async () => gate.release({ picked: [{ name: 'a.png', mime: 'image/png', base64: 'QQ==' }], refused: [] }));
   await flush();
   assert.equal(added.length, 1);
   assert.deepEqual(closed, ['close']);
+  await unmount();
+});
+
+test('a camera that is opening says to answer the prompt, and the line goes with the pick', async () => {
+  const gate = held();
+  const unmount = await mount(sheet({ camera: () => gate.promise }, filesOf([])));
+  await click('Camera');
+  assert.match(document.body.textContent ?? '', /Opening… answer the prompt if iOS asks\./);
+  assert.doesNotMatch(document.body.textContent ?? '', /Getting your selection…/);
+  await act(async () => gate.release(null));
+  await flush();
+  assert.doesNotMatch(document.body.textContent ?? '', /Opening…|Getting your selection…/);
   await unmount();
 });
 

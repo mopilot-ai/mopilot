@@ -54,18 +54,19 @@ test('without --yes nothing is removed and the command says what it would remove
   assert.equal(Object.keys(readControllers(w.configDir)).length, 1);
 });
 
-test('after the key is lost no key can be enrolled while controllers are counted; reset-approval removes the key, every controller and their relay links, and a key can be enrolled again', (t) => {
+test('after the key is lost no key can be enrolled while controllers are counted; reset-approval removes the key and every controller, leaves their relay links as tombstones, and a key can be enrolled again', (t) => {
   const w = world(t);
   w.enrol();
   const a = w.pairing.add(peer(1), { name: 'A', kind: 'controller', link: 'h_aaaaaaaaaaaaaaaa' });
-  w.pairing.add(peer(2), { name: 'B', kind: 'controller' });
+  // a record edited by hand to name the Mac app's own link: that link is not a controller's, so it is never retired
+  w.pairing.add(peer(2), { name: 'B', kind: 'controller', link: 'h_appown0000000000' });
   fs.writeFileSync(
     path.join(w.configDir, 'relay.json'),
     JSON.stringify({
       version: 1,
       links: [
-        { hostId: 'h_aaaaaaaaaaaaaaaa', relayUrl: 'wss://r', secret: 's', pairId: 'p', root: 'r' },
-        { hostId: 'h_other0000000000', relayUrl: 'wss://r', secret: 's', pairId: 'p', root: 'r' },
+        { hostId: 'h_aaaaaaaaaaaaaaaa', relayUrl: 'wss://r', secret: 's', pairId: 'p', root: 'r', kind: 'controller' },
+        { hostId: 'h_appown0000000000', relayUrl: 'wss://r', secret: 's', pairId: 'p', root: 'r' },
       ],
     }),
   );
@@ -76,11 +77,17 @@ test('after the key is lost no key can be enrolled while controllers are counted
   assert.match(w.lines.join('\n'), /controllers: 2, relay links: 1/);
   assert.equal(Object.keys(readControllers(w.configDir)).length, 0);
   assert.equal(Object.hasOwn(readControllers(w.configDir), a), false);
+  // the controller's link stays as a tombstone (it only tells that Mac it was removed); another client's link is untouched
+  const links = JSON.parse(fs.readFileSync(path.join(w.configDir, 'relay.json'), 'utf8')).links;
   assert.deepEqual(
-    JSON.parse(fs.readFileSync(path.join(w.configDir, 'relay.json'), 'utf8')).links.map((l: any) => l.hostId),
-    ['h_other0000000000'],
-    "another client's link stays",
+    links.map((l: any) => [l.hostId, typeof l.retiredAt]),
+    [
+      ['h_aaaaaaaaaaaaaaaa', 'number'],
+      ['h_appown0000000000', 'undefined'],
+    ],
   );
+  assert.equal(w.run(['--yes']), 0, 'a second reset finds the tombstone already made');
+  assert.match(w.lines.at(-2) as string, /relay links: 0/);
   assert.deepEqual(w.enrol(), { enrolled: true, weak: false });
 });
 
@@ -120,4 +127,16 @@ test("the Host command line routes `reset-approval` to the command, with the Hos
   const usage: string[] = [];
   await main([], { out: (l: string) => usage.push(l), err: (l: string) => usage.push(l), env: {} });
   assert.match(usage.join('\n'), /reset-approval/);
+});
+
+test('a Host whose key is enrolled but whose controller records no longer verify (out of sync) is reset completely by the command: no record is left to block the next key', (t) => {
+  const w = world(t);
+  w.enrol();
+  // records with no proof the key verifies: a Host that pairs by code believes none of them
+  w.pairing.add(peer(1), { name: 'A', kind: 'controller' });
+  w.pairing.add(peer(2), { name: 'B', kind: 'controller' });
+  assert.throws(() => w.enrol(), { code: 'already_enrolled' });
+  assert.equal(w.run(['--yes']), 0, w.errs.join());
+  assert.deepEqual(readControllers(w.configDir), {});
+  assert.deepEqual(w.enrol(), { enrolled: true, weak: false }, 'a new key is enrolled at once');
 });

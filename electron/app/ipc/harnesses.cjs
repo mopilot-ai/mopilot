@@ -89,7 +89,7 @@ function register(ipcMain, deps) {
   });
   // what a basic chat that isn't open would reopen on: its picker shows it
   // the user's own MCP servers for a basic harness: listed from its settings, and whether MoPilot turns them off
-  ipcMain.handle('acp:ownMcp', (_e, id) => live.acpOwnMcp.status(String(id)));
+  ipcMain.handle('acp:ownMcp', (_e, id, readOnly) => live.acpOwnMcp.status(String(id), readOnly === true));
   ipcMain.handle('acp:recordedSettings', async (_e, key) => recordedSettings(await live.acpHost.items.readAsync(String(key))));
   ipcMain.handle('codex:watchRollout', (_e, threadId, file) => watchRollout(threadId, file));
   ipcMain.handle('codex:unwatchRollout', (_e, threadId) => unwatchRollout(threadId));

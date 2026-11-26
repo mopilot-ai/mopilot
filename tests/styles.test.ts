@@ -428,3 +428,24 @@ test('MoMo’s Chat keeps dictation’s note inside its composer: its footer is 
   assert.equal(note.flex, '0 0 100%', 'the note owns a row of the controls');
   assert.equal(found['.chat :global(.composer-right):has(:global(.dictation-note))']['flex-wrap'], 'wrap');
 });
+
+test('MoMo’s Chat places the left chips as one group in its pill: the coding footer’s left group draws no box, so MoMo gives it one', () => {
+  // the reported break: with .composer-left display: contents, its grid placement was dropped and + took a row of its own
+  const css = readFileSync(new URL('../src/components/momo/momoChat.module.css', import.meta.url), 'utf8');
+  const top: Record<string, Record<string, string>> = {};
+  const narrow: Record<string, Record<string, string>> = {};
+  postcss.parse(css).walkRules((rule) => {
+    const into =
+      rule.parent?.type === 'root' ? top : (rule.parent as { params?: string })?.params === 'composer (max-width: 420px)' ? narrow : null;
+    if (into) for (const selector of rule.selectors) rule.walkDecls((decl) => void ((into[selector] ??= {})[decl.prop] = decl.value));
+  });
+  const left = top['.chat :global(.composer-left)'];
+  assert.equal(left.display, 'flex', 'a box, so its grid-row and grid-column place it');
+  assert.equal(left['grid-column'], '1');
+  assert.equal(left.gap, '6px', 'the gap the coding footer gave the group before its chips became the footer’s own items');
+  assert.equal(narrow['.chat :global(.composer-left)'].gap, '1px', 'and its 1px in the narrowest composer');
+  assert.equal(left['margin-left'], '0');
+  assert.equal(top['.chat :global(.composer-left) > :first-child']['margin-left'], '0', 'the + keeps the pill’s own inset');
+  const shared = readFileSync(new URL('../src/styles/app/composer-controls.css', import.meta.url), 'utf8');
+  assert.match(shared, /\n\.composer-left \{\s*display: contents;/, 'what MoMo’s rule answers');
+});

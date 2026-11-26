@@ -1,5 +1,5 @@
 // The chat's one Run on picker: in a started chat a status dot and laptop icon between + and the permission picker, in a new chat the context bar's where-it-runs chip (look 'ctx', with Codex Cloud as one more group when the agent has it). Its menu only picks a machine (this Mac and the user's machines from the registry, each with at most one short line: its state or the one thing it can't do; Add machine…, which opens the add sheet in place, and Switch host… which opens the dialog that continues the chat elsewhere; in a started chat another machine's row opens that dialog with it picked). Signing in to an agent on a machine happens in the chat's sign-in card and in Settings, never here.
-import { Fragment, lazy, type ReactNode, Suspense, useCallback, useState } from 'react';
+import { Fragment, lazy, type ReactNode, Suspense, useCallback, useRef, useState } from 'react';
 import { Laptop } from 'lucide-react';
 import { ArrowLeftRight, Check, Plus } from '../ui/icons';
 import { MenuList, MenuRow } from '../ui/MenuList';
@@ -55,6 +55,34 @@ const STATUS_LABEL: Record<HostStatus, string> = { online: 'Online', offline: 'O
 
 function Dot({ status }: { status: HostStatus }) {
   return <span className={`host-dot ${status}`} role="img" aria-label={STATUS_LABEL[status]} />;
+}
+
+/** A cut name narrower than this many ems shows at most a letter and its "…". */
+const SLIVER_EM = 2.5;
+
+/**
+ * The composer cuts the machine's name before any other chip's label (composer-controls.css), so the name can be left
+ * a sliver: a stray letter or a bare "…". Such a name is marked to be hidden, which keeps its box, so hiding it never
+ * moves another chip nor changes what is measured. A new `name` is a new ref, so a renamed machine measures again.
+ */
+function useSliver(name: string): [(el: HTMLElement | null) => void, boolean] {
+  const [sliver, setSliver] = useState(false);
+  const observer = useRef<ResizeObserver | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the name's text is what a new ref measures
+  const ref = useCallback(
+    (el: HTMLElement | null) => {
+      observer.current?.disconnect();
+      observer.current = null;
+      if (!el) return;
+      const measure = () =>
+        setSliver(el.scrollWidth > el.clientWidth && el.clientWidth < Number.parseFloat(getComputedStyle(el).fontSize) * SLIVER_EM);
+      measure();
+      observer.current = new ResizeObserver(measure);
+      observer.current.observe(el);
+    },
+    [name],
+  );
+  return [ref, sliver];
 }
 
 /**
@@ -148,6 +176,8 @@ export function HostChip({
   const lost = current.status === 'offline' && current.id !== 'local' && (owner === undefined || !resolving);
   const targets = targetsFor(shown, current.id, lost, agent);
   const reason = switchHostReason({ turnRunning, queued, hasChat: !!chatId && !!onContinue, ownerKnown, targets: targets.length });
+  const name = elsewhere?.label ?? current.name;
+  const [nameRef, sliver] = useSliver(name);
   // closed alpha: nothing of Host renders unless the account was invited (electron/host/access.cjs)
   if (!allowed) return null;
   // the first machine that is not this Mac opens the My machines group
@@ -225,7 +255,11 @@ export function HostChip({
               <Laptop size={15} strokeWidth={look === 'ctx' ? 1.7 : 1.8} aria-hidden="true" />
             </>
           )}
-          {(look === 'ctx' || shown.length > 1) && <span className="host-name">{elsewhere?.label ?? current.name}</span>}
+          {(look === 'ctx' || shown.length > 1) && (
+            <span ref={nameRef} className="host-name" data-sliver={sliver ? '' : undefined}>
+              {name}
+            </span>
+          )}
         </button>
       </Tooltip>
       <Popover anchor={a.anchor} open={a.open} onClose={a.close} placement="top-start">

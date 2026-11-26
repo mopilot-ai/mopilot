@@ -212,6 +212,21 @@ const tellState = () => {
     }
 };
 
+/**
+ * The id of the account the server said, in this run, may NOT see MoMo: a revoke in so many words. Not the kill switch, not a Mac that is offline, signed out or
+ * has not heard from the server yet, and not a flag that has not loaded: those are "unknown", and a phone must not read them as no. Null for all of them.
+ * @returns {string | null}
+ */
+function momoRevokedFor() {
+  if (!current) return null;
+  const { status, o } = current;
+  const id = status?.signedIn ? status.user?.id : null;
+  const features = freshFeatures(status);
+  // a gate open to every signed-in account (no invite) and the dev stand-in for the invite have no revoke to tell
+  if (features === null || typeof id !== 'string' || !id || !o.feature || o.devInvite) return null;
+  return features.includes(o.feature) ? null : id;
+}
+
 /** The id of the signed-in MoPilot account the gate last heard of, null when none: what MoMo's data on this Mac belongs to. */
 function momoUserId() {
   const id = current?.status?.signedIn ? current.status.user?.id : null;
@@ -240,6 +255,7 @@ module.exports = {
   onMomoState,
   momoUserId,
   momoAllowed,
+  momoRevokedFor,
   updateMomoAccess,
   recomputeMomoAccess,
   FEATURE,

@@ -1,4 +1,4 @@
-// Compact cards share the bounded session rail and stay legible with the app's type scale.
+// The bounded session rail keeps its layout and controls legible with the app's type scale.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import postcss from 'postcss';
@@ -13,15 +13,18 @@ function declarations(selector: string) {
   return result;
 }
 
-test('the compact rail gives each populated section its own surface', () => {
+test('one surface contains the rail sections with hairline dividers and a compact context meter', () => {
   const panel = declarations('.summary-panel');
   const card = declarations('.summary-panel > *');
   const toggle = declarations('.summary-card-toggle');
   assert.equal(panel['font-size'], 'var(--fs-small)', 'rail typography follows the small UI scale');
-  assert.equal(panel.gap, '8px');
-  assert.equal(card.border, '1px solid var(--hairline)');
-  assert.match(card.background, /var\(--card-bg\)/);
-  assert.equal(declarations('.summary-changes:empty').display, 'none', 'folders without Git do not leave a blank card');
+  assert.equal(panel.gap, '0');
+  assert.equal(panel.border, '1px solid var(--hairline)');
+  assert.match(panel.background, /var\(--card-bg\)/);
+  assert.equal(card.border, undefined);
+  assert.equal(declarations('.summary-panel > * + *')['border-top'], '1px solid var(--hairline)');
+  assert.equal(declarations('.summary-changes:has(.summary-change-items:empty)').display, 'none');
+  assert.equal(declarations('.summary-context meter').flex, 'none');
   assert.ok(Number.parseFloat(toggle['min-height']) <= 36, 'collapsed sections do not become large empty blocks');
   assert.equal(declarations('.summary-subhead')['font-size'], 'var(--fs-micro)');
 });

@@ -28,8 +28,13 @@ export function Pill({
       onPress={onPress}
       style={[
         {
-          flex: 1,
+          // as wide as its label needs and growing into the row's room: a label that needs two lines makes the pill taller, never spills out of it
+          flexGrow: 1,
+          flexShrink: 1,
+          flexBasis: 'auto',
           minHeight: 44,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
           borderRadius: 22,
           alignItems: 'center',
           justifyContent: 'center',
@@ -38,7 +43,7 @@ export function Pill({
         disabled && { opacity: 0.45 },
       ]}
     >
-      <Text style={{ ...typo.calloutMedium, color: strong ? theme.btnInk : theme.ink }}>{title}</Text>
+      <Text style={{ ...typo.calloutMedium, color: strong ? theme.btnInk : theme.ink, textAlign: 'center' }}>{title}</Text>
     </Tap>
   );
 }

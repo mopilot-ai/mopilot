@@ -1,5 +1,5 @@
 // A delayed context read in the real sidebar shows a shaped loading state, failure recovery and the final composition.
-// e2e-covers: src/harness/usageWindows.ts src/components/accounts/meters.tsx src/components/composer/ContextRing.tsx src/components/composer/ComposerPlanLimits.tsx src/styles/app/context-summary.css src/styles/app/context.css
+// e2e-covers: src/harness/usageWindows.ts src/components/accounts/meters.tsx src/components/composer/ContextRing.tsx src/components/composer/ComposerPlanLimits.tsx src/components/panels/SummaryContext.tsx src/styles/app/summary-panel.css src/styles/app/context-summary.css src/styles/app/context.css
 import { test, expect } from './fixtures/app';
 import { emptySnapshot, withClaudeBreakdown } from '../../shared/contextSnapshot.mjs';
 

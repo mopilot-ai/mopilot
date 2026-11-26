@@ -6,7 +6,7 @@ import { act, click, createElement, createRoot, flush } from './support/phone/co
 const logPath = '../mobile/src/perfLog';
 const probePath = '../mobile/src/components/PerfProbe';
 const pagePath = '../mobile/src/screens/SettingsPages';
-const { createPerfLog, perf, realClock, usePerfRender } = await import(logPath);
+const { createPerfLog, DECISIONS_KEPT, NOTES_KEPT, perf, realClock, usePerfRender } = await import(logPath);
 const { PerfHost, PerfFrame } = await import(probePath);
 const { AboutPage } = await import(pagePath);
 
@@ -388,4 +388,103 @@ test('A: every touch is also timed to the second frame after it, whether or not 
   c.nextFrame();
   c.nextFrame();
   assert.equal(log.report().touch.frame.count, 2);
+});
+
+test('A: a phase writes the numbers so far to the console and starts the next, and does nothing while the log is off', () => {
+  const c = clock();
+  const log = createPerfLog(c.clock);
+  log.phase();
+  assert.deepEqual(c.state.lines, [], 'off: nothing written');
+  log.start();
+  log.event('scroll-layout');
+  log.event('scroll-layout');
+  let told = 0;
+  log.subscribe(() => (told += 1));
+  log.phase();
+  assert.match(c.state.lines[0], /^\[perf-phase\] \{.*"scroll-layout":2/);
+  log.event('scroll-pin');
+  assert.deepEqual(log.report().events, { 'scroll-pin': 1 }, 'the next phase starts from zero');
+  assert.equal(told, 1);
+});
+
+test('A: while the log is on the screen carries a phase mark at its edge, and a tap on it ends the phase', async () => {
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(PerfHost)));
+  assert.equal(document.querySelector('button[aria-label="Next performance phase"]'), null, 'off: nothing drawn');
+  await act(async () => perf.start());
+  perf.event('scroll-rest');
+  await click('Next performance phase');
+  assert.deepEqual(perf.report().events, {}, 'the tap started the next phase');
+  await act(async () => root.unmount());
+});
+
+test('A: a note is printed at once with the time since the log began, and nothing while the log is off', () => {
+  const c = clock();
+  const log = createPerfLog(c.clock);
+  log.note('arrow', { y: 1 });
+  assert.deepEqual(c.state.lines, [], 'off: nothing written');
+  c.state.now = 1000;
+  log.start();
+  c.state.now = 1250.4;
+  log.note('arrow', { y: 1400, away: false, pending: null });
+  assert.deepEqual(c.state.lines, ['[perf-arrow] {"t":250,"y":1400,"away":false,"pending":null}']);
+  assert.deepEqual(
+    log.report().notes,
+    [{ n: 1, tag: 'arrow', t: 250, fields: '{"y":1400,"away":false,"pending":null}' }],
+    'kept for About too',
+  );
+  for (let y = 0; y < DECISIONS_KEPT + 5; y++) log.note('arrow', { y });
+  const kept = log.report().notes;
+  assert.equal(kept.length, DECISIONS_KEPT, 'only the last ones');
+  assert.deepEqual([kept[0].fields, kept.at(-1)!.fields], ['{"y":5}', `{"y":${DECISIONS_KEPT + 4}}`]);
+  log.reset();
+  assert.deepEqual(log.report().notes, [], 'reset zeroes them');
+});
+
+test('A: About lists the last notes while the log is on, the time and the fields of each', async () => {
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  await act(async () => root.render(createElement(AboutPage, { version: '1.0.0', back: () => undefined })));
+  await click('Record');
+  perf.note('arrow', { y: 1400, away: true });
+  await new Promise((r) => setTimeout(r, 1100));
+  await flush();
+  assert.match(host.textContent!, /arrow · \d+ ms\{"y":1400,"away":true\}/);
+  await click('Record');
+  await act(async () => root.unmount());
+});
+
+test('the report keeps the newest video and pick notes, and the log itself holds no more than that', async () => {
+  const log = createPerfLog();
+  log.start();
+  const note = (n: number) => ({
+    durationMs: n,
+    sourceBytes: null,
+    width: null,
+    height: null,
+    rungs: [],
+    kept: null,
+    result: 'fit',
+    seconds: 0,
+  });
+  for (let i = 0; i < NOTES_KEPT + 5; i++) {
+    log.video(note(i));
+    log.pick({ seconds: i, count: 1, videos: 0, readSeconds: 0 });
+    log.upload({ restarted: false, computer: 'named', parts: 1, events: [], waits: [], result: 'done', reason: null, seconds: i });
+  }
+  const report = log.report();
+  assert.equal(report.videos.length, NOTES_KEPT);
+  assert.equal(report.videos[0].durationMs, 5, 'the oldest five went');
+  assert.equal(report.picks.at(-1)?.seconds, NOTES_KEPT + 4);
+  assert.equal(report.uploads.length, NOTES_KEPT);
+  assert.equal(report.uploads[0].seconds, 5);
+  log.end();
+  log.video(note(1));
+  log.pick({ seconds: 1, count: 1, videos: 0, readSeconds: 0 });
+  log.upload({ restarted: false, computer: 'named', parts: 1, events: [], waits: [], result: 'done', reason: null, seconds: 1 });
+  assert.equal(log.report().videos.length, NOTES_KEPT, 'nothing is written while it is off');
+  assert.equal(log.report().uploads.length, NOTES_KEPT);
 });

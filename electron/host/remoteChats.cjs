@@ -54,7 +54,7 @@ function createRemoteChats({
    * (by its stream key) already drawn; `tail` serializes everything that changes the chat, so a slow write never lets a later frame overtake an earlier one.
    * `summary` is the finished items so far (see foldSummary) and `complete` whether they reach back to the chat's first item; `refused` the families already reported as not shown; `ended` the turn ids whose end was applied (a start told for one opens nothing).
    * `synced` is whether the chat is subscribed on the connection that is up now, and `syncing` the subscribe on its way, if any (subscribed()).
-   * @typedef {{ chatId: string, hostId: string, host: any, cursor: { gen: string, rev: number } | null, shown: Map<string, string>, tail: Promise<unknown>, gone: boolean, loaded: boolean, summary: any[], complete: boolean, refused: Set<string>, ended: Set<string>, pairs: ReturnType<typeof createStartPairs>, synced: boolean, syncing: Promise<unknown> | null, replay: number | null }} Follow
+   * @typedef {{ chatId: string, hostId: string, host: any, cursor: { gen: string, rev: number } | null, shown: Map<string, string>, tail: Promise<unknown>, gone: boolean, loaded: boolean, summary: any[], complete: boolean, refused: Set<string>, ended: Set<string>, pairs: ReturnType<typeof createStartPairs>, synced: boolean, syncing: Promise<unknown> | null, replay: number | null, connection: object | null }} Follow
    * @type {Map<string, Follow>}
    */
   const follows = new Map();
@@ -226,8 +226,19 @@ function createRemoteChats({
     report(new Error(`A chat on ${f.hostId} sends ${family} events, which this app cannot show yet.`));
   }
 
-  /** The Host's answer to a subscribe: what to apply, in one numbering. @param {Follow} f @param {any} res */
-  async function apply(f, res) {
+  /** @param {Follow} f */
+  function suggestionGuard(f) {
+    const connection = f.host.state() === 'online' && f.connection;
+    return () => !!connection && follows.get(f.chatId) === f && f.connection === connection;
+  }
+  /** @param {Follow} f */
+  function retireSuggestion(f) {
+    f.connection = null;
+    chatState.withdrawSuggestion(f.chatId);
+  }
+
+  /** The Host's answer to a subscribe: what to apply, in one numbering. @param {Follow} f @param {any} res @param {() => boolean} [suggestionCurrent] */
+  async function apply(f, res, suggestionCurrent) {
     const sameNumbering = f.cursor !== null && f.cursor.gen === res.generation && f.cursor.rev <= res.snapshot.rev;
     if (!sameNumbering) {
       f.cursor = { gen: res.generation, rev: 0 };
@@ -257,7 +268,7 @@ function createRemoteChats({
       });
     for (const e of entries) applyDurable(f, e.rev, e.item, e.promotes, quiet, ended ? null : turn);
     applyInflight(f, res.inflight);
-    await chatState.apply(f, res.chatState);
+    if (suggestionCurrent) await chatState.apply(f, res.chatState, suggestionCurrent);
     journalStatus.show(f, res.snapshot.storageError?.code);
   }
 
@@ -292,6 +303,8 @@ function createRemoteChats({
         }
       }
       const from = f.cursor && f.replay !== null ? { gen: f.cursor.gen, rev: Math.min(f.cursor.rev, f.replay) } : f.cursor;
+      f.connection ??= {};
+      const suggestionCurrent = suggestionGuard(f);
       let res;
       try {
         res = await f.host.subscribe(f.chatId, from ? from.rev : undefined, from ? from.gen : undefined);
@@ -301,8 +314,8 @@ function createRemoteChats({
         return;
       }
       // the answer of a Host this chat left meanwhile is not applied to it
-      if (f.gone) return;
-      await apply(f, res);
+      if (follows.get(f.chatId) !== f) return;
+      await apply(f, res, suggestionCurrent);
       f.replay = null;
       f.synced = true;
     }).finally(() => {
@@ -324,14 +337,17 @@ function createRemoteChats({
     attached.set(hostId, {
       host,
       off: [
-        journalStatus.attach(host, mine, run, sync),
+        journalStatus.attach(host, mine, run, sync, retireSuggestion),
         host.events.onPatch(({ chatId, rev, patch }) => {
           const f = mine(chatId);
           if (f) void run(f, () => f.cursor && applyDurable(f, rev, patch.item, patch.promotes));
         }),
         host.events.onFrame(({ chatId, frame }) => {
           const f = mine(chatId);
-          if (f && frame?.t === 'state') return void run(f, () => chatState.apply(f, frame.patch));
+          if (f && frame?.t === 'state') {
+            const suggestionCurrent = suggestionGuard(f);
+            return void run(f, () => chatState.apply(f, frame.patch, suggestionCurrent));
+          }
           // a live view that will not finish (its turn ended first) is let go
           if (f && frame?.t === 'retract') return void run(f, () => f.shown.delete(frame.key));
           if (!f || frame?.t !== 'delta' || !isObject(frame.delta) || typeof frame.delta.text !== 'string') return;
@@ -355,6 +371,7 @@ function createRemoteChats({
             // a new connection holds no subscription until this chat's own subscribe is answered on it
             if (state === 'online') void sync(f);
             else {
+              retireSuggestion(f);
               f.synced = false;
               f.syncing = null;
             }
@@ -377,6 +394,7 @@ function createRemoteChats({
       const host = hostId === 'local' ? null : hostFor(hostId);
       const prior = follows.get(chatId);
       if (prior && prior.host === host) return prior.tail;
+      if (prior || host) chatState.withdrawSuggestion(chatId);
       if (prior) {
         prior.gone = true;
         follows.delete(chatId);
@@ -398,6 +416,7 @@ function createRemoteChats({
         pairs: createStartPairs({ unasked: (key) => sent.take(chatId, key) }),
         synced: false,
         syncing: null,
+        connection: null,
         replay: null,
       };
       follows.set(chatId, f);
@@ -412,7 +431,10 @@ function createRemoteChats({
     /** The chat is no longer followed (it moved, or was removed). @param {string} chatId */
     unfollow(chatId) {
       const f = follows.get(chatId);
-      if (f) f.gone = true;
+      if (f) {
+        f.gone = true;
+        chatState.withdrawSuggestion(chatId);
+      }
       follows.delete(chatId);
       for (const [id, card] of waiting) if (card.chatId === chatId) waiting.delete(id);
     },
@@ -467,6 +489,7 @@ function createRemoteChats({
       disposed = true;
       for (const { off } of attached.values()) for (const fn of off) fn();
       attached.clear();
+      for (const chatId of follows.keys()) chatState.withdrawSuggestion(chatId);
       follows.clear();
       waiting.clear();
     },

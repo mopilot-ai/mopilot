@@ -1,5 +1,5 @@
 // The Changes review journey on both harnesses: Viewed/scope ownership, retained GitHub comment drafts and a late post that cannot close a newer editor; GitHub is answered inside the app.
-// e2e-covers: src/components/panels/SummaryChanges.tsx src/components/panels/useLocalSummaryRepo.ts
+// e2e-covers: src/components/panels/SummaryChanges.tsx src/components/panels/SummaryPanel.tsx src/components/panels/useLocalSummaryRepo.ts src/styles/app/summary-panel.css
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';

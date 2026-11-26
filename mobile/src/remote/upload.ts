@@ -1,6 +1,7 @@
 // Sends a file or a recording to the Mac as an ordered chunk stream through chat.attach, with progress and cancel; a retry starts a new stream.
 import { randomId } from '../platform/randomId';
 import type { Owned } from './client';
+import { lostInFlight } from './unconfirmed';
 
 /** A file the picker produced: its bytes as base64 and the type the Mac records; `uri` is a local image the composer can show as a thumbnail. */
 export type Picked = { name: string; mime: string; base64: string; uri?: string };
@@ -24,6 +25,64 @@ export const cancellable = <T>(work: Promise<T>, signal: AbortSignal) =>
     signal.addEventListener('abort', stop, { once: true });
     work.then(resolve, reject).finally(() => signal.removeEventListener('abort', stop));
   });
+
+/** The error, or one it was worded from, says `pattern`. */
+const says = (error: unknown, pattern: RegExp, depth = 0): boolean =>
+  error instanceof Error && (pattern.test(error.message) || (depth < 4 && says(error.cause, pattern, depth + 1)));
+
+/**
+ * A chunk the connection lost, not the Mac refused: it went as the connection dropped, or it was made on a connection that has since been replaced.
+ * Sent again on the connection that comes back, from the part the Mac confirmed.
+ */
+export const connectionLost = (error: unknown): boolean =>
+  // `session closed`: the phone's channel closed under the request (never a refusal of the part)
+  lostInFlight(error) || says(error, /^(The connected computer changed|session closed$)/);
+
+/** The phone saw the computer away when the chunk was to go (asleep, or not yet back after a reconnect). */
+export const computerAway = (error: unknown): boolean => says(error, /^Computer is offline/);
+
+/** The screen's request now names another computer: the rest of the file is not sent there. */
+export class OtherComputer extends Error {
+  constructor() {
+    super('The connected computer changed. Try again.');
+  }
+}
+
+/**
+ * How a part's request ended, in fixed words for the performance log: `other-computer`, `cancelled`, `session-closed` (the phone's channel closed under
+ * it), `timeout`, `lost` (the connection dropped under it), `stale` (made on a connection since replaced), `away` (the computer was away),
+ * `no-connection`, `relay-refused` with the relay's code (one of its fixed words), `unreadable` (a reply the phone could not read), or `refused` (the Mac
+ * or the phone said no) with the error's code when it carries one. Never the error's words.
+ */
+export function partOutcome(error: unknown): { outcome: string; code?: string } {
+  if (error instanceof OtherComputer) return { outcome: 'other-computer' };
+  if (error instanceof Cancelled) return { outcome: 'cancelled' };
+  if (says(error, /^session closed$/)) return { outcome: 'session-closed' };
+  if (says(error, /timed out/i)) return { outcome: 'timeout' };
+  if (lostInFlight(error)) return { outcome: 'lost' };
+  if (says(error, /^The connected computer changed/)) return { outcome: 'stale' };
+  if (computerAway(error)) return { outcome: 'away' };
+  if (says(error, /^Connect to a computer first/)) return { outcome: 'no-connection' };
+  const relay = relayCode(error);
+  if (relay) return { outcome: 'relay-refused', code: relay };
+  const code = codeOf(error);
+  if (code === 'reply_unreadable') return { outcome: 'unreadable' };
+  return code ? { outcome: 'refused', code } : { outcome: 'refused' };
+}
+
+/** The relay's own word for a frame it refused (`relay: forbidden`): phoneRelay names only words of its fixed list, or `error`. */
+function relayCode(error: unknown, depth = 0): string | undefined {
+  if (!(error instanceof Error) || depth > 4) return undefined;
+  const word = /^relay: ([a-z_]+)$/.exec(error.message)?.[1];
+  return word ?? relayCode(error.cause, depth + 1);
+}
+
+/** A code of letters, digits and underscores the error (or one it was worded from) carries: the Mac's codes are lower case, the phone's upper. */
+function codeOf(error: unknown, depth = 0): string | undefined {
+  if (!(error instanceof Error) || depth > 4) return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' && /^[A-Za-z0-9_]{2,40}$/.test(code) ? code : codeOf(error.cause, depth + 1);
+}
 
 /** How many chunks base64 text needs. */
 export const chunksFor = (base64: string) => Math.max(1, Math.ceil(base64.length / CHUNK));
@@ -69,7 +128,8 @@ export async function sendChunks(
     if (signal.aborted) throw new Cancelled();
     return sent;
   } catch (e) {
-    if (e instanceof Cancelled || !resumed) throw e;
+    // a lost connection says nothing of the stream: the caller tries again from the part the Mac confirmed
+    if (e instanceof Cancelled || !resumed || connectionLost(e)) throw e;
     // the Mac may have forgotten the stream: start over once under a new id
     resume.stream = null;
     resume.next = 0;

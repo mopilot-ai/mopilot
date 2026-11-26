@@ -238,6 +238,8 @@ export interface AppState {
   chatForkOf: Record<string, string>;
   /** Supplied task titles for linked sessions before their native title is available (main-owned chat meta initialTitle). */
   chatInitialTitles: Record<string, string>;
+  /** Chat id to the last successful rewind in Unix seconds, supplied by main. */
+  chatRewoundAt: Record<string, number>;
   /** MoMo's chats (chat meta momo, lib/momoChats.ts): in no list of chats */
   momoChats: Record<string, string>;
   /** the Claude Code model each MoMo chat's brain names (chat meta momoModel, #2304): its turns run on it */
@@ -341,7 +343,7 @@ export type Route =
   | { name: 'home'; cwd?: string | null }
   | { name: 'thread'; id: string }
   // find: a setting's name to scroll to and flash (Settings search, src/lib/settingsFocus.ts)
-  | { name: 'settings'; section?: string; tab?: string; ledger?: LedgerFocus; find?: string }
+  | { name: 'settings'; section?: string; tab?: string; ledger?: LedgerFocus; find?: string; connectorChatId?: string }
   | { name: 'plugins'; tab?: string; plugin?: string }
   | { name: 'scheduled' }
   | { name: 'review' }

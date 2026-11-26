@@ -23,6 +23,9 @@ const wordsOf = (error, fallback) => {
   return typeof m === 'string' && m.trim() ? m.trim() : fallback;
 };
 
+/** What a held message without a home id is written for once MoMo starts over: the MoMo that was there. */
+export const PREVIOUS_HOME = 'previous-momo';
+
 /**
  * @typedef {{ id: string, text: string, at: number, homeId?: string }} SentEntry
  * @param {object} o
@@ -267,6 +270,10 @@ export function createMail({ outbox, sent, now, send, chatOn, report, alive, epo
       }
     },
     /** The messages sent to a home that is no more are not shown in the chat of the one that is. */
+    /** A fresh start: what is held without a home it was written for belongs to the MoMo that was there (named by `homeId` when it is known), so it is never sent to the one chosen after it; the owner decides (send it to the new one, or delete it). @param {string} [homeId] */
+    holdForOld(homeId) {
+      keep(() => outbox?.bindHome(homeId || PREVIOUS_HOME));
+    },
     forgetSent() {
       sentLog.clear();
       keep(() => sent.write([]));

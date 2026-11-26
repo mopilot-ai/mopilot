@@ -196,6 +196,9 @@ test('a live or restored Host turn starts in main even when no window has initia
     await chats.settled(CHAT);
     if (source === 'live') {
       assert.equal(state.has(CHAT), false, 'idle followed chats do not need live session state');
+      host.fire.frame(CHAT, { t: 'state', patch: { promptSuggestion: null } });
+      await chats.settled(CHAT);
+      assert.equal(state.has(CHAT), false, 'withdrawing an absent offer does not create session state');
       host.fire.patch(CHAT, 1, start());
       await chats.settled(CHAT);
     }

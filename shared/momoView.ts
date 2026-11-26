@@ -137,8 +137,8 @@ export interface MomoView {
   rules: MomoRuleView[];
   signals: MomoRuleSignalView[];
   settings: MomoSettingsView;
-  /** delivery problems, each with its one-click fix */
-  problems: MomoDeliveryProblem[];
+  problems: MomoDeliveryProblem[]; // delivery problems, each with its one-click fix
+  keptOlder?: string[]; // the older MoMos the owner chose to keep (`olderKey`): a client that composes the home itself does not ask about them again; absent from an older Mac
 }
 
 /** Whether the pill is green (running), blue (moving) or amber (asleep, needs a fix, or a state this client does not know). */

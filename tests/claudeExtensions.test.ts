@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import './support/dom.ts';
 import { mount, click, change, flush, settingsStubs, fakeStore, rows, byText, reactProps } from './support/harness-ui-kit.ts';
 import { iconStubs, mockSource, stubStore } from './support/stubs.ts';
-import { installNativeStub } from './support/ports/native.ts';
+import { installNativeStub, useFakeNative } from './support/ports/native.ts';
 
 const { createElement: h, act } = await import('react');
 const calls: any[] = [];
@@ -11,6 +11,14 @@ const rec =
   (name: string, ret?: any) =>
   (...a: any[]) => (calls.push([name, ...a]), ret);
 const store = fakeStore<any>({ home: '/Users/me', claudeAccounts: { active: 'default' }, auth: { mode: 'subscription' } });
+let machine: { id: string } | null = null;
+let pending = false;
+let ownerUnavailable = false;
+mock.module('../src/lib/chatMachine.ts', {
+  namedExports: {
+    useLocalFolder: (_chatId: string, cwd: string) => ({ cwd: machine || pending ? '' : cwd, machine, pending, ownerUnavailable }),
+  },
+});
 let extras: () => Promise<any> = async () => ({ commands: [], mcp: [] });
 let catalog: () => Promise<any> = async () => ({ plugins: [] });
 let mcp: (argv: string[]) => Promise<string> = async () => '';
@@ -54,6 +62,64 @@ const group = (host: HTMLElement, title: string) =>
   [...host.querySelectorAll('section')].find((s) => s.querySelector('h3')?.textContent === title) as HTMLElement;
 const preview = (host: HTMLElement) => host.querySelector('[aria-label="Command preview"]')?.textContent;
 const field = (host: HTMLElement, label: string) => host.querySelector(`[aria-label="${label}"]`);
+
+test('connector settings opened from a chat load its own workspace and login and retire if that chat moves', async (t) => {
+  store.set({
+    route: { name: 'settings', connectorChatId: 'chat' },
+    threads: { chat: { cwd: '/chat-project' } },
+    segments: { chat: [{ harness: 'claude', nativeId: 'claude:session' }] },
+    claudeChats: { chat: { id: 'pinned', pinned: true } },
+    claudeAccounts: { active: 'default', accounts: [{ id: 'pinned', loggedIn: true }] },
+  });
+  const seen: unknown[] = [];
+  useFakeNative(t, {
+    claude: {
+      extras: async (_bin: string, cwd: string, account: string, requireFolder: boolean) => {
+        seen.push([cwd, account, requireFolder]);
+        return { commands: [], mcp: [{ name: 'project tool', status: 'needs-auth', source: 'project' }] };
+      },
+      catalog: async () => ({ plugins: [] }),
+    },
+    fs: { configRoots: async () => ({ claudeRoot: '/Users/me/.claude' }), readText: async () => null },
+  });
+  pending = true;
+  const r = await mount(h(ClaudeExtensions, { bin: '/bin/claude' }));
+  try {
+    assert.match(r.host.textContent!, /Locating workspace/);
+    assert.deepEqual(seen, []);
+    ownerUnavailable = true;
+    await r.render(h(ClaudeExtensions, { bin: '/bin/claude' }));
+    assert.match(r.host.textContent!, /unavailable for this chat/);
+    assert.deepEqual(seen, []);
+    ownerUnavailable = false;
+    pending = false;
+    await r.render(h(ClaudeExtensions, { bin: '/bin/claude' }));
+    assert.deepEqual(seen, [['/chat-project', 'pinned', true]]);
+    assert.match(r.host.textContent!, /project tool/);
+    store.set({ claudeChats: {} });
+    await flush();
+    assert.deepEqual(seen, [
+      ['/chat-project', 'pinned', true],
+      ['/chat-project', 'default', true],
+    ]);
+    machine = { id: 'ssh:machine' };
+    await r.render(h(ClaudeExtensions, { bin: '/bin/claude' }));
+    assert.match(r.host.textContent!, /unavailable for this chat/);
+    assert.doesNotMatch(r.host.textContent!, /project tool/);
+    assert.equal(seen.length, 2);
+    machine = null;
+    store.set({ segments: { chat: [{ harness: 'codex', nativeId: 'new' }] } });
+    assert.match(r.host.textContent!, /unavailable for this chat/);
+    store.set({ threads: {}, segments: { chat: [{ harness: 'claude', nativeId: 'old' }] } });
+    assert.match(r.host.textContent!, /unavailable for this chat/);
+    assert.equal(seen.length, 2);
+  } finally {
+    await r.unmount();
+    pending = false;
+    machine = null;
+    store.set({ route: undefined, claudeAccounts: { active: 'default' } });
+  }
+});
 
 test('while loading every section says so, and the hooks file cannot be opened yet', async () => {
   extras = () => new Promise(() => {});

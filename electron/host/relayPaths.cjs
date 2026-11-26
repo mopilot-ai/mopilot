@@ -3,7 +3,8 @@
 // lane, one relay tunnel per enrolled machine, and the tunnel pool that joins each machine's SSH tunnel and relay tunnel
 // (pathTunnel.cjs). Enrolling mints the Host's relay id and secret, registers the secret's hash on the lane, hands the Host the
 // credential and this app's key share over the paired connection (`host.relayEnroll`), and keeps the root both ends derive.
-// Forgetting a machine revokes its credential on the relay (kept until the relay answers) and tells the Host when it can.
+// Forgetting a machine revokes its credential on the relay (kept until the relay answers) and tells the Host when it can. A machine
+// whose Host removed this Mac (its link answers only that, relayTombstone.mjs) has its pair revoked here and is marked removed (#5747).
 const crypto = require('node:crypto');
 const path = require('node:path');
 const { readSecret, writeSecret } = require('../platform/secretFile.cjs');
@@ -15,7 +16,8 @@ const { createRelayLane, NO_RELAY } = require('./relayLane.cjs');
 const { createRelayTunnel } = require('./relayTunnel.cjs');
 const { createPathTunnel } = require('./pathTunnel.cjs');
 const { socketDirFor } = require('./sshTunnel.cjs');
-const { createNodePrimitives } = require('../../shared/remote/nodePrimitives.mjs');
+// the app's crypto runs in Electron, whose OpenSSL has no ChaCha20-Poly1305: sodium's (electron/platform/sodiumPrimitives.cjs) is the one that seals there
+const { createSodiumPrimitives } = require('../platform/sodiumPrimitives.cjs');
 const { createCrypto } = require('../../shared/remote/crypto.mjs');
 const { fromBase64, toBase64 } = require('../../shared/remote/envelope.mjs');
 
@@ -33,7 +35,7 @@ const relayUrl = () => managedEndpoint('relay') || process.env.MOPILOT_RELAY_URL
 const b64url = (/** @type {number} */ n) => crypto.randomBytes(n).toString('base64url');
 
 /** @typedef {{ hostId: string, pairId: string, relayUrl: string, root: string, lane?: string | null, rotate?: boolean }} Enrollment `lane`: the lane id that issued it; `rotate`: made by Add by command and not replaced yet */
-/** @typedef {{ enrollments: Record<string, Enrollment>, modes: Record<string, string> }} Saved */
+/** @typedef {{ enrollments: Record<string, Enrollment>, modes: Record<string, string>, removed?: Record<string, number> }} Saved `removed`: the machines whose Host removed this Mac, and when */
 
 /**
  * @param {object} o
@@ -52,7 +54,7 @@ function createRelayPaths({
   getToken = async (force) => (await live?.mopilot?.relayToken(force)) ?? null,
   safeStorage,
   createSocket,
-  prim = createNodePrimitives(),
+  prim = createSodiumPrimitives(),
 }) {
   const file = path.join(dir, 'host-relay.json');
   const c = createCrypto(prim);
@@ -77,7 +79,7 @@ function createRelayPaths({
     try {
       const raw = readSecret(file, safeStorage);
       const saved = raw ? JSON.parse(raw.value) : null;
-      cache = { enrollments: saved?.enrollments ?? {}, modes: saved?.modes ?? {} };
+      cache = { enrollments: saved?.enrollments ?? {}, modes: saved?.modes ?? {}, removed: saved?.removed ?? {} };
     } catch (error) {
       // unreadable (another key, a broken file): no relay path, and nothing is written over it until a change
       noteIgnored('read the machines’ relay paths', error);
@@ -269,11 +271,12 @@ function createRelayPaths({
     /**
      * Keeps a relay path made elsewhere (Add by command, relayBoot.cjs): the pair root both ends already derived.
      * @param {string} destination @param {{ hostId: string, pairId: string, relayUrl: string, root: string }} e
+     * @param {{ rotate?: boolean }} [opts] `rotate: false` for a credential that never travelled in a script (pairing by code seals it in the run)
      */
-    adopt(destination, e) {
+    adopt(destination, e, { rotate = true } = {}) {
       const s = load();
       // its credential travelled in an install script: it is replaced (`needsRotation`) as soon as the machine answers
-      save({ ...s, enrollments: { ...s.enrollments, [destination]: { ...e, lane: lane.device, rotate: true } } });
+      save({ ...s, enrollments: { ...s.enrollments, [destination]: { ...e, lane: lane.device, rotate } } });
     },
     /** Whether a machine's credential still is the one its install script carried. @param {string} destination */
     needsRotation: (destination) => load().enrollments[destination]?.rotate === true,
@@ -284,16 +287,38 @@ function createRelayPaths({
     async forget(destination, call = null) {
       const s = load();
       const e = s.enrollments[destination];
-      if (!e) return false;
+      const { [destination]: _was, ...removed } = s.removed ?? {};
+      if (!e) {
+        // a machine removed by its Host has no pair left: the mark goes with it
+        if (_was !== undefined) save({ ...s, removed });
+        return false;
+      }
       const { [destination]: _gone, ...enrollments } = s.enrollments;
       const { [destination]: _mode, ...modes } = s.modes;
       dropTunnel(destination);
-      save({ enrollments, modes });
+      save({ enrollments, modes, removed });
       await lane.revoke(e.hostId);
       if (call)
         await call('host.relayForget', { hostId: e.hostId }).catch((error) => noteIgnored('tell a machine its relay path is gone', error));
       return true;
     },
+    /**
+     * The machine's Host removed this Mac (its link answered `linkRemoved`): the pair is this app's, so its credential is revoked here (kept
+     * until the relay answers), the tunnel stops dialling, and the machine stays marked removed until it is removed here too.
+     * @param {string} destination
+     */
+    async peerRemoved(destination) {
+      const s = load();
+      const e = s.enrollments[destination];
+      if (!e) return false;
+      const { [destination]: _gone, ...enrollments } = s.enrollments;
+      dropTunnel(destination);
+      save({ ...s, enrollments, removed: { ...s.removed, [destination]: Date.now() } });
+      await lane.revoke(e.hostId);
+      return true;
+    },
+    /** Whether a machine's Host removed this Mac. @param {string} destination */
+    removedByPeer: (destination) => load().removed?.[destination] !== undefined,
     dispose() {
       for (const t of tunnels.values()) t.dispose();
       tunnels.clear();

@@ -179,7 +179,7 @@ test('an offer belongs to the connection that made it: another connection cannot
   await assert.rejects(w.service.answer({ offerId, accept: true, approval: {} }, stranger), { code: 'no_such_offer' });
   await assert.rejects(async () => w.service.approvalText({ offerId }, stranger), { code: 'no_such_offer' });
   assert.deepEqual(w.service.cancel({ offerId }, stranger), { cancelled: false });
-  assert.deepEqual(w.service.status(stranger), { approval: { available: true, weak: false }, paused: false, offers: [] });
+  assert.deepEqual(w.service.status(stranger), { approval: { available: true, weak: false }, hostId: 'host-h', paused: false, offers: [] });
   assert.deepEqual(
     w.service.status(w.who).offers.map((o: any) => o.offerId),
     [offerId],

@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "tests/support/composer-setup.ts": {
+      "maxLines": 502,
+      "reason": "The shared composer fixture mocks session/harness/select.ts for every composer test. Composers now write picks through composerSelect (a new chat's draft keeps its own pick, session/newChatStart.ts), so the mock records it through the same selection writer as setSelection; the new-chat start stand-ins live in composer-kit.ts. Review this change at exactly 502 lines."
+    }
+  }
+}

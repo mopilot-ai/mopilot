@@ -16,7 +16,7 @@ const cardId = (chatId, requestId) => `${chatId}|${requestId}`;
  * @param {object} o
  * @param {{ append: (id: string, ...records: object[]) => void, readAsync: (id: string) => Promise<any[]>, readKindsAsync?: (id: string, kinds: string[]) => Promise<any[]> }} o.items the app's transcript store
  * @param {(event: object) => void} o.emit the ACP host's event bus
- * @param {() => { get: (chatId: string) => any, patch: (chatId: string, partial: object) => unknown } | null | undefined} o.state main's SessionStore (`get`: what the chat's session holds now)
+ * @param {() => { has?: (chatId: string) => boolean, get: (chatId: string) => any, patch: (chatId: string, partial: object) => unknown } | null | undefined} o.state main's SessionStore
  * @param {() => { openRemote: (o: any) => void, closeRemote: (id: string) => void } | null | undefined} o.questions the app's form cards
  * @param {() => number} o.now
  * @param {(chatId: string, value: unknown) => void} [o.attention] told the chat's `attention` whenever the state lane carries one (attentionLane.cjs)
@@ -26,11 +26,14 @@ const cardId = (chatId, requestId) => `${chatId}|${requestId}`;
 function createChatState({ items, emit, state, questions, now, attention = () => undefined, agent = () => undefined, note }) {
   /** chat -> the Plan the Host last said it holds. @type {Map<string, boolean>} */
   const lanePlan = new Map();
+  // The store's get creates the session. A withdrawal only affects sessions that already hold an offer.
+  const holdsSuggestion = (store, chatId) => store?.has?.(chatId) && store.get(chatId)?.promptSuggestion;
   /**
    * The chat's title, goal and tasks as the Host tells them (host/src/chatState.mjs): the title is kept in the transcript unless the person named the chat themselves, goal and tasks are shown from the session store. Newest wins, so telling it twice changes nothing.
    * @param {{ chatId: string, gone: boolean }} f @param {unknown} patch
+   * @param {() => boolean} [suggestionCurrent] whether the suggestion still comes from the active subscription
    */
-  async function apply(f, patch) {
+  async function apply(f, patch, suggestionCurrent) {
     if (!isObject(patch)) return;
     const p = /** @type {Record<string, any>} */ (patch);
     if (isObject(p.title) && typeof p.title.name === 'string') {
@@ -68,6 +71,11 @@ function createChatState({ items, emit, state, questions, now, attention = () =>
     }
     if (isHostPermission(p.permission)) shown.permission = p.permission;
     const store = state();
+    if (
+      suggestionCurrent?.() &&
+      (typeof p.promptSuggestion === 'string' || (p.promptSuggestion === null && holdsSuggestion(store, f.chatId)))
+    )
+      shown.promptSuggestion = p.promptSuggestion;
     // the Host's held choice of another agent, in the session store the chip is drawn from: a choice made here is already there, so only a different one (the phone's, or none after a restart or a settled switch) is written
     if (Object.hasOwn(p, 'pendingSwitch')) {
       const held = store?.get(f.chatId)?.pendingSwitch;
@@ -114,7 +122,11 @@ function createChatState({ items, emit, state, questions, now, attention = () =>
   }
   /** The machine closed a card: a question with that id is cancelled here. @param {string} id */
   const closeQuestion = (id) => questions()?.closeRemote(id);
-  return { apply, question, closeQuestion, switched };
+  function withdrawSuggestion(chatId) {
+    const store = state();
+    if (holdsSuggestion(store, chatId)) store?.patch(chatId, { promptSuggestion: null });
+  }
+  return { apply, question, closeQuestion, switched, withdrawSuggestion };
 }
 
 module.exports = { createChatState, cardId };

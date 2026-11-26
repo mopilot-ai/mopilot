@@ -1,6 +1,7 @@
 // Every field the real Host puts in a folder reply reaches the app (electron/host/folders.cjs): each reader there rebuilds the reply from the fields it names, so a field the Host adds, or one a reader forgot, is dropped before the Changes pane or the Files tree sees it (`conflicted` of git.diff was, #5237; `counted` of git.status files too). The replies come from the real Host services over a real git repository, and the fields are read off the replies themselves, so a new field cannot be dropped silently.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { realHostFolders } from './support/realHostFolders.ts';
@@ -33,7 +34,14 @@ test('git.diff: every field of the Host reply reaches the app, the conflicted fi
 });
 
 test('git.status: every field of the Host reply reaches the app, the counted flag of an untracked file included', async () => {
+  // a branch pushed to a second remote, so the reply carries `upstream` and its fields
+  const git = (...args: string[]) => spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+  const branch = git('symbolic-ref', '--short', 'HEAD').stdout.trim();
+  git('remote', 'add', 'internal', 'https://example.com/o/internal.git');
+  git('config', `branch.${branch}.remote`, 'internal');
+  git('config', `branch.${branch}.merge`, 'refs/heads/feat');
   const app = await world.folders.status('box', { path: dir });
+  assert.deepEqual(app.upstream, { remote: 'https://example.com/o/internal.git', branch: 'feat' });
   assert.deepEqual(
     app.files.filter((f: any) => f.untracked && f.counted).map((f: any) => f.path),
     ['new.txt', 'sub/c.txt'],

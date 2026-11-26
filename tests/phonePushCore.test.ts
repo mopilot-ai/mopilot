@@ -17,7 +17,7 @@ import { createTitleKeys } from '../mobile/src/push/titleKeys';
 
 const require = createRequire(import.meta.url);
 const prefs = async () => DEFAULT_PREFS;
-const prim = require('../electron/remote/sodiumPrimitives.cjs').createSodiumPrimitives();
+const prim = require('../electron/platform/sodiumPrimitives.cjs').createSodiumPrimitives();
 const open = (key: Uint8Array, nonce: Uint8Array, box: Uint8Array, aad: Uint8Array) => prim.aeadOpen(key, nonce, box, aad);
 const key = (n: number) => Uint8Array.from({ length: 32 }, (_, i) => (i * 7 + n) & 255);
 function seal(k: Uint8Array, ref: string, text: string, nonceSeed = 1) {

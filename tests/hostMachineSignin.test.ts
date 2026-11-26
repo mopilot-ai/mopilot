@@ -394,3 +394,11 @@ test('A: a typed code goes to the machine that waits for it, once the sign-in is
   assert.equal(await w.s.input('ssh:box', 'gemini', 'abc'), true);
   assert.deepEqual(w.made[0].calls.at(-1), { method: 'loginInput', params: { harness: 'gemini', text: 'abc' } });
 });
+
+test('a relay-only machine (paired by code: relay:<host id>, no socket of its own) is signed in through its Host like any other', async (t) => {
+  const w = world(t, [rec({ id: 'relay:h_abcdefghijklmnop', address: 'relay:h_abcdefghijklmnop', socketPath: '' })]);
+  w.s.start('relay:h_abcdefghijklmnop', 'gemini');
+  await settle();
+  assert.equal(w.made.length, 1, 'its Host was reached');
+  assert.notEqual(w.s.status('relay:h_abcdefghijklmnop', 'gemini').error, 'This machine has no Host socket on record.');
+});

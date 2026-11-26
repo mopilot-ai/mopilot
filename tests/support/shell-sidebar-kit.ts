@@ -46,6 +46,7 @@ export function baseState(over: Record<string, any> = {}) {
     agentTabs: {},
     elsewhere: {},
     cloudTasks: [],
+    archived: [],
     ...over,
     prefs: { chatOrder: {}, ...(over.prefs ?? {}) },
   };
@@ -143,6 +144,11 @@ stubStore({
   newChatHostPick: (s: any = state) => (goal(s)?.kind === 'machine' ? goal(s).pick : null),
   newChatGoal: (s: any = state) => goal(s),
   setNewChatHostFolder: record('setNewChatHostFolder'),
+  pickNewChatHost: (m: { id: string; name: string }) => {
+    calls.push(['pickNewChatHost', m]);
+    merge({ newChatHost: m.id === 'local' ? null : { ...m, path: '' } });
+    return null;
+  },
   deleteProject: answers('deleteProject'),
   renameProject: answers('renameProject'),
   moveProject: async (...args: any[]) => void calls.push(['moveProject', ...args]),

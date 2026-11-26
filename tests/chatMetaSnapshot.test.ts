@@ -23,6 +23,7 @@ const view = (meta: Partial<ChatMeta> = {}, segments: ChatView['segments'] = nul
 
 const empty = (): ChatMaps => ({
   chatInitialTitles: {},
+  chatRewoundAt: {},
   pinned: {},
   unread: {},
   worktreeOf: {},
@@ -62,6 +63,7 @@ test('snapshot construction matches sparse incremental maps for every field and 
         momoModel: 'claude-opus-4-7',
         authored: { in1: { by: 'momo', title: 'Today’s edition', at: 1 } },
         initialTitle: '  Login timing  ',
+        rewoundAt: 8,
       },
       segments,
     ),
@@ -74,6 +76,7 @@ test('snapshot construction matches sparse incremental maps for every field and 
       navigationBookmarks: 'invalid' as unknown as string[],
       archived: 'invalid' as unknown as number,
       initialTitle: 42 as unknown as string,
+      rewoundAt: 'invalid' as unknown as number,
     }),
   };
   const snapshot = { chats, newer: ['claude:2'] };
@@ -86,6 +89,8 @@ test('snapshot construction matches sparse incremental maps for every field and 
   // the chat a fork was made from (#1941)
   assert.deepEqual(maps.chatForkOf, { 'cx-1': 'source' });
   assert.deepEqual(maps.chatInitialTitles, { 'cx-1': 'Login timing' });
+  assert.deepEqual(maps.chatRewoundAt, { 'cx-1': 8 });
+  for (const rewoundAt of [0, -1, NaN, Infinity, null]) assert.deepEqual(applyChat(maps, 'cx-1', view({ rewoundAt })).chatRewoundAt, {});
   // the Claude Code model a MoMo chat's brain names (#2304)
   assert.deepEqual(maps.momoModels, { 'cx-1': 'claude-opus-4-7' });
   // how an input no human wrote shows (#2287)

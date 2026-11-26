@@ -2,6 +2,7 @@
 
 import { Group, Row, Toggle, Select, Segmented } from './Controls';
 import { isMac } from '../../../lib/platform';
+import { composerSendShortcuts } from '../../../lib/composerSendKeys';
 import { useEffect, useState } from 'react';
 import { useStore, setPrefs, toast, toastFailure } from '../../../store/core';
 import { projectlessFolderOf } from '../../../store/types';
@@ -90,6 +91,7 @@ export function General() {
   const prefs = useStore((s) => s.prefs);
   const home = useStore((s) => s.home);
   const projectless = projectlessFolderOf(prefs, home);
+  const sendKeys = composerSendShortcuts(prefs.sendWith);
   return (
     <>
       <Group title="Permissions">
@@ -210,7 +212,7 @@ export function General() {
         </Row>
         <Row
           title="Follow-up behavior"
-          desc="Default for the Send button while the agent is working. Conversation shortcuts can send now or queue for later."
+          desc={`What the Send button and ${sendKeys.submit} do while the agent is working. ${sendKeys.alternate} does the other one.`}
         >
           <Segmented
             value={prefs.followUp}

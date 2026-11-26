@@ -72,7 +72,7 @@ export function summarize(steps: Row[]): string {
     .join(', ');
 }
 
-const isStep = (row: Row) => row.role === 'step' || row.role === 'live';
+export const isStep = (row: Row) => row.role === 'step' || row.role === 'live';
 const isYou = (row: Row) => row.role === 'user' || row.role === 'liveUser';
 
 /**

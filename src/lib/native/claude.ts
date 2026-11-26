@@ -64,6 +64,7 @@ declare module '../native' {
         bin: string,
         cwd?: string | null,
         account?: string | null,
+        requireFolder?: boolean,
       ): Promise<{ commands: ClaudeSlashCommand[]; mcp: ClaudeMcpServer[]; mcpError?: string }>;
       /** Claude's commands, skills and plugins for a folder and account (prefetched when no session ran there) */
       catalog(bin: string | null, cwd: string, account?: string | null): Promise<ClaudeCatalog>;

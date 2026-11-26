@@ -8,7 +8,8 @@ const net = require('node:net');
 const { clock } = require('../platform/ports/clock.cjs');
 const { noteIgnored } = require('../ignored.cjs');
 const { createRelaySession, pipeSocket } = require('../../shared/host/relaySession.mjs');
-const { createNodePrimitives } = require('../../shared/remote/nodePrimitives.mjs');
+// the app's crypto runs in Electron, whose OpenSSL has no ChaCha20-Poly1305: sodium's (electron/platform/sodiumPrimitives.cjs) is the one that seals there
+const { createSodiumPrimitives } = require('../platform/sodiumPrimitives.cjs');
 
 /** How long to wait before opening a session again after one could not be opened. */
 const RETRY_MS = 5000;
@@ -20,7 +21,7 @@ const RETRY_MS = 5000;
  * @param {string} o.localSocket where the tunnel listens while a lease is held
  * @param {import('../../shared/remote/crypto.mjs').Primitives} [o.prim]
  */
-function createRelayTunnel({ lane, enrollment, localSocket, prim = createNodePrimitives() }) {
+function createRelayTunnel({ lane, enrollment, localSocket, prim = createSodiumPrimitives() }) {
   /** @type {'online' | 'connecting' | 'offline'} */
   let state = 'offline';
   let reason = '';

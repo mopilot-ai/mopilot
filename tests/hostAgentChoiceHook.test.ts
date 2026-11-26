@@ -9,8 +9,10 @@ let pick: any = null;
 let saved = 'claude';
 let draft: string | null = null;
 let machines: any[] = [];
-mockSource('src/store/core.ts', { useStore: (sel: (s: unknown) => unknown) => sel({ newChatHarnessPick: draft }) });
-mockSource('src/store/chats.ts', { savedDefaultHarness: () => saved });
+let prefs: any;
+mockSource('src/store/core.ts', { useStore: (sel: (s: unknown) => unknown) => sel({ newChatHarnessPick: draft, prefs }) });
+// where new chats start before a pick: the last used or the saved default (store/chats.ts startingHarness)
+mockSource('src/store/chats.ts', { startingHarness: () => saved });
 mockSource('src/store/projects.ts', { newChatHostPick: () => pick });
 mockSource('src/lib/hostMachines.ts', { useHostMachines: () => ({ machines, resolved: true }) });
 const { createElement } = await import('react');
@@ -66,6 +68,26 @@ test('a draft-local agent pick reaches remote readiness, while a machine-specifi
     assert.equal(view().want, 'claude');
   } finally {
     draft = null;
+    await m.unmount();
+  }
+});
+
+test('with nothing picked, the agent the last chat on the machine started on, while it is ready there; prefs without any picks keep the default', async () => {
+  pick = { id: 'box', name: 'box', path: '/p' };
+  machines = [{ id: 'box', name: 'box', agents: [agent('claude', 'ready'), agent('codex', 'ready')] }];
+  const m = await mount(createElement(Probe));
+  try {
+    prefs = { hostPicks: { box: { agent: 'codex' } } };
+    await m.render(createElement(Probe));
+    assert.equal(view().want, 'codex');
+    prefs = { hostPicks: { other: { agent: 'codex' } } };
+    await m.render(createElement(Probe));
+    assert.equal(view().want, 'claude');
+    prefs = {};
+    await m.render(createElement(Probe));
+    assert.equal(view().want, 'claude');
+  } finally {
+    prefs = undefined;
     await m.unmount();
   }
 });

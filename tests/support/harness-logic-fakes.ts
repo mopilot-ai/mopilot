@@ -129,7 +129,7 @@ const builtins: Record<string, any> = {
   // promise-returning store exports answer a promise, as the real ones do
   setGoalState: async () => false,
   sendHeld: async () => {},
-  touchChat: (id: string, started?: { text: string }) => setState((s: any) => touched(s, id, Date.now() / 1000, started)),
+  touchChat: (id: string, started?: { text: string }, now = Date.now() / 1000) => setState((s: any) => touched(s, id, now, started)),
 };
 
 /** A store export: records the call, then runs the test's override or the built-in. */

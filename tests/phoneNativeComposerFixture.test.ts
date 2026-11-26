@@ -48,7 +48,7 @@ test('native fixture exposes valid pre-chat scopes, scrollable menus and a skill
 });
 
 test('native fixture supplies a decodable picture and ordered upload acknowledgments', async () => {
-  const file = await media.library();
+  const [file] = (await media.library(10)).picked;
   const png = Buffer.from(file.base64, 'base64');
   assert.equal(png.subarray(1, 4).toString(), 'PNG');
   assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [128, 64]);

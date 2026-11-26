@@ -1,4 +1,4 @@
-// scripts/build-{helper,sage-mcp,auth-command,disclaim}.mjs with swift, codesign and publishing replaced:
+// scripts/build-{helper,sage-mcp,auth-command,code-pair-approve,disclaim}.mjs with swift, codesign and publishing replaced:
 // the commands each runs, how it signs, the build lock, and the command lines.
 import edition from '../shared/edition.json' with { type: 'json' };
 import { test, mock } from 'node:test';
@@ -11,6 +11,17 @@ const helper = await import('../scripts/build-helper.mjs');
 const sageMcp = await import('../scripts/build-sage-mcp.mjs');
 const authCommand = await import('../scripts/build-auth-command.mjs');
 const disclaim = await import('../scripts/build-disclaim.mjs');
+const { buildUpdateInstall } = await import('../scripts/build-update-install.mjs');
+const codePairApprove = await import('../scripts/build-code-pair-approve.mjs');
+
+test('the staged bundle installer builds unsigned for the requested macOS architecture before packaging', () => {
+  const exec = fakeExec('/bin/dir');
+  const publish = recorder();
+  const result = buildUpdateInstall({ platform: 'darwin', out: '/out', arch: 'x64', sign: false, exec: exec as any, publish, log() {} });
+  assert.equal(result, '/out/update-install');
+  assert.deepEqual(exec.calls[0].slice(0, 2), ['swift', ['build', '-c', 'release', '--arch', 'x86_64', '--product', 'update-install']]);
+  assert.deepEqual(publish.calls[0], ['/bin/dir/update-install', result, undefined]);
+});
 
 /** A fake execFileSync: swift prints `binDir` for --show-bin-path; every call is recorded. */
 const fakeExec = (binDir: string) =>
@@ -18,6 +29,12 @@ const fakeExec = (binDir: string) =>
 
 const SIMPLE = [
   { name: 'auth-command', build: authCommand.buildAuthCommand, cli: authCommand.cli, id: authCommand.AUTH_COMMAND_IDENTIFIER },
+  {
+    name: 'code-pair-approve',
+    build: codePairApprove.buildCodePairApprove,
+    cli: codePairApprove.cli,
+    id: codePairApprove.CODE_PAIR_APPROVE_IDENTIFIER,
+  },
   { name: 'disclaim', build: disclaim.buildDisclaim, cli: disclaim.cli, id: disclaim.DISCLAIM_IDENTIFIER },
   { name: 'sage-mcp', build: sageMcp.buildSageMcp, cli: sageMcp.cli, id: sageMcp.SAGE_MCP_IDENTIFIER },
 ];

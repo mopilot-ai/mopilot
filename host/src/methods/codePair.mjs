@@ -13,7 +13,12 @@ export default ({ codePair }) => {
   const cliOnly = (principal) => /** @type {{ kind?: string } | null} */ (principal)?.kind === 'cli';
   return {
     features: { codePair: cliOnly },
-    veils: Object.fromEntries(['offer', 'answer', 'cancel', 'status', 'approvalText', 'enrol'].map((m) => [`host.codePair.${m}`, cliOnly])),
+    veils: Object.fromEntries(
+      ['offer', 'answer', 'cancel', 'status', 'approvalText', 'enrol', 'connections', 'resetApproval'].map((m) => [
+        `host.codePair.${m}`,
+        cliOnly,
+      ]),
+    ),
     handlers: {
       /** @param {any} p @param {unknown} kind @param {unknown} _who @param {(m: object) => unknown} emit @param {Set<() => void>} ends */
       'host.codePair.offer': (p, kind, _who, emit, ends) => served(kind).offer(p, { owner: ends, emit, ends }),
@@ -26,7 +31,11 @@ export default ({ codePair }) => {
       /** @param {any} p @param {unknown} kind */
       'host.codePair.enrol': (p, kind) => served(kind).enrol(p),
       /** @param {unknown} _p @param {unknown} kind @param {unknown} _who @param {unknown} _emit @param {Set<() => void>} ends */
+      /** @param {unknown} _p @param {unknown} kind */
+      'host.codePair.resetApproval': (_p, kind) => served(kind).resetApproval(),
       'host.codePair.status': (_p, kind, _who, _emit, ends) => served(kind).status({ owner: ends }),
+      /** "Allow connections" as the app on this Mac has it (told when it changes and when the app connects). @param {any} p @param {unknown} kind */
+      'host.codePair.connections': (p, kind) => served(kind).connections(p),
     },
   };
 };

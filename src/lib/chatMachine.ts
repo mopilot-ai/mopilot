@@ -7,25 +7,27 @@ import { machineFolderKey } from './machineFolder';
 
 /** The machine a chat runs on; `away` while it is offline; `row` is its entry in the registry (what the machine's own row in Settings says), absent for a machine that is not listed any more. */
 export type ChatMachine = { id: string; name: string; away: boolean; row?: HostMachineRow };
+type ChatLocation = { machine: ChatMachine | null; pending: boolean; ownerUnavailable?: true };
 
 /**
  * The machine the chat runs on, null for this Mac. `pending` until main has said which chats run on machines: nothing may read the folder on this Mac meanwhile.
  * A machine that is not listed any more still holds the chat (its id stands for its name). A failed read says nothing about the chat: it is taken as this Mac's and read again.
  */
-export function useChatMachine(threadId: string | null): { machine: ChatMachine | null; pending: boolean } {
+export function useChatMachine(threadId: string | null, requireKnown = false): ChatLocation {
   const state = useHostChats();
   const { machines } = useHostMachines();
   const id = machineOfChat(state, threadId);
   if (id === null) return { machine: null, pending: true };
+  if (requireKnown && !id && state.status === 'failed') return { machine: null, pending: true, ownerUnavailable: true };
   if (id === '') return { machine: null, pending: false };
   const row = machines.find((m) => m.id === id);
   return { machine: { id, name: row?.name ?? id, away: row?.status === 'offline', ...(row && { row }) }, pending: false };
 }
 
 /** The chat's folder when it is on this Mac, else '': a folder on a machine, or one whose machine is not known yet, is read nowhere here. */
-export function useLocalFolder(threadId: string | null, cwd: string): { cwd: string; machine: ChatMachine | null; pending: boolean } {
-  const { machine, pending } = useChatMachine(threadId);
-  return { cwd: machine || pending ? '' : cwd, machine, pending };
+export function useLocalFolder(threadId: string | null, cwd: string, requireKnown = false): ChatLocation & { cwd: string } {
+  const location = useChatMachine(threadId, requireKnown);
+  return { ...location, cwd: location.machine || location.pending ? '' : cwd };
 }
 
 /** The folder a reader on this Mac may look in for a chat, '' for one on a machine or one not known yet: the one gate for rows and menus that only need the folder (every chat of a list asks, one shared read answers). */

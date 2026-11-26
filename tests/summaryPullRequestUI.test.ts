@@ -322,3 +322,29 @@ test('with a pull request tracked, a failed attach of another says why once, und
   assert.equal(host.querySelector('.summary-track [role="alert"]'), null);
   await unmount();
 });
+
+test('a branch whose origin is deleted offers the PR of the repository it is pushed to', async () => {
+  reset({ t1: { cwd: '/work/app' } }, { t1: { turns: [turn()] } });
+  impl.gh = async (_cwd: string, args: string[]) =>
+    args[1] === 'view'
+      ? fail("GraphQL: Could not resolve to a Repository with the name 'o/deleted'. (repository)")
+      : ok(JSON.stringify([{ number: 7, url: prUrl, title: 'Fix it', state: 'OPEN', isCrossRepository: false }]));
+  impl.run = async (_cwd: string, args: string[]) =>
+    ok(
+      args[0] === 'symbolic-ref'
+        ? 'main\n'
+        : args[0] === 'for-each-ref'
+          ? 'internal\0refs/heads/main\n'
+          : 'remote.origin.url https://github.com/o/deleted.git\nremote.internal.url https://github.com/o/r.git\n',
+    );
+  const { host, unmount } = await mount();
+  assert.equal((one(host, '.summary-row', 'Existing pull request') as HTMLButtonElement).title, '#7 Fix it');
+  assert.deepEqual(
+    calls.filter((c) => c[0] === 'gh').map((c) => c.slice(2, 5)),
+    [
+      ['pr', 'view', '--json'],
+      ['pr', 'list', '--repo=github.com/o/r'],
+    ],
+  );
+  await unmount();
+});

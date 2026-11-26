@@ -329,3 +329,33 @@ test('while the queued bubble is drawn, a record of an older message of yours do
   assert.deepEqual(seen, []);
   stop();
 });
+
+test('the computer’s record of the message that lands while the ghost rises takes the queued bubble’s place unseen, so there are never two bubbles (#5760); the messages of yours that were there stay', async () => {
+  const { TranscriptBlocks } = await import(transcriptPath);
+  const row = (key: string, role: string, text: string, optimistic = false) => ({ type: 'row', row: { key, role, text, optimistic } });
+  const transcript = (last?: any) =>
+    createElement(TranscriptBlocks, {
+      blocks: [row('a', 'user', 'first'), row('b', 'assistant', 'reply'), ...(last ? [last] : [])],
+      streamingKey: null,
+      request: async () => ({}),
+      chatId: 'c',
+    });
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  mounted.push({ root, host });
+  await act(async () => root.render(transcript())); // the chat as it stands before the send
+  await mount(createElement(RiseGhost, { scroller }));
+  armRise(Promise.resolve(800));
+  launchRise('second');
+  await act(async () => root.render(transcript(row('q', 'user', 'second', true)))); // the queued bubble, drawn under the ghost
+  await act(async () => root.render(transcript(row('c', 'user', 'second')))); // the computer's record lands mid-rise
+  await flush();
+  const hidden = () =>
+    [...host.querySelectorAll('[data-style]')]
+      .filter((n) => JSON.parse(n.getAttribute('data-style')!).opacity === 0)
+      .map((n) => n.textContent);
+  assert.deepEqual(hidden(), ['second'], 'the record is drawn invisible while the ghost rises; the first message stays');
+  await wait(RISE_MS + 60);
+  assert.deepEqual(hidden(), [], 'and shows when the ghost has landed');
+});

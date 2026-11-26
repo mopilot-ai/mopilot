@@ -199,13 +199,14 @@ test('the same repository on another machine or this Mac stays separate; unknown
   owners.delete(C);
   const { get, view } = await probe();
   try {
+    assert.equal(get().listed.length, 3);
     assert.deepEqual(
-      get().listed.map((g: any) => [g.machine?.id, g.path]),
-      [
+      new Map(get().listed.map((g: any) => [g.machine?.id, g.path])),
+      new Map([
         [HOST.id, repo],
         ['other', repo],
         [undefined, repo],
-      ],
+      ]),
     );
     answered = false;
     await update({ ...getState() });

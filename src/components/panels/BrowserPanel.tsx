@@ -378,6 +378,14 @@ export function BrowserPanel({
       if (!answered) toast("The page's dialog was already answered", 'info');
     }, toastFailure("Couldn't answer the page's dialog"));
   };
+  // a line under the toolbar only where storage differs from the default shared profile (Continue in Chrome's tooltip covers sign-in)
+  const context = !source
+    ? null
+    : onChrome && !tab?.agentChat
+      ? 'Agents use Your Chrome. This tab has its own sign-in.'
+      : partition === SHARED_PARTITION
+        ? null
+        : "Built-in browser · This chat's own storage, cleared when the chat ends.";
 
   return (
     <div className="browser-pane" data-pane-id={tabId}>
@@ -481,15 +489,7 @@ export function BrowserPanel({
       <div className={NOTICE_SLOT} />
       {tab?.agentChat && agent && (agent.active || agent.takenOver || agent.signin) && <AgentBar chatId={tab.agentChat} view={agent} />}
       {tab?.agentChat && agent?.result && !agent.active && <AgentResultBar />}
-      {source && (
-        <div className="browser-context">
-          {onChrome && !tab?.agentChat
-            ? 'Agents use Your Chrome. This tab has its own sign-in.'
-            : partition === SHARED_PARTITION
-              ? 'Built-in browser · Sign-in is separate from Chrome.'
-              : "Built-in browser · This chat's own storage, cleared when the chat ends."}
-        </div>
-      )}
+      {context && <div className="browser-context">{context}</div>}
       {dialogPage?.dialog && (
         <PageDialogBar
           key={`${dialogPage.pageId}:${dialogPage.dialog.id}`}

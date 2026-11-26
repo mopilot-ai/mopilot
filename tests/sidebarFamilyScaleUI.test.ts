@@ -56,3 +56,18 @@ test('the shared index follows each input and both orders', () => {
   assert.deepEqual(sorted.descendants.get('a'), ['b']);
   assert.notEqual(familiesOf(view, [...order], threads, momo, false), stored, 'a new order rebuilds');
 });
+
+test('sorted lists share one family index for the same rewind snapshot', () => {
+  const view = { children: {}, deliveries: {}, proposals: {}, queue: [] } as never;
+  const threads = { a: thread('a', { updatedAt: 1 }), b: thread('b', { updatedAt: 9 }) } as never;
+  const order = ['a', 'b'];
+  const momo = {};
+  const activity = { a: 10 };
+  const listed = familiesOf(view, order, threads, momo, false);
+  const sorted = familiesOf(view, order, threads, momo, true, activity);
+  assert.deepEqual(sorted.roots, ['a', 'b']);
+  assert.equal(familiesOf(view, order, threads, momo, false, activity), listed);
+  assert.deepEqual(familiesOf(view, order, threads, momo, true).roots, ['b', 'a']);
+  assert.equal(familiesOf(view, order, threads, momo, true, activity), sorted);
+  assert.deepEqual(familiesOf(view, order, threads, momo, true, {}).roots, ['b', 'a']);
+});

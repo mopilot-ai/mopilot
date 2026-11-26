@@ -214,7 +214,11 @@ test('the end stays in sight once the keyboard has shown, hidden or changed heig
   g.__keyboardRemoved = [];
   await act(async () => mounted[0].root.unmount());
   mounted.shift()!.host.remove();
-  assert.deepEqual([...g.__keyboardRemoved].sort(), ['keyboardDidChangeFrame', 'keyboardDidHide', 'keyboardDidShow']);
+  assert.deepEqual(
+    [...g.__keyboardRemoved].sort(),
+    ['keyboardDidChangeFrame', 'keyboardDidHide', 'keyboardDidShow', 'keyboardWillChangeFrame', 'keyboardWillShow'],
+    'the start of the keyboard coming up ends the pin of the last send, every change of its frame moves the last row with it',
+  );
 });
 
 test('on Android the keyboard has no change-of-frame event to listen to', async () => {
@@ -232,7 +236,7 @@ const laid = (t: Awaited<ReturnType<typeof open>>, h?: number) =>
   act(async () => t.ev().onLayout(h === undefined ? undefined : { nativeEvent: { layout: { height: h } } }));
 const scrolledTo = () => g.__scrolledTo as { y: number; animated: boolean }[];
 
-test('after a send the message is scrolled to the top once and the reply below it is not followed', async () => {
+test('after a send the message is scrolled to the top once and the reply below it is not followed', async (c) => {
   g.__scrolledTo = [];
   g.__keyboardDismissed = 0;
   const t = await open();
@@ -270,8 +274,8 @@ test('after a send the message is scrolled to the top once and the reply below i
   await sized(t, 2000 - PIN_INSET + 800);
   assert.deepEqual(scrolledTo().at(-1), { y: 2000 - PIN_INSET, animated: false }, 'the message goes back to the top');
   assert.equal(t.scrolls().length, before, 'a pinned chat is not pulled to the end by a layout');
-  // the message is back at the top, which is the end of the content: no arrow; a reader who scrolls up again gets it
-  assert.equal(t.latest(), null);
+  assert.equal(t.latest(), null, 'the message is back at the top, which is the end of the content: no arrow');
+  c.mock.timers.enable({ apis: ['Date'], now: Date.now() + 700 }); // a moment later (a report right after the pin's scroll is its echo), a reader who scrolls up again gets it
   await t.scroll(100, 2800, 800);
   assert.ok(t.latest());
   await click('Jump to the latest message');
@@ -476,4 +480,21 @@ test('while the pin waits for its room under a view that grew (the keyboard went
   // once the room is there the message goes back to the top
   await sized(t, 2042 + 1300);
   assert.deepEqual(scrolledTo().at(-1), { y: 2042, animated: false });
+});
+
+test('the list stops anchoring to the row being read only while a send’s pin is live: a touch gives it back, and a reply growing later does not take it away again (#5686)', async () => {
+  const t = await open();
+  await t.scroll(1400);
+  await laid(t, 600);
+  assert.ok(t.list().hasAttribute('maintainvisiblecontentposition'));
+  await t.typeAndSend('hello');
+  await sized(t, 2100);
+  assert.equal(t.list().hasAttribute('maintainvisiblecontentposition'), false, 'the pin is live');
+  await act(async () => g.__scrollEvents.onTouchStart({ nativeEvent: { touches: [{}] } }));
+  assert.ok(
+    t.list().hasAttribute('maintainvisiblecontentposition'),
+    'the reader touched the list: a page joined above keeps their row in place',
+  );
+  await sized(t, 2900);
+  assert.ok(t.list().hasAttribute('maintainvisiblecontentposition'), 'content growing does not switch it off');
 });

@@ -19,6 +19,10 @@ import { IntentError } from './momoHomeApi.mjs';
  * @param {() => void} o.dropRows the rows of the old home are not the new one's
  * @returns {(id: string) => Promise<void>}
  */
+/** What Start fresh says before it does anything: what is left behind, and that nothing is deleted. @param {string | undefined} oldName the machine MoMo was remembered on @param {string} names the machines that did not answer */
+export const startFreshWords = (oldName, names) =>
+  `Start fresh? MoMo starts over with no memory of what it knew on ${oldName ?? 'its old machine'}, and its notes there are not copied. The old MoMo may still exist on ${names}; it will be retired when it comes back. Messages you sent to the old MoMo are no longer shown here.`;
+
 export function createFixes({
   read,
   invalidate,
@@ -37,6 +41,7 @@ export function createFixes({
   const tokenOf = (id) => parseFixId(id)?.fields[0] ?? '';
   /** The fresh start itself: where MoMo lived is forgotten (its messages for the old home are shown as not sent, its sent ones are dropped from this chat) and a new home may be made, above every lease seen. */
   const startOver = async () => {
+    mail.holdForOld(remembered()?.homeId);
     remember(null);
     mail.forgetSent();
     dropRows();
@@ -44,7 +49,7 @@ export function createFixes({
     invalidate();
     await read(true);
   };
-  return async (id) => {
+  const fix = async (id) => {
     if (id === 'check-again') {
       quiet.clear();
       checkAgain();
@@ -69,19 +74,15 @@ export function createFixes({
       if (!r.lost && !r.decision.offerStartFresh) throw new IntentError('MoMo’s home is not lost: it can still be found.');
       if (id === 'start-fresh') {
         const names = r.unheard.map((m) => m.name).join(' and ') || 'a machine';
-        confirm.ask(
-          'start-fresh',
-          `Start fresh? MoMo starts over with no memory of what it knew on ${note?.name ?? 'its old machine'}, and its notes there are not copied. The old MoMo may still exist on ${names}; it will be retired when it comes back. Messages you sent to the old MoMo are no longer shown here.`,
-          'start-fresh!',
-          '',
-          'Start fresh',
-        );
+        confirm.ask('start-fresh', startFreshWords(note?.name, names), 'start-fresh!', '', 'Start fresh');
       }
       confirm.consume('start-fresh', tokenOf(id));
       return startOver();
     }
     throw new IntentError('That fix is not offered here any more.');
   };
+  // a client that asked first (its own confirm) starts over with the same steps, so its owner lands on the machine picker
+  return Object.assign(fix, { startOver });
 }
 
 /**

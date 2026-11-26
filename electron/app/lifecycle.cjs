@@ -279,6 +279,7 @@ function createLifecycle({
           e,
           // chat transcripts, the tool operation log and MoMo's trust files still queued in the background go to disk
           () => [
+            live.updater?.installOnQuit?.(),
             claude.closeAll(),
             live.chromeChannel?.stopAll(),
             live.acpHost?.items?.drain(),

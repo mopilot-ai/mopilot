@@ -263,6 +263,9 @@ class CodexEvents extends CodexGoals {
     if (raw) {
       const chatId = this.chatOf(raw);
       if (method === 'thread/tokenUsage/updated') p = { ...p, tokenUsageSource: { harness: 'codex', nativeId: raw } };
+      if (chatId !== raw && (method === 'thread/closed' || method === 'mcpServer/startupStatus/updated')) {
+        p = { ...p, sourceThreadId: raw };
+      }
       // a later segment's thread: its own name never becomes the chat's
       if (chatId !== raw && ['thread/name/updated', 'thread/deleted', 'thread/archived'].includes(method)) return null;
       return { chatId, params: chatId === raw ? p : { ...p, threadId: chatId } };

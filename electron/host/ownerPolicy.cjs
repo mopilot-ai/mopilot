@@ -11,7 +11,7 @@ const invalid = (message) => Object.assign(new Error(message), { code: 'invalid'
 /**
  * @param {object} o
  * @param {string} o.file where the document is kept
- * @param {(id: string) => { policy?: (p: { doc: object }) => Promise<{ generation: string }> } | null} o.hostFor a machine's connection (null when it has none)
+ * @param {(id: string) => { policy?: (p: { doc: object }) => Promise<{ generation: string }>, controlledByCode?: boolean } | null} o.hostFor a machine's connection (null when it has none); `controlledByCode`: a Mac this one only controls, which takes no policy from it
  * @param {() => string[]} o.machineIds the machines in the list
  * @param {(id: string) => { idleMinutes: number, hoursPerDay?: number | null } | null} [o.cloudOf] the cloud settings of a machine, or null for any other: only a cloud machine's document has a `cloud` block, which is what makes its Host stop itself when idle
  * @param {(error: Error) => void} o.report a push that failed for another reason than an older Host
@@ -26,7 +26,7 @@ function createOwnerPolicy({ file, hostFor, machineIds, cloudOf = () => null, re
       return parseOwnerPolicy({ version: DEFAULT_POLICY.version }, invalid);
     }
   };
-  /** @param {string} id @param {{ policy?: (p: { doc: object }) => Promise<{ generation: string }> } | null} [given] a connection being made (asking `hostFor` for it then would make another), waited for until it answers @returns {Promise<{ id: string, ok: boolean, generation?: string, code?: string }>} */
+  /** @param {string} id @param {{ policy?: (p: { doc: object }) => Promise<{ generation: string }>, controlledByCode?: boolean } | null} [given] a connection being made (asking `hostFor` for it then would make another), waited for until it answers @returns {Promise<{ id: string, ok: boolean, generation?: string, code?: string }>} */
   async function push(id, given) {
     const host = given ?? hostFor(id);
     if (!host?.policy) return { id, ok: false, code: 'offline' };
@@ -42,8 +42,9 @@ function createOwnerPolicy({ file, hostFor, machineIds, cloudOf = () => null, re
       return { id, ok: true, generation };
     } catch (error) {
       const code = /** @type {any} */ (error)?.code ?? 'failed';
-      // an older Host keeps no policy: nothing to send, and nothing to report
-      if (code !== 'feature_missing') report(/** @type {Error} */ (error));
+      // an older Host keeps no policy, and a Mac this one only controls (paired by code) takes none from it: nothing to send, nothing to
+      // report; a `forbidden` from any other Mac is a real refusal and is reported
+      if (code !== 'feature_missing' && !(code === 'forbidden' && host.controlledByCode)) report(/** @type {Error} */ (error));
       return { id, ok: false, code };
     }
   }

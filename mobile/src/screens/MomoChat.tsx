@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 import type { DraftHandle } from '../presentation/drafts';
 import { useDraft } from '../presentation/useDraft';
 import { type ComponentRef, Fragment, type ReactNode, useRef } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Tap } from '../ui/ds/Tap';
 import { authoredCardOf } from '../components/AuthoredCard';
 import { Icon } from '../components/Icon';
@@ -286,6 +286,7 @@ export function MomoComposer({
   placeholder?: string;
 }) {
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
   const typed = !!draft.trim();
   const canSend = !disabled && typed;
   const box = useRef<ComponentRef<typeof View>>(null);
@@ -318,7 +319,15 @@ export function MomoComposer({
               placeholderTextColor={theme.ink3}
               accessibilityLabel={placeholder}
               multiline
-              style={{ flex: 1, ...typo.body, color: theme.ink, maxHeight: 120, paddingVertical: 8 }}
+              // an empty field is one line high at any text size: a long placeholder is cut, it never makes the field three lines
+              style={{
+                flex: 1,
+                ...typo.body,
+                color: theme.ink,
+                maxHeight: 120,
+                paddingVertical: 8,
+                ...(draft ? {} : { height: Math.ceil((typo.body.lineHeight as number) * fontScale) + 16 }),
+              }}
             />
             {voice && <MicButton voice={voice} disabled={disabled || micOff} />}
             {/* as the main chat's: while a turn runs or waits for you, nothing typed shows Stop; with a message typed, Send queues it behind the turn and a smaller Stop stays beside it */}
@@ -329,9 +338,9 @@ export function MomoComposer({
                 disabled={disabled}
                 onPress={stop}
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: theme.sunken,
@@ -347,9 +356,9 @@ export function MomoComposer({
                 disabled={disabled}
                 onPress={stop}
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: theme.btn,
@@ -368,9 +377,9 @@ export function MomoComposer({
                   send();
                 }}
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: theme.orange,

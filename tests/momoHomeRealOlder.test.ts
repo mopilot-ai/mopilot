@@ -32,6 +32,10 @@ test('the older MoMo is told once with three ways on, keeping the one in use is 
   assert.equal((await w.intent({ kind: 'fix', id: 'keep-older:studio' })).ok, true);
   assert.equal(await older(w), undefined);
   assert.equal(w.stored.kept().length, 1);
+  // the view says what the owner kept, so a client that composes the home itself does not ask about it again
+  const viewed = (await w.view()) as any;
+  assert.deepEqual(viewed.keptOlder, w.stored.kept());
+  assert.equal(viewed.keptOlder.length, 1);
   // a new run does not tell it again
   const again = w.restart();
   assert.equal(

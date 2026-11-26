@@ -50,6 +50,8 @@ async function mount(read: (params: any) => unknown) {
     },
     /** A finger goes down on the list: the gesture may ask for one page (#4734). */
     touch: () => act(async () => (globalThis as any).__scrollEvents.onScrollBeginDrag()),
+    /** The finger lifts with no speed: what waited for the reader to rest (a page, a reveal) joins now. */
+    lift: () => act(async () => (globalThis as any).__scrollEvents.onScrollEndDrag({ nativeEvent: { velocity: { y: 0 } } })),
     done: async () => {
       await act(async () => root.unmount());
       host.remove();
@@ -69,11 +71,13 @@ test('a scroll that ends near the top loads the page before; farther down, or wi
   assert.equal(t.reads.length, 0, 'a finger, but a scroll that reports no position: nothing is asked, and the gesture stays');
   await t.scroll(100);
   assert.deepEqual(t.reads, [{ chatId: 'c', before: 'r10', limit: 40 }]);
+  await t.lift();
   assert.match(t.host.textContent!, /older 9/);
   await t.scroll(0);
   assert.equal(t.reads.length, 1, 'one gesture, one page');
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   assert.equal(t.reads[1].before, 'r9', 'the next page starts at the oldest row now shown');
   await t.done();
 });
@@ -88,8 +92,10 @@ test('scrolling while a page is on its way asks for no second page', async () =>
   );
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   assert.equal(t.reads.length, 1);
   await act(async () => release(page(9)));
   await flush();
@@ -105,9 +111,11 @@ test('after a failed page a scroll does not ask again, the button does, and at t
   });
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   assert.match(t.host.textContent!, /offline/);
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   assert.equal(t.reads.length, 1, 'the person decides when to retry');
   fail = false;
   await click('Load earlier messages');
@@ -115,6 +123,7 @@ test('after a failed page a scroll does not ask again, the button does, and at t
   assert.match(t.host.textContent!, /This is the start of the chat\./);
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   assert.equal(t.reads.length, 2, 'the start of the chat has nothing before it');
   await t.done();
 });
@@ -138,6 +147,7 @@ test('a scroll right after a page lands, before the screen draws it, asks for th
   );
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   await act(async () => {
     release(page(9));
     await new Promise((resolve) => setImmediate(resolve));
@@ -160,6 +170,7 @@ test('a page with a message that repeats one already shown leaves the rows below
   const before = rowOf('newest answer');
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   assert.equal(t.host.textContent!.split('newest answer').length, 3, 'shown twice now');
   assert.ok([...t.host.querySelectorAll('span')].filter((s) => s.textContent === 'newest answer').some((s) => s.parentElement === before));
   await t.done();
@@ -171,6 +182,7 @@ test('the control above the messages is one element with its error inside, so it
   });
   await t.touch();
   await t.scroll(0);
+  await t.lift();
   const first = t.list().firstElementChild!;
   assert.match(first.textContent!, /offline/);
   assert.ok(first.querySelector('button'), 'the error and the button share the first child');

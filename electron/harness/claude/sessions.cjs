@@ -136,6 +136,7 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
       // an MCP server asking the user for input (a form or a sign-in link); unanswered, the SDK declines
       onElicitation: (request, o) => requestElicitation(s, request, o),
     });
+    if (!s.isolated) options.promptSuggestions = true;
     await prepareSessionTools(state, cli, bin, options, s, opts, key, chatOfProcess);
     if (opts.forkFrom) {
       // side chat: branch off another session without writing a transcript (like Codex's ephemeral forks)
@@ -173,24 +174,24 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
             visible: anyWindowVisible,
             emit: (msg) => lifetime.active(s) && state.emit({ key, kind: 'message', msg, login: s.billing === 'subscription' }),
           });
-    // unpersisted sessions write no transcript, so there's nothing on disk to keep in step with
     s.sessionId = s.unpersisted ? null : opts.sessionId;
     state.sessions.set(key, s);
     lifetime.claim(s);
     state.emit({ key, kind: 'processStarted', cwd: s.cwd });
-    // whether this process runs Claude in Chrome is fixed now: the chat's controller plan reads it
     state.onProcess(s.chatId, key);
-    // background tasks belong to a process: a new one starts with none
     state.emit({ key, kind: 'tasks', tasks: [] });
     (async () => {
       try {
         for await (const msg of q) {
           if (!lifetime.active(s)) continue;
+          if (msg.type === 'prompt_suggestion') {
+            if (!s.busy && typeof msg.suggestion === 'string') state.emit({ key, kind: 'promptSuggestion', text: msg.suggestion });
+            continue;
+          }
           observeNativeRestoreMode(s, msg);
           s.lastActive = clock.now();
           if (s.sessionId && msg.type === 'system' && msg.subtype === 'init') s.tip = transcriptTip(s.sessionId);
           if (msg.type === 'system' && msg.subtype === 'init' && !s.applied)
-            // settings are read again on the next change; the session runs without them
             readSettings(s).catch((error) => noteIgnored("read a Claude Code session's settings", error));
           if (msg.type === 'system' && (msg.subtype === 'init' || msg.subtype === 'commands_changed')) catalog.noteCatalog(s, msg);
           remote.onMessage(s, msg, !opts.resume && !state.prewarmed.has(key));
@@ -215,7 +216,6 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
               chrome
                 .browserAfterTurn(s)
                 .catch((error) => noteIgnored('move a Claude Code session to the browser picked in settings', error));
-            // the CLI may append a line or two after its result (an interrupt marker, say)
             clock.clearTimeout(s.tipTimer);
             if (s.sessionId) s.tipTimer = clock.setTimeout(settleTip, 250, s);
           }
@@ -370,9 +370,7 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
     const s = state.sessions.get(key);
     if (!s) return null;
     s.lastActive = clock.now();
-    const current = () => {
-      if (!lifetime.active(s)) throw new Error('The Claude process changed before its settings update completed');
-    };
+    const current = (value) => lifetime.requireCurrent(s, value);
     switch (method) {
       case 'interrupt':
         // the CLI drops queued prompts on interrupt, so the next result ends the turn
@@ -397,7 +395,7 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
       case 'contextUsage':
         return s.q.getContextUsage({ detail: arg?.detail === 'full' ? 'full' : 'summary' });
       case 'mcpStatus':
-        return s.q.mcpServerStatus();
+        return s.q.mcpServerStatus().then(current);
       case 'toggleMcp':
         return s.q.toggleMcpServer(String(arg?.name), !!arg?.enabled);
       case 'reconnectMcp':
@@ -478,9 +476,9 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
     s.replaced = true;
     // it ends gracefully, so its exit hooks run (Claude in Chrome closes a group left with only blank tabs)
     await retire(key);
+    state.emit({ key, kind: 'rewound' });
     return r;
   }
-
   return {
     restartIdle,
     billingStale,

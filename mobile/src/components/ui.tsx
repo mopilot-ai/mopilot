@@ -1,10 +1,13 @@
 // Shared mobile controls and calm, readable visual tokens.
 import React from 'react';
-import { KeyboardAvoidingView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
 import { Tap } from '../ui/ds/Tap';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { dark, light, useTheme, type Theme } from '../theme';
 import { typo, typoEyebrow } from '../typography';
+import { ComposerGrowthContext, FrameLift } from '../remote/frameLift';
+import { lifted } from '../remote/keyboardLift';
 import { PerfFrame } from './PerfProbe';
 const makeStyles = (colors: Theme) =>
   StyleSheet.create({
@@ -70,17 +73,40 @@ export function ScreenFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * The keyboard lifts the app's frame (iOS) by its own height, read on the UI thread in every frame of its slide, so the content and the keyboard share frames: the composer rises with
+ * it, and a chat's last row travels with it (useChatLift). The home indicator's height is left out, as every screen keeps it clear at its bottom, which the keyboard covers.
+ */
+function KeyboardLift({ children, bottom }: { children: React.ReactNode; bottom: number }) {
+  const keyboard = useAnimatedKeyboard();
+  // one value per frame: the padding below and a chat's offset (useChatLift) are both made of it
+  const lift = useDerivedValue(() => lifted(keyboard.height.value, bottom));
+  const style = useAnimatedStyle(() => ({ paddingBottom: lift.value }));
+  return (
+    <FrameLift.Provider value={lift}>
+      <Animated.View style={[{ flex: 1 }, style]}>{children}</Animated.View>
+    </FrameLift.Provider>
+  );
+}
+
 function InsetFrame({ children }: { children: React.ReactNode }) {
   const styles = useStyles();
   const { left, right, bottom } = useSafeAreaInsets();
+  // the composer's height over one line, for the chat inside the frame (see ComposerGrowth)
+  const growth = React.useRef({ extra: 0 }).current;
   return (
-    <View style={[styles.page, { paddingLeft: left, paddingRight: right }]}>
-      {/* edge-to-edge Android does not shrink the window for the keyboard either (checked on an emulator: pairing's Continue sat under it and the page could not scroll to it).
-          Every screen already keeps the home indicator's height clear at its bottom, which the keyboard covers, so the lift leaves that out */}
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={-bottom}>
-        {children}
-      </KeyboardAvoidingView>
-    </View>
+    <ComposerGrowthContext.Provider value={growth}>
+      <View style={[styles.page, { paddingLeft: left, paddingRight: right }]}>
+        {Platform.OS === 'ios' ? (
+          <KeyboardLift bottom={bottom}>{children}</KeyboardLift>
+        ) : (
+          // edge-to-edge Android does not shrink the window for the keyboard either (checked on an emulator: pairing's Continue sat under it and the page could not scroll to it)
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={-bottom}>
+            {children}
+          </KeyboardAvoidingView>
+        )}
+      </View>
+    </ComposerGrowthContext.Provider>
   );
 }
 

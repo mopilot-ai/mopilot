@@ -1,4 +1,4 @@
-// The branch and repository of a chat's folder on a machine, as its Host's git.status says them: one read shared while it stands, none remembered when the Host could not answer.
+// The branch of a chat's folder on a machine and where its PR may be (origin's repository, then the one the branch is pushed to), as its Host's git.status says them: one read shared while it stands, none remembered when the Host could not answer.
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { installNativeStub } from './support/ports/native.ts';
@@ -17,6 +17,8 @@ const repo = (remote: string | null, branch: string | null = 'feat') => ({
   value: { isRepo: true, branch, head: 'a'.repeat(40), remote, files: [], truncated: false, unreadable: false },
 });
 const key = machineFolderKey('m1', '/srv/app');
+/** The answer for a branch whose PR is looked for in origin's repository alone. */
+const at = (branch: string) => ({ branch, sources: [{ repo: 'github.com/o/r', branch }] });
 
 beforeEach(() => {
   resetMachineBranches();
@@ -25,7 +27,7 @@ beforeEach(() => {
 });
 
 test('the Host answers the branch and the repository of the folder, asked for that machine and path', async () => {
-  assert.deepEqual(await machineBranch(key), { branch: 'feat', repo: 'github.com/o/r' });
+  assert.deepEqual(await machineBranch(key), at('feat'));
   assert.deepEqual(asked, [['m1', { path: '/srv/app' }]]);
 });
 
@@ -39,10 +41,7 @@ test('rows and menus asking inside the window share one read; the window passes 
   const now = () => clock;
   const first = machineBranch(key, now);
   const second = machineBranch(key, now);
-  assert.deepEqual(await Promise.all([first, second]), [
-    { branch: 'feat', repo: 'github.com/o/r' },
-    { branch: 'feat', repo: 'github.com/o/r' },
-  ]);
+  assert.deepEqual(await Promise.all([first, second]), [at('feat'), at('feat')]);
   clock += MACHINE_BRANCH_TTL - 1;
   await machineBranch(key, now);
   assert.equal(asked.length, 1);
@@ -51,7 +50,7 @@ test('rows and menus asking inside the window share one read; the window passes 
   assert.equal(asked.length, 2);
   clock += 1;
   reply = async () => repo('https://github.com/o/r', 'other');
-  assert.deepEqual(await machineBranch(key, now), { branch: 'other', repo: 'github.com/o/r' });
+  assert.deepEqual(await machineBranch(key, now), at('other'));
   assert.equal(asked.length, 3);
 });
 
@@ -75,7 +74,7 @@ test('a Host that cannot answer (a refusal, an old Host, offline) says nothing a
   assert.equal(await machineBranch(key), null);
   assert.equal(asked.length, 2);
   reply = async () => repo('git@github.com:o/r.git');
-  assert.deepEqual(await machineBranch(key), { branch: 'feat', repo: 'github.com/o/r' });
+  assert.deepEqual(await machineBranch(key), at('feat'));
 });
 
 test('a failed read in flight does not delete the newer entry that replaced it', async () => {
@@ -84,11 +83,11 @@ test('a failed read in flight does not delete the newer entry that replaced it',
   const old = machineBranch(key, () => 0);
   // the window passed, so a second read replaces the first entry while the first is still out
   reply = async () => repo('https://github.com/o/r', 'newer');
-  assert.deepEqual(await machineBranch(key, () => MACHINE_BRANCH_TTL), { branch: 'newer', repo: 'github.com/o/r' });
+  assert.deepEqual(await machineBranch(key, () => MACHINE_BRANCH_TTL), at('newer'));
   release({ error: { message: 'late' } });
   assert.equal(await old, null);
   // the newer answer is still the one kept
-  assert.deepEqual(await machineBranch(key, () => MACHINE_BRANCH_TTL), { branch: 'newer', repo: 'github.com/o/r' });
+  assert.deepEqual(await machineBranch(key, () => MACHINE_BRANCH_TTL), at('newer'));
   assert.equal(asked.length, 2);
 });
 
@@ -101,4 +100,30 @@ test('a repository is named from an https, ssh or scp address, and nothing else'
   for (const bad of [null, '', '/srv/repo.git', 'https://github.com/o', 'https://github.com/o/r/extra', 'file:///x/y']) {
     assert.equal(repoOfRemote(bad), null, String(bad));
   }
+});
+
+const pushed = (remote: string | null, upstream: unknown) => ({ value: { ...repo(remote).value, upstream } });
+
+test("a branch pushed to another remote is looked for in origin's repository, then in the one it is pushed to", async () => {
+  reply = async () => pushed('https://github.com/o/r', { remote: 'https://github.com/o/internal.git', branch: 'feat-up' });
+  assert.deepEqual(await machineBranch(key), {
+    branch: 'feat',
+    sources: [
+      { repo: 'github.com/o/r', branch: 'feat' },
+      { repo: 'github.com/o/internal', branch: 'feat-up', own: true },
+    ],
+  });
+});
+
+test("a branch pushed to origin's own branch, or to an address that names no repository, adds nowhere else to look", async () => {
+  for (const upstream of [{ remote: 'https://github.com/o/r.git', branch: 'feat' }, { remote: '/srv/mirror.git', branch: 'feat' }, null]) {
+    resetMachineBranches();
+    reply = async () => pushed('https://github.com/o/r', upstream);
+    assert.deepEqual(await machineBranch(key), at('feat'), JSON.stringify(upstream));
+  }
+});
+
+test('a checkout with no GitHub origin is looked for where its branch is pushed', async () => {
+  reply = async () => pushed(null, { remote: 'git@github.com:o/internal.git', branch: 'feat' });
+  assert.deepEqual(await machineBranch(key), { branch: 'feat', sources: [{ repo: 'github.com/o/internal', branch: 'feat', own: true }] });
 });

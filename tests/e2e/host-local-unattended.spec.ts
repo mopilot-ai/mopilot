@@ -2,7 +2,7 @@
 // Remote Run S1, its last step, against a real Host (host.unattended on): This Mac's background Host, installed by the app, runs a chat on the repo's fake ACP agent that waits on a permission card. The owner's policy (host:setOwnerPolicy, the real path to the Host) sets the reminder to 1 minute and the pause to 5, the least the policy accepts. The app quits and stays away past the pause; reopened, the chat's row says Paused, the strip above the composer says why and offers Resume once, the card shows as not answered, and Resume continues the run to the end of a turn. A second client answering a card shows "Allowed on <device>" in the chat. Every sentence is read from shared/host/attentionLine.mjs and cardLine.mjs, never restated.
 // It installs a per-user launch agent, so it runs only on a CI runner or in an isolated VM (MOPILOT_ACCEPT_VM=1). Named on the command line only: `node scripts/ci-cuj.mjs --spec tests/e2e/host-local-unattended.spec.ts`.
 // e2e-covers: src/components/sidebar/ThreadRow.tsx src/components/sidebar/ThreadMachineLine.tsx src/components/ui/HostMark.tsx
-// e2e-covers: src/components/sidebar/ProjectGroup.tsx src/components/sidebar/projectRows.ts
+// e2e-covers: src/components/sidebar/ProjectGroup.tsx src/components/sidebar/projectRows.ts src/components/sidebar/projectLabels.ts
 import { test, expect } from './fixtures/app';
 import type { Harness } from './fixtures/app';
 import {

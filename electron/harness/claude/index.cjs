@@ -379,7 +379,7 @@ function createClaudeHarness(o = /** @type {import('./state.cjs').HarnessOptions
     ipcMain.handle('claude:designLogin', (_e, id, bin, account) => login.start(id, bin, account));
     ipcMain.handle('claude:designLoginCode', (_e, id, code) => login.code(id, code));
     ipcMain.handle('claude:designLoginCancel', (_e, id) => login.cancel(id));
-    ipcMain.handle('claude:extras', (_e, bin, cwd, account) => queries.extras(bin, cwd ?? undefined, account ?? undefined));
+    ipcMain.handle('claude:extras', (_e, ...args) => queries.extras(...args));
     ipcMain.handle('claude:catalog', (_e, bin, cwd, account) => catalog.catalog(bin, String(cwd ?? ''), account ?? undefined));
     state.broadcastCatalog = (evt) => broadcast('claude:catalog', evt);
     ipcMain.handle('claude:watch', (_e, sessionId) => (forks.claim(`claude:${sessionId}`), transcripts.watch(sessionId)));

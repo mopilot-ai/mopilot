@@ -12,12 +12,27 @@ export const LIST_REREAD_MS = 300;
 /** The most chats one read of the list asks for (the Mac's own limit). */
 const MAX_LIST_READ = 200;
 
-/** Whose list this is: the account and the computer. Before the first connection the one paired computer is the one the list will be read from, so its saved list can paint at launch. */
-export function chatListKey(
-  state: { user?: { id?: string } | null; selectedPair: string | null; pairs: { pairId: string }[] },
+/** The computer the connection was last up to: kept while it is away, for the one-tap reconnect and for the chats' keys. */
+export function useLastPair(selected: string | null) {
+  const last = useRef<string | null>(null);
+  if (selected) last.current = selected;
+  return last;
+}
+
+/** The computer a chat belongs to: the one connected, else the last one used, else the one being waited for, else the only one paired. A chat opened at launch with that computer away is kept under the same key it was saved under. */
+export function chatPairOf(
+  state: { selectedPair: string | null; pairs: { pairId: string }[]; reconnect?: { pairId: string } | null },
   lastPair: string | null,
 ) {
-  return JSON.stringify([state.user?.id, state.selectedPair ?? lastPair ?? (state.pairs.length === 1 ? state.pairs[0].pairId : null)]);
+  return state.selectedPair ?? lastPair ?? state.reconnect?.pairId ?? (state.pairs.length === 1 ? state.pairs[0].pairId : null);
+}
+
+/** Whose list this is: the account and the computer. Before the first connection the computer being waited for, or the one paired, is the one the list will be read from, so its saved list can paint at launch. */
+export function chatListKey(
+  state: { user?: { id?: string } | null; selectedPair: string | null; pairs: { pairId: string }[]; reconnect?: { pairId: string } | null },
+  lastPair: string | null,
+) {
+  return JSON.stringify([state.user?.id, chatPairOf(state, lastPair)]);
 }
 
 /** The same chats in the same order, as the Mac told them (they are plain data). */

@@ -171,6 +171,11 @@ export function MachineRow({
         )}
         {line.update && <UpdateButton machine={machine} label={line.update.label} />}
         {line.check && <CheckButton machine={machine} label={line.check.label} />}
+        {line.remove && (
+          <button className="btn-pill soft small" onClick={() => setSheet('remove')} aria-label={`${line.remove.label} ${machine.name}`}>
+            {line.remove.label}
+          </button>
+        )}
         <button ref={menu.ref} className="icon-btn" onClick={menu.toggle} aria-label={`More for ${machine.name}`}>
           <Ellipsis size={16} />
         </button>

@@ -36,13 +36,14 @@ const ROW = {
   ],
 };
 
-function fakeHost(o: { runs?: any[]; refuse?: string; state?: string; store?: string } = {}) {
+function fakeHost(o: { runs?: any[]; refuse?: string; state?: string; store?: string; controlledByCode?: boolean } = {}) {
   const synced: any[] = [];
   const asked: number[] = [];
   const runs = o.runs ?? [];
   return {
     synced,
     asked,
+    controlledByCode: o.controlledByCode === true,
     state: () => o.state ?? 'online',
     scheduleSync: async (p: any) => {
       if (o.refuse) throw Object.assign(new Error('nope'), { code: o.refuse });
@@ -149,6 +150,15 @@ test('a machine that is away keeps what it last held; one without schedules hold
   const downgraded = world(t, { dir: was.dir, host: fakeHost({ refuse: 'feature_missing' }) });
   await downgraded.s.syncMachine('box');
   assert.equal(downgraded.s.firedByMachine(task()), false);
+  // a Mac this one only controls (paired by code) keeps none of its tasks: this Mac fires them, nothing is reported
+  const controlled = world(t, { host: fakeHost({ refuse: 'forbidden', controlledByCode: true }) });
+  await controlled.s.syncMachine('box');
+  assert.equal(controlled.s.firedByMachine(task()), false);
+  assert.deepEqual(controlled.reports, []);
+  // the same refusal from a Mac paired as usual is reported
+  const refusing = world(t, { host: fakeHost({ refuse: 'forbidden' }) });
+  await refusing.s.syncMachine('box');
+  assert.equal(refusing.reports[0].message, 'nope');
   const broken = world(t, { host: fakeHost({ refuse: 'timeout' }) });
   await broken.s.syncMachine('box');
   assert.equal(broken.reports[0].message, 'nope');

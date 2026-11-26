@@ -13,7 +13,7 @@ import { buildNotification } from '../mobile/src/push/dataMessage';
 import { DEFAULT_PREFS } from '../mobile/src/push/prefs';
 
 const require = createRequire(import.meta.url);
-const prim = require('../electron/remote/sodiumPrimitives.cjs').createSodiumPrimitives();
+const prim = require('../electron/platform/sodiumPrimitives.cjs').createSodiumPrimitives();
 const open = (key: Uint8Array, nonce: Uint8Array, box: Uint8Array, aad: Uint8Array) => prim.aeadOpen(key, nonce, box, aad);
 const vectors = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'fixtures/push-body-vectors.json'), 'utf8'));
 const key = Uint8Array.from(Buffer.from(vectors.keyHex, 'hex'));

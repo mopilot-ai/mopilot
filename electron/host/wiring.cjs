@@ -4,7 +4,8 @@ const { createLocalHost } = require('./local.cjs');
 const { createOutbox } = require('./outbox.cjs');
 const { createRemoteSend } = require('./remoteSend.cjs');
 const { createRemoteChats } = require('./remoteChats.cjs');
-const { LOCAL_HOST_ID, OwnershipStore } = require('./ownership.cjs');
+const { LOCAL_HOST_ID, OwnershipStore, onOwnershipMoved } = require('./ownership.cjs');
+const { onHostAccess } = require('./access.cjs');
 const { PatchLog } = require('./patchLog.cjs');
 const { parseKind } = require('../../shared/harnessKind.mjs');
 const { isMomoMeta } = require('../../shared/momoChat.mjs');
@@ -68,7 +69,8 @@ function localHostFor({ live, controller, sessions, claudeTurns }) {
  * @param {(hostId: string, folder: string) => Promise<unknown>} [o.checkFolder] a durable phone input rechecks its folder after a restart
  * @param {(chatId: string) => import('../../shared/host/models.mjs').HostModelPick | null | undefined} [o.selectionOf]
  * @param {(chatId: string) => import('../../shared/host/permissions.mjs').HostPermissionPick | null | undefined} [o.permissionOf]
- * @param {() => string | undefined} [o.userDefaultOf] this Mac's default permission mode: where a chat on a machine starts when it has no pick and no mode of its own
+ * @param {() => string | undefined} [o.userDefaultOf] this Mac's default permission mode: where a chat on a machine STARTS when it has no pick and no mode of its own
+ * @param {() => { takenIn?: (chatId: string) => boolean, refreshEpoch?: (chatId: string) => boolean } | undefined} [o.taken] see remoteSend.cjs
  * @param {(chatId: string) => string | undefined} [o.kindOf]
  * @param {(hostId: string) => unknown} [o.wake] a stopped cloud machine is woken for a message waiting for it (cloudWake.cjs)
  * @param {(error: Error) => void} o.report
@@ -90,6 +92,7 @@ function remoteSendFor({
   selectionOf,
   permissionOf,
   userDefaultOf,
+  taken,
   kindOf,
   wake,
   report,
@@ -125,6 +128,7 @@ function remoteSendFor({
       selectionOf,
       permissionOf,
       userDefaultOf,
+      taken,
       kindOf,
       wake,
       followMove: (chatId, details) => {
@@ -274,6 +278,29 @@ function remoteChatsFor({
       // a machine that answers but cannot take the deletion waits for an update, not for itself: the person is told which
       return { pending, ...(pending && deletions.outdated(owner.hostId) ? { outdated: true } : {}) };
     },
+    /** The chat was taken in from its machine's list: marked on its binding (it holds after a restart), with the epoch the Host holds. @param {string} chatId @param {number} [epoch] */
+    markTakenIn(chatId, epoch) {
+      if (!allowed()) return;
+      const held = store().get(chatId);
+      store().set(chatId, {
+        ...held,
+        takenIn: Date.now(),
+        epoch: Number.isSafeInteger(epoch) ? Math.max(held.epoch, /** @type {number} */ (epoch)) : held.epoch,
+      });
+    },
+    /** The epoch the machine's Host holds for a chat bound here: a message carries it, and a Host refuses one with another. Never lower than the one held, and never a mark that the chat was taken in. @param {string} chatId @param {number} epoch */
+    setEpoch(chatId, epoch) {
+      const held = store().get(chatId);
+      if (allowed() && Number.isSafeInteger(epoch) && epoch > held.epoch) store().set(chatId, { ...held, epoch });
+    },
+    takenIn: (/** @type {string} */ chatId) => allowed() && store().get(chatId).takenIn !== undefined,
+    takenInChats: () => (allowed() ? store().takenInChats() : []),
+    /** A chat taken in from a machine's list that never reached a window: not followed here any more and no longer bound to the machine; unlike `forget`, nothing is deleted on the machine. @param {string} chatId */
+    release(chatId) {
+      if (!allowed()) return;
+      get()?.unfollow(chatId);
+      store().remove(chatId);
+    },
     pendingDeletions: () => (allowed() ? deletions.pending() : []),
     dropMachine: (id) => deletions.dropMachine(id),
     /** Side chats expire on app exit. After a crash the first follow pass retires the previous app's side chats. */
@@ -345,6 +372,36 @@ function keepAgent(deps, chatId, harness) {
   // patchMeta-changes: false means the agent is already kept (or the chat cannot be saved): there is nothing to tell the windows
   if (!chats?.patchMeta(chatId, { config: { ...config, hostAgent: harness } })) return;
   deps.broadcastAll('chats:changed', { id: chatId, chat: chats.get(chatId) });
+  // what the chat can do follows its agent (a message into a running turn: electron/harness/bindings.cjs): the windows ask again
+  deps.broadcastAll('session:capsChanged');
+}
+
+/** @type {(() => void) | null} the one main's subscription: a later main in this process (a test's next) replaces it */
+let capsFollowing = null;
+/**
+ * What a chat can do follows where it runs (the capabilities' `onMachine`, its steer the Host agent's): the windows ask again
+ * when a write moves a chat to or from a machine, and when Host opens or closes (every chat is this Mac's while it is closed),
+ * once for the writes of one task.
+ * @param {() => void} capsChanged main's notice to the windows
+ */
+function capsFollowHost(capsChanged) {
+  capsFollowing?.();
+  // one notice for a burst of writes in one task (retiring a machine's side chats removes each of them)
+  let queued = false;
+  const tell = () => {
+    if (queued) return;
+    queued = true;
+    queueMicrotask(() => {
+      queued = false;
+      capsChanged();
+    });
+  };
+  const offMoves = onOwnershipMoved(tell);
+  const offAccess = onHostAccess(tell);
+  capsFollowing = () => {
+    offMoves();
+    offAccess();
+  };
 }
 
 /**
@@ -384,6 +441,7 @@ const wireKindOf = (kind) => {
 };
 
 module.exports = {
+  capsFollowHost,
   registerAttention,
   laneOf,
   keepAgent,

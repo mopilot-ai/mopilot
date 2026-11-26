@@ -44,9 +44,23 @@ const boxes = (page: Page) =>
       const r = document.querySelector(`.composer ${selector}`)?.getBoundingClientRect();
       return r ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right, mid: (r.top + r.bottom) / 2 } : null;
     };
+    // the left chips are the footer's own items (.composer-left draws no box of its own): their group is the span they cover
+    const group = (selector: string) => {
+      const rects = [...document.querySelectorAll(`.composer ${selector}`)].map((el) => el.getBoundingClientRect());
+      if (!rects.length) return null;
+      const top = Math.min(...rects.map((r) => r.top)),
+        bottom = Math.max(...rects.map((r) => r.bottom));
+      return {
+        top,
+        bottom,
+        left: Math.min(...rects.map((r) => r.left)),
+        right: Math.max(...rects.map((r) => r.right)),
+        mid: (top + bottom) / 2,
+      };
+    };
     return {
       footer: box('.composer-footer'),
-      left: box('.composer-left'),
+      left: group('.composer-left > *'),
       model: box('.model-btn'),
       mic: box('button[aria-label="Dictate"]'),
       note: box('.dictation-note'),

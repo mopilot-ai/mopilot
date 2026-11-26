@@ -24,6 +24,7 @@ const { noteIgnored, ignoring } = require('../ignored.cjs');
 const { queueItem } = require('./queueItem.cjs');
 const { inputIsGuarded } = require('./contract/inputGuard.cjs');
 const { endedTurn } = require('./userTurn.cjs');
+const { completePromptSuggestion } = require('./promptSuggestions.cjs');
 const { activeCompaction, retireCompaction, guardCompaction, suspendCompactionStart } = require('./compactionQueue.cjs');
 const { ControllerApprovals } = require('./controllerApprovals.cjs');
 const { folderMutation } = require('./folderMutation.cjs');
@@ -472,16 +473,16 @@ class ChatController extends ControllerApprovals {
     const interrupted = r.interrupted;
     observe({ kind: 'run-end', chatId, outcome: interrupted ? 'cancelled' : outcome === 'completed' ? 'completed' : 'failed' });
     if (interrupted) {
-      // a stop no earlier path saw (a window's turn/interrupt to Codex, an ACP cancel the agent reported) still lets go
       this.interrupting(chatId);
       this.recordStopped(chatId);
     }
     const finished = drain && !interrupted && busy(this.state.get(chatId));
     const text = r.lastText;
+    const activeTurn = this.state.get(chatId).activeTurn;
     const completion = {
       chatId,
       inputToken: r.inputToken,
-      ...endedTurn(this.state.get(chatId).activeTurn),
+      ...endedTurn(activeTurn),
       text,
       completed: finished && outcome === 'completed',
     };
@@ -492,7 +493,7 @@ class ChatController extends ControllerApprovals {
       return !interrupted && this.approvalOutlivesTurn(chatId, a);
     });
     this.setApprovals(chatId, approvals, ['end']);
-    // a failing finish hook must not stop the queue from draining
+    completePromptSuggestion(this, chatId, activeTurn, completion.completed);
     const finishFailed = (error) => noteIgnored('run the turn-finished hook', error);
     try {
       Promise.resolve(this.onFinished(completion)).catch(finishFailed);
@@ -500,7 +501,6 @@ class ChatController extends ControllerApprovals {
       finishFailed(error);
     }
     if (finished && !approvals.length) this.sayTurnEnd(chatId, text, outcome, summary, error);
-    // a steer still on its way goes first: steer() drains once it has settled
     if (r.steering) r.afterSteer = drain && !interrupted ? 'drain' : 'hold';
     else if (drain && !interrupted) this.drain(chatId)?.catch(ignoring('send the next queued message'));
   }

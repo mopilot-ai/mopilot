@@ -130,8 +130,9 @@ function createHostSchedules({
       try {
         await host.scheduleSync({ tasks: wire });
       } catch (error) {
-        // an older Host keeps no schedules: this Mac fires its tasks, as before
-        if (/** @type {any} */ (error)?.code === 'feature_missing') {
+        // an older Host keeps no schedules, and a Mac this one only controls (paired by code) keeps none of its tasks: this Mac fires them, as before
+        const code = /** @type {any} */ (error)?.code;
+        if (code === 'feature_missing' || (code === 'forbidden' && host.controlledByCode)) {
           delete kept[hostId];
           save();
           return;

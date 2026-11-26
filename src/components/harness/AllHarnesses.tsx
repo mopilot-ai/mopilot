@@ -1,4 +1,5 @@
-// Settings → Harnesses → All harnesses: "New chats use" (a model of a harness that can start a chat), then one row per
+// Settings → Harnesses → All harnesses: "New chats use" (a model of a harness that can start a chat), whether new chats
+// follow the last used instead, and the default's effort (session/newChatStart.ts), then one row per
 // installed harness (HarnessRows.tsx: quiet while ready, else its state and one thing to do), opening its page; one
 // not installed is under Install another harness. Around the list, Update all and Check for updates
 // (HarnessUpdatesBar), and the way to Accounts & billing.
@@ -17,8 +18,12 @@ import { admittedBasics, installedBasics } from '../../harness/launch';
 import { Group, Row, Select, Toggle } from '../pages/Settings';
 import { HarnessUpdatesBanner, HarnessUpdatesFoot } from './HarnessUpdatesBar';
 import { selectionFor, setSelection, useHarnessModels, useHarnessStatus } from '../../session/harness/select';
+import { newChatStartMode, setNewChatDefault, setNewChatStart, type NewChatStart } from '../../session/newChatStart';
+import { isFirstTier } from '../../harness/adapter';
+import { effortLabel } from '../../lib/format';
 import { groupModels } from '../../harness/modelGroups';
 import type { HarnessModel } from '../../harness/types';
+import type { AppState } from '../../store/state';
 import { RouteNotice } from './RouteNotice';
 import { BasicRow, HarnessRow } from './HarnessRows';
 
@@ -39,12 +44,19 @@ const canStart = (st: Parameters<typeof harnessPhase>[0]) => ['ready', 'not-star
 const SEP = '::';
 const modelChoice = (h: HarnessId, m: HarnessModel) => ({ value: `${h}${SEP}${m.id}`, label: `${HARNESS_LABEL[h]} · ${m.label}` });
 
+/** The fixed default saved for `h` while new chats start from it, else null. */
+const fixedFor = (s: AppState, h: HarnessId) =>
+  newChatStartMode(s) === 'default' && s.prefs.newChatDefault?.harness === h ? s.prefs.newChatDefault : null;
+/** The model new chats on `h` start with: the fixed default's, else the harness's own pick. */
+const fixedModel = (s: AppState, h: HarnessId) => (fixedFor(s, h) ?? selectionFor(h, s)).model;
+
 function useDefaultChoices(ids: readonly HarnessId[]) {
   const saved = useStore((s) => savedDefaultHarness(s));
   const status = useFirstClassStatus();
   const models: Record<HarnessId, HarnessModel[]> = { codex: useHarnessModels('codex'), claude: useHarnessModels('claude') };
-  // the model new chats on the saved harness use: its own pick, else its default
-  const want = useStore((s) => (saved === 'codex' || saved === 'claude' ? selectionFor(saved, s).model : null));
+  // the model new chats on the saved harness use: the fixed default's while new chats start from it, else its own pick
+  const want = useStore((s) => (isFirstTier(saved) ? fixedModel(s, saved) : null));
+  const fixed = useStore((s) => newChatStartMode(s) === 'default');
   const ready = ids.filter((h) => canStart(status[h]));
   // a harness still listing its models is offered by name
   const firstTier = ready.flatMap((h) => {
@@ -62,8 +74,12 @@ function useDefaultChoices(ids: readonly HarnessId[]) {
   const choose = (v: string) => {
     const [kind, id] = v.split(SEP) as [HarnessKind, string | undefined];
     chooseDefaultHarness(kind);
-    const m = id ? models[kind as HarnessId].find((x) => x.id === id) : undefined;
-    if (m) setSelection(kind as HarnessId, { model: m.id, effort: m.defaultEffort }, null);
+    const m = id && isFirstTier(kind) ? models[kind].find((x) => x.id === id) : undefined;
+    // the fixed default keeps the model and its default effort; a harness picked by name keeps what it uses now
+    const now = isFirstTier(kind) ? selectionFor(kind) : null;
+    setNewChatDefault(kind, m?.id ?? now?.model ?? null, m ? m.defaultEffort : (now?.effort ?? null));
+    // following the last used, the pick is also the model new chats on that harness use next, as it always was
+    if (m && !fixed && isFirstTier(kind)) setSelection(kind, { model: m.id, effort: m.defaultEffort }, null);
   };
   return { value, choices, choose };
 }
@@ -88,7 +104,45 @@ export function NewChatsUseRow({ own }: { own: HarnessKind }) {
   );
 }
 
-/** "New chats use", atop All harnesses; the note says what runs while the default can't. */
+const START_OPTIONS: { value: NewChatStart; label: string }[] = [
+  { value: 'last', label: 'Last used' },
+  { value: 'default', label: 'The default above' },
+];
+const START_DESC =
+  'Last used: the harness, model and effort of your latest message (the default above until there is one). The default above: always that model, with the effort below.';
+
+/** Whether new chats start with the last used harness, model and effort, or always with the default above. */
+function NewChatStartRow() {
+  const mode = useStore((s) => newChatStartMode(s));
+  return (
+    <Row title="New chats start with" desc={START_DESC}>
+      <Select value={mode} width={220} options={START_OPTIONS} onChange={setNewChatStart} />
+    </Row>
+  );
+}
+
+/** The fixed default's thinking effort, offered while new chats always start from the default on Codex or Claude Code. */
+function DefaultEffortRow() {
+  const saved = useStore((s) => savedDefaultHarness(s));
+  const h = isFirstTier(saved) ? saved : null;
+  const fixed = useStore((s) => (h ? fixedFor(s, h) : null));
+  const models = useHarnessModels(h ?? 'codex');
+  const model = models.find((m) => m.id === fixed?.model) ?? models.find((m) => m.isDefault);
+  if (!h || !fixed || !model?.efforts.length) return null;
+  const value = fixed.effort && model.efforts.includes(fixed.effort) ? fixed.effort : (model.defaultEffort ?? model.efforts[0]);
+  return (
+    <Row title="Thinking effort" desc="The effort new chats start with on the default model.">
+      <Select
+        value={value}
+        width={220}
+        options={model.efforts.map((e) => ({ value: e, label: effortLabel(e) }))}
+        onChange={(e) => setNewChatDefault(h, fixed.model ?? model.id, e)}
+      />
+    </Row>
+  );
+}
+
+/** "New chats use", then whether new chats follow the last used, atop All harnesses; the note says what runs while the default can't. */
 export function NewChatsUse({ ids }: { ids: readonly HarnessId[] }) {
   // the saved default's own note: the open draft's pick is not what this page sets
   const note = useStore((s) => defaultHarnessNote(savedDefaultResolved(s)));
@@ -97,6 +151,8 @@ export function NewChatsUse({ ids }: { ids: readonly HarnessId[] }) {
       <Row title="New chats use" desc={note ?? 'Only harnesses that are ready are listed.'}>
         <DefaultHarnessSelect ids={ids} />
       </Row>
+      <NewChatStartRow />
+      <DefaultEffortRow />
       <HighestCliVersion />
     </Group>
   );

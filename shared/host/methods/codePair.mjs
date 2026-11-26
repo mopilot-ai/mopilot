@@ -59,7 +59,19 @@ export default ({ bad, matchOf }) => {
           return { key: b64(p.key, 200), weak: p.weak, signature: b64(p.signature, 200) };
         },
       },
+      'host.codePair.resetApproval': { access: /** @type {const} */ ('paired'), requires: [CODE_PAIR_FEATURE], parse: () => ({}) },
       'host.codePair.status': { access: /** @type {const} */ ('paired'), requires: [CODE_PAIR_FEATURE], parse: () => ({}) },
+      // "Allow connections" as the app on this Mac has it: the Host keeps it and makes no code while it is off
+      'host.codePair.connections': {
+        access: /** @type {const} */ ('paired'),
+        requires: [CODE_PAIR_FEATURE],
+        parse: (/** @type {any} */ p) => {
+          if (typeof p.open !== 'boolean') throw bad('Say whether connections are allowed.');
+          // the fingerprint of this Mac's app's own key: the one paired client "Allow connections" off does not keep out
+          if (p.app != null && (typeof p.app !== 'string' || !/^[0-9a-f]{64}$/.test(p.app))) throw bad('That is not a client fingerprint.');
+          return { open: p.open, ...(p.app == null ? {} : { app: p.app }) };
+        },
+      },
     },
   };
 };

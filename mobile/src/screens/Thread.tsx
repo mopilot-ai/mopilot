@@ -12,14 +12,14 @@ import { useThreadComposer } from '../components/useThreadComposer';
 import { SelectionActions } from '../sideChat';
 import type { DraftHandle } from '../presentation/drafts';
 import { useChatHeader } from '../components/ChatHeader';
-import { CachedRows } from '../components/CachedRows';
 import { TranscriptBlocks } from '../components/TranscriptBlocks';
 import { ChangesChip, TurnLine } from '../components/TurnLine';
 import { cardKey, type CardData } from '../components/RequestCard';
 import { ChatCards } from '../components/ChatCards';
 import { useCards } from '../remote/useCards';
-import { displayRows, keyedRows, row, withPendingRows, type Data, type Thread as ThreadState } from '../presentation/thread';
-import { fold, tick, type Clock } from '../presentation/toolRuns';
+import { savedCount } from '../presentation/heldRows';
+import { displayRows, keyedRows, type Data, type Thread as ThreadState } from '../presentation/thread';
+import { tick, type Clock } from '../presentation/toolRuns';
 import { createFollowFeed } from '../presentation/followFeed';
 import { expectReply, watchFor } from '../presentation/liveWatchDevice';
 import { FOLLOW_ROWS, followRequest } from '../presentation/follow';
@@ -29,14 +29,16 @@ import { useOwnedRequest } from '../remote/useOwnedRequest';
 import { notesIn, useChatControls } from '../remote/useChatControls';
 import { useSurface } from '../remote/useSurface';
 import { ChatModelSheets, type ModelSheetOpen } from '../components/ChatModelSheet';
-import { forgetIfGone, isGone, useChatRows } from '../remote/useChatRows';
+import { forgetIfGone, isGone } from '../remote/useChatRows';
 import { LoadFailure } from '../components/LoadFailure';
-import type { ChatCache } from '../presentation/chatCache';
+import type { PagedChatCache } from '../remote/pageCache';
 import { useAttachments } from '../remote/useAttachments';
 import { useEarlier } from '../remote/useEarlier';
 import { useChangeCounts } from '../remote/useChangeCounts';
 import { useCatchUpWhenBack } from '../catchUp';
 import { useBlockWindow } from '../remote/useBlockWindow';
+import { useShownRows } from '../remote/useShownRows';
+import { useSwapPhase } from '../remote/useSwapPhase';
 import { useFollowEnd } from '../remote/useFollowEnd';
 import { useQuiet } from '../remote/useQuiet';
 import { QueuedMessages, queueCalls } from '../components/QueuedMessages';
@@ -46,16 +48,18 @@ import { retryTurn } from '../presentation/retryTurn';
 import { messagePictures, messageReady } from '../presentation/messagePictures';
 import { usePendingMessages, usePreviewedRows } from '../presentation/useSentMessages';
 import { Notice } from '../components/Notice';
+import { useSavedLine } from '../components/SavedLine';
 import { lostInFlight, unconfirmedNotice, type Unconfirmable } from '../remote/unconfirmed';
 import { useUnconfirmed } from '../remote/useUnconfirmed';
 import type { QueuedSend } from '../outbox';
-import { lastTurn, tailOf } from '../presentation/workingLine';
+import { tailOf } from '../presentation/workingLine';
 import { copyText } from '../platform/clipboard';
 import { kitQueued, machineQueuedLine, macScreens } from '../remote/hostChat';
+import { explain } from '../remote/client';
 import { useHostRuntime } from '../remote/useHostRuntime';
 import { useStopping } from '../remote/useStopping';
 import { FollowOverlays } from '../components/FollowOverlays';
-import { waitingForRecord, initialSent, withSent, unrecordedQueue, type Sent, type FirstMessage } from '../presentation/sentMessages';
+import { initialSent, withSent, unrecordedQueue, type Sent, type FirstMessage } from '../presentation/sentMessages';
 export function Thread({
   runtime: base,
   chatId,
@@ -95,7 +99,7 @@ export function Thread({
   /** Where the chat's rows are kept for its offline page (the account, computer and chat); absent keeps nothing. */
   historyKey?: string;
   /** The sealed copy of those rows on this phone, so a chat opened before paints from disk; absent keeps only the memory copy. */
-  rowCache?: ChatCache | null;
+  rowCache?: PagedChatCache | null;
   /** The computer is away and being waited for: the chat shows what it last showed, and what is sent waits for the computer. */
   offline?: boolean;
   /** Opens the read-only terminal; absent where the app has none. */
@@ -136,8 +140,10 @@ export function Thread({
   rowKeys.current = { historyKey, rowCache };
   const [modelSheet, setModelSheet] = useState<ModelSheetOpen>(null);
   const files = useAttachments(request, historyKey);
-  const earlier = useEarlier(request, chatId);
+  const earlier = useEarlier(request, chatId, rowCache?.pages ?? null, rowCache?.pages ? historyKey : null);
   const [thread, setThread] = useState<ThreadState | null>(null);
+  const threadRef = useRef(thread);
+  threadRef.current = thread;
   const settings = useChatControls(request, chatId, followSent, notesIn(thread));
   // a stop or an answer that was in flight as the connection went: the Mac may have taken it; the notice goes when the chat shows what became of it
   const unconfirmed = useUnconfirmed(
@@ -158,7 +164,7 @@ export function Thread({
   // a recording or transcript in the voice note keeps the attachment menu open
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [adding, setAdding] = useState(false);
-  const follow = useFollowEnd(chatId, cards.waiting);
+  const follow = useFollowEnd(chatId, cards.waiting, earlier.release);
   useCatchUpWhenBack(offline);
   const theme = useTheme();
   const mounted = useRef(false);
@@ -188,6 +194,7 @@ export function Thread({
         );
       },
       watch: watchFor(runtime, chatId), // the net under the live events (liveWatch.ts)
+      final: isGone, // a first read that failed is read again by itself, unless the chat is gone
       subscribe: (handle) =>
         runtime.onEvent((event) => {
           if (event.chatId !== chatId) return;
@@ -198,13 +205,13 @@ export function Thread({
         thread: (value, reread) => {
           markChat('rows-shown');
           setLost(null);
-          if (reread) earlier.reset();
+          if (reread || !threadRef.current) earlier.reread(threadRef.current, value);
           setThread(value);
         },
         failed: (message, quiet) => {
           // a chat read before keeps its rows; the first read that fails says why
           if (!quiet) forgetIfGone(message, rowKeys.current.historyKey, rowKeys.current.rowCache);
-          setLost(message);
+          setLost(explain(message));
         },
       },
     });
@@ -217,7 +224,7 @@ export function Thread({
         /* Cleanup is best effort after the view is retired. */
       });
     };
-  }, [runtime, chatId, cards.reset, earlier.reset, offline]);
+  }, [runtime, chatId, cards.reset, earlier.reread, offline]);
   async function action(method: string, params: Data, kind: Unconfirmable, handled?: (e: unknown) => boolean) {
     setBusy(true);
     setError(null);
@@ -228,7 +235,7 @@ export function Thread({
       if (mounted.current) {
         if (!handled?.(e)) {
           if (lostInFlight(e)) lost(kind);
-          else setError(e instanceof Error ? e.message : String(e));
+          else setError(explain(e));
         }
         setBusy(false);
       }
@@ -255,10 +262,10 @@ export function Thread({
           pictures.length ? runtime.messageIdentity?.('chat.send', chatId, id) : undefined,
         ),
       );
-      follow.pin(text), expectReply(chatId); // (the net looks sooner now) pinned under the nav bar, keyboard down, as in Claude for iOS
+      follow.pin(pictures.length ? undefined : text), expectReply(chatId); // pinned, as in Claude for iOS; a message with pictures (over its words) lands without the words' rise
       Keyboard.dismiss();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(explain(e));
       return false;
     }
     unconfirmed.clear();
@@ -273,15 +280,14 @@ export function Thread({
     void chatId;
     earlier.reset();
   }, [chatId, earlier.reset]);
-  // an older row is keyed by its id, so a page joined above (with a message that repeats one shown) leaves the keys of the rows below as they were
+  useEffect(() => earlier.fill(thread), [earlier.fill, thread]);
+  // an older row is keyed by its identity, the key it has in the snapshot too, so a page joined above (with a message that repeats one shown) leaves the keys of the rows below as they were and a row that moves from the snapshot to the rows above is not mounted again
   const all = useMemo(
-    () =>
-      thread
-        ? [...earlier.rows.map((r) => ({ ...row(r, 'rows'), key: `earlier:${String(r.id)}` })), ...keyedRows(displayRows(thread))]
-        : [],
-    [thread, earlier.rows],
+    () => (thread ? [...earlier.rows.map(earlier.item), ...keyedRows(displayRows(thread))] : []),
+    [thread, earlier.rows, earlier.item],
   );
-  onScreen.current = all.length;
+  // saved rows only: counting a live row asked for one more row at every read again (and the net then read again every 4 s for ever)
+  onScreen.current = earlier.rows.length + (thread ? savedCount(thread) : 0);
   const rows = usePreviewedRows(runtime, chatId, all, sent, queued);
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
@@ -313,9 +319,6 @@ export function Thread({
   useEffect(() => {
     setClock((old) => (loaded ? tick(old, status, Date.now()) : null));
   }, [loaded, status]);
-  // the turn whose steps were folded by a tap: the key of your message that began it, so the next turn shows its steps again
-  const [foldedTurn, setFoldedTurn] = useState<string | null>(null);
-  const view = useMemo(() => fold(rows, { running, foldedTurn }), [rows, running, foldedTurn]);
   // what ends the transcript names the working line's activity; the thinking copy grows from when it last changed
   const tail = useMemo(() => tailOf(rows), [rows]);
   // a step the transcript leaves out (the wrap-up) still ends the turn's reply: what follows it is not the reply
@@ -326,15 +329,15 @@ export function Thread({
     void running; // or the turn starts or resumes
     setSince(Date.now());
   }, [tailKey, running]);
-  const turn = useMemo(() => lastTurn(rows), [rows]);
-  const shown = useChatRows(historyKey, rowCache, loaded ? view : null);
-  rowsRef.current = thread ? rows : shown;
-  const waiting = waitingForRecord(linked, thread ? rows : shown, [...queued, ...held]);
-  const pendingView = fold(withPendingRows(rows, waiting), { running, foldedTurn });
-  const win = useBlockWindow(pendingView.blocks, chatId);
   const lines = useChangeCounts(runtime, request, chatId, !!review, loaded && !running);
+  const pending = [...queued, ...held];
+  const shownRows = useShownRows({ rows, loaded, running, historyKey, rowCache, counts: lines, linked, pending });
+  const { saved, shown, changes, turn, waiting, list, folded, toggle } = shownRows;
+  rowsRef.current = shown;
+  const win = useBlockWindow(list.blocks, chatId, !thread);
+  const savedLine = useSavedLine(chatId, !thread && !!rowCache?.pages && shown.length > 0 && (offline || !!lost));
+  const phase = useSwapPhase(thread !== null);
   const canPageBack = !!thread && !!earlier.cursor(thread);
-  // while a turn runs, the header says where it works (the site or the app), as Claude's does
   const working = useSurface(request, chatId, status === 'running' || status === 'inProgress', rows.length);
   // the header's sheets are drawn last, over the page body (drawn first they would sit under it)
   const header = useChatHeader({
@@ -362,7 +365,7 @@ export function Thread({
         {unconfirmed.kind && <Notice {...unconfirmedNotice(unconfirmed.kind)} />}
         {!thread &&
           !(error ?? lost) &&
-          !shown.length &&
+          !saved.length &&
           // no loading text (a chat opens like Claude's); a quiet spinner says the page is not blank by mistake
           (offline ? (
             <Text accessibilityLiveRegion="polite" style={styles.muted}>
@@ -375,32 +378,31 @@ export function Thread({
         <LoadFailure empty={!thread && !offline} failed={!!(error ?? lost)} lost={!!lost} gone={gone} retry={refresh} />
       </View>
       <View style={{ flex: 1 }}>
+        {/* over the list, not above it nor in it: the saved rows are bottom-pinned, and its going must not move them */}
+        {savedLine.line}
         <ScrollView
           ref={follow.ref}
-          contentContainerStyle={[styles.body, { padding: 16, gap: 8, minHeight: follow.reserve }]}
+          contentContainerStyle={[styles.body, { padding: 16, paddingTop: 16 + savedLine.room, gap: 8, minHeight: follow.reserve }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          onTouchEnd={Keyboard.dismiss}
           scrollEventThrottle={32}
           {...follow.props}
-          {...earlier.listProps(thread, follow.props, win)}
+          {...earlier.listProps(thread, follow.props, { ...win, holds: follow.reserve === undefined })}
           // a page joined above keeps the row being read where it is; the control above the rows (with its error) is the first child
-          maintainVisibleContentPosition={follow.reserve === undefined ? { minIndexForVisible: 1 } : undefined}
+          maintainVisibleContentPosition={follow.pinArmed ? undefined : { minIndexForVisible: 1 }}
         >
           {(canPageBack || win.hidden > 0) && <EarlierRow {...earlier.row(thread, win)} />}
-          {thread && (
-            // only the reply that ends a working turn is still being written; one followed by steps, or by a question for you, is finished
-            <SelectionActions {...{ drafts, request, chatId, hostId }} controls={settings.controls} usable={!gone}>
-              <TranscriptBlocks
-                blocks={win.shown}
-                streamingKey={status === 'running' || status === 'inProgress' ? tailKey : null}
-                request={request}
-                chatId={chatId}
-              />
-            </SelectionActions>
-          )}
+          {/* only the reply that ends a working turn is still being written; one followed by steps, or by a question for you, is finished */}
+          <SelectionActions {...{ drafts, request, chatId, hostId }} controls={settings.controls} usable={!gone && !!thread}>
+            <TranscriptBlocks
+              blocks={win.shown}
+              streamingKey={status === 'running' || status === 'inProgress' ? tailKey : null}
+              phase={phase}
+              request={request}
+              chatId={chatId}
+            />
+          </SelectionActions>
           {/* cache-first: the rows the chat last showed, while its computer is away */}
-          {!thread && <CachedRows shown={shown} waiting={waiting} />}
           {!!first?.warning && <Notice text={first.warning} />}
           {thread && !thread.items.length && !thread.history.length && !queued.length && !waiting.length && (
             <Text style={styles.muted}>No messages yet.</Text>
@@ -443,7 +445,7 @@ export function Thread({
             }}
           />
           <ChatCards cards={cards} />
-          {thread && (running || view.activity > 0 || clock?.active || clock?.took != null || clock?.ended) && (
+          {(running || list.activity > 0 || clock?.active || clock?.took != null || clock?.ended) && (
             // only the steady "Waiting for you" is announced; a running clock would be read out every second
             <View accessibilityLiveRegion={status === 'awaitingUser' ? 'polite' : 'none'}>
               <TurnLine
@@ -451,24 +453,26 @@ export function Thread({
                 quiet={quiet}
                 tail={tail}
                 since={since}
-                copy={turn.reply ? () => void copyText(turn.reply!) : undefined}
+                // the saved rows may be old (a newer turn, one still running): only the Mac's own rows offer copy and retry
+                copy={thread && turn.reply ? () => void copyText(turn.reply!) : undefined}
                 retry={
-                  turn.you
+                  thread && turn.you
                     ? retryTurn({ runtime, chatId, text: turn.you, setSent, rows: () => rowsRef.current, held, pin: follow.pin, setError })
                     : undefined
                 }
                 state={!running ? 'done' : status === 'awaitingUser' ? 'waiting' : 'working'}
-                folded={foldedTurn === view.turnKey}
-                toggle={view.activity > 0 ? () => setFoldedTurn(foldedTurn === view.turnKey ? null : view.turnKey) : undefined}
+                folded={folded}
+                toggle={toggle}
               />
             </View>
           )}
           {thread && !running && !!turn.reply && notify}
+          <View {...follow.endMarker} />
         </ScrollView>
         <FollowOverlays scroller={follow.ref} away={follow.awayStore} ready={!!thread} jump={follow.jump} />
       </View>
-      {thread && review && !running && lines && lines.files > 0 && (
-        <ChangesChip added={lines.added} removed={lines.removed} open={review} />
+      {!running && changes && changes.files > 0 && (
+        <ChangesChip added={changes.added} removed={changes.removed} open={thread ? review : undefined} />
       )}
       {/* always there, as in Claude for iOS: before the live load answers (cached rows, a slow Mac) or while offline, a message goes to the outbox and is sent in order; Stop and the model pill appear once the chat is followed */}
       {!gone && <ChatComposer {...{ drafts, request, chatId, media }} {...composer} />}

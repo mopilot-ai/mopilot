@@ -39,11 +39,13 @@ function withFixtures(state: 'idle' | 'recovery' | 'floating' | 'floating-recove
 test('all harness footer groups keep a single row and shrink labels instead of adding height', () => {
   withFixtures('idle', (root) => {
     for (const kind of families) {
-      for (const selector of ['.composer-footer', '.composer-left', '.composer-right']) {
+      for (const selector of ['.composer-footer', '.composer-right']) {
         const group = root.querySelector(`[data-kind="${kind}"] ${selector}`)!;
         assert.equal(getComputedStyle(group).flexWrap, 'nowrap', `${kind} ${selector}`);
         assert.equal(getComputedStyle(group).minWidth, '0', `${kind} ${selector} can shrink`);
       }
+      // the left chips are the footer's own items, on its one row: the left group draws no box that could wrap or hold them
+      assert.equal(getComputedStyle(root.querySelector(`[data-kind="${kind}"] .composer-left`)!).display, 'contents', kind);
       for (const selector of ['.composer-left > .tooltip-anchor', '.model-name']) {
         assert.equal(getComputedStyle(root.querySelector(`[data-kind="${kind}"] ${selector}`)!).minWidth, '0', `${kind} ${selector}`);
       }

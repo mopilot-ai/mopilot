@@ -112,7 +112,12 @@ export const ScrollView = React.forwardRef(
       onScrollEndDrag,
       onMomentumScrollBegin,
       onMomentumScrollEnd,
+      onTouchStart: props.onTouchStart,
+      onTouchMove: props.onTouchMove,
+      onTouchEnd: props.onTouchEnd,
+      onTouchCancel: props.onTouchCancel,
       contentContainerStyle: props.contentContainerStyle,
+      keyboardShouldPersistTaps: props.keyboardShouldPersistTaps,
     };
     (globalThis as any).__scrollEvents = scrollEvents;
     // each scroll view by its testID, for a test that has several on screen (a pager of zooming pictures)
@@ -268,9 +273,22 @@ export const ActionSheetIOS = {
  * links to the app through `__phoneInitialUrl` (opened at start) and `__phoneLinkListeners` (the rest).
  */
 export const AppState = {
+  // a test sets `__phoneAppState` ('background', 'inactive') to say where the app is; unset, nothing is known
+  get currentState() {
+    return (globalThis as any).__phoneAppState as string | undefined;
+  },
   addEventListener: (_type: string, listener: (state: string) => void) => {
-    (globalThis as any).__phoneForeground = () => listener('active');
-    return { remove: () => void ((globalThis as any).__phoneForeground = undefined) };
+    // every listener hears a change of state (a test raises it by `__phoneAppState`, or the return to the foreground by `__phoneForeground`)
+    const all = ((globalThis as any).__phoneAppListeners ??= new Set<(state: string) => void>()) as Set<(state: string) => void>;
+    all.add(listener);
+    (globalThis as any).__phoneAppState = (state: string) => [...all].forEach((l) => l(state));
+    (globalThis as any).__phoneForeground = () => [...all].forEach((l) => l('active'));
+    return {
+      remove: () => {
+        all.delete(listener);
+        if (all.size === 0) (globalThis as any).__phoneForeground = undefined;
+      },
+    };
   },
 };
 export const Linking = {
@@ -367,6 +385,8 @@ export const FlatList = ({ data, renderItem, keyExtractor, keyboardShouldPersist
 /** The system's Reduce Motion: read once, then changes arrive through the listener a test fires with `__phoneReduceMotionChange(value)`. */
 export const AccessibilityInfo = {
   isReduceMotionEnabled: async () => !!(globalThis as any).__phoneReduceMotion,
+  // what a screen said aloud to VoiceOver, for a test to read
+  announceForAccessibility: (text: string) => void ((globalThis as any).__announced ??= []).push(text),
   addEventListener: (_event: string, listener: (value: boolean) => void) => {
     (globalThis as any).__phoneReduceMotionChange = listener;
     return { remove: () => void ((globalThis as any).__phoneReduceMotionChange = undefined) };

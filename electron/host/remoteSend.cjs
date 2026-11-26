@@ -12,7 +12,7 @@ const { createApprovalWaits } = require('./remoteSendApprovals.cjs');
 const { createSendChecks } = require('./remoteSendChecks.cjs');
 const { createSendProjection } = require('./remoteSendProjection.cjs');
 const { createRefusalView } = require('./refusalView.cjs');
-const { remotePicks } = require('./remotePicks.cjs');
+const { picksFor } = require('./remotePicks.cjs');
 const { LOCAL_HOST_ID } = require('./ownership.cjs');
 
 /** A card nobody answered for this long is one approval timeout; the third in a row pauses the run (design/host: Offline and queueing). */
@@ -51,7 +51,8 @@ const STOP_AWAY = "Can't reach the machine, so Stop did not arrive. The run goes
  * @param {(hostId: string, folder: string) => Promise<unknown>} [o.checkFolder] revalidates a phone's durable folder gate after restart
  * @param {(chatId: string) => import('../../shared/host/models.mjs').HostModelPick | null | undefined} [o.selectionOf] the chat's persisted machine-scoped model pick
  * @param {(chatId: string) => import('../../shared/host/permissions.mjs').HostPermissionPick | null | undefined} [o.permissionOf]
- * @param {() => string | undefined} [o.userDefaultOf] this Mac's default permission mode: where a chat on a machine starts when it has no pick and no mode of its own
+ * @param {() => string | undefined} [o.userDefaultOf] this Mac's default permission mode: where a chat on a machine STARTS when it has no pick and no mode of its own; a chat that already runs there keeps the mode its Host reports
+ * @param {() => { takenIn?: (chatId: string) => boolean, refreshEpoch?: (chatId: string) => boolean } | undefined} [o.taken] the chats taken in from a machine's list (electron/app/machineChatAdoption.cjs): one keeps the mode its Host reports, and one the Host refuses for its epoch reads it again and is sent once more
  * @param {(chatId: string) => string | undefined} [o.kindOf] current adapter kind for continued or switched chats
  * @param {(hostId: string) => unknown} [o.wake] the machine looked offline with a message waiting: a stopped cloud machine is woken (cloudWake.cjs)
  * @param {(error: Error) => void} [o.report]
@@ -77,6 +78,7 @@ function createRemoteSend({
   selectionOf = () => null,
   permissionOf = () => null,
   userDefaultOf = () => undefined,
+  taken = () => undefined,
   kindOf = () => undefined,
   report = () => undefined,
 }) {
@@ -248,6 +250,8 @@ function createRemoteSend({
       onStale: (entry) => moved.add(entry.key),
     });
     if (result.stopped === 'offline' && !moving.has(chatId)) void wake?.(owner.hostId);
+    // refused for its epoch while the Host holds a newer one than the list gave when the chat was taken in: the epoch is read again, and the message goes once more
+    if (result.stopped === 'stale_epoch' && taken()?.refreshEpoch?.(chatId)) return (await rebaseChat(chatId)) ?? result;
     // the Host handed the chat to another machine while this app did not hear (a lost commit reply, a restart): the chat is there now, and what waited goes to it
     if (
       result.stopped === 'failed' &&
@@ -299,6 +303,8 @@ function createRemoteSend({
     );
   }
 
+  const picksOf = picksFor({ ownerOf, selectionOf, permissionOf, userDefaultOf, taken, state, kindOf, rowOf });
+
   /**
    * Keeps a message in the outbox, under the chat's first-message start when it has one. `failed` is the receipt when it could not be kept.
    * @param {string} chatId @param {any} item @param {number | null} origin @param {{ requiresFolderCheck?: boolean, shown?: boolean }} [flags] what rides with it: a folder to check first, the sending window drawing it in the transcript already (the queue then does not show it as sent)
@@ -310,20 +316,7 @@ function createRemoteSend({
     // a message kept for a move in progress is delivered to whoever owns the chat when it ends (a restart finds it by `held`)
     const held = moving.has(chatId);
     // what a chat that runs here carries is its own options: the machine's picks are not made for it
-    if (!held || isRemote(chatId))
-      q.opts = remotePicks({
-        chatId,
-        hostId: ownerOf(chatId).hostId,
-        opts: q.opts,
-        model: selectionOf(chatId),
-        permission: permissionOf(chatId),
-        userDefault: userDefaultOf(),
-        chat: state().get(chatId),
-        kind: kindOf(chatId),
-        item,
-        // the machine's own word, from its last status: the Host takes Plan for this agent
-        planOk: (harness) => rowOf(ownerOf(chatId).hostId)?.harnesses?.some((h) => h.id === harness && h.planMode === true) === true,
-      });
+    if (!held || isRemote(chatId)) q.opts = picksOf(chatId, q.opts, item, beginning.has(chatId));
     // Plan with a Host that does not take it for this agent: refused with its words, and the message is not kept
     if (q.opts.plan && !(held && !isRemote(chatId))) return { failed: { action: 'failed', id: q.id, error: NO_PLAN } };
     if (q.attachments.some((a) => !remoteAttachmentKind(a.kind))) return { failed: { action: 'failed', id: q.id, error: NO_ATTACHMENTS } };
@@ -469,6 +462,8 @@ function createRemoteSend({
     },
     /** The continue dialog was accepted: the messages queued for the old owner belong to the new one and go. @param {string} chatId */
     rebase: async (chatId) => void (await rebaseChat(chatId)),
+    /** Whether a message of the chat waits in the outbox. @param {string} chatId */
+    hasPending: (chatId) => outbox.pending(chatId).length > 0,
     /** A message for a chat a Switch host is moving, kept until the move ends: a send receipt, `queued` once kept. */
     hold(chatId, item, origin = null) {
       const kept = keep(chatId, item, origin);

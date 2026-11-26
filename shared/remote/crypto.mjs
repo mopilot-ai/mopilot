@@ -1,4 +1,4 @@
-// Mobile Remote's cryptography over plain Uint8Array and an injected primitive set (electron/remote/sodiumPrimitives.cjs on the Mac; react-native-libsodium on the phone), so both ends run this one file against shared/remote/vectors.json: X25519 root key, HKDF-SHA256 per-direction keys, a counter-based symmetric ratchet, XChaCha20-Poly1305 sealing with the header as AAD, strictly increasing counters, and the pairing proof, transcript and safety number.
+// Mobile Remote's cryptography over plain Uint8Array and an injected primitive set (electron/platform/sodiumPrimitives.cjs on the Mac; react-native-libsodium on the phone), so both ends run this one file against shared/remote/vectors.json: X25519 root key, HKDF-SHA256 per-direction keys, a counter-based symmetric ratchet, XChaCha20-Poly1305 sealing with the header as AAD, strictly increasing counters, and the pairing proof, transcript and safety number.
 import { headerAad, toBase64, utf8 } from './envelope.mjs';
 
 /**

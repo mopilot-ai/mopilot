@@ -102,8 +102,8 @@ async function reviewAndCommit(page: Page, repo: string, who: string, fake: stri
 }
 
 /** A reply's paths link only when they exist (underlined, in the text's font), #N goes to the chat's repository. */
-async function replyLinks(page: Page, repo: string, fake: string) {
-  await send(page, 'see `hello.txt` and `src/missing.ts`, this fixes #12 and acme/widgets#7');
+async function replyLinks(page: Page, h: Harness, repo: string, fake: string) {
+  await send(page, 'see `hello.txt` and `src/missing.ts`, also [the file](hello.txt), this fixes #12 and acme/widgets#7');
   const answer = transcript(page)
     .locator('.md')
     .filter({ hasText: `${fake}: see` });
@@ -122,6 +122,17 @@ async function replyLinks(page: Page, repo: string, fake: string) {
     'href',
     'https://github.com/acme/widgets/issues/7',
   );
+  // a Markdown link to the file: a right-click offers the path menu, and Reveal in Finder names the file (#5605)
+  await h.app.evaluate(({ shell }) => {
+    const g = globalThis as any;
+    g.__revealed = [];
+    shell.showItemInFolder = (p: string) => g.__revealed.push(p);
+  });
+  await answer.getByRole('link', { name: 'the file', exact: true }).click({ button: 'right' });
+  await expect(page.getByRole('menuitem', { name: 'Copy path', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Open with default app', exact: true })).toBeVisible();
+  await page.getByRole('menuitem', { name: 'Reveal in Finder', exact: true }).click();
+  await expect.poll(() => h.app.evaluate(() => (globalThis as any).__revealed)).toEqual([path.join(repo, 'hello.txt')]);
   // the path opens beside the conversation
   await file.click();
   await expect(page.locator('.pane-tab-body:visible')).toContainText('world');
@@ -197,7 +208,7 @@ test('review-diff-and-commit on Codex: approve an edit, undo and redo it, review
   await expect(home(page)).toBeVisible();
   const repo = await addRepo(page, harness);
   await reviewAndCommit(page, repo, 'Codex', 'fake-codex');
-  await replyLinks(page, repo, 'fake-codex');
+  await replyLinks(page, harness, repo, 'fake-codex');
   await applyFixes(page, harness, repo, 'Codex');
 });
 
@@ -209,6 +220,6 @@ test('review-diff-and-commit on Claude Code: approve an edit, undo and redo it, 
   const repo = await addRepo(page, harness);
   await pickModel(page, 'Claude Code', 'Fake Sonnet');
   await reviewAndCommit(page, repo, 'Claude Code', 'fake-claude');
-  await replyLinks(page, repo, 'fake-claude');
+  await replyLinks(page, harness, repo, 'fake-claude');
   await applyFixes(page, harness, repo, 'Claude Code');
 });

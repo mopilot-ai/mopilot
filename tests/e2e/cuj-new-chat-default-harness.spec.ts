@@ -1,5 +1,6 @@
 // CUJ new-chat-default-harness on both harnesses: the default harness (and model) for new chats is a setting; picking another
-// harness in a new chat runs that chat there and leaves the default alone; a project decides the chat's folder; a
+// harness in a new chat runs that chat there and leaves the default alone, and later new chats follow the last used
+// until Settings says to start from the default; a project decides the chat's folder; a
 // temporary chat (from the menu) is not kept. (Mini and the tray are in mini.spec.)
 import { standaloneNewChat } from './fixtures/sidebar';
 import fs from 'node:fs';
@@ -69,8 +70,8 @@ test('new-chat-default-harness: the default is a setting; picking a harness in a
   await expect(transcript(page).getByText('fake-claude: first on the new default', { exact: true })).toBeVisible();
   expect(harness.codexLog().filter((e) => e.method === 'turn/start')).toHaveLength(0);
 
-  // New chat, and pick Codex in the model menu: this chat runs on Codex, and the following new chat starts on the
-  // saved default again (only Settings changes it)
+  // New chat, and pick Codex in the model menu: this chat runs on Codex, and leaves the saved default alone; new chats
+  // follow the last used, so the following one starts on Codex too
   await standaloneNewChat(page).click();
   await expect(home(page)).toBeVisible();
   await pickModel(page, 'Codex', 'Fake Model One');
@@ -78,6 +79,16 @@ test('new-chat-default-harness: the default is a setting; picking a harness in a
   await send(page, 'this one on codex');
   await expect(transcript(page).getByText('fake-codex: this one on codex', { exact: true })).toBeVisible();
   expect(savedDefaultHarness(harness)).toBe('claude');
+  await standaloneNewChat(page).click();
+  await expect(home(page)).toBeVisible();
+  await expect(modelButton(page)).toContainText('Fake Model One');
+
+  // New chats start with the default above: the next new chat starts on the saved default again
+  await page.locator('.sidebar-title').first().click();
+  await settingsEntry(page).click();
+  await page.locator('.side-row', { hasText: 'All agents' }).first().click();
+  await (await openSettingsSelect(page, 'New chats start with', 'The default above')).click();
+  await page.locator('.side-row', { hasText: 'Back to app' }).click();
   await standaloneNewChat(page).click();
   await expect(home(page)).toBeVisible();
   await expect(modelButton(page)).toContainText('Fake Sonnet');

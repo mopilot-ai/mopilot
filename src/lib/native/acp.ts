@@ -85,7 +85,7 @@ declare module '../native' {
        * the user's own MCP servers for a basic harness (electron/harness/acp/ownMcp.cjs): those its settings list, each
        * with whether MoPilot turns it off; supported is false for a harness that can't turn them off
        */
-      ownMcp(id: string): Promise<OwnMcpStatus>;
+      ownMcp(id: string, readOnly?: boolean): Promise<OwnMcpStatus>;
       onEvent(cb: (e: AcpEvent) => void): () => void;
       /** a chat's items, as main translates its events (electron/harness/items/acp.cjs): Codex-shaped notifications */
       onItems(cb: (e: { chatId: string; key: string; method: string; params: Record<string, unknown> }) => void): () => void;

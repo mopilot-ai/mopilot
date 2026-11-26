@@ -65,7 +65,8 @@ export const f: any = {
   useSessionField: (id: any, pick: any) => pick(((() => f.session) as (id: any) => any)(id)),
   sessionOf: () => f.session,
   useCap: (_id: any, semantic: string) => ({ state: semantic === 'shell' && f.shell ? 'sage' : 'absent', via: 'none' }),
-  useCaps: () => ({ goal: f.cap }),
+  // the chat's capabilities as main answered them: its goal, and a steer it takes (Send's label and hint)
+  useChatCaps: () => ({ caps: { goal: f.cap, steer: { state: 'native', via: 'rpc' } }, loaded: true }),
   useClaudeCommands: () => null,
   useClaudeSkillFiles: () => null,
   useCommandProvider: () => f.provider,

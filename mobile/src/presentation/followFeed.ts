@@ -1,6 +1,7 @@
 // A followed chat's rows kept current without the person asking: the snapshot, the live events after it, and a quiet re-read when the live feed cannot be trusted (an event outside the live turn, a gap, a read that overflowed), one at a time and the newest wins.
 import { catchingUp } from '../catchUp';
-import { snapshot, update, type Data, type Thread } from './thread';
+import { snapshot, update, UNREADABLE, type Data, type Thread } from './thread';
+import { COMPUTER_CHANGED } from './follow';
 import { perf } from '../perfLog';
 import { createLiveWatch, type WatchOptions } from './liveWatch';
 
@@ -11,6 +12,10 @@ const MAX_PENDING_BYTES = 1_000_000;
 export const RESYNC_MS = 300;
 /** After a failed quiet re-read: 1 s, 2 s, 4 s; then the person is told. */
 export const RETRY_MS = [1000, 2000, 4000];
+/** After a first read that failed (nothing shown yet): read again after 2, 4 and 8 s, then every 15 s while the chat is open, so a chat whose relay or computer answers again comes back by itself (the Retry is still there meanwhile). */
+export const FIRST_RETRY_MS = [2000, 4000, 8000, 15000];
+/** First-read failures a read again cannot cure: an answer this phone cannot read, and a computer that changed (the page then follows the new one). */
+const NO_CURE = new Set([UNREADABLE, COMPUTER_CHANGED]);
 /** What a person is told when every quiet re-read failed. */
 export const QUIET_FAILURE = "Couldn't update this chat.";
 /** While the app catches up (see catchUp.ts) the events that piled up are applied at once but shown at most this often, so catching up costs a few renders, not one per event. */
@@ -46,6 +51,8 @@ export function createFollowFeed(o: {
   timers?: Timers;
   /** Opts into the safety net under the live events (see liveWatch.ts); a chat whose live events never come is read again while its turn runs. */
   watch?: WatchOptions;
+  /** A failure no read again can cure (the chat does not exist): a first read that fails so is not tried again by itself. */
+  final?: (message: string) => boolean;
 }): FollowFeed {
   const timers: Timers = o.timers ?? {
     set: (fn, ms) => setTimeout(fn, ms),
@@ -169,9 +176,12 @@ export function createFollowFeed(o: {
       reading = false;
       watch?.failed();
       const message = e instanceof Error ? e.message : String(e);
-      // the first read has nothing to keep: it says why; a quiet one retries and, after the last try, says so
-      if (!quiet && current === null) o.on.failed(message, false);
-      else retryOrGiveUp();
+      // a quiet re-read retries and, after the last try, says so; a read with nothing shown yet says why at once, every time, and is tried again until one answers
+      if (current !== null) return retryOrGiveUp();
+      o.on.failed(message, false);
+      if (NO_CURE.has(message) || o.final?.(message)) return;
+      failures += 1;
+      schedule(FIRST_RETRY_MS[Math.min(failures, FIRST_RETRY_MS.length) - 1]!);
     } finally {
       if (mine === generation) pending = [];
     }

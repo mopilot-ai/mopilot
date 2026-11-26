@@ -1,5 +1,6 @@
 // Structured composer lists: Markdown restoration, generated markers and native undoable list commands.
 import { imeComposing } from './focus';
+import { hasComposerContent, replaceComposerBlocks, selectsComposerContents } from './composerBlockEdit';
 import { nestComposerList } from './composerListNesting';
 
 const marker = /^([ \t]*)(?:((?:0|[1-9]\d{0,8}))\. |([-+*]) )(.*)$/;
@@ -179,11 +180,19 @@ export function startComposerList(editor: ListEditor) {
   }
 }
 
-/** Called after send/menu shortcuts: a newline inside a list splits an item, including Shift/Alt+Enter. */
+/** Called after send/menu shortcuts to edit list structure through native history. */
 export function editComposerList(editor: ListEditor, event: KeyboardEvent, blocked: boolean) {
   if (blocked || imeComposing(event) || event.metaKey || event.ctrlKey) return false;
   const selection = window.getSelection();
   if (!selection?.rangeCount || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return false;
+  if ((event.key === 'Backspace' || event.key === 'Delete') && !event.shiftKey && !event.altKey && !selection.isCollapsed) {
+    // Chromium can delete every selected character and still leave the first generated marker active.
+    return (
+      !!editor.querySelector('li') &&
+      selectsComposerContents(editor, selection.getRangeAt(0)) &&
+      replaceComposerBlocks(editor, editor.firstChild!, editor.lastChild!, '<div><br></div>')
+    );
+  }
   const node = selection.anchorNode;
   const item = (node instanceof HTMLElement ? node : node?.parentElement)?.closest('li');
   if (!item) return false;
@@ -207,14 +216,11 @@ export function editComposerList(editor: ListEditor, event: KeyboardEvent, block
   if (event.key === 'Tab' && !event.altKey) {
     return nestComposerList(editor, event.shiftKey);
   }
-  if (
-    event.key === 'Backspace' &&
-    !event.shiftKey &&
-    !event.altKey &&
-    selection.isCollapsed &&
-    !item.textContent &&
-    !item.querySelector('[data-skill-id], [data-session-token]')
-  )
-    return nestComposerList(editor, true);
-  return false;
+  if (event.key !== 'Backspace' || event.shiftKey || event.altKey || !selection.isCollapsed) return false;
+  if (!item.textContent && !item.querySelector('[data-skill-id], [data-session-token]')) return nestComposerList(editor, true);
+  // A populated first item has no preceding item to merge into. Backspace at its start removes its marker.
+  if (item.previousElementSibling) return false;
+  const before = selection.getRangeAt(0).cloneRange();
+  before.setStart(item, 0);
+  return !hasComposerContent(before) && nestComposerList(editor, true);
 }

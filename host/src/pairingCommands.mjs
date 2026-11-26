@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createPairing } from './pairing.mjs';
-import { dropEnrollments } from './relayLink.mjs';
+import { retireEnrollments } from './relayLink.mjs';
 import { readControllers } from './trustState.mjs';
 
 /** `pair`: a pairing code for a phone, shown once. @param {{ configDir: string, out: (line: string) => void }} o */
@@ -27,9 +27,10 @@ export function resetApprovalCommand({ argv, configDir, out, err }) {
   try {
     // the relay links go first: a file that cannot be read stops everything before a controller or the key is touched
     const links = records.flatMap(([, record]) => (record.link ? [record.link] : []));
-    const dropped = links.length ? dropEnrollments(configDir, links) : 0;
-    const pairing = createPairing({ configDir });
-    for (const [fingerprint] of records) pairing.remove(fingerprint);
+    // each stays a tombstone that tells its Mac it was removed (relayTombstone.mjs), until that Mac removes the pair
+    const dropped = links.length ? retireEnrollments(configDir, links, Date.now()) : 0;
+    // every record, believed or not, as the app's reset does (pairing.mjs `dropControllers`)
+    createPairing({ configDir }).dropControllers();
     fs.rmSync(keyFile, { force: true });
     out(`Removed the approval key, controllers: ${records.length}, relay links: ${dropped}.`);
     out('Restart the Host to close links that are open, then set up pairing by code in MoPilot again.');

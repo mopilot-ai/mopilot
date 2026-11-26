@@ -1,4 +1,5 @@
 // The phone UI's words in Simplified Chinese: one catalog, grouped by screen; `{{name}}` is filled in, `_one` and `_other` are the plural forms.
+import momoHome from './momoHome/zh-Hans';
 export default {
   chats: {
     title: '聊天',
@@ -102,6 +103,9 @@ export default {
     liveValue: '漏掉的实时事件：{{missed}} · 补读：{{quiet}}',
     liveNote: '漏掉：补读时发现实时通道没发来的内容。',
     share: '分享数据',
+    video: '视频 {{n}}',
+    pick: '选取 {{n}}',
+    upload: '上传 {{n}}',
     reset: '清零',
   },
   phoneUi: {
@@ -418,4 +422,5 @@ export default {
     cancelTranscribing: '取消转写',
     starting: '正在启动…如果 iOS 询问，请允许使用麦克风。',
   },
+  momoHome,
 } as const;

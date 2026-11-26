@@ -49,7 +49,9 @@ import {
 import { buildHelper, MAIN_APP_PURPOSE_STRINGS, writeHelperDigest } from './build-helper.mjs';
 import { buildSageMcp } from './build-sage-mcp.mjs';
 import { buildAuthCommand } from './build-auth-command.mjs';
+import { buildCodePairApprove } from './build-code-pair-approve.mjs';
 import { buildDisclaim } from './build-disclaim.mjs';
+import { buildUpdateInstall } from './build-update-install.mjs';
 import { buildPasskeys } from './build-passkeys.mjs';
 import { fetchRipgrep } from './fetch-vendor.mjs';
 import { stripChromiumLocales } from './chromium-locales.mjs';
@@ -110,6 +112,8 @@ const TOOLS = {
   buildSageMcp,
   buildAuthCommand,
   buildDisclaim,
+  buildUpdateInstall,
+  buildCodePairApprove,
   buildPasskeys,
   buildCore,
   checkWindowsCore,
@@ -166,6 +170,8 @@ export async function packageApp(
     buildSageMcp,
     buildAuthCommand,
     buildDisclaim,
+    buildUpdateInstall,
+    buildCodePairApprove,
     buildPasskeys,
     buildCore,
     checkWindowsCore: checkCore,
@@ -264,14 +270,8 @@ export async function packageApp(
   let nativeOut = null;
   /** @type {string | null} */
   let helperApp = null;
-  /** @type {string | null} */
-  let sageMcp = null;
-  /** @type {string | null} */
-  let authCommand = null;
-  /** @type {string | null} */
-  let disclaim = null;
-  /** @type {string | null} */
-  let passkeys = null;
+  /** @type {Partial<Record<keyof ReturnType<typeof nestedCodePaths>, string>>} */
+  let nativeTools = {};
   let appEntitlements = release ? ENTITLEMENTS.app : ENTITLEMENTS.dev;
   /** @type {string | null} */
   let webAuthnAccessGroup = null;
@@ -288,10 +288,15 @@ export async function packageApp(
       profile: env.MOPILOT_PROVISIONING_PROFILE,
     }));
     helperApp = buildHelper({ out: nativeOut, arch, sign: false, peerRequirement, devBuild: !release && identity !== '-' });
-    sageMcp = buildSageMcp({ out: nativeOut, arch, sign: false });
-    authCommand = buildAuthCommand({ out: nativeOut, arch, sign: false });
-    disclaim = buildDisclaim({ out: nativeOut, arch, sign: false });
-    passkeys = buildPasskeys({ out: nativeOut, arch, sign: false });
+    const unsigned = { out: nativeOut, arch, sign: false };
+    nativeTools = {
+      sageMcp: buildSageMcp(unsigned),
+      authCommand: buildAuthCommand(unsigned),
+      disclaim: buildDisclaim(unsigned),
+      updateInstall: buildUpdateInstall(unsigned),
+      ...(env.MOPILOT_PACKAGE_CODE_PAIR_APPROVE === '1' && { codePairApprove: buildCodePairApprove(unsigned) }), // off until pairing by code is (#5576)
+      passkeys: buildPasskeys(unsigned),
+    };
   }
 
   const executableName = linux ? desktop.linuxExecutable : desktop.name;
@@ -323,19 +328,14 @@ export async function packageApp(
               await flipFuses(path.resolve(buildPath, '../../..'), { ...FUSES, resetAdHocDarwinSignature: true });
             },
             // the digest of the sources the helper above was built from: main compares it with what the helper reports (#4320)
-            async ({ buildPath }) => {
-              stampDigest(buildPath);
-            },
+            async ({ buildPath }) => void stampDigest(buildPath),
             // Contents/Helpers, next to Contents/MacOS: where nested code belongs, and where main looks for it.
             async ({ buildPath }) => {
               const nested = nestedCodePaths(path.resolve(buildPath, '../../..'));
               mkdirSync(path.dirname(nested.helper), { recursive: true });
               // these hooks run only on macOS, where the native parts were built above
               cpSync(/** @type {string} */ (helperApp), nested.helper, { recursive: true, verbatimSymlinks: true });
-              cpSync(/** @type {string} */ (sageMcp), nested.sageMcp);
-              cpSync(/** @type {string} */ (authCommand), nested.authCommand);
-              cpSync(/** @type {string} */ (disclaim), nested.disclaim);
-              cpSync(/** @type {string} */ (passkeys), nested.passkeys);
+              for (const [name, source] of Object.entries(nativeTools)) cpSync(source, nested[name]);
             },
             // Electron's own licenses sit next to the app in the staging folder; they go inside it (signed with it) so
             // the DMG and the update zip hold the app alone and the licenses still ship with every copy.

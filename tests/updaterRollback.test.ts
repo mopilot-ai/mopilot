@@ -66,6 +66,30 @@ test('an installed macOS client verifies and stages the older exact package, the
   assert.deepEqual(calls.at(-1), ['quitAndInstall']);
 });
 
+test('a withdrawn fast stage is cancelled and a verified rollback replaces it', async (t) => {
+  const file = await packageFile(t);
+  const original = { ready: () => true, cancel: t.mock.fn(), commit: t.mock.fn(async () => {}) };
+  const replacement = { ready: () => true, cancel: t.mock.fn(), commit: t.mock.fn(async () => {}) };
+  const prepare = t.mock.fn(async () => original);
+  const { u } = make({ download: async () => file, macInstaller: { prepare } });
+  t.after(() => u.dispose());
+  await checked(u);
+  publish('2.0.0', '1.2.3');
+  prepare.mock.mockImplementationOnce(async () => {
+    throw new Error('cannot stage rollback');
+  });
+  await checked(u);
+  assert.equal(original.cancel.mock.callCount(), 1);
+  assert.match(u.state.error, /superseded by a rollback.*cannot stage rollback/);
+  assert.equal(await u.install(), false);
+  assert.equal(original.commit.mock.callCount(), 0);
+  prepare.mock.mockImplementationOnce(async () => replacement);
+  await checked(u);
+  assert.deepEqual(u.state.available.rollback, rollback('2.0.0'));
+  await u.installOnQuit();
+  assert.equal(replacement.commit.mock.callCount(), 1);
+});
+
 test('a withdrawn staged update is revoked before replacement; a failed download remains retryable without reviving it', async (t) => {
   const { u, file } = await staged(t, { idle: async () => false });
   assert.equal(await u.install({ when: 'idle' }), true);

@@ -1,10 +1,19 @@
-// Where the PR reader finds the branch of a chat's folder on a machine: its Host's git.status (branch and a sanitized `origin`), read at most once in a while per folder, never per row. This Mac's own `gh` then looks the PR up by repository and branch.
+// Where the PR reader finds the branch of a chat's folder on a machine: its Host's git.status (branch, a sanitized `origin` and the branch's upstream), read at most once in a while per folder, never per row. This Mac's own `gh` then looks the PR up by repository and branch.
 import { ignoring } from './ignored';
 import { machineFolderOf } from './machineFolder';
 import { native } from './native';
 
-/** What a folder's repository on a machine says of its checkout: the branch and the repository `gh` takes (`github.com/<owner>/<repo>`). */
-export type MachineBranch = { branch: string; repo: string };
+/**
+ * A repository `gh --repo` takes (`github.com/<owner>/<repo>`) and the branch name a PR there has as its head. `own`: only
+ * a PR whose head branch is in that repository itself counts, since the branch was pushed there: a fork's PR with a
+ * branch of the same name (`main` in a public repository) is someone else's.
+ */
+export type PullRequestSource = { repo: string; branch: string; own?: true };
+/**
+ * What a folder's repository on a machine says of its checkout: the branch, and where its PR may be, in order: `origin`'s
+ * repository, then the one the branch is pushed to when that is another (a deleted `origin`, a second remote).
+ */
+export type MachineBranch = { branch: string; sources: PullRequestSource[] };
 
 /** How long a Host's answer stands: the rows of a list and the menu opened on them share one read (a switched branch shows within it). */
 export const MACHINE_BRANCH_TTL = 30_000;
@@ -39,7 +48,7 @@ const reads = new Map<string, { at: number; read: Promise<MachineBranch | null |
 /** Forgets every answer (tests). */
 export const resetMachineBranches = () => reads.clear();
 
-/** The branch and repository of the folder a machine key names; null for a folder with neither, and for one that cannot be read now (offline, an older Host, a refusal), which is not remembered. `now` is the clock (tests). */
+/** The branch of the folder a machine key names and where its PR may be; null for a folder with no branch or no GitHub repository to look in, and for one that cannot be read now (offline, an older Host, a refusal), which is not remembered. `now` is the clock (tests). */
 export function machineBranch(key: string, now = Date.now): Promise<MachineBranch | null> {
   const folder = machineFolderOf(key);
   if (!folder) return Promise.resolve(null);
@@ -60,8 +69,13 @@ async function ask(machineId: string, path: string): Promise<MachineBranch | nul
     const reply = await native.host.gitStatus(machineId, { path });
     if (reply.error) return undefined;
     const status = reply.value;
-    const repo = status.isRepo ? repoOfRemote(status.remote) : null;
-    return status.isRepo && status.branch && repo ? { branch: status.branch, repo } : null;
+    if (!status.isRepo || !status.branch) return null;
+    const origin = repoOfRemote(status.remote);
+    const pushed = status.upstream ? repoOfRemote(status.upstream.remote) : null;
+    const sources: PullRequestSource[] = origin ? [{ repo: origin, branch: status.branch }] : [];
+    if (pushed && !sources.some((s) => s.repo === pushed && s.branch === status.upstream!.branch))
+      sources.push({ repo: pushed, branch: status.upstream!.branch, own: true });
+    return sources.length ? { branch: status.branch, sources } : null;
   } catch (error) {
     ignoring("read a machine's branch for a chat's pull request")(error);
     return undefined;

@@ -5,7 +5,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 // @ts-ignore: plain ESM without declarations
-import { codePairFor, connectionsOpen, deviceKeyOf, deviceOf, enrollOnly } from '../host/src/codePairWiring.mjs';
+import { codePairFor, deviceKeyOf, deviceOf, enrollOnly } from '../host/src/codePairWiring.mjs';
+// @ts-ignore
+import { createPairing } from '../host/src/pairing.mjs';
 // @ts-ignore
 import { createNodePrimitives } from '../shared/remote/nodePrimitives.mjs';
 
@@ -19,10 +21,19 @@ const records: any[] = [];
 let believe: any;
 const gone: any[] = [];
 const closed: number[] = [];
+const retired: any[] = [];
+let tombstoneHeard: any;
 const parts = (dir: string, env: Record<string, string | undefined>): any => ({
   env,
   paths: { dataDir: path.join(dir, 'data'), configDir: path.join(dir, 'config') },
-  relayLinks: { enroll: () => ({}), forget: (p: any) => void gone.push(p), close: () => void closed.push(1) },
+  relayLinks: {
+    enroll: () => ({}),
+    forget: (p: any) => void gone.push(p),
+    retire: (p: any) => void retired.push(p),
+    retireLive: (p: any) => void retired.push({ live: p.hostId }),
+    onTombstone: (fn: any) => void (tombstoneHeard = fn),
+    close: () => void closed.push(1),
+  },
   pairing: {
     add: () => 'fp',
     remove: () => true,
@@ -30,6 +41,8 @@ const parts = (dir: string, env: Record<string, string | undefined>): any => ({
     hostId: () => 'host-h',
     controllerRecords: () => records.length,
     believeControllers: (fn: any) => void (believe = fn),
+    admitClients: () => undefined,
+    admitChanged: () => undefined,
   },
   policy: { allowsClient: () => true },
   audit: { note: () => undefined },
@@ -79,9 +92,10 @@ test("this Host as a device signs, and what it signs the other side verifies; it
   assert.equal(prim.edVerify(device.pub, new TextEncoder().encode('other'), device.sign(message)), false);
 });
 
-test('a controller that is revoked takes its relay link with it, and nothing else does; a failing forget is reported, not thrown', (t) => {
+test('a controller that is revoked leaves its relay link a tombstone (never forgotten at once), and nothing else does; a failing retire is reported, not thrown', (t) => {
   forgotten.length = 0;
   gone.length = 0;
+  retired.length = 0;
   const reports: string[] = [];
   const dir = dirOf(t);
   const p = parts(dir, { MOPILOT_HOST_CODE_PAIR: '1' });
@@ -92,8 +106,9 @@ test('a controller that is revoked takes its relay link with it, and nothing els
   heard('fp', 'controller', 'h_abcdefghijklmnop');
   heard('fp', 'controller', undefined);
   heard('fp', 'phone', 'h_abcdefghijklmnop');
-  assert.deepEqual(gone, [{ hostId: 'h_abcdefghijklmnop' }]);
-  p.relayLinks.forget = () => {
+  assert.deepEqual(retired, [{ hostId: 'h_abcdefghijklmnop' }]);
+  assert.deepEqual(gone, [], 'the link is not forgotten: the other Mac must still hear that it was removed');
+  p.relayLinks.retire = () => {
     throw new Error('link table unreadable');
   };
   heard('fp', 'controller', 'h_abcdefghijklmnop');
@@ -109,18 +124,11 @@ test('the Host stopping closes its relay links and ends every offer first', (t) 
   assert.deepEqual(closed, [1]);
 });
 
-test('the relay link a pairing makes is only created, and connections are accepted unless the Host is told otherwise at the time of the offer', () => {
+test("the relay link a pairing makes is only created (connections are the app's switch: tests/codePairConnections.test.ts)", () => {
   const asked: any[] = [];
   const enroll = enrollOnly({ enroll: (p: any, o: any) => (asked.push([p, o]), { hostPub: 'x' }) });
   assert.deepEqual(enroll({ hostId: 'h_a' }), { hostPub: 'x' });
   assert.deepEqual(asked, [[{ hostId: 'h_a' }, { createOnly: true }]]);
-  const env: Record<string, string> = {};
-  const open = connectionsOpen(env);
-  assert.equal(open(), true);
-  env.MOPILOT_HOST_ALLOW_CONNECTIONS = '0';
-  assert.equal(open(), false, 'read at each offer');
-  env.MOPILOT_HOST_ALLOW_CONNECTIONS = '1';
-  assert.equal(open(), true);
 });
 
 test("the approval key is the Host's own: no key is no pairing, a controller record is believed only with the person's proof, and the key is enrolled through the service", async (t) => {
@@ -130,6 +138,7 @@ test("the approval key is the Host's own: no key is no pairing, a controller rec
   const service: any = codePairFor(p);
   assert.deepEqual(service.status({ owner: new Set() }).approval, { available: false, reason: 'no_approval_helper' });
   assert.equal(believe({ key: 'x' }), false, 'a record with no proof is no controller');
+  service.connections({ open: true });
   await assert.rejects(service.offer({ relayUrl: 'https://relay.example', token: 't' }, { owner: new Set(), emit: () => undefined }), {
     code: 'no_approval_helper',
   });
@@ -152,4 +161,94 @@ test("the approval key is the Host's own: no key is no pairing, a controller rec
   records.push({});
   assert.throws(() => service.enrol({ key, weak: false, signature }), { code: 'already_enrolled' });
   records.length = 0;
+});
+
+test('reset approval as the Host builds it: every controller goes with its relay link made a tombstone, and the approval key goes', (t) => {
+  const dir = dirOf(t);
+  gone.length = 0;
+  retired.length = 0;
+  const p = parts(dir, { MOPILOT_HOST_CODE_PAIR: '1' });
+  p.platform = 'darwin';
+  p.pairing = createPairing({ configDir: p.paths.configDir });
+  const key = (n: number) => Buffer.concat([Buffer.from('302a300506032b6570032100', 'hex'), Buffer.alloc(32, n)]).toString('base64');
+  // two controllers already there (their proofs are not this test's: the Host does not believe them, and they still go)
+  p.pairing.add(key(1), { name: 'A', kind: 'controller', link: 'h_aaaaaaaaaaaaaaaa' });
+  p.pairing.add(key(2), { name: 'B', kind: 'controller', link: 'h_bbbbbbbbbbbbbbbb' });
+  const service: any = codePairFor(p);
+  const keyFile = path.join(p.paths.configDir, 'approval-key.json');
+  fs.writeFileSync(keyFile, '{}');
+  assert.deepEqual(service.resetApproval(), { reset: true, controllers: 2 });
+  // the links are retired first, before any record (and again, harmlessly, as each record is told removed); none is forgotten
+  assert.deepEqual(
+    retired.slice(0, 2).map((g: any) => g.hostId),
+    ['h_aaaaaaaaaaaaaaaa', 'h_bbbbbbbbbbbbbbbb'],
+    'their relay links become tombstones first',
+  );
+  assert.deepEqual(gone, []);
+  assert.equal(p.pairing.controllerRecords(), 0);
+  assert.ok(!fs.existsSync(keyFile));
+});
+
+test('reset approval stops with the record kept when a relay link cannot be forgotten, so resetting again finds it', (t) => {
+  const dir = dirOf(t);
+  const p = parts(dir, { MOPILOT_HOST_CODE_PAIR: '1' });
+  p.platform = 'darwin';
+  p.pairing = createPairing({ configDir: p.paths.configDir });
+  p.pairing.add(Buffer.concat([Buffer.from('302a300506032b6570032100', 'hex'), Buffer.alloc(32, 7)]).toString('base64'), {
+    name: 'A',
+    kind: 'controller',
+    link: 'h_aaaaaaaaaaaaaaaa',
+  });
+  let broken = true;
+  p.relayLinks.retire = (q: any) => {
+    if (broken) throw new Error('relay.json cannot be written');
+    retired.push(q);
+  };
+  const service: any = codePairFor(p);
+  assert.throws(() => service.resetApproval(), { code: 'reset_incomplete' });
+  assert.equal(p.pairing.controllerRecords(), 1, 'the record stays with its link');
+  broken = false;
+  assert.deepEqual(service.resetApproval(), { reset: true, controllers: 1 });
+  assert.equal(p.pairing.controllerRecords(), 0);
+});
+
+test('each tombstone made or forgotten is a line in the audit record, by a controller', (t) => {
+  const notes: any[] = [];
+  const p = parts(dirOf(t), { MOPILOT_HOST_CODE_PAIR: '1' });
+  p.audit = { note: (e: any) => void notes.push(e) };
+  codePairFor(p);
+  tombstoneHeard({ kind: 'link.retired', outcome: 'kept' });
+  tombstoneHeard({ kind: 'link.forgotten', outcome: 'pair_removed' });
+  assert.deepEqual(notes, [
+    { kind: 'link.retired', by: { kind: 'controller' }, what: { outcome: 'kept' } },
+    { kind: 'link.forgotten', by: { kind: 'controller' }, what: { outcome: 'pair_removed' } },
+  ]);
+});
+
+test('a removal whose tombstone cannot be written still refuses the link in this process; a link another record names is left; a Mac that pairs again has its old link retired', (t) => {
+  forgotten.length = 0;
+  retired.length = 0;
+  const reports: string[] = [];
+  const relinked: any[] = [];
+  const p = parts(dirOf(t), { MOPILOT_HOST_CODE_PAIR: '1' });
+  p.report = (m: string) => void reports.push(m);
+  p.pairing.controllerLinks = () => ['h_shared0000000001'];
+  p.pairing.onRelinked = (fn: any) => void relinked.push(fn);
+  p.relayLinks.retire = (q: any) => {
+    if (q.hostId === 'h_broken0000000001') throw new Error('relay.json cannot be read');
+    retired.push(q);
+  };
+  codePairFor(p);
+  const [heard] = forgotten;
+  heard('fp', 'controller', 'h_broken0000000001');
+  heard('fp', 'controller', 'h_shared0000000001');
+  relinked[0]('fp', 'h_old000000000001');
+  assert.deepEqual(retired, [{ live: 'h_broken0000000001' }, { hostId: 'h_old000000000001' }]);
+  assert.ok(reports.some((m) => /could not retire a relay link: .*cannot be read/.test(m)));
+  // a pairing table without the newer hooks is still served
+  const plain = parts(dirOf(t), { MOPILOT_HOST_CODE_PAIR: '1' });
+  delete plain.pairing.onRelinked;
+  codePairFor(plain);
+  forgotten.at(-1)('fp', 'controller', 'h_lone00000000001');
+  assert.deepEqual(retired.at(-1), { hostId: 'h_lone00000000001' });
 });

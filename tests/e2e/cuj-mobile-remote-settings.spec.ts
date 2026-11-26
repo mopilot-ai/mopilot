@@ -48,7 +48,8 @@ test.describe('Mobile Remote restores local consent', () => {
   test.use({
     harnesses: 'codex',
     seed: { ...account, uiState: { prefs: { mobileRemoteOwner: JSON.stringify(['test-user', 'test-device']) } } },
-    env: { MOPILOT_FLAGS: 'remote.enabled=1', MOPILOT_PHONE_DEV: '1', MOPILOT_RELAY_URL: 'ws://127.0.0.1:9' },
+    // the phone's own flow: pairing by code (on in development) would ask Phone or Computer first
+    env: { MOPILOT_FLAGS: 'remote.enabled=1,host.codePair=0', MOPILOT_PHONE_DEV: '1', MOPILOT_RELAY_URL: 'ws://127.0.0.1:9' },
   });
   test('the saved opt-in starts the service without toggling it again', async ({ page }) => {
     await openConnections(page);
@@ -63,7 +64,8 @@ test.describe('Mobile Remote with its switch enabled', () => {
   test.use({
     harnesses: 'codex',
     seed: account,
-    env: { MOPILOT_FLAGS: 'remote.enabled=1', MOPILOT_PHONE_DEV: '1', MOPILOT_RELAY_URL: 'ws://127.0.0.1:9' },
+    // the phone's own flow: pairing by code (on in development) would ask Phone or Computer first
+    env: { MOPILOT_FLAGS: 'remote.enabled=1,host.codePair=0', MOPILOT_PHONE_DEV: '1', MOPILOT_RELAY_URL: 'ws://127.0.0.1:9' },
   });
   test('local opt-in offers the dialog, and an unavailable relay says so there', async ({ page }, testInfo) => {
     await openConnections(page);

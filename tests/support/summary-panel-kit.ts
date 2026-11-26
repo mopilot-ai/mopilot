@@ -32,6 +32,8 @@ export async function summaryPanelKit() {
       info: (cwd: string) => (calls.push(['info', cwd]), impl.info(cwd)),
       status: (cwd: string) => (calls.push(['status', cwd]), impl.status(cwd)),
       gh: (cwd: string, args: string[]) => (calls.push(['gh', cwd, ...args]), impl.gh(cwd, args)),
+      // the branch's pushed repository, read only when gh finds no PR (src/lib/pullRequestSources.ts); not in `calls`
+      run: (cwd: string, args: string[]) => impl.run(cwd, args),
     },
     shell: {
       openExternal: async (u: string) => {
@@ -79,6 +81,7 @@ export async function summaryPanelKit() {
       ],
     });
     impl.gh = async () => ok(JSON.stringify({ number: 7, url: prUrl, title: 'Fix it', state: 'OPEN' }));
+    impl.run = async () => ({ ok: false, stdout: '', stderr: '', code: 128 });
     kit.monitors = {};
     impl.createDraft = async () => ({
       status: 'draft',

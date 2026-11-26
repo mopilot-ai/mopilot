@@ -36,6 +36,8 @@ function emptySession() {
     questions: [],
     /** the harness the next message switches to (src/harness/switch.ts) */
     pendingSwitch: null,
+    /** an ephemeral follow-up offered by the current harness */
+    promptSuggestion: null,
     /**
      * basic tier (ACP): what the harness declared for this session: modes {currentModeId,
      * availableModes}, configOptions, its command catalog (null until it pushes one), context usage
@@ -194,6 +196,14 @@ class SessionStore {
     /** @type {Record<string, unknown>} */
     const raw = {};
     for (const [k, v] of Object.entries(values)) raw[k] = v === undefined ? null : v;
+    if (
+      raw.pendingSwitch ||
+      raw.plan === true ||
+      raw.runningElsewhere === true ||
+      (raw.turn && raw.turn !== 'idle') ||
+      (raw.promptSuggestion && (s.plan || s.pendingSwitch || s.runningElsewhere))
+    )
+      raw.promptSuggestion = null;
     // copied before the core decides: a value that can't be copied fails here, before the core has taken it
     const given = structuredClone(raw);
     const reply = this.ask(route, { chat: chatId, now: clock.now(), ...ask(given) });
@@ -217,7 +227,8 @@ class SessionStore {
   step(chatId, name, args = {}, extra = {}) {
     if (typeof chatId !== 'string' || !chatId) return false;
     const plain = { turnId: args.turnId ?? null, human: !!args.human, reason: args.reason ?? null };
-    return this.decide(chatId, extra, 'session.step', (given) => ({ step: name, args: plain, extra: given }));
+    const values = name === 'end' ? extra : { ...extra, promptSuggestion: null };
+    return this.decide(chatId, values, 'session.step', (given) => ({ step: name, args: plain, extra: given }));
   }
   /** A decided change: approval and writer lifetimes, the mirror, the revision, and the patch windows apply. */
   apply(chatId, s, turn, out, rev) {

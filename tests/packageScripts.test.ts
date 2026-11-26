@@ -36,7 +36,9 @@ test('package: a macOS dev build is ad-hoc signed with nested helpers, fuses fli
     { platform: 'darwin', arch: 'arm64', out: path.resolve('build/vendor/darwin-arm64/ripgrep') },
   ]);
   assert.deepEqual(t.buildHelper.calls[0], [{ out: '/native', arch: 'arm64', sign: false, peerRequirement: undefined, devBuild: false }]);
-  for (const b of ['buildSageMcp', 'buildAuthCommand', 'buildDisclaim', 'buildPasskeys'])
+  // the pairing-by-code approval helper is not built or packaged unless the build asks for it (it ships when host.codePair is first turned on, #5576)
+  assert.equal(t.buildCodePairApprove.calls.length, 0);
+  for (const b of ['buildSageMcp', 'buildAuthCommand', 'buildDisclaim', 'buildUpdateInstall', 'buildPasskeys'])
     assert.deepEqual(t[b].calls[0], [{ out: '/native', arch: 'arm64', sign: false }]);
   const o = t.packager.calls[0][0];
   assert.deepEqual(
@@ -140,6 +142,7 @@ test('package: a macOS dev build is ad-hoc signed with nested helpers, fuses fli
       ['/native/sage-mcp', `${appPath}/Contents/Helpers/sage-mcp`],
       ['/native/auth-command', `${appPath}/Contents/Helpers/auth-command`],
       ['/native/disclaim', `${appPath}/Contents/Helpers/disclaim`],
+      ['/native/update-install', `${appPath}/Contents/Helpers/update-install`],
       ['/native/passkeys.node', `${appPath}/Contents/Helpers/passkeys.node`],
       // Electron's licenses go inside the app, so the DMG and the update zip hold the app alone
       ['/stage/LICENSE', `${appPath}/Contents/Resources/LICENSE`],

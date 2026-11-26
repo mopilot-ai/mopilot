@@ -49,6 +49,7 @@
     "secretFile.cjs",
     "encryptedStore.cjs",
     "sealedFile.cjs",
+    "sodiumPrimitives.cjs",
     "privateFiles.cjs",
     "privateSocket.cjs",
     "writeTextAtomic.cjs",

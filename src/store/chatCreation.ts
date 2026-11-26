@@ -4,7 +4,7 @@ import type { AppState, SavedProject } from './state';
 import { native } from '../lib/native';
 import { errorText } from '../lib/ignored';
 import { get, set, setPrefs, toast } from './core';
-import { newChatBasic, newChatFamily, savedDefaultHarness, newChatWorktreeOn, temporaryChatBlocked } from './chats';
+import { newChatBasic, newChatFamily, newChatWorktreeOn, startingHarness, temporaryChatBlocked } from './chats';
 import {
   setChatConfig,
   newChatBase,
@@ -19,7 +19,7 @@ import {
 import { navigate } from './panes';
 import { takeClaudeSession } from './prewarm';
 import { runtime } from './runtime';
-import { chooseHostAgent, agentIdOf } from '../harness/hostAgent';
+import { chooseHostAgent, wantedHostAgent } from '../harness/hostAgent';
 import { readMachineAgents, readMachineRow } from '../lib/hostMachines';
 import { chooseRepositoryLocation, repositoryDraftProblem, verifyRepositoryMachine } from './repositoryDraft';
 import { consumeDraftHarness } from './draftHarness';
@@ -61,10 +61,16 @@ export async function createHostChatThread(host: NonNullable<AppState['newChatHo
     return null;
   }
   // a basic agent by its id, Claude Code and Codex by their family: the machine runs them all. Whether one can run on this Mac does not matter there: the pick counts as saved
-  const saved = s.newChatHarnessPick ?? savedDefaultHarness(s);
   // the machine's own readiness decides which agent it can run, not this Mac's sign-ins; a row that reports none (an older Host) keeps the saved pick and lets the machine refuse
-  const want = host.agent ?? agentIdOf(saved);
-  const choice = chooseHostAgent(want, await readMachineAgents(host.id), host.name);
+  const agents = await readMachineAgents(host.id);
+  const want = wantedHostAgent({
+    pick: host.agent,
+    draft: s.newChatHarnessPick,
+    remembered: s.prefs.hostPicks[host.id]?.agent,
+    saved: startingHarness(s),
+    agents,
+  });
+  const choice = chooseHostAgent(want, agents, host.name);
   if (choice && !choice.harness) return toast(choice.note!, 'error'), null;
   const harness = choice?.harness ?? want;
   let id: string;
@@ -89,9 +95,17 @@ export async function createHostChatThread(host: NonNullable<AppState['newChatHo
         value: startingHostMode({ pick: host.permission, hostId: host.id, harness, macDefault: s.prefs.permission }),
       },
     });
-  if (host.selection?.hostId === host.id && host.selection.harness === harness) setChatConfig(id, { hostSelection: host.selection });
-  // picking this machine for a new chat starts in this folder again, also while the machine is away
-  setPrefs({ hostFolders: { ...get().prefs.hostFolders, [host.id]: host.path } });
+  const selection = host.selection?.hostId === host.id && host.selection.harness === harness ? host.selection : null;
+  if (selection) setChatConfig(id, { hostSelection: selection });
+  // picking this machine for a new chat starts in this folder again, on the same agent, model and effort, also while the machine is away
+  const p = get().prefs;
+  setPrefs({
+    hostFolders: { ...p.hostFolders, [host.id]: host.path },
+    hostPicks: {
+      ...p.hostPicks,
+      [host.id]: { agent: harness, ...(selection ? { model: selection.model, effort: selection.effort } : {}) },
+    },
+  });
   set((st) => consumeDraftHarness(st, s));
   // the draft's own Worktree choice ends with the chat that used it (one changed while it started belongs to the next draft)
   set((st) => (st.newChatWorktree === s.newChatWorktree ? { newChatWorktree: null, newChatWorktreeHintOff: null } : {}));

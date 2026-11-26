@@ -9,7 +9,7 @@ const { withCredentials, keyedHarnesses, NO_ORG, NO_KEYS } = require('../electro
 const KEY = 'sk-ant-dummy-0000-test-key-abcd';
 const code = (c: string) => Object.assign(new Error(c), { code: c });
 
-function world(lend: (host: unknown, harness: string) => Promise<boolean>) {
+function world(lend: (host: unknown, harness: string) => Promise<boolean>, controlledByCode = false) {
   const calls: unknown[][] = [];
   const lent: string[] = [];
   const host = {
@@ -18,9 +18,12 @@ function world(lend: (host: unknown, harness: string) => Promise<boolean>) {
     modelKey: async (p: unknown) => void calls.push(['modelKey', p]),
   };
   const keys = { forHarness: () => KEY, hasFor: () => true };
-  const wrapped = withCredentials(host, keys, {
-    lend: async (h: unknown, harness: string) => (lent.push(harness), lend(h, harness)),
-  });
+  const wrapped = withCredentials(
+    host,
+    keys,
+    { lend: async (h: unknown, harness: string) => (lent.push(harness), lend(h, harness)) },
+    controlledByCode,
+  );
   return { calls, lent, host, wrapped };
 }
 
@@ -50,6 +53,17 @@ test('a Host without the feature falls back to the key; any other refusal stops 
     old.calls.map((c) => c[0]),
     ['modelKey', 'start'],
   );
+  // a Mac this one only controls (paired by code) takes no lease from it: the key is tried, then the chat runs on its own sign-in
+  const controlled = world(async () => Promise.reject(code('forbidden')), true);
+  await controlled.wrapped.start('c', { harness: 'claude' });
+  assert.deepEqual(
+    controlled.calls.map((c) => c[0]),
+    ['modelKey', 'start'],
+  );
+  // from a Mac paired as usual it is a real refusal: nothing is lent or started
+  const refused = world(async () => Promise.reject(code('forbidden')));
+  await assert.rejects(refused.wrapped.start('c', { harness: 'claude' }), { code: 'forbidden' });
+  assert.deepEqual(refused.calls, []);
   const ended = world(async () => Promise.reject(code('org_signin_required')));
   await assert.rejects(ended.wrapped.send('claude:1', { text: 'a' }), { code: 'org_signin_required' });
   await assert.rejects(ended.wrapped.start('c', { harness: 'claude' }), { code: 'org_signin_required' });

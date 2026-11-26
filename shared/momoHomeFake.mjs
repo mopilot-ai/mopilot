@@ -116,6 +116,17 @@ export function createFakeHome({ scenario = 'running', stepMs = 400, now = Date.
           setUp: true,
           agents: [agent('Claude Code')],
         },
+        // an SSH machine's id has colons and an @: every fix id and intent that names it must survive them
+        {
+          id: 'ssh:runner@localhost',
+          name: 'Runner',
+          isThisDevice: false,
+          reachable: true,
+          current: true,
+          stays: 'on',
+          setUp: true,
+          agents: [agent('Claude Code')],
+        },
         {
           id: 'cloud',
           name: 'Cloud machine',
@@ -226,19 +237,19 @@ export function createFakeHome({ scenario = 'running', stepMs = 400, now = Date.
       S.rows = S.rows.map((/** @type {any} */ r) => ({ ...r, delivery: 'accepted' }));
     },
     move: ({ toId }) => runner.start(toId),
-    'move-cancel': () => runner.cancel(),
-    'move-retry': () => {
+    'move-cancel': (i) => runner.cancel(i),
+    'move-retry': (i) => {
       S.failOp = null;
-      return runner.retry();
+      return runner.retry(i);
     },
-    'move-stay': () => runner.stay(),
+    'move-stay': (i) => runner.stay(i),
     // the owner's Reclaim: the runner asks the target first, so a screen only sends this intent (params `moveId` and `toId` only when this device did not run the move)
     reclaim: async (i) => {
       const r = await runner.reclaim({ moveId: i.moveId, toId: i.toId });
       S.failOp = null;
       return r;
     },
-    'move-ack': () => runner.acknowledge(),
+    'move-ack': (i) => runner.acknowledge(i),
     'update-machine': ({ machineId }) => update((m) => ({ ...m, current: true, hostBuild: m.needBuild }), machineId),
     'set-up-machine': ({ machineId }) => update((m) => ({ ...m, current: true, hostBuild: m.needBuild }), machineId),
     'install-agent': ({ machineId, agent: a }) =>

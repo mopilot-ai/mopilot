@@ -8,7 +8,7 @@ import { dispatchComposerText } from '../../src/lib/composerEvents.ts';
 import { withQueued } from '../../src/lib/queued.ts';
 import { mock } from 'node:test';
 import { createElement as h, act, useSyncExternalStore } from 'react';
-import { $, fakeStore, mockTsx, mount } from './composer-kit.ts';
+import { $, fakeStore, fixtureStarts, mockTsx, mount } from './composer-kit.ts';
 import { insertHTML } from './composer-dom.ts';
 import { EMPTY_SESSION } from '../../src/store/session/sessionState.ts';
 import { firstTierOf } from '../../src/harness/family.ts';
@@ -123,7 +123,7 @@ export function reset() {
     caps: {},
     /** the harness kind each capability read was hinted with */
     capHints: [],
-    chatCaps: { goal: { state: 'native', via: 'rpc' } },
+    chatCaps: { goal: { state: 'native', via: 'rpc' }, steer: { state: 'native', via: 'rpc' } },
     goalOff: null,
     acpRegistry: { menu: [] },
     acpTyped: () => ({ kind: 'text' }),
@@ -192,8 +192,8 @@ stubStore({
   setPrefs: (p: any) => (events.push(['prefs', p]), store.set((s: any) => ({ prefs: { ...s.prefs, ...p } }))),
   setChatConfig: (id: string, patch: any) =>
     store.set((s: any) => ({ chatConfig: { ...s.chatConfig, [id]: { ...s.chatConfig[id], ...patch } } })),
-  // the saved default: as set, else what the fixture says new chats start on
-  savedDefaultHarness: (s = store.get()) => s.prefs?.defaultHarness ?? (s.newBasic ? `acp:${s.newBasic}` : s.newHarness),
+  // the saved default: as set, else what the fixture says new chats start on; the last used while new chats follow it
+  ...fixtureStarts(store.get),
   // what new chats start on now: the fixture's newBasic / newHarness
   defaultHarness: (s = store.get()) => ({ kind: s.newBasic ? `acp:${s.newBasic}` : s.newHarness }),
   setDefaultHarness: (kind: string) => (
@@ -239,6 +239,10 @@ mock.module('../../src/store/session/useSession.ts', {
     setSession: async (id: string, patch: any) => (events.push(['session', id, patch]), setSessionState(id, patch)),
   },
 });
+const writeSelection = (...args: any[]) => {
+  if (fx.selectionFails) throw fx.selectionFails;
+  return rec('selection')(...args);
+};
 mock.module('../../src/session/harness/select.ts', {
   namedExports: {
     // a basic harness's chat (or a new chat on one) is ACP; otherwise the first-tier harness
@@ -249,10 +253,8 @@ mock.module('../../src/session/harness/select.ts', {
     isClaudeComposer: (id: string | null) => harnessOf(id) === 'claude',
     logoutRoute: (id: string | null) => ({ name: 'settings', section: 'accounts', chat: id }),
     selectionFor: () => null,
-    setSelection: (...args: any[]) => {
-      if (fx.selectionFails) throw fx.selectionFails;
-      return rec('selection')(...args);
-    },
+    setSelection: writeSelection,
+    composerSelect: writeSelection,
     useEffectiveSelection: () => fx.sel,
     useHarnessAccounts: () => ({ active: null, accounts: [] }),
   },
@@ -277,8 +279,10 @@ mock.module('../../src/harness/commands.ts', {
 mock.module('../../src/store/session/useCaps.ts', {
   namedExports: {
     useCap: (_id: any, sem: string, hint?: { kind?: string }) => (fx.capHints.push(hint?.kind), { state: fx.caps[sem] ?? 'none' }),
-    // the voice conversation button and the + menu's audio message read the chat's own capabilities
-    useCaps: (_id: any, hint?: { kind?: string }) => (fx.capHints.push(hint?.kind), { ...speechCaps(), ...fx.chatCaps }),
+    // the voice conversation button and the + menu's audio message read the chat's own capabilities; Send's label and hint its steer, once main has answered (`fx.capsLoaded`)
+    useChatCaps: (_id: any, hint?: { kind?: string }) => (
+      fx.capHints.push(hint?.kind), { caps: { ...speechCaps(), ...fx.chatCaps }, loaded: fx.capsLoaded !== false }
+    ),
   },
 });
 mock.module('../../src/session/harness/goalCommand.ts', { namedExports: { goalOff: () => fx.goalOff, runGoalCommand: rec('goal') } });

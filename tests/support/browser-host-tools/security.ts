@@ -114,10 +114,11 @@ export function registerSecurityCases() {
     await w.call('browser_computer', { action: 'left_click', ref: 'ref_2' });
     assert.equal(w.tabs.called('keys').length, 1);
     assert.equal(w.st.confirms.length, 0);
-    // keys that type nothing don't look at the element
+    // a key that types nothing reads the focus too, once: what it lands on decides whether a high-risk site's allowance covers it (#5599)
     const before = w.tabs.called('intent').length;
     await w.call('browser_computer', { action: 'key', text: 'Tab' });
-    assert.equal(w.tabs.called('intent').length, before);
+    assert.equal(w.tabs.called('intent').length, before + 1);
+    assert.equal(w.tabs.called('keys').length, 2);
   });
 
   test('a click or drag the user approved on a card goes to the element where it is now, not where it was before the card', async () => {

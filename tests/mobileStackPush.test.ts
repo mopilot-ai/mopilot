@@ -12,7 +12,7 @@ import { tempDir } from './support/remoteKit.ts';
 const sealedPath = '../mobile/src/push/sealedTitle.ts';
 const { openSealedTitle } = await import(sealedPath);
 const require = createRequire(import.meta.url);
-const native = require('../electron/remote/sodiumPrimitives.cjs').createSodiumPrimitives();
+const native = require('../electron/platform/sodiumPrimitives.cjs').createSodiumPrimitives();
 const { createPushSettingsOps } = require('../electron/remote/pushSettingsOps.cjs');
 const { Notifier } = require('../electron/platform/notify.cjs');
 const { createQuietHold } = require('../electron/platform/quietHold.cjs');

@@ -10,28 +10,17 @@ import { windowIsReady } from '../lib/windowReady';
 import { GATE_STATUS } from '../lib/pullRequestIndicator';
 import { machineFolderOf } from '../lib/machineFolder';
 import { machineBranch } from '../lib/machinePullRequest';
+import { checkoutPullRequest, firstPullRequest, listArgs, type GhAnswer } from '../lib/pullRequestSources';
 
 /** The fields a PR read takes from `gh`, whether it finds the PR by its link, by its checkout or by its repository and branch. */
 const PR_FIELDS =
   'url,state,isDraft,title,mergeable,mergeStateStatus,statusCheckRollup,additions,deletions,labels,autoMergeRequest,mergedAt,mergeCommit,headRefOid,reviewRequests';
 
-/** The PR of a branch on a machine, looked up by this Mac's own `gh` (the machine's `origin` and branch come from its Host): `gh pr view`'s answer, or `null` for a branch with no PR. */
-async function machinePullRequest(cwd: string): Promise<{ ok: boolean; stdout: string; stderr?: string }> {
+/** The PR of a branch on a machine, looked up by this Mac's own `gh` where its Host says it may be (`origin`'s repository, then the one it is pushed to): the first PR found, or `null` for a branch with none. */
+async function machinePullRequest(cwd: string): Promise<GhAnswer> {
   const source = await machineBranch(cwd);
   if (!source) return { ok: true, stdout: 'null' };
-  const r = await native.git.gh(useStore.getState().home, [
-    'pr',
-    'list',
-    `--repo=${source.repo}`,
-    `--head=${source.branch}`,
-    '--state=all',
-    '--limit=1',
-    '--json',
-    PR_FIELDS,
-  ]);
-  if (!r.ok) return r;
-  const first = JSON.parse(r.stdout || '[]')[0];
-  return { ok: true, stdout: JSON.stringify(first ?? null) };
+  return firstPullRequest(source.sources, (s) => native.git.gh(useStore.getState().home, listArgs(s, PR_FIELDS)));
 }
 
 // Main reads normalized history across all segments, including chats without an open window; read again only when the chat changed.
@@ -85,7 +74,9 @@ export const readPullRequest = createPullRequestReader({
   },
   // Explicit URL works even when the chat's old worktree has been deleted.
   gh: (url, cwd) =>
-    !url && machineFolderOf(cwd)
-      ? machinePullRequest(cwd)
-      : native.git.gh(url ? useStore.getState().home : cwd, ['pr', 'view', '--json', PR_FIELDS, ...(url ? ['--', url] : [])]),
+    url
+      ? native.git.gh(useStore.getState().home, ['pr', 'view', '--json', PR_FIELDS, '--', url])
+      : machineFolderOf(cwd)
+        ? machinePullRequest(cwd)
+        : checkoutPullRequest(cwd, PR_FIELDS, { gh: (c, a) => native.git.gh(c, a), git: (c, a) => native.git.run(c, a) }),
 });

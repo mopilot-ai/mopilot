@@ -26,8 +26,23 @@ mock.module('../src/session/harness/select.ts', {
     useHarnessStatus: (h: string) => status[h],
     useHarnessAccounts: (h: string) => views[h],
     useHarnessModels: (h: string) => models[h] ?? [],
-    selectionFor: (h: string, s: any) => ({ model: s.prefs.selection?.[h] ?? null }),
+    selectionFor: (h: string, s: any = store.get()) => ({ model: s.prefs.selection?.[h] ?? null, effort: s.prefs.efforts?.[h] ?? null }),
     setSelection: (...a: any[]) => calls.push(['setSelection', ...a]),
+  },
+});
+// how new chats start is its own (tests/newChatStart.test.ts): here the rows that save it
+const startMode = (s: any) => (s.prefs.newChatStart === 'default' ? 'default' : 'last');
+mock.module('../src/session/newChatStart.ts', {
+  namedExports: {
+    newChatStartMode: (s: any) => startMode(s),
+    setNewChatStart: (mode: string) => {
+      calls.push(['setNewChatStart', mode]);
+      store.set((s: any) => ({ prefs: { ...s.prefs, newChatStart: mode } }));
+    },
+    setNewChatDefault: (harness: string, model: string | null, effort: string | null) => {
+      calls.push(['setNewChatDefault', harness, model, effort]);
+      store.set((s: any) => ({ prefs: { ...s.prefs, newChatDefault: { harness, model, effort } } }));
+    },
   },
 });
 mock.module('../src/session/harness/acp.ts', { namedExports: { useFreshBasics: () => (fresh += 1) } });
@@ -94,7 +109,11 @@ test('New chats use picks a model, which sets its harness too; the saved harness
     select.dispatchEvent(new window.Event('change', { bubbles: true }));
   });
   assert.equal(store.get().prefs.defaultHarness, 'claude');
-  assert.deepEqual(calls.at(-1), ['setSelection', 'claude', { model: 'opus', effort: 'high' }, null]);
+  // the fixed default remembers it, and while new chats follow the last used it is Claude's next model too
+  assert.deepEqual(calls.slice(-2), [
+    ['setNewChatDefault', 'claude', 'opus', 'high'],
+    ['setSelection', 'claude', { model: 'opus', effort: 'high' }, null],
+  ]);
   // a basic harness sets no model
   calls.length = 0;
   await act(async () => {
@@ -102,7 +121,7 @@ test('New chats use picks a model, which sets its harness too; the saved harness
     select.dispatchEvent(new window.Event('change', { bubbles: true }));
   });
   assert.equal(store.get().prefs.defaultHarness, 'acp:opencode');
-  assert.deepEqual(calls, []);
+  assert.deepEqual(calls, [['setNewChatDefault', 'acp:opencode', null, null]]);
   await r.unmount();
   // a saved model that no longer exists, with no default listed: the harness by name
   models = { codex: [m('mini')], claude: [] };
@@ -193,7 +212,8 @@ test('highest CLI version keeps the approved preference, reports a refusal, and 
 });
 
 test('New chats use lists only harnesses that can start a chat, and still names a saved one that cannot', async () => {
-  const opts = (host: HTMLElement) => [...host.querySelectorAll('option')].map((o) => `${o.value}=${o.textContent}`);
+  const opts = (host: HTMLElement) =>
+    [...host.querySelector('select')!.querySelectorAll('option')].map((o) => `${o.value}=${o.textContent}`);
   const desc = (host: HTMLElement) => text(host.querySelector('.row i'));
   const set = (p: any) => act(async () => store.set(p));
   store.set({
@@ -263,4 +283,94 @@ test("an open new-chat draft's harness pick never changes the note on the saved 
   await all.unmount();
   await own.unmount();
   store.set({ prefs: {}, basicHarnesses: [], newChatHarnessPick: null });
+});
+
+test('New chats start with: the last used, or always the default above with its own thinking effort', async () => {
+  const m = (id: string, p: any = {}) => ({ id, label: id.toUpperCase(), defaultEffort: 'medium', efforts: [], fast: false, ...p });
+  models = {
+    codex: [
+      m('gpt', { isDefault: true, efforts: ['low', 'medium', 'xhigh'] }),
+      m('mini', { efforts: ['low', 'high'], defaultEffort: 'high' }),
+    ],
+    claude: [m('opus', { isDefault: true })],
+  };
+  store.set({ prefs: { defaultHarness: 'codex', selection: { codex: 'mini' } }, basicHarnesses: [] });
+  const r = await mount(h(NewChatsUse, { ids: ['codex', 'claude'] }));
+  const rows = () => [...r.host.querySelectorAll('.row')].map((row) => text(row.querySelector('b')));
+  const selectOf = (title: string) =>
+    [...r.host.querySelectorAll('.row')].find((row) => text(row.querySelector('b')) === title)!.querySelector('select')!;
+  const change = (el: HTMLSelectElement, value: string) =>
+    act(async () => {
+      el.value = value;
+      el.dispatchEvent(new window.Event('change', { bubbles: true }));
+    });
+  // following the last used: no effort of its own, and the default shows the harness's last pick
+  assert.deepEqual(rows(), ['New chats use', 'New chats start with', 'Use highest installed CLI version']);
+  assert.equal(selectOf('New chats start with').value, 'last');
+  assert.equal(selectOf('New chats use').value, 'codex::mini');
+  await change(selectOf('New chats start with'), 'default');
+  assert.deepEqual(calls.at(-1), ['setNewChatStart', 'default']);
+  // a fixed default for another harness: nothing of its own to show yet
+  await act(async () =>
+    store.set((s: any) => ({ prefs: { ...s.prefs, newChatDefault: { harness: 'claude', model: 'opus', effort: null } } })),
+  );
+  assert.deepEqual(rows(), ['New chats use', 'New chats start with', 'Use highest installed CLI version']);
+  // its own: its model in the select, and its effort beside it
+  await act(async () =>
+    store.set((s: any) => ({ prefs: { ...s.prefs, newChatDefault: { harness: 'codex', model: 'gpt', effort: 'xhigh' } } })),
+  );
+  assert.equal(selectOf('New chats use').value, 'codex::gpt');
+  assert.equal(selectOf('Thinking effort').value, 'xhigh');
+  assert.deepEqual(
+    [...selectOf('Thinking effort').querySelectorAll('option')].map((o) => o.textContent),
+    ['Low', 'Medium', 'Extra high'],
+  );
+  calls.length = 0;
+  await change(selectOf('Thinking effort'), 'low');
+  assert.deepEqual(calls, [['setNewChatDefault', 'codex', 'gpt', 'low']]);
+  // an effort the model doesn't offer shows its default; a model gone shows the harness's default model's
+  await act(async () =>
+    store.set((s: any) => ({ prefs: { ...s.prefs, newChatDefault: { harness: 'codex', model: 'mini', effort: 'xhigh' } } })),
+  );
+  assert.equal(selectOf('Thinking effort').value, 'high');
+  await act(async () =>
+    store.set((s: any) => ({ prefs: { ...s.prefs, newChatDefault: { harness: 'codex', model: null, effort: null } } })),
+  );
+  assert.equal(selectOf('Thinking effort').value, 'medium');
+  calls.length = 0;
+  await change(selectOf('Thinking effort'), 'xhigh');
+  assert.deepEqual(calls, [['setNewChatDefault', 'codex', 'gpt', 'xhigh']]);
+  // picking a model sets the fixed default only: the next new chat is set from it, not from a pick here
+  calls.length = 0;
+  await change(selectOf('New chats use'), 'codex::mini');
+  assert.deepEqual(calls, [['setNewChatDefault', 'codex', 'mini', 'high']]);
+  // a model with no default effort of its own: its first level
+  models.codex = [m('gpt', { isDefault: true, efforts: ['low', 'high'], defaultEffort: null })];
+  await act(async () =>
+    store.set((s: any) => ({ prefs: { ...s.prefs, newChatDefault: { harness: 'codex', model: 'gpt', effort: null } } })),
+  );
+  assert.equal(selectOf('Thinking effort').value, 'low');
+  // a model with no effort levels: no effort row
+  models.codex = [m('gpt', { isDefault: true })];
+  await act(async () =>
+    store.set((s: any) => ({ prefs: { ...s.prefs, newChatDefault: { harness: 'codex', model: 'gpt', effort: null } } })),
+  );
+  assert.deepEqual(rows(), ['New chats use', 'New chats start with', 'Use highest installed CLI version']);
+  await r.unmount();
+  store.set({ prefs: {}, basicHarnesses: [] });
+});
+
+test('a harness picked by name while its models load keeps the model and effort it uses now', async () => {
+  status = { codex: { state: 'ready' }, claude: { state: 'ready' } };
+  models = { codex: [], claude: [] };
+  store.set({ prefs: { defaultHarness: 'acp:opencode', selection: { claude: 'sonnet' }, efforts: { claude: 'low' } }, basicHarnesses: [] });
+  const r = await mount(h(DefaultHarnessSelect));
+  const select = r.host.querySelector('select')!;
+  await act(async () => {
+    select.value = 'claude';
+    select.dispatchEvent(new window.Event('change', { bubbles: true }));
+  });
+  assert.deepEqual(calls, [['setNewChatDefault', 'claude', 'sonnet', 'low']]);
+  await r.unmount();
+  store.set({ prefs: {}, basicHarnesses: [] });
 });

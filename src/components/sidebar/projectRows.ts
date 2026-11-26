@@ -5,7 +5,7 @@ import type { CloudTask } from '../../lib/native';
 import type { Thread } from '../../store/types';
 import type { ProjectGroupData } from './projectGroups';
 
-/** The session owners include those behind Show more and in folded families. */
+/** The session owners include those behind Show more and in folded families. `local`: a session runs in the app, on no Host. */
 export function projectSessionLocations(
   group: ProjectGroupData,
   ownerOf: (chatId: string) => string | null,
@@ -21,6 +21,7 @@ export function projectSessionLocations(
   return {
     shared: !group.cloudTasks?.length && owners.size === 1 && id ? id : undefined,
     hosts: [...owners].filter((owner): owner is string => !!owner),
+    local: [...owners].some((owner) => !owner),
   };
 }
 

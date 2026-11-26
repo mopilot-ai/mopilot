@@ -6,6 +6,11 @@ import { fromHex, toHex } from '../../../shared/remote/envelope.mjs';
 
 const utf8 = (text: string) => new TextEncoder().encode(text);
 
+/** Whether the Keychain holds this key (it does not make one). */
+export const hasSealedKey = async (keyName: string) => !!(await keychain(SecureStore.getItemAsync(keyName)));
+/** Deletes the key from the Keychain: what was sealed under it can no longer be read by anyone. */
+export const forgetSealedKey = (keyName: string) => keychain(SecureStore.deleteItemAsync(keyName));
+
 export function sealedCrypto(keyName: string) {
   const prim = phonePrimitives();
   let keyed: Promise<Uint8Array> | null = null;
@@ -27,6 +32,11 @@ export function sealedCrypto(keyName: string) {
         throw error;
       });
       return keyed;
+    },
+    // the key is deleted and the next one made when it is needed: a copy sealed under the old one is gone with it
+    forget: async () => {
+      keyed = null;
+      await forgetSealedKey(keyName);
     },
     randomBytes: prim.randomBytes,
     seal: (key: Uint8Array, nonce: Uint8Array, plain: Uint8Array, aad: string) => prim.aeadSeal(key, nonce, plain, utf8(aad)),

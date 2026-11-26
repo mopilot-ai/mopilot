@@ -1,7 +1,11 @@
 // Preload-document leases retire speech and draft ownership on navigation, renderer loss and window destruction.
 const crypto = require('node:crypto');
+const { noteIgnored } = require('../ignored.cjs');
 
 function createSpeechWindows(retire = (_owner) => undefined) {
+  // every service built on these leases hears a retire (speech, Mobile Remote's pairing, pairing by code): a list, never one slot
+  /** @type {Set<(owner: string) => void>} */
+  const retirers = new Set([retire]);
   const valid = (event) =>
     !event.sender.isDestroyed() && !!event.senderFrame && !event.senderFrame.detached && event.senderFrame === event.sender.mainFrame;
   const windows = new WeakMap();
@@ -9,11 +13,19 @@ function createSpeechWindows(retire = (_owner) => undefined) {
     if (!state.owner) return;
     const owner = state.owner;
     state.owner = null;
-    retire(owner);
+    for (const fn of [...retirers]) {
+      try {
+        fn(owner);
+      } catch (error) {
+        noteIgnored('tell a service its page went away', error);
+      }
+    }
   };
   return {
+    /** Adds a listener; what it returns removes it. @param {(owner: string) => void} callback */
     onRetire(callback) {
-      retire = callback;
+      retirers.add(callback);
+      return () => void retirers.delete(callback);
     },
     open(event) {
       const sender = event.sender;

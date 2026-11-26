@@ -52,6 +52,8 @@ export type Capabilities = {
   mirrors?: boolean | null;
   renameChats?: boolean;
   archiveChats?: boolean;
+  /** The Mac pages older rows from rows it holds, a slice per page: only such a Mac is asked to fill a chat's older rows in the background (#5379). */
+  olderRowsHeld?: boolean;
   sideChats?: boolean;
 };
 /** Permission ids in the Mac's order, weakest first; a phone is never offered full access (bypass). */
@@ -59,6 +61,8 @@ const ORDER = ['read-only', 'default', 'auto-review', 'full-access'];
 const NEVER = 'full-access';
 const OFFLINE = 'Your computer is offline or asleep. Wake it and try again.';
 const STALE = 'The connected computer changed. Try again.';
+/** A request the connection lost or never answered (a relay that hangs). */
+export const UNREACHED = "Couldn't reach your computer. Try again.";
 
 export const rec = (v: unknown): Record<string, unknown> | null =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
@@ -69,18 +73,21 @@ export const bad = (what: string): never => {
   throw new Error(`Could not read ${what} from your computer.`);
 };
 
-/** What a rejected request means for the user: an offline Mac says so instead of the runtime's transport errors. */
+/** What a rejected request means for the user: an offline Mac says so, and a lost or unanswered request (or a bare code such as INVALID_STATE_ERR) says it did not reach the computer, instead of the runtime's transport errors. */
 export function explain(error: unknown) {
   const text = error instanceof Error ? error.message : String(error);
-  return /^(Computer is offline|Relay disconnected)/i.test(text) ? OFFLINE : text;
+  if (/^(Computer is offline|Relay disconnected)/i.test(text)) return OFFLINE;
+  return /^(relay acknowledgement timed out|Request timed out|Connection closed)/i.test(text) || /^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$/.test(text)
+    ? UNREACHED
+    : text;
 }
 
 /**
  * A request bound to the computer the screen opened on: when the pair or generation changes while it is in flight, the answer is dropped
  * and the caller gets an error instead of data from another computer.
  */
-export function ownedRequest(runtime: MobileRuntime, at: { selectedPair: string | null; generation: number } = runtime.snapshot()) {
-  return async (method: string, params: Record<string, unknown> = {}) => {
+export function ownedRequest(runtime: MobileRuntime, at: { selectedPair: string | null; generation: number } = runtime.snapshot()): Owned {
+  const owned = async (method: string, params: Record<string, unknown> = {}) => {
     const now = () => runtime.snapshot();
     if (now().selectedPair !== at.selectedPair || now().generation !== at.generation) throw new Error(STALE);
     let result: unknown;
@@ -93,8 +100,13 @@ export function ownedRequest(runtime: MobileRuntime, at: { selectedPair: string 
     if (now().selectedPair !== at.selectedPair || now().generation !== at.generation) throw new Error(STALE);
     return result;
   };
+  return Object.assign(owned, { pair: at.selectedPair, generation: at.generation });
 }
-export type Owned = ReturnType<typeof ownedRequest>;
+/** A request bound to one computer and connection; `pair` names the computer and `generation` the connection (absent on a request made outside `ownedRequest`). */
+export type Owned = ((method: string, params?: Record<string, unknown>) => Promise<unknown>) & {
+  readonly pair?: string | null;
+  readonly generation?: number;
+};
 
 /** The methods this Mac advertises and its permission ceiling; null methods mean the Mac did not say, so a request is tried. */
 const hellos = new WeakMap<Owned, Promise<Capabilities>>();
@@ -118,6 +130,7 @@ async function readCapabilities(request: Owned): Promise<Capabilities> {
     mirrors: typeof caps?.mirrors === 'boolean' ? caps.mirrors : null,
     renameChats: caps?.renameChats === true,
     archiveChats: caps?.archiveChats === true,
+    olderRowsHeld: caps?.olderRowsHeld === true,
     sideChats: caps?.sideChats === true,
   };
 }

@@ -1,5 +1,5 @@
 // "Allow for this task" on a financial site (#2328): the user's yes to one ordinary action there covers that site's ordinary actions until the chat's turn ends, in that segment. Only an action the caller read and found ordinary is covered (taskCovers): a click on a control that commits (Confirm, Submit, Continue, Pay...), a submitting key, a form submission, page JavaScript, an upload and anything sensitive still ask each time.
-const { submitsKeys, pressesKeys, tabsThenActs } = require('./siteRisk.cjs');
+const { submitsKeys, pressesKeys } = require('./siteRisk.cjs');
 const { currentToken, tokenLiveness, mayAct, checkAct } = require('../contract/actionGuard.cjs');
 const turnKey = () => {
   const token = currentToken();
@@ -154,8 +154,18 @@ function plainLabel(name) {
 }
 
 /**
+ * Whether a key sequence presses any key after a Tab: that key lands on an element nobody read ("Tab ArrowDown" changes the
+ * next radio group, #5599), so no allowance for ordinary actions covers it. @param {unknown} keys
+ */
+function tabsOn(keys) {
+  const list = String(keys).trim().split(/\s+/);
+  const at = list.findIndex((k) => /(^|\+)tab$/i.test(k));
+  return at >= 0 && at < list.length - 1;
+}
+
+/**
  * Whether an action is ordinary enough for a task's allowance: scrolling and hovering; typing into a field that takes no
- * payment details; keys that neither submit nor press; a click, check or pick on a read control that submits nothing and
+ * payment details; keys that neither submit nor press nor follow a Tab; a click, check or pick on a read control that submits nothing and
  * either is a text field (focusing it, #4441) or has a plain label (plainLabel). An unread target (no intent, a frame
  * nobody could read) is never covered.
  * @param {any} intent the page agent's report on the target @param {{ kind: string, keys?: string, text?: unknown, value?: unknown }} action
@@ -183,7 +193,7 @@ function taskCovers(intent, action) {
     intent.payment === false &&
     intent.submits === false &&
     intent.form !== undefined;
-  if (action.kind === 'key') return read && !submitsKeys(action.keys) && !pressesKeys(action.keys, intent) && !tabsThenActs(action.keys);
+  if (action.kind === 'key') return read && !submitsKeys(action.keys) && !pressesKeys(action.keys, intent) && !tabsOn(action.keys);
   if (action.kind === 'type' || action.kind === 'fill') {
     const text = action.text ?? action.value;
     return read && !intent.form?.payment && typeof text === 'string' && !/[\x00-\x1f\x7f\u0085\u2028\u2029]/.test(text);

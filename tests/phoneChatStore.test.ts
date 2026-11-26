@@ -8,15 +8,38 @@ const table = new Map<string, { value: string; at: number }>();
 const statements: string[] = [];
 let clock = 0;
 let key: string | null = null;
+// the marks in the cache folder, by name; the install mark is there unless a test says this is a first launch
+const markers = new Set<string>(['mopilot-saved-history.marker']);
 mock.module(require.resolve('expo-secure-store'), {
   namedExports: {
     WHEN_UNLOCKED_THIS_DEVICE_ONLY: 3,
     getItemAsync: async (name: string) => (checkSecureKey(name), assert.match(name, /^mobile-remote-chat-(rows|list|pictures)-key$/), key),
+    deleteItemAsync: async (name: string) => void checkSecureKey(name),
     setItemAsync: async (name: string, value: string, options: any) => {
       checkSecureKey(name);
       checkSecureValue(value);
       assert.equal(options.keychainAccessible, 3);
       key = value;
+    },
+  },
+});
+mock.module(require.resolve('expo-file-system'), {
+  namedExports: {
+    Paths: { cache: 'cache' },
+    File: class {
+      name: string;
+      constructor(_dir: string, name: string) {
+        this.name = name;
+      }
+      get exists() {
+        return markers.has(this.name);
+      }
+      create() {
+        markers.add(this.name);
+      }
+      delete() {
+        markers.delete(this.name);
+      }
     },
   },
 });

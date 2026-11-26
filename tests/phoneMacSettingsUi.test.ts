@@ -199,7 +199,9 @@ test('a failed read of the settings is an alert, and nothing is drawn while it h
     return request(method, params);
   };
   const a = await mount(failing.runtime);
-  assert.match(a.host.textContent!, /Request timed out/);
+  // the runtime's own words are worded for the person
+  assert.match(a.host.textContent!, /Couldn't reach your computer\. Try again\./);
+  assert.doesNotMatch(a.host.textContent!, /Request timed out/);
   assert.ok(a.host.querySelector('[role="alert"]'));
   await a.unmount();
   const pending = rig();

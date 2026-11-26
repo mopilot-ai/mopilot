@@ -174,7 +174,7 @@ SOFTWARE.`,
 ];
 
 export const OWN_CODE = [
-  '`native/helper` (MoPilot.app), `native/sage-mcp`, `native/auth-command` and `native/disclaim` are written in this repository and have no third-party Swift packages. `disclaim` calls a private libSystem symbol and contains no code from another project.',
+  '`native/helper` (MoPilot.app), `native/sage-mcp`, `native/auth-command`, `native/code-pair-approve` and `native/disclaim` are written in this repository and have no third-party Swift packages. `disclaim` calls a private libSystem symbol and contains no code from another project.',
 ];
 
 export const USER_INSTALLED = [

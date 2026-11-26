@@ -1,6 +1,6 @@
 // Current Changes totals follow Git through a real local merge while the conversation retains its editing history.
 // e2e-covers: src/components/panels/SummaryPanel.tsx src/components/panels/SummaryChanges.tsx src/components/panels/useLocalSummaryRepo.ts
-// e2e-covers: src/lib/repositoryChanges.ts shared/gitComparisonBase.mjs
+// e2e-covers: src/lib/repositoryChanges.ts src/styles/app/summary-panel.css shared/gitComparisonBase.mjs
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';

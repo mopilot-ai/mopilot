@@ -15,6 +15,7 @@ export const WHY: Record<string, string> = ownTable({
   'harness.noRemoteControl': 'Not available for this chat',
   'account.remoteControlNeedsClaudeAi': 'Remote Control needs a claude.ai Pro, Max, Team or Enterprise login. Choose one in Accounts.',
   'harness.noArtifacts': "This chat's harness can't publish artifacts or designs.",
+  'harness.noSteer': "This chat's agent can't take a message into a running turn. It waits for the next one.",
   'harness.feedbackTerminalOnly': "Claude Code only takes feedback in its own terminal. Your message wasn't sent.", // Claude Code 的反馈只能在它自己的终端里提交。你的输入没有发送。
   'version.probeFailed': '{label} {version} changed how {feature} works · Update MoPilot', // Claude Code {version} 改了{功能}的接口 · 更新 MoPilot
   'version.incompatible': "{label} {version} doesn't work with this version of MoPilot. Update it.", // Claude Code {version} 与这个版本的 MoPilot 不兼容。请更新它。

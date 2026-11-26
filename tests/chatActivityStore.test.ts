@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { loadStore, impl, resetAll, flush, listeners, bootImpls } from './support/store-harness.ts';
 
 mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
-const { store: S, resetState } = await loadStore();
+const { store: S, sessions, resetState } = await loadStore();
 const st = () => S.useStore.getState();
 const set = S.useStore.setState;
 const note = (method: string, params: any) => listeners['codex.onItem']({ kind: 'notification', chatId: params.threadId, method, params });
@@ -50,6 +50,56 @@ test("every turn's start and end is activity, also a turn not sent from here; th
     S.applyNotification('turn/completed', { threadId: id, turn: { id: 'T', status: 'completed', items: [] } });
     assert.ok(st().threads[id].recencyAt! > 1, id);
   }
+});
+
+test('repeated live output updates its own chat before completion, and older turns and metadata do not', () => {
+  for (const id of ['codex-chat', 'acp:kimi:chat']) {
+    const emit = id === 'codex-chat' ? note : S.applyNotification;
+    set({ threads: { [id]: chat(id), other: chat('other') }, threadOrder: ['other', id] });
+    emit('turn/started', { threadId: id, turn: { id: 'live', status: 'inProgress' } });
+    const output = { threadId: id, turnId: 'live', itemId: 'message', delta: 'text' };
+    for (const text of ['first', 'second']) {
+      set({ threads: { ...st().threads, [id]: chat(id) } });
+      emit('item/completed', { ...output, item: { id: text, type: 'agentMessage', text } });
+      assert.ok(st().threads[id].recencyAt! > 1, id);
+      assert.equal(st().threads.other.recencyAt, 1);
+    }
+    set({ threads: { ...st().threads, [id]: chat(id) } });
+    const answer = { id: 'message', type: 'agentMessage', text: 'complete' };
+    emit('item/completed', { ...output, turnId: 'older', item: answer });
+    emit('item/completed', { ...output, item: { ...answer, type: 'statusNote' } });
+    emit('item/updated', { ...output, item: { id: 'bash', type: 'commandExecution', aggregatedOutput: 'polling output' } });
+    emit('item/agentMessage/delta', output);
+    emit('thread/name/updated', { threadId: id, threadName: 'Renamed' });
+    assert.equal(st().threads[id].recencyAt, 1);
+    emit('item/completed', { ...output, item: answer });
+    assert.ok(st().threads[id].recencyAt! > 1, id);
+    assert.deepEqual(st().threadOrder, ['other', id]);
+  }
+});
+
+test('a window joining a running chat uses the current turn from main', () => {
+  const threadId = 'already-running';
+  set({ threads: { [threadId]: chat(threadId) } });
+  const item = { id: 'message', type: 'agentMessage', text: 'a reply' };
+  note('item/completed', { threadId, turnId: 'current', item });
+  assert.equal(st().threads[threadId].recencyAt, 1);
+  sessions.useSessions.setState({
+    sessions: { [threadId]: { ...sessions.sessionOf(threadId), rev: 1, turn: 'running', activeTurn: { id: 'current', human: true } } },
+  });
+  note('item/completed', { threadId, turnId: 'retired', item });
+  assert.equal(st().threads[threadId].recencyAt, 1);
+  S.applyNotification('item/completed', { threadId, turnId: 'current', item }, false);
+  assert.equal(st().threads[threadId].recencyAt, 1, 'translated items do not repeat activity already recorded at the source');
+  note('item/completed', { threadId, turnId: 'current', item });
+  assert.ok(st().threads[threadId].recencyAt! > 1);
+  note('turn/started', { threadId, turn: { id: 'current', status: 'inProgress' } });
+  set({ threads: { [threadId]: chat(threadId) } });
+  sessions.useSessions.setState({
+    sessions: { [threadId]: { ...sessions.sessionOf(threadId), rev: 0, turn: 'idle', activeTurn: null } },
+  });
+  note('item/completed', { threadId, turnId: 'current', item });
+  assert.equal(st().threads[threadId].recencyAt, 1);
 });
 
 test('an answer that reached the agent is activity in its chat on every harness; one that failed is not', async () => {

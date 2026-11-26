@@ -23,6 +23,7 @@ export const NATIVE_DOUBLES = {
   'expo-sqlite': 'expo-sqlite.ts',
   'expo-symbols': 'expo-symbols.tsx',
   'expo-task-manager': 'expo-task-manager.ts',
+  'expo-web-browser': 'expo-web-browser.ts',
   '@expo/ui/swift-ui': 'expo-ui.tsx',
   '@expo/ui/swift-ui/modifiers': 'expo-ui-modifiers.ts',
   'react-native-gesture-handler': 'react-native-gesture-handler.tsx',

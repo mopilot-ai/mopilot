@@ -12,9 +12,10 @@ import { sessionMentions } from '../../lib/sessionMentions';
 import { tabMentions } from '../../../shared/tabMentions.mjs';
 import { fileMentions } from '../../lib/fileMentions';
 import { deleteAdjacentSkill } from '../../lib/skillDeletion';
+import { useCommandHighlight } from './useCommandHighlight';
 import { useComposerComposition } from '../../lib/composerComposition';
 import { imeComposing } from '../../lib/focus';
-import { readEditor, caretOffset, placeCaret, selectedText, editorTextRanges } from '../../lib/composerEditorDocument';
+import { readEditor, caretOffset, placeCaret, selectedText } from '../../lib/composerEditorDocument';
 import type { slashCommandPresentation } from '../../lib/composerSkills';
 import { editComposerList, restoreComposerLists, startComposerList } from '../../lib/composerLists';
 import { clearComposerBoundaries, pasteComposerBlocks } from '../../lib/composerBlockEdit';
@@ -218,21 +219,7 @@ export function ComposerInput({
     else if (focused) placeCaret(el, Math.min(caret, value.length));
   });
 
-  // Color the command's text without touching the editable DOM or its undo history.
-  useLayoutEffect(() => {
-    const el = elRef.current;
-    const highlights = globalThis.CSS?.highlights;
-    if (!el || rendered.current !== signature || !commandRanges.length || composition.active || !highlights) return;
-    const name = 'composer-slash-command';
-    const ranges = editorTextRanges(el, commandRanges);
-    const highlight = highlights.get(name) ?? new Highlight();
-    for (const range of ranges) highlight.add(range);
-    highlights.set(name, highlight);
-    return () => {
-      for (const range of ranges) highlight.delete(range);
-      if (!highlight.size) highlights.delete(name);
-    };
-  }, [commandRanges, composition.active, signature]);
+  const revalidateHighlight = useCommandHighlight(elRef, rendered, signature, commandRanges, composition.active);
 
   const sync = () => {
     const el = elRef.current!;
@@ -301,7 +288,7 @@ export function ComposerInput({
         onCompositionEnd={composition.end}
         onBlur={composition.blur}
         onInput={(e) => {
-          if (composing.current || editingList.current) return;
+          if (composing.current || editingList.current) return revalidateHighlight();
           if (!disabled && (e.nativeEvent as InputEvent).inputType === 'insertText') {
             editingList.current = true;
             try {

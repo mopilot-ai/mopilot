@@ -21,6 +21,7 @@ import type { MobileRuntime } from '../contracts';
 import { createPushController } from './controller';
 import type { LiveActivityController } from './liveActivityController';
 import { buildNotification, testNotification, withdrawn } from './dataMessage';
+import { createPushAdmit, guardTaps } from '../momoPhone/pushStamps';
 import { createPermissionFlow } from './permission';
 import { parsePrefs } from './prefs';
 import { parsePushPayload, type PushPayload } from './payload';
@@ -104,6 +105,14 @@ export function handleDataMessage(data: unknown) {
   return turn;
 }
 
+/** A push of an old MoMo home is refused: it neither draws a notification nor opens a card. The copy, the keys and the vault are loaded only when a MoMo push arrives. */
+const admitPush = createPushAdmit({
+  context: async () => (await import('../platform/pushStampContext')).momoStampContext(),
+  cache: async () => (await import('../platform/momoHomeStore')).openMomoHomeCache(),
+  wasUsed: async () => (await import('../platform/momoHomeStore')).momoHomeWasUsed(),
+  mark: async () => (await import('../platform/momoHomeStore')).markMomoHomeUsed(),
+});
+
 /** Data messages are handled one after another, in the order they arrived: a clearing must not take its notification away before the "needs you" it follows has been drawn. Never rejects, so the chain goes on after a failure. */
 let inbox: Promise<unknown> = Promise.resolve();
 
@@ -118,7 +127,12 @@ async function handleOne(data: unknown) {
   const stored = await prefsStore().readChecked();
   // an unreadable store must not widen what the lock screen shows: use the private set, created without removing any other
   const prefs = stored.ok ? stored.prefs : { ...stored.prefs, lockScreen: 'private' as const };
-  const note = await buildNotification(data, { keys: titleKeys().all, open: phonePrimitives().aeadOpen, prefs: async () => prefs });
+  const note = await buildNotification(data, {
+    keys: titleKeys().all,
+    open: phonePrimitives().aeadOpen,
+    prefs: async () => prefs,
+    admit: admitPush,
+  });
   if (note) {
     // a data message can arrive before the app ever ran with the channels of the saved lock-screen choice
     await (stored.ok ? syncChannels() : setupChannels('private', false)).catch(() => undefined);
@@ -153,7 +167,7 @@ export function createProductionPush(
     beforeSignOut: hooks.beforeSignOut,
     liveActivity: hooks.liveActivity,
     titleKeys: titleKeys(),
-    taps: onTap,
+    taps: guardTaps(admitPush, onTap),
     pushes(listener) {
       pushListener = listener;
       return () => {
@@ -164,7 +178,7 @@ export function createProductionPush(
   });
   quietForeground(
     (payload) => pushListener?.(payload),
-    (payload) => controller.present(payload),
+    async (payload) => (await admitPush(payload)) && controller.present(payload),
   );
   return controller;
 }

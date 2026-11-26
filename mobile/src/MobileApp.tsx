@@ -6,7 +6,7 @@ import { ScreenFrame } from './components/ui';
 import { NativeStack } from './components/NativeStack';
 import { HomeRoute, useHomeActions } from './screens/HomeRoute';
 import { stackOf, type NavState, type Route } from './stack';
-import { chatListKey, useChatList } from './useChatList';
+import { chatListKey, chatPairOf, useChatList, useLastPair } from './useChatList';
 import { useOpenChatList } from './useOpenChatList';
 import { useHomeFolds } from './useHomeFolds';
 import { PairingRoute } from './screens/PairingRoute';
@@ -21,10 +21,10 @@ import { Settings } from './screens/Settings';
 import { deleteThenLeave } from './components/DeleteAccount';
 import { useOpenChat, usePushUi } from './push/usePushUi';
 import type { PushController } from './push/controller';
-import { Momo, type MomoFocus } from './screens/Momo';
+import { MomoEntry, type MomoFocus } from './screens/momoPhone/MomoEntry';
 import { useMomoAccess } from './momo/useMomoAccess';
 import type { MomoCache } from './momo/cache';
-import type { ChatCache } from './presentation/chatCache';
+import type { PagedChatCache } from './remote/pageCache';
 import { NewChat } from './screens/NewChat';
 import { Starting } from './screens/Starting';
 import { Review } from './screens/Review';
@@ -37,7 +37,7 @@ import { chatHeader, useChatTrail } from './useChatTrail';
 import type { Media } from './platform/media';
 import { createDraftStore, draftKey, startDraft } from './presentation/drafts';
 import { forgetPairRows } from './presentation/threadCache';
-import { leaveAccount } from './accountLeave';
+import { leaveAccount, phoneHomeRows } from './accountLeave';
 import type { PictureCache } from './presentation/pictureCache';
 import { useDiskCaches } from './remote/useDiskCaches';
 import { homeTaps, useHostWaiting, useStartedChats } from './remote/useHostWaiting';
@@ -65,7 +65,7 @@ export function MobileApp({
   runtime: MobileRuntime;
   media?: Media;
   momo?: { cache: Promise<MomoCache | null> };
-  rows?: Promise<ChatCache | null>; // the sealed copy of each chat's last rows, so an opened chat paints from disk
+  rows?: Promise<PagedChatCache | null>; // the sealed copy of each chat's last rows, so an opened chat paints from disk
   lists?: Parameters<typeof useChatList>[0]['lists']; // the sealed last chat list per computer: the list paints from disk at launch
   pictures?: Promise<PictureCache | null>; // the sealed thumbnails of attached pictures: a chat reopened draws them at once
   push?: PushController;
@@ -102,7 +102,7 @@ export function MobileApp({
   const started = useStartedChats(runtime);
   // a chat named in a reply opens over the one it is in, and Back returns there; a link to the open chat stays put (`selected`: words a side chat quotes in its composer)
   const openLinkedChat = (id: string, selected?: string) => (
-    startDraft(drafts.of(draftKey(state.user?.id, lastPair.current, id)), selected), setReviewId(null), pushChat(id, reviewId ?? undefined)
+    startDraft(drafts.of(draftKey(state.user?.id, chatPair, id)), selected), setReviewId(null), pushChat(id, reviewId ?? undefined)
   );
   const [momo, setMomo] = useState<Promise<MomoCache | null> | null>(null);
   // the card a tapped MoMo push named (null: the end of the chat), with a new id per tap so a second tap scrolls again
@@ -124,8 +124,8 @@ export function MobileApp({
   const [pulling, setPulling] = useState(false); // the pull to refresh is spinning (not any other action that holds the screen busy)
   const lifetime = useRef(0);
   // the computer the connection was last up to, for the banner's one-tap reconnect
-  const lastPair = useRef<string | null>(null);
-  if (state.selectedPair) lastPair.current = state.selectedPair;
+  const lastPair = useLastPair(state.selectedPair);
+  const chatPair = chatPairOf(state, lastPair.current);
   const reads = useRef(0);
   const actions = useRef(0);
   // the list belongs to an account and a computer: it stays, as the last one read, while that computer is away
@@ -218,7 +218,8 @@ export function MobileApp({
     if (state.phase !== 'online' && state.phase !== 'offline') setMomo(null);
   }, [state.phase]);
   // leaves the account on this phone: the push registration, the session, and the saved MoMo memory that belongs to the account
-  const leave = () => leaveAccount({ push, runtime, rowCache, listCache: list.cache, pictureCache, momoCache: momoSetup?.cache });
+  const leave = () =>
+    leaveAccount({ push, runtime, rowCache, listCache: list.cache, pictureCache, momoCache: momoSetup?.cache, phoneHome: phoneHomeRows });
   async function run(fn: () => Promise<void>) {
     const life = lifetime.current;
     const key = owner(runtime.snapshot());
@@ -323,7 +324,7 @@ export function MobileApp({
   const render = (route: Route) => {
     if (route.kind === 'momo')
       return (
-        <Momo
+        <MomoEntry
           runtime={runtime}
           state={state}
           cache={momo!}
@@ -461,7 +462,7 @@ export function MobileApp({
       return <Terminal key={`${state.generation}:${chat}`} runtime={runtime} chatId={chat} {...chatNav} back={() => setMirror(null)} />;
     if (route.kind === 'chat')
       return (
-        <ScreenBoundary key={`${state.user?.id}:${lastPair.current}:${chat}`} back={closeChat}>
+        <ScreenBoundary key={`${state.user?.id}:${chatPair}:${chat}`} back={closeChat}>
           <ChatRoute
             pair={state.selectedPair ?? lastPair.current}
             media={media}
@@ -476,10 +477,10 @@ export function MobileApp({
             first={first?.chatId === chat && first.owner === JSON.stringify([state.user?.id, state.selectedPair]) ? first : undefined}
             back={closeChat}
             // the chat's own rows and draft, kept by the computer it is on: while that computer is away, the last one selected
-            historyKey={draftKey(state.user?.id, lastPair.current, chat)}
+            historyKey={draftKey(state.user?.id, chatPair, chat)}
             rowCache={rowCache}
             offline={waiting}
-            drafts={drafts.of(draftKey(state.user?.id, lastPair.current, chat))}
+            drafts={drafts.of(draftKey(state.user?.id, chatPair, chat))}
           />
         </ScreenBoundary>
       );

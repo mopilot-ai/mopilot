@@ -14,7 +14,7 @@ import { setUltracode } from '../../store/send';
 import { whyText } from '../../harness/caps';
 import { PARTS } from '../harness/parts';
 import { fastBillingNote } from '../../harness/accounts';
-import { setSelection, useComposerFamily, useEffectiveSelection, useHarnessAccounts } from '../../session/harness/select';
+import { composerSelect, useComposerFamily, useEffectiveSelection, useHarnessAccounts } from '../../session/harness/select';
 import { HARNESS_TRAITS, firstTierOf } from '../../harness/family';
 import { setRemoteControl, useClaudeCommands, useClaudeSkillFiles, useCommandProvider } from '../../session/harness/claude';
 import { appEntries, composeCommands } from '../../harness/commands';
@@ -233,7 +233,7 @@ export function useSlashItems(
                     title: t.name,
                     desc: t.description,
                     checked: tier === t.id,
-                    run: () => setSelection(harness, { tier: t.id }, threadId),
+                    run: () => composerSelect(harness, { tier: t.id }, threadId),
                   })),
               }
             : {
@@ -245,7 +245,7 @@ export function useSlashItems(
                 run: () =>
                   fastUnavailable
                     ? toast(fastUnavailable)
-                    : setSelection(harness, tiers.length ? { tier: fast ? null : tiers[0].id } : { fast: !fast }, threadId),
+                    : composerSelect(harness, tiers.length ? { tier: fast ? null : tiers[0].id } : { fast: !fast }, threadId),
               },
         ]),
     // MoPilot's bug report, on every harness
@@ -308,7 +308,7 @@ export function useSlashItems(
           desc: m.description ?? undefined,
           checked: m.id === model?.id,
           run: () =>
-            setSelection(harness, { model: m.id, effort: effort && m.efforts.includes(effort) ? effort : m.defaultEffort }, threadId),
+            composerSelect(harness, { model: m.id, effort: effort && m.efforts.includes(effort) ? effort : m.defaultEffort }, threadId),
         })),
     },
     {
@@ -329,7 +329,7 @@ export function useSlashItems(
           id: 'e-' + e,
           title: effortLabel(e),
           checked: e === effort,
-          run: () => setSelection(harness, { effort: e }, threadId),
+          run: () => composerSelect(harness, { effort: e }, threadId),
         })),
     },
     // a session-level multi-agent switch, once the session said whether it has one (getSettings)

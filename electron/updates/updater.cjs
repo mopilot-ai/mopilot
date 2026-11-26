@@ -1,11 +1,6 @@
 // Auto-update from GitHub for stable releases and MoPilot’s authenticated feed for restricted channels (none without the MoPilot service).
-// macOS: Electron's built-in autoUpdater (Squirrel.Mac) installs the update. Squirrel only installs a build that
-// satisfies the running app's designated requirement, so this is a no-op unless the app is Developer ID signed: a dev
-// build signed with Apple Development has a team too, but its requirement pins that certificate. Scheduled checks are
-// silent and only run from /Applications; "Move to Applications" is asked only by a manual check (D-77, D-78).
-// The updater reads the feed and downloads the zip itself (electron/updates/download.cjs: progress, a stall timeout and
-// resume), then hands the finished file to Squirrel on loopback: Squirrel reports no progress, and a fixed limit on
-// its download failed slow downloads that were still moving.
+// macOS: prepare the signed bundle in the native installer, or hand it to Electron's Squirrel.Mac on legacy installs.
+// The updater downloads the zip with progress and resume. Scheduled checks are silent and run from Applications.
 // Windows: no Squirrel.Windows; the same feed is polled for win32 and its installer offered (electron/updates/windows.cjs).
 // Restricted feed: updateFeedUrl(platform, arch, version, ?channel=&iid=) → 204 or 200 { url, name, notes, pub_date } (url: the .zip, the Setup .exe).
 const { fs } = require('../platform/ports/fs.cjs');
@@ -14,7 +9,9 @@ const { app, autoUpdater, dialog, net } = require('../platform/ports/electronApi
 const { endpoints: SERVICE } = require('../platform/mopilotEndpoints.cjs');
 const { noteIgnored, ignoring, messageOf } = require('../ignored.cjs');
 const { userError } = require('../../shared/userError.mjs');
-const { downloadUpdate, serveUpdate } = require('./download.cjs');
+const { downloadUpdate } = require('./download.cjs');
+const { macInstaller } = require('./macInstaller.cjs');
+const { prepareDownload, commitPreparedUpdate, restartUpdate } = require('./prepare.cjs');
 const { readUpdateFeed } = require('./feed.cjs');
 const { refreshUpdate } = require('./refresh.cjs');
 const { verifyRollbackFile, retireForRollback, stagedVersion } = require('./rollback.cjs');
@@ -24,9 +21,6 @@ const { STABLE_FEED_URL } = require('../../shared/stableUpdates.cjs');
 const { checkInstallerFeed, openInstaller } = require('./windows.cjs');
 const { prefsChanged, checkPlan, NEEDS_APPLICATIONS } = require('./plan.cjs');
 
-/** Squirrel unpacking and verifying a downloaded update it reads from loopback. */
-const PREPARE_TIMEOUT_MS = 10 * 60_000;
-const INSTALL_TIMEOUT_MS = 60_000;
 /** At most one progress broadcast per this many ms while downloading. */
 const PROGRESS_MS = 500;
 
@@ -34,7 +28,8 @@ class Updater {
   /**
    * @param {{ installId: string, broadcast: (s: object) => void, gate?: (reason: string) => Promise<boolean>,
    *   idle?: () => Promise<boolean>, token?: () => Promise<string | null>, team?: () => Promise<string | null>,
-   *   downloadDir?: string, download?: typeof downloadUpdate, serve?: typeof serveUpdate, endpoints?: typeof SERVICE }} o
+   *   downloadDir?: string, download?: typeof downloadUpdate, serve?: typeof import('./download.cjs').serveUpdate, endpoints?: typeof SERVICE,
+   *   macInstaller?: ReturnType<typeof macInstaller>, activationAttempt?: (version: string, channel: string) => void }} o
    *   gate: the exit gate (electron/platform/exitGate.cjs); idle: nothing would stop on exit; downloadDir: where the
    *   macOS update is downloaded (default: userData/update-download); download, serve: the macOS download and its
    *   hand-off to Squirrel (electron/updates/download.cjs); endpoints: the MoPilot service's (null: none), for tests
@@ -54,6 +49,9 @@ class Updater {
     this.prefs = null;
     this.generation = 0;
     this.disposed = false;
+    this.macInstaller = null;
+    /** @type {Promise<void> | null} */
+    this.activating = null;
     this.nativeOperation = null;
     this.nativeTimeout = undefined;
     this.stagedArtifact = null;
@@ -88,6 +86,7 @@ class Updater {
       return;
     }
     this.signature = signatureReader(o.team, noteIgnored);
+    this.macInstaller = o.macInstaller === undefined ? macInstaller(app) : o.macInstaller;
     this.ready = this.signed();
     // Squirrel only ever reads the update the updater downloaded: its check and download are the unpacking step
     autoUpdater.on('checking-for-update', () => this.nativeProgress({ status: 'downloading', preparing: true, error: null }));
@@ -137,7 +136,9 @@ class Updater {
     if (!artifact || (artifact.valid && artifact.channel === this.channel)) return error;
     if (artifact.rollbackRevoked)
       return (
-        'A prepared update was superseded by a rollback and may still apply on restart. Retry the rollback download before restarting.' +
+        (this.macInstaller
+          ? 'A prepared update was superseded by a rollback. Retry the rollback download.'
+          : 'A prepared update was superseded by a rollback and may still apply on restart. Retry the rollback download before restarting.') +
         (error ? ` ${error}` : '')
       );
     return (
@@ -262,7 +263,13 @@ class Updater {
       this.download?.abort();
       this.stopIdleWait();
       // a restart to update already under way keeps saying so: the app is quitting with the staged update
-      if (this.supported && this.state.status !== 'installing') this.set({ ...this.stagedState(), restartWhenIdle: false });
+      if (this.supported && this.state.status !== 'installing') {
+        if (this.stagedArtifact?.stage) {
+          this.stagedArtifact.stage.cancel();
+          this.stagedArtifact = null;
+        }
+        this.set({ ...this.stagedState(), restartWhenIdle: false });
+      }
     }
     if (!this.supported) return this.state;
     this.stopSchedule?.();
@@ -363,7 +370,7 @@ class Updater {
       .then(async (file) => {
         if (!live()) return;
         await verifyRollbackFile(file, update);
-        if (live()) await this.handOff(context, file, update);
+        if (live()) await prepareDownload(this, context, file, update, abort.signal);
       })
       .then(
         () => undefined,
@@ -376,41 +383,6 @@ class Updater {
       .finally(() => {
         if (this.download === abort) this.download = null;
       });
-  }
-
-  /** Serve the downloaded file to Squirrel on loopback and let it unpack and verify it, as from the server. */
-  async handOff(context, file, update) {
-    const served = await (this.o.serve ?? serveUpdate)({
-      file,
-      update: { name: update.name, notes: update.notes, pub_date: update.pub_date },
-    });
-    if (!this.current(context)) return this.closeFeed(served);
-    if (this.nativeOperation) {
-      this.closeFeed(served);
-      throw new Error('A previous update check is still finishing. Try again after it finishes, or restart MoPilot.');
-    }
-    this.served = served;
-    try {
-      autoUpdater.setFeedURL({ url: served.feedUrl, serverType: 'json' });
-    } catch (error) {
-      this.closeFeed(served);
-      throw error;
-    }
-    this.nativeOperation = { ...context, timedOut: false, rollback: update.rollback };
-    const operation = this.nativeOperation;
-    this.set({ preparing: true });
-    this.nativeTimeout = setTimeout(() => {
-      if (this.nativeOperation !== operation || this.disposed) return;
-      operation.timedOut = true;
-      // a replacement that timed out offers the ready update it was replacing again
-      this.settle({ status: 'error', error: 'Preparing the update timed out. Restart MoPilot to check again.' }, true);
-    }, PREPARE_TIMEOUT_MS);
-    this.nativeTimeout.unref?.();
-    try {
-      autoUpdater.checkForUpdates();
-    } catch (error) {
-      this.finishNative({ status: 'error', error: messageOf(error) });
-    }
   }
 
   /** Windows: read the feed ourselves; a newer version is offered as an installer download. */
@@ -484,18 +456,7 @@ class Updater {
     }
     if (this.o.gate && !(await this.o.gate('update'))) return false;
     if (!current()) return false;
-    this.set({ status: 'installing', error: null });
-    // a restart that never quits (an error event that never comes) must not leave "Installing" stuck
-    clearTimeout(this.installTimer);
-    this.installTimer = setTimeout(() => this.installFailed('The restart to update did not finish. Try again.'), INSTALL_TIMEOUT_MS);
-    this.installTimer.unref?.();
-    try {
-      autoUpdater.quitAndInstall();
-    } catch (error) {
-      this.installFailed(messageOf(error));
-      return false;
-    }
-    return true;
+    return restartUpdate(this);
   }
 
   /** The restart to update failed: the downloaded update is still ready, so offer it again. */
@@ -504,7 +465,11 @@ class Updater {
     this.installTimer = undefined;
     if (this.disposed || this.state.status !== 'installing') return;
     // a Restart when idle that got here has already stopped waiting: offer it again too
-    this.set({ status: 'ready', error, restartWhenIdle: false });
+    if (this.macInstaller) {
+      this.stagedArtifact?.stage?.cancel();
+      this.stagedArtifact = null;
+      this.set({ status: 'error', available: null, error, restartWhenIdle: false });
+    } else this.set({ status: 'ready', error, restartWhenIdle: false });
   }
 
   /** Stop waiting for the app to go idle to restart. */
@@ -514,11 +479,22 @@ class Updater {
     this.idleTimer = null;
   }
 
+  installOnQuit() {
+    if (!this.macInstaller) return;
+    if (this.state.status === 'installing') return this.activating?.catch(ignoring('finish the restart handoff'));
+    const activating = commitPreparedUpdate(this, false).catch(ignoring('activate the prepared update on quit'));
+    // Freeze update selection in the same turn as handing off to the installer.
+    this.dispose();
+    return activating;
+  }
+
   dispose() {
+    if (this.disposed) return;
     this.disposed = true;
     this.generation++;
     this.stopIdleWait();
     this.download?.abort();
+    this.stagedArtifact?.stage?.cancel();
     this.closeFeed(this.served);
     clearTimeout(this.nativeTimeout);
     clearTimeout(this.installTimer);

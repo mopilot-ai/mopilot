@@ -26,6 +26,27 @@ for (const family of [
         const newline = sendWith === 'enter' ? 'Shift+Enter' : 'Enter';
         const send = sendWith === 'enter' ? 'Enter' : 'Meta+Enter';
         await input.click();
+        await page.keyboard.type('9. A');
+        await input.press('ArrowLeft');
+        await input.press('Backspace');
+        await expect(input.locator('ol')).toHaveCount(0);
+        await page.keyboard.type('Outside ');
+        await expect.poll(value).toBe('Outside A');
+        await input.press('Meta+A');
+        await input.press('Backspace');
+
+        await page.keyboard.type('9. Clear this list');
+        await input.press(newline);
+        await expect.poll(value).toBe('9. Clear this list\n10. ');
+        await input.press('Meta+A');
+        await input.press('Backspace');
+        await expect(input.locator('ol')).toHaveCount(0);
+        await expect.poll(value).toBe('');
+        await input.press('Meta+z');
+        await expect.poll(value).toBe('9. Clear this list\n10. ');
+        await input.press('Meta+Shift+z');
+        await expect.poll(value).toBe('');
+
         await page.keyboard.type('1. First');
         await expect(input.locator('ol > li')).toHaveCount(1);
         await expect.poll(value).toBe('1. First');

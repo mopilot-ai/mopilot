@@ -1,6 +1,8 @@
 // What each harness family does differently in main, as data: shared session code reads a trait here (or picks the
 // family's entry from its own per-family table), never a harness name, so a new family must answer every trait.
 const { byFamily } = require('../session/contract/route.cjs');
+const { parseKind } = require('../../shared/harnessKind.mjs');
+const { hostFamilyOfHarness } = require('../../shared/host/chatIds.mjs');
 
 /**
  * @typedef {object} MainTraits
@@ -53,4 +55,15 @@ const MAIN_TRAITS = {
  */
 const traitsOf = (kind) => byFamily(MAIN_TRAITS, kind);
 
-module.exports = { MAIN_TRAITS, traitsOf };
+/**
+ * The traits of the agent a kind runs, or null for a kind this build doesn't know: a machine's Claude Code or Codex chat
+ * is drawn here as ACP (`acp:host-claude`) and runs that agent on its Host, as the wire's kind (`claude`) names it.
+ * @param {unknown} kind
+ * @returns {MainTraits | null}
+ */
+function agentTraitsOf(kind) {
+  const parsed = parseKind(kind);
+  return parsed ? MAIN_TRAITS[(parsed.basic !== null && hostFamilyOfHarness(parsed.basic)) || parsed.family] : null;
+}
+
+module.exports = { MAIN_TRAITS, traitsOf, agentTraitsOf };

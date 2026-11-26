@@ -90,6 +90,7 @@ export const ChatComposer = memo(function ChatComposer({
       above={<ComposerMenu menu={menu.menu} skills={menu.skills} pick={menu.pick} removeSkill={menu.removeSkill} />}
       fieldProps={{ onChangeText: menu.onChangeText, selection: menu.selection, onSelectionChange: menu.onSelectionChange }}
       menu={voice}
+      bare={!quotes.length && !menu.skills.length && !menu.menu}
     />
   );
 });

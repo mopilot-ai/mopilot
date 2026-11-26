@@ -16,10 +16,12 @@ const PATCH = '--- a/src/a.ts\n+++ b/src/a.ts\n@@ -3,2 +3,2 @@\n-first old\n-old
 const { parseUnifiedDiff } = await import('../src/lib/diff.ts');
 const expected = parseUnifiedDiff(PATCH)[0];
 const ghCalls: string[][] = [];
+const anyGit = () => ({ ok: true, stdout: 'abc', stderr: '', code: 0 });
+let gitRun: (args: string[]) => { ok: boolean; stdout: string; stderr: string; code: number } = anyGit;
 let answers: ((args: string[]) => { ok: boolean; stdout?: string; stderr?: string }) | null = null;
 installNativeStub({
   git: {
-    run: async () => ({ ok: true, stdout: 'abc', stderr: '', code: 0 }),
+    run: async (_cwd: string, args: string[]) => gitRun(args),
     status: async () => ({ files: [] }),
     gh: async (_cwd: string, args: string[]) => {
       ghCalls.push(args);
@@ -38,6 +40,7 @@ const { readBranchReview, postReviewComment } = await import('../src/lib/prRevie
 beforeEach(() => {
   ghCalls.length = 0;
   answers = null;
+  gitRun = anyGit;
 });
 const node = (over: Record<string, unknown> = {}) => ({
   id: 'T1',
@@ -131,6 +134,30 @@ test("the branch's open PR is read with its threads; no PR, a closed one or no G
     answers = () => view;
     assert.equal(await readBranchReview('/repo'), null, JSON.stringify(view));
   }
+});
+
+test("a branch whose origin is deleted reads the open PR of the repository it is pushed to, and gh's own failure stands without one", async () => {
+  const PUSHED = 'https://github.com/o/internal/pull/9';
+  answers = (args) =>
+    args[1] === 'view'
+      ? { ok: false, stderr: "GraphQL: Could not resolve to a Repository with the name 'o/deleted'. (repository)" }
+      : args[1] === 'list'
+        ? { ok: true, stdout: JSON.stringify([{ url: PUSHED, state: 'OPEN', isCrossRepository: false }]) }
+        : { ok: true, stdout: JSON.stringify(answer([node()])) };
+  const urls = 'remote.origin.url https://github.com/o/deleted.git\nremote.internal.url https://github.com/o/internal.git\n';
+  gitRun = (args) => ({
+    ...anyGit(),
+    stdout: args[0] === 'symbolic-ref' ? 'feat\n' : args[0] === 'for-each-ref' ? 'internal\0refs/heads/feat\n' : urls,
+  });
+  const review = await readBranchReview('/repo');
+  assert.deepEqual(review?.pr, { owner: 'o', name: 'internal', number: 9, url: PUSHED });
+  assert.ok(ghCalls.some((args) => args.includes('--repo=github.com/o/internal')));
+  // pushed to origin's own repository: nowhere else to look, and gh's failure rejects as before
+  gitRun = (args) => ({
+    ...anyGit(),
+    stdout: args[0] === 'for-each-ref' ? 'origin\0refs/heads/feat\n' : args[0] === 'symbolic-ref' ? 'feat\n' : urls,
+  });
+  await assert.rejects(readBranchReview('/repo'), /Could not resolve to a Repository/);
 });
 
 test("an open PR whose threads can't be read rejects with gh's reason", async () => {

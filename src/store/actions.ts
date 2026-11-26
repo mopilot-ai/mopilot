@@ -44,6 +44,7 @@ import { deletionVisibility } from './deletionVisibility';
 import { inheritCodexPin } from './accounts';
 import { held, withLease, showThread } from './threads';
 import { restoreTurnFiles } from './rewindFiles';
+import { rewindTurns } from './pendingTurns';
 import { noteWorktreeCopy, retireWorktree, runEnvironmentScript, startThread, currentCwdForNewChat } from './projects';
 import { sendMessage, sendOrDraft } from './send';
 import { navigate, openPaneTab, closeOwnedPaneTabs } from './panes';
@@ -428,10 +429,8 @@ export async function revertThread(chatId: string, beforeTurnId: string): Promis
     });
   else if (files.note) toast(files.note, 'info');
   // the response's thread has no turns; trim the ones already on screen
-  patchRuntime(chatId, (rt) => {
-    const idx = rt.turns.findIndex((x) => x.id === beforeTurnId);
-    return idx < 0 ? {} : { turns: rt.turns.slice(0, idx) };
-  });
+  if (nativeOf(chatId) !== nid) return false;
+  patchRuntime(chatId, (rt) => rewindTurns(rt.turns, beforeTurnId));
   return true;
 }
 

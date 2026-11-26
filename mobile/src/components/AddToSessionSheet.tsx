@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Image as PhotoImage } from 'expo-image';
 import { ScrollView, Text, View } from 'react-native';
 import { Tap } from '../ui/ds/Tap';
-import type { Media, Recent } from '../platform/media';
+import type { Media, Prep, Recent } from '../platform/media';
 import type { Picked } from '../remote/upload';
 import { AccessDenied } from '../platform/accessDenied';
 import { explain } from '../remote/client';
@@ -16,6 +16,13 @@ import { OpenSettings } from './OpenSettings';
 import { typo } from '../typography';
 
 const TILE = 108;
+/** How long "Getting your selection…" runs on its own before it says that a long video takes a while: the picker copies each original itself and has no percentage to give. */
+export const hint = { after: 6000 };
+/** What is being done to the video: made smaller, or (after a size did not fit) a smaller size is tried. */
+const line = (prep: Prep) => {
+  const what = prep.count > 1 ? `video ${prep.index} of ${prep.count}` : 'the video';
+  return prep.retry ? `Trying a smaller size for ${what}` : `Making ${what} smaller`;
+};
 const none: Recent = { access: 'denied', photos: [] };
 
 /** A row that opens another page of the chat: its grey value and where it leads. */
@@ -46,6 +53,20 @@ export function AddToSessionSheet({
   const [busy, setBusy] = useState(false);
   // a system picker (camera or the full library) is on its way up: iOS shows one at a time, so its buttons wait
   const [opening, setOpening] = useState(false);
+  // the library picker has been asked for. The picker gives no signal when it closes (its promise resolves after the choice is exported), so one line has to be true while it is open and while the choice is read: what the app is doing, not what the person should do
+  const [preparing, setPreparing] = useState(false);
+  // a video being made smaller: which one and how far, and what stops it (the Cancel under the line, the sheet closing)
+  const [prep, setPrep] = useState<Prep | null>(null);
+  const stopper = useRef<AbortController | null>(null);
+  // the picker has handed over a pick with a video in it, and reading it has run long with nothing to show: say what it is
+  const [videos, setVideos] = useState(false);
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    setSlow(false);
+    if (!videos || prep) return;
+    const timer = setTimeout(() => setSlow(true), hint.after);
+    return () => clearTimeout(timer);
+  }, [videos, prep]);
   const [error, setError] = useState<string | null>(null);
   // a refusal the system will not ask about again: the way forward is Settings
   const [denied, setDenied] = useState(false);
@@ -59,10 +80,15 @@ export function AddToSessionSheet({
     setDenied(false);
     setBusy(false);
     setOpening(false);
+    setPreparing(false);
+    setPrep(null);
+    setVideos(false);
     setRecent(none);
     void media.recent().then((r) => live.current && setRecent(r));
     return () => {
       live.current = false;
+      // a video still being made smaller is not wanted once the sheet is gone: the export stops and takes its temporary files with it
+      stopper.current?.abort();
     };
   }, [open, media]);
   const room = MAX_FILES - files.items.length;
@@ -78,7 +104,7 @@ export function AddToSessionSheet({
       setDenied(e instanceof AccessDenied);
     }
   }
-  /** One photo from the camera or the full picker: added, and the sheet is done. */
+  /** One photo from the camera: added, and the sheet is done. */
   const one = (pick: () => Promise<Picked | null>) =>
     run(async () => {
       setOpening(true);
@@ -89,6 +115,38 @@ export function AddToSessionSheet({
         onClose();
       } finally {
         if (live.current) setOpening(false);
+      }
+    });
+  /** What the person chose in the system picker: every photo and video added in the order chosen, and the sheet is done unless something was left out or could not be read. */
+  const several = () =>
+    run(async () => {
+      setOpening(true);
+      setPreparing(true);
+      const control = new AbortController();
+      stopper.current = control;
+      try {
+        const { picked, refused, cancelled } = await media.library(room, {
+          signal: control.signal,
+          progress: (next) => live.current && setPrep(next),
+          handed: ({ videos: n }) => live.current && setVideos(n > 0),
+        });
+        if (!live.current) return;
+        for (const file of picked.slice(0, room)) files.add(file);
+        // the person stopped it: what was ready is in the message, and the sheet stays for the rest
+        if (cancelled) return;
+        const cut = picked.length > room ? 'Up to ten files per message; the rest were left out.' : '';
+        const lost = refused.length === 1 ? refused[0] : refused.length ? `${refused.length} files could not be added.` : '';
+        // both facts are told when both happened: a left-out item and one that could not be read
+        if (cut || lost) setError([cut, lost].filter(Boolean).join(' '));
+        else if (picked.length) onClose();
+      } finally {
+        stopper.current = null;
+        if (live.current) {
+          setOpening(false);
+          setPreparing(false);
+          setPrep(null);
+          setVideos(false);
+        }
       }
     });
   // a tile with no room left is disabled, so a tick always has room
@@ -140,7 +198,7 @@ export function AddToSessionSheet({
           accessibilityLabel="Photos"
           disabled={room <= 0 || opening}
           hitSlop={8}
-          onPress={() => void one(() => media.library())}
+          onPress={() => void several()}
         >
           <Text style={{ ...typo.body, color: room <= 0 ? theme.ink3 : theme.ink }}>Photos</Text>
         </Tap>
@@ -249,9 +307,31 @@ export function AddToSessionSheet({
       )}
       {/* the system may be asking for camera access on top of the app: say so, or the tap looks dead */}
       {opening && (
-        <Text accessibilityLiveRegion="polite" style={{ ...typo.subhead, color: theme.ink2, marginBottom: 12, paddingHorizontal: 4 }}>
-          Opening… answer the prompt if iOS asks.
+        <Text
+          accessibilityLiveRegion="polite"
+          // the percentage is a value, not part of the label: a screen reader says what is happening, and the number when asked, not at every step
+          accessibilityLabel={prep ? line(prep) : undefined}
+          accessibilityValue={prep ? { text: `${Math.round(prep.fraction * 100)} percent` } : undefined}
+          style={{ ...typo.subhead, color: theme.ink2, marginBottom: 12, paddingHorizontal: 4 }}
+        >
+          {prep
+            ? `${line(prep)}… ${Math.round(prep.fraction * 100)}%`
+            : preparing
+              ? slow
+                ? 'Getting your selection… long videos take a while.'
+                : 'Getting your selection…'
+              : 'Opening… answer the prompt if iOS asks.'}
         </Text>
+      )}
+      {prep && (
+        <Tap
+          accessibilityRole="button"
+          accessibilityLabel="Cancel"
+          onPress={() => stopper.current?.abort()}
+          style={{ marginBottom: 12, paddingHorizontal: 4 }}
+        >
+          <Text style={{ ...typo.subhead, color: theme.accent }}>Cancel</Text>
+        </Tap>
       )}
       {!!error && (
         <Text accessibilityLiveRegion="polite" style={{ ...typo.subhead, color: theme.bad, marginBottom: 12, paddingHorizontal: 4 }}>

@@ -23,7 +23,9 @@ function createMachineRelay({ relay, registry, pool, targetOf, allowed, openPair
   /** When each machine may be tried again. @type {Map<string, number>} */
   const tried = new Map();
   /** @param {any} r */
-  const view = (r) => (relay && r.socketPath && allowed() ? relay.view(r.address, pool.get(targetOf(r))) : null);
+  // a relay-only machine (paired by code: `relay:<host id>`) has no socket of its own on record and still has a path to show
+  const view = (r) =>
+    relay && (r.socketPath || r.address.startsWith('relay:')) && allowed() ? relay.view(r.address, pool.get(targetOf(r))) : null;
 
   /** @param {string} id */
   /** One enrollment per machine at a time (pairing and a heartbeat may both ask). @type {Map<string, Promise<void>>} */
@@ -75,7 +77,8 @@ function createMachineRelay({ relay, registry, pool, targetOf, allowed, openPair
     /** The row's path facts (none without a relay). @param {any} r */
     row(r) {
       const v = view(r);
-      return v ? { path: v } : {};
+      // a Mac this one only controls (paired by code) runs chats on its own sign-in and settings: its row says so
+      return { ...(v ? { path: v } : {}), ...(r.pairedBy === 'code' ? { pairedBy: 'code' } : {}) };
     },
     enroll,
     /** Pins a machine to a path or back to auto; a machine with no relay path can still be pinned to SSH. @param {string} id @param {unknown} mode */
@@ -89,7 +92,8 @@ function createMachineRelay({ relay, registry, pool, targetOf, allowed, openPair
     },
     /** The machine is removed: its relay credential goes, and its Host is told while it is connected. @param {any} record @param {any} [host] */
     forget(record, host) {
-      if (!relay?.enrolled(record.address)) return;
+      // a machine whose Host removed this Mac has no pair left, only its mark
+      if (!relay?.enrolled(record.address) && !relay?.removedByPeer(record.address)) return;
       relay
         .forget(record.address, host?.state() === 'online' ? (m, p) => host.call(m, p) : null)
         .catch((error) => noteIgnored('take a removed machine’s relay path away', error));

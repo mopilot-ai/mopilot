@@ -174,8 +174,11 @@ function createQueries(state, { auth, cli }) {
   }
 
   /** The user's Claude skills, commands and MCP servers (Settings → Claude Code → Extensions). Loads user settings, so only on demand. */
-  async function extras(bin, cwd, account) {
+  async function extras(bin, cwd, account, requireFolder) {
     const { query } = await state.sdk();
+    const executable = sdkBin((await cli.findBinary(bin)) ?? bin);
+    const folder = cwd && fs.existsSync(cwd) ? cwd : undefined;
+    if (requireFolder === true && !folder) throw new Error("The chat's folder is unavailable.");
     let release;
     const gate = new Promise((r) => (release = r));
     async function* none() {
@@ -185,11 +188,11 @@ function createQueries(state, { auth, cli }) {
     const q = query({
       prompt: none(),
       options: {
-        pathToClaudeCodeExecutable: sdkBin((await cli.findBinary(bin)) ?? bin),
+        pathToClaudeCodeExecutable: executable,
         extraArgs: noChrome(),
-        cwd: cwd && fs.existsSync(cwd) ? cwd : undefined,
+        cwd: folder,
         settingSources: ['user', 'project', 'local'],
-        env: auth.cleanEnv(account),
+        env: auth.cleanEnv(account ?? undefined),
       },
     });
     const timeout = (ms) => new Promise((_, rej) => unrefTimer(() => rej(new Error('Timed out')), ms));

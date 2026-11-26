@@ -14,7 +14,12 @@ export const snap = (over: object = {}) => ({
 /** A feed on scripted reads and manual timers: `reads` is what each read answers (a value, an Error or a promise to settle later). */
 export function rig(
   reads: any[],
-  extra: { accepts?: (e: any, s: any) => boolean; foreground?: (fn: () => void) => () => void; now?: () => number } = {},
+  extra: {
+    accepts?: (e: any, s: any) => boolean;
+    foreground?: (fn: () => void) => () => void;
+    now?: () => number;
+    final?: (message: string) => boolean;
+  } = {},
 ) {
   const timers: { at: number; fn: () => void; id: number }[] = [];
   let id = 0;

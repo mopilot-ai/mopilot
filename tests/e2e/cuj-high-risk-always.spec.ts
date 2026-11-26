@@ -1,4 +1,4 @@
-// A financial site saved for good (#5464): its site card and one JavaScript card answered "always" cover later runs in this turn and the next, while a committing click still asks; all bank requests are fulfilled locally in scratch Chrome.
+// A financial site saved for good (#5464): its site card and one JavaScript card answered "always" cover later runs in this turn and the next and the keys that edit a text field (#5599), while a committing click still asks; all bank requests are fulfilled locally in scratch Chrome.
 import { test, expect, pairWithAllow } from './fixtures/chromePairing';
 import { pickScope } from './fixtures/approvalScope';
 
@@ -16,7 +16,8 @@ test('high-risk Always allow: the site and its page JavaScript are saved, a Conf
     route.fulfill({
       contentType: 'text/html',
       body: `<!doctype html><title>Bank fixture</title>
-      <button style="position:absolute;left:220px;top:20px;width:140px;height:50px" onclick="document.documentElement.dataset.confirmed='yes'">Confirm</button>`,
+      <button style="position:absolute;left:220px;top:20px;width:140px;height:50px" onclick="document.documentElement.dataset.confirmed='yes'">Confirm</button>
+      <input aria-label="Where to" value="Hong Kongg" style="position:absolute;left:20px;top:120px;width:240px;height:40px">`,
     }),
   );
   const welcome = await pairWithAllow(page, chrome);
@@ -79,11 +80,27 @@ test('high-risk Always allow: the site and its page JavaScript are saved, a Conf
   await card.getByRole('button', { name: /Always allow on this site/ }).click();
   await expect.poll(runs, { timeout: 30_000 }).toBe('2');
   await expect(card).toHaveCount(0);
+  // keys that edit a text field are as ordinary as typing into it (#5599): a click into the field, then Backspace and an
+  // arrow, each go without a card on the saved site
+  const where = () => bank!.evaluate(() => (document.querySelector('input') as HTMLInputElement).value);
+  const computer = (o: object) => `CUCALL mcp__mopilot_chrome__computer ${JSON.stringify({ tabId, ...o })}`;
+  await send(
+    [
+      computer({ action: 'left_click', coordinate: [140, 140] }),
+      computer({ action: 'key', text: 'End' }),
+      computer({ action: 'key', text: 'BackSpace' }),
+      computer({ action: 'key', text: 'ArrowLeft' }),
+      js,
+    ].join('\n'),
+  );
+  await expect.poll(runs, { timeout: 30_000 }).toBe('3');
+  expect(await where()).toBe('Hong Kong');
+  await expect(card).toHaveCount(0);
   // the next turn's runs go without a card; a Confirm click still asks, held, with no Always allow
   await send(
     [js, `CUCALL mcp__mopilot_chrome__computer ${JSON.stringify({ tabId, action: 'left_click', coordinate: [280, 45] })}`].join('\n'),
   );
-  await expect.poll(runs, { timeout: 30_000 }).toBe('3');
+  await expect.poll(runs, { timeout: 30_000 }).toBe('4');
   await expect(card).toContainText("This can't be undone.", { timeout: 30_000 });
   await expect(card.getByRole('button', { name: /Always allow on this site/ })).toHaveCount(0);
   await expect(card.getByRole('button', { name: /Allow once/ })).toBeVisible();

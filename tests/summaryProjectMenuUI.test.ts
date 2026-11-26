@@ -12,6 +12,8 @@ const store = fakeStore({ threads: { chat: { cwd: '/repo' } }, runtime: { chat: 
 const calls: unknown[][] = [];
 stubStore(store.exports);
 installNativeStub({
+  codex: { onItem: () => () => {}, onStatus: () => () => {}, api: async () => ({ data: [] }) },
+  claude: { onEvent: () => () => {}, control: async () => null },
   // main's context snapshots (src/session/useContextSnapshot.ts): none known
   context: { get: async () => null, refresh: async () => null, onSnapshot: () => () => {} },
   git: {
@@ -124,6 +126,13 @@ test('a managed worktree uses the original project’s name and opens its own ch
   const r = await render(h(SummaryPanel, { threadId: 'chat' }));
   assert.equal(one(r.host, '.summary-project').textContent, 'the-project');
   assert.equal(one(r.host, '.summary-project').title, cwd);
+  assert.equal(one(r.host, '.summary-path').textContent, '· /work');
+  await settle(act);
+  assert.equal(one(r.host, '.summary-branch .summary-hint').textContent, 'Worktree');
+  assert.deepEqual(
+    [...one(r.host, '.summary-panel').children].slice(0, 4).map((section) => section.querySelector('h2, summary > span')?.textContent),
+    ['Environment', 'Context', 'Connectors', 'Changes'],
+  );
   await act(() => one(r.host, '[aria-label="Session actions"]').click());
   await act(() => one(r.host, '[role="menuitem"]', 'Open in Finder').click());
   assert.deepEqual(calls, [['openPath', cwd]]);

@@ -296,6 +296,88 @@ test('the real input routes list keys after its parent, prevents native duplicat
   }
 });
 
+test('Backspace at the first item removes its marker, preserving the body, caret and following numbers', async () => {
+  const m = await mount('9. First\n10. Second');
+  const commands = nativeCommands();
+  try {
+    m.el.focus();
+    m.el.setSelectionRange(3, 3);
+    const event = new window.KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true });
+    await act(() => m.el.dispatchEvent(event));
+    assert.equal(event.defaultPrevented, true);
+    assert.equal(m.text, 'First\n10. Second');
+    assert.equal(m.el.selectionStart, 0);
+    assert.deepEqual(commands.calls, ['insertHTML']);
+  } finally {
+    commands.restore();
+    await m.close();
+  }
+});
+
+test('deleting the entire selected list draft clears its generated markers in one native transaction', async () => {
+  for (const [key, text, endsOnPlaceholder] of [
+    ['Backspace', '4. First\n5. Second'],
+    ['Delete', '- First'],
+    ['Backspace', '4. First\n5. ', true],
+    ['Delete', '4. First\n', true],
+  ] as const) {
+    const m = await mount(text);
+    const commands = nativeCommands();
+    try {
+      m.el.focus();
+      const range = window.document.createRange();
+      const items = m.el.querySelectorAll('li');
+      range.setStart(items[0].firstChild, 0);
+      const last = items[items.length - 1].firstChild;
+      if (endsOnPlaceholder) range.setEndBefore(m.el.querySelector('br'));
+      else range.setEnd(last, last.length);
+      window.getSelection()!.removeAllRanges();
+      window.getSelection()!.addRange(range);
+      const event = new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      await act(() => m.el.dispatchEvent(event));
+      assert.equal(event.defaultPrevented, true);
+      assert.equal(m.text, '');
+      assert.equal(m.el.querySelector('ol, ul'), null);
+      assert.equal(m.el.selectionStart, 0);
+      assert.deepEqual(commands.calls, ['insertHTML']);
+    } finally {
+      commands.restore();
+      await m.close();
+    }
+  }
+});
+
+test('deletion keeps unselected content, native character editing and modified keys in browser control', async () => {
+  const m = await mount('1. First\n2. Second');
+  const commands = nativeCommands();
+  const backspace = (options = {}) => new window.KeyboardEvent('keydown', { key: 'Backspace', ...options }) as unknown as KeyboardEvent;
+  const forward = new window.KeyboardEvent('keydown', { key: 'Delete' }) as unknown as KeyboardEvent;
+  try {
+    m.el.focus();
+    for (const [start, end] of [
+      [4, 4], // Inside the first item.
+      [12, 12], // At the start of a later item.
+      [3, 8], // Leaves the next item.
+      [4, m.el.value.length], // Leaves the first character.
+    ]) {
+      m.el.setSelectionRange(start, end);
+      assert.equal(editComposerList(m.el, backspace(), false), false);
+    }
+    m.el.setSelectionRange(3, m.el.value.length);
+    assert.equal(editComposerList(m.el, backspace({ shiftKey: true }), false), false);
+    assert.equal(editComposerList(m.el, backspace({ altKey: true }), false), false);
+    m.el.setSelectionRange(3, 3);
+    assert.equal(editComposerList(m.el, forward, false), false);
+    await m.update('Plain text');
+    m.el.setSelectionRange(0, m.el.value.length);
+    assert.equal(editComposerList(m.el, backspace(), false), false);
+    assert.deepEqual(commands.calls, []);
+  } finally {
+    commands.restore();
+    await m.close();
+  }
+});
+
 test('a restarted ordered list retains its explicitly typed start after an earlier list', async () => {
   const m = await mount();
   const commands = nativeCommands();

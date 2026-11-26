@@ -47,7 +47,7 @@ The third-party components added with the multi-harness work and feature-owned n
 
 ## Written in this repository
 
-- `native/helper` (MoPilot.app), `native/sage-mcp`, `native/auth-command` and `native/disclaim` are written in this repository and have no third-party Swift packages. `disclaim` calls a private libSystem symbol and contains no code from another project.
+- `native/helper` (MoPilot.app), `native/sage-mcp`, `native/auth-command`, `native/code-pair-approve` and `native/disclaim` are written in this repository and have no third-party Swift packages. `disclaim` calls a private libSystem symbol and contains no code from another project.
 
 ## Installed by the user, not shipped
 

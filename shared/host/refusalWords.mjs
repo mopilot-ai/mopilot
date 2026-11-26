@@ -5,6 +5,7 @@ import { hostPermissionFamily, isHostPermission } from './permissions.mjs';
 import { SIDE_CHAT_PARENT_CHANGED_WORDS } from './sideChats.mjs';
 import { PERMISSION_LABEL } from '../permissionMenu.mjs';
 import { LINK_WORDS } from './refusalWordsLink.mjs';
+import { CODE_PAIR_WORDS } from './refusalWordsCodePair.mjs';
 
 /** the Host's names for the two modes the chip words differently */
 const MODE_WORDS = { Default: PERMISSION_LABEL.default, 'Auto-review': PERMISSION_LABEL['auto-review'] };
@@ -355,6 +356,7 @@ const TABLE = {
     retry: false,
   }),
   home_stamp_missing: (c) => ({ line: `${c.machine} can't tell which MoMo home this comes from.`, action: null, retry: false }),
+  ...CODE_PAIR_WORDS,
   ...LINK_WORDS,
   home_state_unreadable: (c) => ({
     line: `MoMo's permissions on ${c.machine} can't be read, so MoMo is not allowed to use it until they are set again.`,

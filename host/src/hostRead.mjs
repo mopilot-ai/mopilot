@@ -116,6 +116,8 @@ export function createHostRead({ hostFs, run = runGit, fsp = fs.promises }) {
       git(dir, ['remote', 'get-url', 'origin']),
     ]);
     const sha = head.ok ? head.stdout.trim() : '';
+    const name = branch.ok ? branch.stdout.trim() : '';
+    const upstream = name ? await upstreamOf(dir, name) : null;
     /** @type {{ path: string, added: number, removed: number, binary?: boolean, untracked?: boolean, counted?: boolean }[]} */
     const files = [];
     let truncated = false;
@@ -136,6 +138,7 @@ export function createHostRead({ hostFs, run = runGit, fsp = fs.promises }) {
           branch: branch.ok ? branch.stdout.trim() || null : null,
           head: sha,
           remote: remote.ok ? publicRemote(remote.stdout) : null,
+          upstream,
           files,
           truncated,
           unreadable: true,
@@ -168,9 +171,24 @@ export function createHostRead({ hostFs, run = runGit, fsp = fs.promises }) {
       branch: branch.ok ? branch.stdout.trim() || null : null,
       head: SHA.test(sha) ? sha : null,
       remote: remote.ok ? publicRemote(remote.stdout) : null,
+      upstream,
       files,
       truncated,
     };
+  }
+
+  /**
+   * Where the checkout's branch `name` is pushed, as `branch.<name>.remote` and `.merge` say: that remote's address without credentials and the branch there. A PR of the branch lives in that repository, which need not be `origin`'s (a renamed or deleted `origin`, a second remote). Null for a branch that tracks nothing, a local branch, or a remote with no address git can give.
+   * @param {string} dir @param {string} name
+   */
+  async function upstreamOf(dir, name) {
+    const r = await git(dir, ['for-each-ref', '--format=%(upstream:remotename)%00%(upstream:remoteref)', `refs/heads/${name}`]);
+    const [remoteName = '', ref = ''] = r.ok ? r.stdout.trim().split('\0') : [];
+    // `.` is the repository itself; a name git would read as an option is no remote it can name
+    if (!remoteName || remoteName === '.' || remoteName.startsWith('-') || !ref.startsWith('refs/heads/')) return null;
+    const url = await git(dir, ['remote', 'get-url', remoteName]);
+    const remote = url.ok ? publicRemote(url.stdout) : null;
+    return remote ? { remote, branch: ref.slice('refs/heads/'.length) } : null;
   }
 
   /**

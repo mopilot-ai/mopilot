@@ -5,6 +5,7 @@ import { memo, useEffect, useMemo, useRef } from 'react';
 import type { Owned } from '../remote/client';
 import { readStepPicture } from '../remote/stepPicture';
 import { reportSentTop } from '../sendOrigin';
+import { RiseIn } from './RiseIn';
 import { SentBubble } from './SentBubble';
 import { Enter, SkipFirstEntrance } from './Motion';
 import { StepPictureProvider } from './StepPicture';
@@ -58,64 +59,85 @@ export const RowBlock = memo(
     row,
     fade,
     hold,
+    still,
     reportsTop,
     streaming,
   }: {
     row: KeyedRow;
     fade: boolean;
     hold: boolean;
+    still: boolean;
     reportsTop: boolean;
     streaming: boolean;
   }) {
+    const yours = row.role === 'user' || row.role === 'liveUser';
+    const bubble = (
+      <MessageBubble
+        id={row.key}
+        role={row.role}
+        text={row.text}
+        kind={row.kind}
+        state={row.state}
+        detail={row.detail}
+        thumbnail={row.thumbnail}
+        surface={row.surface}
+        callId={row.callId}
+        pictures={row.pictures}
+        images={row.images}
+        messageId={row.messageId}
+        streaming={streaming}
+      />
+    );
     return (
-      // your own message is already on screen (the queued bubble) when the computer's copy of it lands: it takes its place without fading in again
+      // your own message is already on screen (the queued bubble) when the computer's copy of it lands: it takes its place without fading in again,
+      // and unseen while the ghost still rises over it, as the queued bubble was (RiseIn: one bubble from the tap to the landing, #5760)
       <Enter
         fade={fade && row.role !== 'user' && row.role !== 'liveUser'}
         hold={hold}
+        leave={!still}
         onLayout={reportsTop ? (event) => reportSentTop(event.nativeEvent.layout.y, true) : undefined}
       >
-        <MessageBubble
-          id={row.key}
-          role={row.role}
-          text={row.text}
-          kind={row.kind}
-          state={row.state}
-          detail={row.detail}
-          thumbnail={row.thumbnail}
-          surface={row.surface}
-          callId={row.callId}
-          pictures={row.pictures}
-          images={row.images}
-          messageId={row.messageId}
-          streaming={streaming}
-        />
+        {yours ? <RiseIn>{bubble}</RiseIn> : bubble}
       </Enter>
     );
   },
-  (a, b) => a.fade === b.fade && a.hold === b.hold && a.reportsTop === b.reportsTop && a.streaming === b.streaming && sameRow(a.row, b.row),
+  (a, b) =>
+    a.fade === b.fade &&
+    a.hold === b.hold &&
+    a.still === b.still &&
+    a.reportsTop === b.reportsTop &&
+    a.streaming === b.streaming &&
+    sameRow(a.row, b.row),
 );
 
 /** A folded run of steps, memoized on its block (the same block object while its steps and running state are the same). */
 export const RunBlock = memo(
-  function RunBlock({ block, fade, hold }: { block: RunOf; fade: boolean; hold: boolean }) {
+  function RunBlock({ block, fade, hold, still }: { block: RunOf; fade: boolean; hold: boolean; still: boolean }) {
     return (
-      <Enter fade={fade} hold={hold}>
+      <Enter fade={fade} hold={hold} leave={!still}>
         <ToolRun steps={block.steps} summary={block.summary} running={block.running} />
       </Enter>
     );
   },
-  (a, b) => a.fade === b.fade && a.hold === b.hold && sameBlock(a.block, b.block),
+  (a, b) => a.fade === b.fade && a.hold === b.hold && a.still === b.still && sameBlock(a.block, b.block),
 );
 
-/** `streamingKey` names the reply still being written: the one that ends a working turn, else none. */
+/**
+ * `streamingKey` names the reply still being written: the one that ends a working turn, else none. `phase`: the blocks are the rows the chat
+ * last showed ('saved'), the Mac's rows in the commit that replaces them ('arriving'), or the live transcript. Rows of the first two do not
+ * animate (they are not new to the reader: nothing fades in, glides or fades out under a view the system keeps in place), and saved rows
+ * never report where your newest message is (they would pin the list to a row that is not the computer's).
+ */
 export function TranscriptBlocks({
   blocks,
   streamingKey,
+  phase = 'live',
   request,
   chatId,
 }: {
   blocks: Block[];
   streamingKey: string | null;
+  phase?: 'saved' | 'arriving' | 'live';
   /** the way to the Mac the step pictures read their full capture through, for this chat */
   request: Owned;
   chatId: string;
@@ -133,6 +155,7 @@ export function TranscriptBlocks({
   // while the queued bubble is still drawn, the newest record of yours is an older message: only the bubble says where the new one is
   const lastYours = blocks.some((b) => b.type !== 'run' && b.row.optimistic) ? -1 : lastRecord;
   // by the rows under the blocks: a run that took in steps of the page above changes its own key, and the row that was first is still there
+  const still = phase !== 'live';
   const paged = usePagedAbove(blocks.flatMap((b) => (b.type === 'run' ? b.steps.map((step) => step.key) : [b.row.key])));
   return (
     <StepPictureProvider load={loadPicture}>
@@ -140,16 +163,17 @@ export function TranscriptBlocks({
         <SkipFirstEntrance>
           {blocks.map((block, index) =>
             block.type === 'run' ? (
-              <RunBlock key={`run:${block.key}`} block={block} fade={!paged} hold={paged} />
+              <RunBlock key={`run:${block.key}`} block={block} fade={!paged && !still} hold={paged || still} still={still} />
             ) : block.row.optimistic ? (
               <SentBubble key={block.row.key} id={block.row.key} text={block.row.text} pictures={block.row.pictures} />
             ) : (
               <RowBlock
                 key={block.row.key}
                 row={block.row}
-                fade={!paged}
-                hold={paged}
-                reportsTop={index === lastYours}
+                fade={!paged && !still}
+                hold={paged || still}
+                still={still}
+                reportsTop={phase !== 'saved' && index === lastYours}
                 streaming={block.row.key === streamingKey}
               />
             ),

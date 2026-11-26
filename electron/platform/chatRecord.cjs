@@ -61,7 +61,7 @@ function fromLegacySegment(s) {
  *             account: { id: string, pinned: boolean } | null, config: object | null, continueModel: {owner: string, model: string | null} | null, goalHeld: unknown, notes: unknown[],
  *             computerGrants: unknown[], navigationBookmarks: unknown[], forkOf: string | null, controllerPlan: object | null, activeAt: number | null,
  *             momo: string | null, routineId: string | null, topicId: string | null, authored: Record<string, object> | null, momoModel: string | null,
- *             momoEffort: string | null, initialTitle: string | null, nativeSideFork?: string }}
+ *             momoEffort: string | null, initialTitle: string | null, rewoundAt: number | null, nativeSideFork?: string }}
  */
 function emptyMeta() {
   return {
@@ -71,6 +71,7 @@ function emptyMeta() {
     projectId: null,
     /** A linked session's supplied task title, visible before its first message or generated native title. */
     initialTitle: null,
+    rewoundAt: null,
     worktreeOf: null,
     account: null,
     config: null,

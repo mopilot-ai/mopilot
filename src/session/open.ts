@@ -3,10 +3,11 @@
 import { native } from '../lib/native';
 import { useStore, toast, toastFailure } from '../store/core';
 import { openPaneTab } from '../store/panes';
-import { basename, decodeLinkPath, localLinkParts } from '../lib/paths';
+import { basename } from '../lib/paths';
 import { lookupMessagePath } from '../lib/messagePaths';
+import { linkTarget } from '../lib/linkTarget';
 import { parseRemoteCwd, remoteCwd, remotePathOf } from '../lib/remoteFolder';
-import { lineSpan, type LineSpan } from '../lib/lineSpan';
+import { type LineSpan } from '../lib/lineSpan';
 import { modKey } from '../lib/platform';
 
 /**
@@ -107,18 +108,8 @@ export async function openMessagePath(path: string, cwd?: string | null, span: L
 /** Message links open beside the conversation; Cmd-click (Ctrl elsewhere) opens externally. */
 export function openMessageLink(href: string, cwd?: string | null, event?: { metaKey: boolean; ctrlKey: boolean }, asUrl = false) {
   const external = event ? modKey(event) : false;
-  if (/^https?:|^mailto:/i.test(href)) {
-    openUrl(href, external);
-    return;
-  }
-  const file = localLinkParts(href, asUrl);
-  let path = file.path;
-  // `#L12`, `:12:5` (a column) or a range `#L5-L20` / `:5-20`
-  const citation = /[#:]L?(\d+)(?:C\d+)?(?:-L?(\d+)(?:C\d+)?|:\d+)?$/;
-  const inPath = citation.exec(path);
-  const fragment = citation.exec(file.fragment);
-  const location = fragment?.index === 0 ? fragment : inPath;
-  if (inPath) path = path.slice(0, inPath.index);
-  const folder = parseRemoteCwd(cwd)?.folder ?? cwd;
-  void openMessagePath(decodeLinkPath(path, file, folder), cwd, location ? lineSpan(location[1], location[2]) : {}, external);
+  const target = linkTarget(href, cwd, asUrl);
+  // a web or mail link names no path
+  if (!target) return openUrl(href, external);
+  void openMessagePath(target.path, cwd, target.span, external);
 }

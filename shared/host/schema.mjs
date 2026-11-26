@@ -460,7 +460,7 @@ export function parseParams(/** @type {string} */ method, /** @type {unknown} */
 
 /**
  * Throws a GateError unless every feature `method` needs is on. A method outside REQUIRES needs none.
- * @param {string} method @param {{ features: string[] }} negotiated @param {{ credential?: unknown, images?: unknown[], files?: unknown[], mime?: unknown, goal?: unknown, harness?: unknown, sideChat?: unknown }} [params] a clone that lends a sign-in also needs `cloneCredential`
+ * @param {string} method @param {{ features: string[] }} negotiated @param {{ credential?: unknown, images?: unknown[], files?: unknown[], mime?: unknown, goal?: unknown, harness?: unknown, sideChat?: unknown, origin?: unknown, native?: unknown }} [params] a clone that lends a sign-in also needs `cloneCredential`
  */
 export function requireFeatures(method, negotiated, params) {
   /** @type {string[]} */

@@ -213,15 +213,21 @@ test('the suggested next step, derived locally from the turn: unsaved documents,
   );
   assert.equal(suggestNextStep([call('browser_navigate', { url: 'https://a.test/x' }, 'timed out', { error: true })]), 'Try a.test again');
   assert.equal(suggestNextStep([call('browser_navigate', { url: 'https://a.test/x' }, "Couldn't load this page")]), 'Try a.test again');
+  // A native prediction cannot bring back an app refused by this turn, even when only its note is loaded.
+  assert.equal(suggestNextStep([], [{ app: 'TextEdit', name: 'TextEdit' }], 'Try opening TextEdit.'), null);
   // an untrusted certificate fails the same way every time: no retry is suggested
   assert.equal(
-    suggestNextStep([
-      call(
-        'browser_navigate',
-        { url: 'https://localhost:8791/' },
-        "Couldn't load this page: its security certificate isn't trusted (ERR_CERT_AUTHORITY_INVALID).",
-      ),
-    ]),
+    suggestNextStep(
+      [
+        call(
+          'browser_navigate',
+          { url: 'https://localhost:8791/' },
+          "Couldn't load this page: its security certificate isn't trusted (ERR_CERT_AUTHORITY_INVALID).",
+        ),
+      ],
+      [],
+      'Try opening that page again.',
+    ),
     null,
   );
   // Claude Code sees MoPilot's desktop tools as mopilot_computer: the same suggestions as desktop_*

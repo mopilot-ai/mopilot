@@ -36,6 +36,7 @@ mocks[url('harness/adapters/codexApi.ts')] = {
     },
   },
 };
+const { closeConnectPhone, isConnectPhoneOpen } = await import('../src/lib/phoneEntry.ts');
 const { createElement: h } = await import('react');
 const { Settings } = await import('../src/components/pages/Settings.tsx');
 
@@ -160,4 +161,47 @@ test('signed out of MoPilot: Allow connections cannot be used, and ChatGPT’s o
     view.host.querySelector('[role=switch][aria-label="Allow this computer to be controlled"]')!.hasAttribute('disabled'),
     false,
   );
+});
+
+test('with the ChatGPT link up and the phones off, Add turns the phones on and opens the pairing dialog; the link stays up', async (t) => {
+  codexNow = { status: 'connected', environmentId: 'env', error: null };
+  let enabled = false;
+  responses['remoteSettings.state'] = () => phoneState({ enabled, running: enabled });
+  responses['remoteSettings.setEnabled'] = (on: boolean) => ((enabled = on), true);
+  const view = await render(h(Settings, { section: 'connections' }));
+  t.after(() => view.unmount());
+  await flush(50);
+  await click(button(view.host, 'Add'));
+  await flush(50);
+  assert.deepEqual([setEnabledCalls(), computerSets], [[true], []], 'phones on, nothing torn down');
+  assert.equal(isConnectPhoneOpen(), true, 'the pairing dialog opens when the phones came on');
+  closeConnectPhone();
+});
+
+test('Add with a refused change does not open the pairing dialog; the refusal is the one thing shown', async (t) => {
+  codexNow = { status: 'connected', environmentId: 'env', error: null };
+  responses['remoteSettings.state'] = () => phoneState({ enabled: false, running: false });
+  responses['remoteSettings.setEnabled'] = () => Promise.reject(new Error('Could not turn phones on'));
+  const view = await render(h(Settings, { section: 'connections' }));
+  t.after(() => view.unmount());
+  await flush(50);
+  await click(button(view.host, 'Add'));
+  await flush(50);
+  assert.equal(isConnectPhoneOpen(), false);
+  assert.match(text(view.host), /Could not turn phones on/);
+});
+
+test('signed out with ChatGPT usable, the description says the other switch still works; the ChatGPT rows stay when the phone state cannot be read', async (t) => {
+  responses['remoteSettings.state'] = phoneState({ signedIn: false, enabled: false, running: false });
+  const signedOut = await render(h(Settings, { section: 'connections' }));
+  await flush(50);
+  assert.match(text(signedOut.host), /Other devices have their own switch under Other settings/);
+  await signedOut.unmount();
+  codexNow = { status: 'connected', environmentId: 'env', error: null };
+  responses['remoteSettings.state'] = () => Promise.reject(new Error('Status unavailable'));
+  const broken = await render(h(Settings, { section: 'connections' }));
+  t.after(() => broken.unmount());
+  await flush(50);
+  assert.match(text(broken.host), /Status unavailable/);
+  assert.match(text(broken.host), /No devices added yet/);
 });

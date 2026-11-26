@@ -33,6 +33,7 @@ test('a machine on the relay: its row, a refusal in its pathâ€™s words, a pinned
   const relay = {
     pool: (ssh: any) => ((seen.ssh = ssh), { get: () => (seen.pooled++, tunnel), closeAll: () => undefined }),
     enrolled: (a: string) => enrolled.has(a),
+    removedByPeer: () => false,
     view: (a: string, tun: any) => ({ mode: 'auto', relay: enrolled.has(a), path: tun?.path ?? null, latencyMs: tun?.latencyMs ?? null }),
     lane: { onChange: (fn: () => void) => (laneFns.add(fn), () => laneFns.delete(fn)) },
     setMode: (a: string, m: string) => seen.modes.push([a, m]),
@@ -94,6 +95,7 @@ test('Add by command through the machines service: a command made with the appâ€
     pool: (ssh: any) => ssh,
     enrolled: () => false,
     needsRotation: () => false,
+    removedByPeer: () => false,
     dispose: () => undefined,
   };
   // the command names every machine's build, which a release carries and a checkout has only for itself
