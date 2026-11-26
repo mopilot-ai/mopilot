@@ -11,7 +11,7 @@ import { x25519 } from '@noble/curves/ed25519';
 import { sha256 } from '@noble/hashes/sha256';
 import { hmac } from '@noble/hashes/hmac';
 const require = createRequire(import.meta.url);
-const { createSodiumPrimitives } = require('../../electron/remote/sodiumPrimitives.cjs');
+const { createSodiumPrimitives } = require('../../electron/platform/sodiumPrimitives.cjs');
 const { PairingService } = require('../../electron/remote/pairing.cjs');
 const { DeviceList } = require('../../electron/remote/deviceList.cjs');
 export const prim = createSodiumPrimitives(),

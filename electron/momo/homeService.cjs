@@ -277,11 +277,10 @@ function startHomeService({
     starting = true;
     const mine = account();
     try {
-      const [{ createRealHome }, { createMomoOutbox }, { createSealer }, { createNodePrimitives }] = await Promise.all([
+      const [{ createRealHome }, { createMomoOutbox }, { createSealer }] = await Promise.all([
         importReal(),
         import('../../shared/momoOutbox.mjs'),
         import('../../shared/momoGoogle/seal.mjs'),
-        import('../../shared/remote/nodePrimitives.mjs'),
       ]);
       // turned off, or another account signed in, while the modules loaded
       // turned off, or another account signed in, while the modules loaded: nothing is made, and what is wanted now is looked at again
@@ -343,7 +342,7 @@ function startHomeService({
         ...(openExternal
           ? {
               google: {
-                sealer: createSealer(createNodePrimitives()),
+                sealer: createSealer(require('../platform/sodiumPrimitives.cjs').createSodiumPrimitives()),
                 startCatcher: createLoopbackCatcher({ openExternal }),
                 client: /** @type {const} */ ('desktop'),
               },

@@ -19,6 +19,8 @@ export function tools(over: Record<string, unknown> = {}) {
     buildSageMcp: recorder(() => '/native/sage-mcp'),
     buildAuthCommand: recorder(() => '/native/auth-command'),
     buildDisclaim: recorder(() => '/native/disclaim'),
+    buildUpdateInstall: recorder(() => '/native/update-install'),
+    buildCodePairApprove: recorder(() => '/native/code-pair-approve'),
     buildPasskeys: recorder(() => '/native/passkeys.node'),
     buildCore: recorder(() => '/core/mopilot_core.node'),
     checkWindowsCore: recorder(),

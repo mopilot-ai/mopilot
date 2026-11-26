@@ -39,7 +39,7 @@ export function world(t: any, over: Record<string, any> = {}) {
   let clock = 1_000_000;
   const rv: any = createRendezvous({ now: () => clock });
   const relayCalls: string[] = [];
-  const flags = { sendFails: false, allows: over.allows ?? true, open: true, auditThrows: false };
+  const flags = { sendFails: false, allows: over.allows ?? true, open: true, saveFails: false, auditThrows: false };
   const forgot: string[] = [];
   const reported: string[] = [];
   const relay: any = {
@@ -98,17 +98,24 @@ export function world(t: any, over: Record<string, any> = {}) {
     pairing,
     forget: ({ hostId }: { hostId: string }) => void forgot.push(hostId),
     open: () => flags.open,
+    setOpen: (v: boolean) => {
+      // off is off in this process even when it could not be kept (host/src/codePairWiring.mjs)
+      if (!v) flags.open = false;
+      if (flags.saveFails) throw new Error('disk full');
+      flags.open = v;
+    },
     enroll: (p: any) => {
       if (over.enrollFails) throw new Error('relay link refused');
       enrolled.push(p);
       return half;
     },
     approvals: real
-      ? { status: real.keys.status, hostId: () => pairing.hostId(), verify: real.keys.verify }
+      ? { status: real.keys.status, hostId: () => pairing.hostId(), verify: real.keys.verify, reset: real.keys.reset }
       : {
           status: () => (over.unavailable ? { available: false, reason: over.unavailable } : { available: true, weak: false }),
           hostId: () => 'host-h',
           ...('verify' in over ? { verify: over.verify } : { verify: async () => true }),
+          ...('reset' in over ? { reset: over.reset } : {}),
         },
     ...(over.bare
       ? {}

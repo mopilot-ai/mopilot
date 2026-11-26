@@ -18,6 +18,7 @@ export const realPaths = [
   'src/components/composer/useComposerStop.ts',
   'src/components/composer/useComposerText.ts',
   'src/components/composer/useComposerHistory.ts',
+  'src/components/composer/useComposerSteers.ts',
   'src/components/composer/useDraftRestore.ts',
   'src/components/composer/useComposerVoice.ts',
   'src/components/composer/useSlashPick.ts',

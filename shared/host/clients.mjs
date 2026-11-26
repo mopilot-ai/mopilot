@@ -53,7 +53,10 @@ export const clientParsers = () => ({
   'host.homeLinkRepair': () => ({}),
   'host.clientRename': (/** @type {any} */ p) => {
     if (typeof p.name !== 'string') throw bad('That device name is not text.');
-    return { name: clientNameOf(p.name) };
+    // another client's row, renamed by this Mac's own app (a client that manages the Host): absent, the caller's own record
+    if (p.fingerprint != null && (typeof p.fingerprint !== 'string' || !FINGERPRINT.test(p.fingerprint)))
+      throw bad('That client fingerprint is not valid.');
+    return { name: clientNameOf(p.name), ...(p.fingerprint == null ? {} : { fingerprint: p.fingerprint }) };
   },
 });
 

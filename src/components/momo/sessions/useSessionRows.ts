@@ -16,6 +16,7 @@ const NONE: readonly string[] = [];
 export function useSessionRows(show: boolean): SessionRow[] {
   const lineage = useFamilyLineage();
   const threads = useStore((s) => s.threads);
+  const rewoundAt = useStore((s) => s.chatRewoundAt);
   const initialTitles = useStore((s) => s.chatInitialTitles);
   const listed = useStore((s) => s.threadOrder);
   const momoChats = useStore((s) => s.momoChats);
@@ -28,7 +29,7 @@ export function useSessionRows(show: boolean): SessionRow[] {
   const hostChats = useHostChats();
   const { machines } = useHostMachines();
   // the sidebar's roots (cached: the same array until the list changes); a chat this window never opened has no session yet, so its card is asked for
-  const roots = show ? familiesOf(lineage, listed, threads, momoChats, true).roots : NONE;
+  const roots = show ? familiesOf(lineage, listed, threads, momoChats, true, rewoundAt).roots : NONE;
   useEffect(() => {
     for (const id of roots) ensureSession(id);
   }, [roots]);

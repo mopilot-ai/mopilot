@@ -43,6 +43,13 @@ export function createPhoneRelay(o) {
   }
   function wait(key, send) {
     if (!socket) return Promise.reject(new Error('relay disconnected'));
+    let text;
+    try {
+      text = JSON.stringify(send);
+    } catch (error) {
+      // a frame that cannot be written is the caller's error, not the connection's
+      return Promise.reject(error);
+    }
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(key);
@@ -50,11 +57,12 @@ export function createPhoneRelay(o) {
       }, timeoutMs);
       pending.set(key, { resolve, reject, timer });
       try {
-        socket.send(JSON.stringify(send));
-      } catch (error) {
+        socket.send(text);
+      } catch {
+        // a socket that is not open throws (React Native says INVALID_STATE_ERR): to the callers it is a relay that is not connected
         clearTimeout(timer);
         pending.delete(key);
-        reject(error);
+        reject(new Error('relay disconnected'));
       }
     });
   }

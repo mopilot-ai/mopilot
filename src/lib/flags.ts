@@ -9,6 +9,7 @@ export type FlagKey =
   | 'tier.basic.enabled'
   | 'host.unattended'
   | 'host.machinePage'
+  | 'host.codePair'
   | `harness.acp.${string}.enabled`
   | 'shared.computerUse.enabled'
   | 'shared.computerUse.unattended'

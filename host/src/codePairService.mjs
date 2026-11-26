@@ -41,11 +41,13 @@ const spkiOf = (raw) => Buffer.concat([Buffer.from('302a300506032b6570032100', '
  * @param {{ pub: Uint8Array, name: string, sign: (m: Uint8Array) => Uint8Array }} o.device this Host's device key for the proofs of the protocol
  * @param {ReturnType<typeof import('./codePairBudgets.mjs').createCodePairBudgets>} o.budgets
  * @param {{ allowsClient: (kind: 'controller') => boolean }} o.policy managed policy: an organization may forbid controllers
- * @param {{ add: (key: string, o: { name: string, kind: 'controller', addedBy: string, link?: string, approval?: { text: string, sig: string } }) => string, remove: (fingerprint: string) => boolean }} o.pairing the client table
+ * @param {{ add: (key: string, o: { name: string, kind: 'controller', addedBy: string, link?: string, approval?: { text: string, sig: string } }) => string, remove: (fingerprint: string) => boolean, dropControllers?: () => number, controllerLinks?: () => string[], admitChanged?: () => void }} o.pairing the client table
  * @param {(params: object) => object} o.enroll the Host's relay links: takes the credential the other Mac minted, answers this Host's half of the pair
  * @param {(p: { hostId: string }) => unknown} o.forget takes a relay link back (a pairing that failed after it was enrolled)
- * @param {() => boolean} o.open whether this Host accepts connections at all ("Allow connections"): a Host that does not makes no code
- * @param {{ status: () => { available: boolean, reason?: string, weak?: boolean }, hostId: () => string, verify?: (text: string, approval: unknown) => Promise<boolean> | boolean, enrol?: (p: { key: string, weak: boolean, signature: string }) => object }} o.approvals the person's own proof (./codePairApproval.mjs): whether a pairing can be accepted here at all, this Host's name, and whether a signature is the person's proof of exactly the text the Host made (a signature only the app's native helper makes, after Touch ID or the password); without `verify` no pairing is ever accepted
+ * @param {(p: { hostId: string }) => unknown} [o.retire] keeps a removed controller's relay link as a tombstone (relayTombstone.mjs); `forget` by default
+ * @param {() => boolean} o.open whether this Host accepts connections at all ("Allow connections"), read at each offer: a Host that does not makes no code
+ * @param {(open: boolean, app?: string) => void} o.setOpen keeps what the app on this Mac says of "Allow connections" (and its own key's fingerprint); throws when it could not be kept (off is then still off in this process)
+ * @param {{ status: () => { available: boolean, reason?: string, weak?: boolean }, hostId: () => string, verify?: (text: string, approval: unknown) => Promise<boolean> | boolean, enrol?: (p: { key: string, weak: boolean, signature: string }) => object, reset?: () => void }} o.approvals the person's own proof (./codePairApproval.mjs): whether a pairing can be accepted here at all, this Host's name, and whether a signature is the person's proof of exactly the text the Host made (a signature only the app's native helper makes, after Touch ID or the password); without `verify` no pairing is ever accepted
  * @param {(e: object) => void} [o.audit] @param {(m: string) => void} [o.report]
  * @param {() => number} [o.now] @param {(fn: () => void, ms: number) => any} [o.setTimer] @param {(n: number) => Uint8Array} [o.random]
  */
@@ -58,7 +60,9 @@ export function createCodePairService({
   pairing,
   enroll,
   forget,
+  retire = forget,
   open,
+  setOpen,
   approvals,
   audit = () => undefined,
   report = () => undefined,
@@ -259,6 +263,8 @@ export function createCodePairService({
       reopen(o, 'approval_unavailable');
       throw refuse('approval_unavailable', 'This pairing was not allowed in person on this Mac.');
     }
+    // "Allow connections" read again as the answer lands: off since the question was asked is a no, and nothing is enrolled or added (from here to the controller's record is synchronous, so this one look covers both)
+    if (!open()) return deny(o, 'connections_off');
     let enrolled;
     try {
       enrolled = enroll(credential);
@@ -287,9 +293,9 @@ export function createCodePairService({
     try {
       await send(o, message);
     } catch (error) {
-      // the other Mac was not told: it is no controller, and the relay link it brought is gone with it
-      pairing.remove(fingerprint);
+      // the other Mac was not told: it is no controller, and the relay link it brought is gone with it (first, so it is never kept as a tombstone)
       forget({ hostId: credential.hostId });
+      pairing.remove(fingerprint);
       finish(o, 'failed', { code: 'relay' });
       throw refuse('relay', `The other Mac could not be told: ${error}`);
     }
@@ -407,9 +413,33 @@ export function createCodePairService({
       return { cancelled: true };
     },
     /** What this connection's offers are doing (never a code). @param {{ owner: object }} who */
+    /**
+     * Resets pairing approval, as `mopilot-host reset-approval` does from a terminal: every controller goes (record, relay link, live connections) and then the approval key. Refused while a code is open. A step that fails says so, and resetting again finishes it (each step is safe to repeat).
+     */
+    resetApproval() {
+      if (offers.size > 0) throw refuse('busy', 'A code is open on this Mac. Cancel it first.');
+      if (!pairing.dropControllers || !pairing.controllerLinks || !approvals.reset)
+        throw refuse('unsupported', 'This Host cannot reset pairing approval.');
+      let controllers;
+      try {
+        // the relay links go first, as the command does: a link that cannot be retired stops the reset with its record still there, so resetting again finds it
+        for (const link of pairing.controllerLinks()) retire({ hostId: link });
+        controllers = pairing.dropControllers();
+        // a live connection of a controller that went is closed now, not at its next request (also when the key reset below fails)
+        pairing.admitChanged?.();
+        approvals.reset();
+      } catch (error) {
+        report(`code pairing: reset approval: ${error}`);
+        throw refuse('reset_incomplete', 'Resetting pairing approval did not finish. Reset it again.');
+      }
+      audit({ kind: 'code.reset', by: { fingerprint: '', name: '', kind: 'cli' }, what: { outcome: 'reset' } });
+      return { reset: true, controllers };
+    },
     status({ owner }) {
       return {
         approval: approvals.status(),
+        // the name the approval key is enrolled for (the helper signs its enrolment over it)
+        hostId: approvals.hostId(),
         paused: budgets.pausedUntil() > 0,
         offers: [...offers.values()]
           .filter((o) => o.owner === owner)
@@ -420,6 +450,25 @@ export function createCodePairService({
     enrol: (p) => {
       if (!approvals.enrol) throw refuse('no_approval_helper', UNAVAILABLE.no_approval_helper);
       return approvals.enrol(p);
+    },
+    /**
+     * "Allow connections" as the app on this Mac has it. Off ends every open offer at once, whoever made it and whatever it is doing: a pairing whose proof is awaited adds nothing (it finds its offer ended). Off ends them even when it could not be kept.
+     * @param {{ open: boolean, app?: string }} p `app`: the fingerprint of the app's own key, the one client off does not keep out
+     */
+    connections({ open: on, app }) {
+      let cancelled = 0;
+      try {
+        setOpen(on, app);
+      } catch (error) {
+        throw refuse('not_saved', `This Mac could not keep the setting: ${error}`);
+      } finally {
+        if (!on)
+          for (const o of [...offers.values()]) {
+            finish(o, 'cancelled', { code: 'connections_off' });
+            cancelled += 1;
+          }
+      }
+      return { open: open(), cancelled };
     },
     /** Ends every offer at once (the Host is stopping): the relay is told, no timer is left. */
     close() {

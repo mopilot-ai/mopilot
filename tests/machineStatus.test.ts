@@ -224,6 +224,7 @@ test('the states are tried in order and the last one matches every machine', () 
   assert.deepEqual(
     MACHINE_STATES.map((s) => s.id),
     [
+      'peer-removed',
       'deleted-at-provider',
       'creating',
       'waking',
@@ -294,4 +295,19 @@ test('#4912: a machine added by command has no ssh, so its row never offers an U
   assert.deepEqual(machineStatus(machine({ id: 'ssh:me@box', agents: [claude('ready')], hostStale: true }), ctx()).update, {
     label: 'Update',
   });
+});
+
+test('a machine whose Host removed this Mac (#5747): its note as the line, a warning, and Remove as the one fix, whatever else it says', () => {
+  const note = 'Studio removed this Mac. Remove it here, then pair again with a new code if you need it.';
+  for (const o of [
+    { status: 'attention' },
+    { status: 'offline', lastSeen: NOW - 60_000 },
+    { update: 'failed', agents: [claude('signin')] },
+  ])
+    assert.deepEqual(machineStatus(machine({ ...o, note, peerRemoved: true }), ctx()), {
+      dot: 'warn',
+      text: note,
+      remove: { label: 'Remove' },
+    });
+  assert.equal(machineStatus(machine({ note }), ctx()).remove, undefined);
 });

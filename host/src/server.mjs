@@ -283,6 +283,13 @@ export async function startServer({
         },
       })
     : undefined;
+  // what is admitted changed ("Allow connections" off): a live connection of a client kept out now is closed at once, not at its next request
+  pairing?.onAdmitChange?.(() => {
+    for (const c of conns) {
+      const fp = c.principal?.fingerprint;
+      if (fp && fp !== CLI_PRINCIPAL.fingerprint && !pairing.stillKnows(fp)) c.socket?.destroy();
+    }
+  });
   const server = net.createServer((socket) => {
     sockets.add(socket);
     /** One message to this client, if it is still connected. @param {object} message */

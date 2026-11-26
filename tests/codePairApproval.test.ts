@@ -234,3 +234,14 @@ test('KNOWN GAP (#5617): a key file that is replaced is believed, and a revoked 
     'but its own are believed',
   );
 });
+
+test('reset forgets the enrolled key: no pairing is accepted until one is enrolled again, and it is safe to repeat', (t) => {
+  const w = world(t);
+  w.enrolWith();
+  assert.equal(w.keys.status().available, true);
+  w.keys.reset();
+  assert.deepEqual(w.keys.status(), { available: false, reason: 'no_approval_helper' });
+  assert.ok(!fs.existsSync(w.file));
+  w.keys.reset();
+  assert.deepEqual(w.enrolWith(), { enrolled: true, weak: false }, 'a key can be enrolled again');
+});

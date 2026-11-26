@@ -34,16 +34,27 @@ async function groups(prefs: Record<string, unknown> = {}, newerRecency = 20, hy
 }
 const keys = (value: Awaited<ReturnType<typeof groups>>) => value.map((g) => g.id ?? g.path);
 
-test('default project order follows chat recency instead of saved project placement', async () => {
-  const prefs = { sidebarProjectOrder: ['older', 'empty', 'newer', '/work/folder'] };
-  assert.deepEqual(keys(await groups(prefs)), ['newer', '/work/folder', 'older', 'empty']);
-  assert.deepEqual(keys(await groups(prefs, 8)), ['/work/folder', 'older', 'newer', 'empty']);
-  // The hook also defaults to recent activity before preferences are hydrated.
-  assert.deepEqual(keys(await groups(prefs, 20, false)), ['newer', '/work/folder', 'older', 'empty']);
+test('by default a more recent chat rises within its project while saved project headings stay in place', async () => {
+  const order = ['older', 'empty', 'newer', '/work/folder'];
+  const prefs = { sidebarProjectOrder: order };
+  for (const [activity, hydrate, first] of [
+    [2, true, 'newer-old-chat'],
+    [20, true, 'new-chat'],
+    [20, false, 'new-chat'],
+  ] as const) {
+    const sorted = await groups(prefs, activity, hydrate);
+    assert.deepEqual(keys(sorted), order);
+    assert.equal(sorted.find((group) => group.id === 'newer')?.threads[0]?.id, first);
+  }
 });
 
 test('manual chat order does not change project recency and pins remain first', async () => {
-  const sorted = await groups({ chatSort: 'manual', chatOrder: { newer: ['newer-old-chat', 'new-chat'] }, pinnedProjects: ['older'] });
+  const sorted = await groups({
+    projectSort: 'updated',
+    chatSort: 'manual',
+    chatOrder: { newer: ['newer-old-chat', 'new-chat'] },
+    pinnedProjects: ['older'],
+  });
   assert.deepEqual(keys(sorted), ['older', 'newer', '/work/folder', 'empty']);
   assert.deepEqual(
     sorted.find((g) => g.id === 'newer')!.threads.map((t) => t.id),
@@ -61,12 +72,13 @@ test('explicit custom and alphabetical project order remain available', async ()
   assert.deepEqual(keys(await groups({ projectSort: 'name' })), ['empty', '/work/folder', 'newer', 'older']);
 });
 
-test('a project with more chats than a function argument limit remains sortable in the sidebar', async () => {
+test('a project with more chats than a function argument limit remains sortable by recent activity', async () => {
   const threads = Object.fromEntries(
     Array.from({ length: 150000 }, (_, i) => [`chat-${i}`, { id: `chat-${i}`, projectId: 'large', updatedAt: i }]),
   );
   setFixture({
     ...baseState(),
+    prefs: loadPrefs({ projectSort: 'updated' }),
     savedProjects: [
       { id: 'empty', name: 'Empty', roots: [{ path: '/empty' }] },
       { id: 'large', name: 'Large', roots: [{ path: '/large' }] },

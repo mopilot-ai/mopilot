@@ -109,3 +109,30 @@ test('a proxy without an identity sends no auth, as for a Host that has no pairi
   assert.deepEqual(conns(w), [['ping', 'host.hello']]);
   await host.send('a', { text: 'hi' }, { key: 'k-0000001' });
 });
+
+test('#5744: the refused proof is readable and told on every agreement: refused while the Host keeps the app out, cleared when a later proof is accepted, and nobody is told after dispose', async (t) => {
+  const { w, identity } = paired(t);
+  let open = false;
+  w.net.handlers['host.auth'] = () => {
+    if (!open) throw Object.assign(new Error('Connections are off on this Mac.'), { code: 'connections_off' });
+    return { fingerprint: 'f', name: '', kind: 'desktop' };
+  };
+  const tun = w.tunnel();
+  const host = w.remote(tun, { identity: () => identity });
+  const told: (string | null)[] = [];
+  host.onRefused((e: any) => told.push(e?.code ?? null));
+  await host.connect();
+  assert.equal(host.refused()?.code, 'connections_off');
+  assert.deepEqual(told, ['connections_off']);
+  // a request that needs trust asks again: still refused, told again (the reader decides what changed)
+  await assert.rejects(host.send('a', { text: 'hi' }, { key: 'k-0000001' }), (e: any) => e.code === 'connections_off');
+  assert.deepEqual(told, ['connections_off', 'connections_off']);
+  open = true;
+  assert.equal(await host.send('a', { text: 'hi' }, { key: 'k-0000002' }), 'ok');
+  assert.equal(host.refused(), null);
+  assert.deepEqual(told, ['connections_off', 'connections_off', null]);
+  const off = host.onRefused(() => assert.fail('an unsubscribed listener is not told'));
+  off();
+  host.dispose();
+  assert.equal(told.length, 3);
+});

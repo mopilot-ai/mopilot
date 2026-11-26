@@ -14,6 +14,7 @@ const { TurnContinuations } = require('../session/turnContinuation.cjs');
 const { openMomoAccess, updateMomoAccess } = require('../momo/access.cjs');
 const { accountScope } = require('../remote/accountScope.cjs');
 const { createConsent } = require('../remote/consent.cjs');
+const { codePairHostFor } = require('../host/codePairHost.cjs');
 const { openHostAccess, updateHostAccess } = require('../host/access.cjs');
 const { openPhoneAccess, updatePhoneAccess, onPhoneAccess } = require('../remote/phoneAccess.cjs');
 const path = require('node:path');
@@ -41,6 +42,8 @@ function createIdentity({
 }) {
   const { broadcastAll } = appWindows;
   live.remoteConsent = createConsent(live, readState, patchPrefsSync, STATE_FILE);
+  // this Mac's side of pairing by code (electron/host/codePairHost.cjs): made before any IPC module registers (electron/app/ipc/codePair.cjs subscribes to it); its Host's socket is read from the machine list when asked (live.localHostSocket, electron/app/ipc/host.cjs)
+  live.codePairHost = codePairHostFor({ app, live });
   /** @type {InstanceType<typeof Accounts>} */
   let accounts;
   /** Providers and account instances over both harnesses (electron/identity). */

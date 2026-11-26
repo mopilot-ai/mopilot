@@ -4,6 +4,7 @@ import { isOwner } from '../momoOwner.mjs';
 import { onlyAtHome } from '../momoHomeGuard.mjs';
 import { IntentError } from '../../../shared/momoHomeApi.mjs';
 import { HostRefusal } from '../hostFs.mjs';
+import { narrowLane } from '../phoneMomoNarrow.mjs';
 
 /** @param {{ momo?: ReturnType<typeof import('../momoHome.mjs').createMomoHome> }} deps */
 export default ({ momo }) => ({
@@ -15,6 +16,8 @@ export default ({ momo }) => ({
       /** @type {string} */ _kind = '',
       /** @type {unknown} */ who = undefined,
     ) => {
+      // a phone runs only the kinds its screens send
+      narrowLane(who, intent.kind);
       const table = /** @type {NonNullable<NonNullable<typeof momo>['intentRegistry']>} */ (
         /** @type {NonNullable<typeof momo>} */ (momo).intentRegistry
       )().intents();

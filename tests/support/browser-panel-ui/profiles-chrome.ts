@@ -20,7 +20,8 @@ export function registerProfilesChromeCases() {
     await notice(event('crashed'));
     await noticeClick('Reload');
     assert.equal(fixture.guest.getAttribute('partition'), SHARED_PARTITION);
-    assert.match(container.querySelector('.browser-context')!.textContent!, /Sign-in is separate from Chrome/);
+    // the default shared profile needs no line under the toolbar: only per-chat storage says how it differs
+    assert.equal(container.querySelector('.browser-context'), null);
   });
 
   test('storage: the default is the shared profile, and a tab of no chat always shares', async () => {
@@ -40,7 +41,7 @@ export function registerProfilesChromeCases() {
     assert.equal(btn.title, 'Open this page in your real Chrome, where agents already work');
     // this chat's agent drives this very built-in tab: "Agents use Your Chrome" would be wrong here (#1834)
     assert.doesNotMatch(container.textContent!, /Agents use Your Chrome/);
-    assert.match(container.querySelector('.browser-context')!.textContent!, /Sign-in is separate from Chrome/);
+    assert.equal(container.querySelector('.browser-context'), null);
     await act(async () => btn.click());
     // nothing to confirm (the saved Preferred browser doesn't change): one click opens the page and continues there
     assert.deepEqual(

@@ -10,6 +10,7 @@ import { markWindowReady } from '../lib/windowReady';
 import { launchMark } from '../lib/launchMarks';
 import { confirmList, expectLists, seedThreads, settleList, startSnapshotWriter } from './sidebarSnapshot';
 import { isAcpThread } from '../harness/types';
+import { codexThreadOf } from '../harness/family';
 import { native } from '../lib/native';
 import { errorText, ignoring, noteIgnored } from '../lib/ignored';
 import { applyChat, applyPrefsDelta, chatChanges, mapsFromSnapshot, prefsDelta, type ChatMaps } from '../lib/chatMeta';
@@ -26,7 +27,7 @@ import { wireAgentSurfaces } from './agentWiring';
 import { ensureSession, startSessions, useSessions } from './session/useSession';
 import { beginStoreBatch, endStoreBatch, get, useStore, set, toast } from './core';
 import { followStreamFlush } from '../lib/streamFlush';
-import { migrationNotice, openSettings, savedDefaultHarness } from './chats';
+import { migrationNotice, openSettings, startingHarness } from './chats';
 import { onCodexStatus, onCrashed, connect } from './connection';
 import { held, showThread } from './threads';
 import { dropGoneHostPick, loadProjects, fromLocal, syncCodexProjects } from './projects';
@@ -112,6 +113,7 @@ const chatMaps = (s: AppState): ChatMaps => ({
   navigationBookmarks: s.navigationBookmarks,
   chatForkOf: s.chatForkOf,
   chatInitialTitles: s.chatInitialTitles,
+  chatRewoundAt: s.chatRewoundAt,
   momoChats: s.momoChats,
   momoModels: s.momoModels,
   authoredInputs: s.authoredInputs,
@@ -451,7 +453,11 @@ export async function boot(options: { quickChat?: boolean } = {}) {
   });
   // a window opened for one chat (any harness) starts on it
   const hashThread = quickChatSurface ? null : threadFromHash(location.hash);
-  if (hashThread) set({ route: { name: 'thread', id: hashThread } });
+  const needsCodex = hashThread && codexThreadOf(get().segments[hashThread], hashThread);
+  if (hashThread) {
+    set({ route: { name: 'thread', id: hashThread } });
+    if (!needsCodex) showThread(hashThread);
+  }
   if (!quickChatSurface) await restoreRemoteSidePanes();
   // ...and one opened on a sub-agent shows its page at full width
   const hashAgent = hashThread ? agentFromHash(location.hash) : null;
@@ -462,16 +468,15 @@ export async function boot(options: { quickChat?: boolean } = {}) {
   // Codex starts now only for someone who relies on it; otherwise on first use
   // unknown: Codex waits for first use, as for someone who hasn't used it
   const used = await native.codex.used().catch((error) => (noteIgnored('read whether Codex was used before', error), false));
-  if (codexWantedAtLaunch(savedDefaultHarness(), used)) await connect();
+  if (codexWantedAtLaunch(startingHarness(), used)) await connect();
   else {
     set({ conn: 'idle' });
     // Codex is not started: no list to wait for
     settleList('codex');
     syncCodexProjects().catch(ignoring("import Codex's projects without Codex running"));
   }
-  // a connected Codex opens the route's chat itself (connect); without it (not started, or failed), open it here,
-  // or a window opened on a Claude Code or ACP chat stays blank
-  if (hashThread && get().conn !== 'ready') showThread(hashThread);
+  // A connected Codex opens the visible chats. Otherwise, let the transcript reader handle the fallback.
+  if (hashThread && needsCodex && get().conn !== 'ready' && visibleChats(get()).includes(hashThread)) showThread(hashThread);
   launchMark('boot:done', undefined, true);
   native.win.rendererReady();
 }

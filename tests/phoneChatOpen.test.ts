@@ -88,37 +88,14 @@ test('a chat never opened shows no loading text either', async () => {
 
 const sealedPath = '../mobile/src/presentation/chatCache';
 const { createChatCache, boundRows, CACHE_BYTES, CACHE_ROW_CHARS } = await import(sealedPath);
+const kitPath = './support/phone/chat-cache-kit.ts';
+const { fakeCache } = await import(kitPath);
 const { CACHE_CHATS, CACHE_ROWS, recentRows } = await import(cachePath);
 
 function deferredKey() {
   let resolve!: (k: Uint8Array) => void;
   const promise = new Promise<Uint8Array>((r) => (resolve = r));
   return { promise, resolve };
-}
-function fakeCache() {
-  const disk = new Map<string, string>();
-  const order: string[] = [];
-  const touch = (k: string) => (order.includes(k) && order.splice(order.indexOf(k), 1), order.push(k));
-  const store = {
-    read: async (k: string) => disk.get(k) ?? null,
-    write: async (k: string, v: string) => (disk.set(k, v), touch(k), undefined),
-    remove: async (k: string) => (disk.delete(k), order.includes(k) && order.splice(order.indexOf(k), 1), undefined),
-    keys: async () => [...order],
-    clear: async () => (disk.clear(), order.splice(0), undefined),
-  };
-  const crypto = {
-    key: async () => new Uint8Array([7]),
-    randomBytes: (n: number) => new Uint8Array(n).fill(3),
-    // a stand-in cipher that binds the aad, as the real AEAD does
-    seal: (_k: Uint8Array, _n: Uint8Array, plain: Uint8Array, aad: string) =>
-      new TextEncoder().encode(`${aad}\u0000${new TextDecoder().decode(plain)}`),
-    open: (_k: Uint8Array, _n: Uint8Array, box: Uint8Array, aad: string) => {
-      const text = new TextDecoder().decode(box);
-      return text.startsWith(`${aad}\u0000`) ? new TextEncoder().encode(text.slice(aad.length + 1)) : null;
-    },
-  };
-  const cache = createChatCache({ store, crypto });
-  return { cache: Object.assign(cache, { __store: store, __crypto: crypto }), disk };
 }
 const row = (i: number, text = `r${i}`) => ({
   key: `k${i}`,
@@ -483,7 +460,7 @@ test('without a history key the chat has no rows to paint and keeps none', async
   document.body.append(host);
   const root = createRoot(host);
   await act(async () => root.render(createElement(Probe)));
-  assert.deepEqual(seen, []);
+  assert.deepEqual(seen, { rows: [], changes: null });
   await act(async () => root.unmount());
   host.remove();
 });

@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "electron/session/caps.cjs": {
+      "maxLines": 502,
+      "reason": "Owns each family's capability table and the CapsService that gathers a chat's inputs from its record, segment, session and account. Whether a chat runs on a machine (its controller's remote route) and the agent its Host runs (meta.config.hostAgent) are two more inputs, so the steer capability agrees with the path main sends by."
+    }
+  }
+}

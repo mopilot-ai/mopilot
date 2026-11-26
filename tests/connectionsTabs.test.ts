@@ -6,6 +6,7 @@ import {
   resetCtl,
   responses,
   calls,
+  ctl,
   useStore,
   defaultState,
   render,
@@ -15,6 +16,8 @@ import {
   flush,
   key,
 } from './support/settings-harness.ts';
+
+import { waitFor } from './support/waitFor.ts';
 
 await setup();
 const { createElement: h } = await import('react');
@@ -172,4 +175,19 @@ test('revoking a phone names it and says what happens, then revokes by its own p
   await click(button(view.host, 'Revoke access for iPhone'));
   await click(button(view.host.querySelector('[role=alertdialog]')!, 'Revoke access'));
   assert.deepEqual(calls.filter((c) => c[0] === 'remoteSettings.revoke').at(-1), ['remoteSettings.revoke', 'a', 'pa']);
+});
+
+// a software approval key: an older Intel Mac without a T2 chip
+test('with pairing by code on and a software approval key, Control this Mac says so once under Allow connections; off, it does not', async (t) => {
+  responses['remoteSettings.state'] = { visible: true, signedIn: true, enabled: false, running: false, pairing: null, devices: [] };
+  responses['codePair.status'] = () => ({ approval: { available: true, weak: true }, connections: true, offers: [] });
+  ctl.flags['host.codePair'] = true;
+  const on = await open();
+  await waitFor(() => /no Secure Enclave, so approval uses a software key/.test(text(on.host)), 'the weak-key line');
+  assert.equal(text(on.host).match(/no Secure Enclave/g)?.length, 1, 'once');
+  await on.unmount();
+  ctl.flags['host.codePair'] = false;
+  const off = await open();
+  t.after(() => off.unmount());
+  assert.doesNotMatch(text(off.host), /no Secure Enclave/);
 });

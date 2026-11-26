@@ -147,3 +147,12 @@ test("the handlers for the text and the enrolment are the CLI's only, like the r
   }
   assert.equal(calls.length, 2);
 });
+
+test('reset approval is the CLI’s only, like the rest of pairing by code', () => {
+  const { handlers, veils } = methodsOf({ codePair: { resetApproval: () => ({ reset: true, controllers: 0 }) } as any });
+  assert.deepEqual(handlers['host.codePair.resetApproval']({}, 'cli'), { reset: true, controllers: 0 });
+  assert.throws(() => handlers['host.codePair.resetApproval']({}, 'controller'), /does not pair by code/);
+  assert.equal(veils['host.codePair.resetApproval']({ kind: 'cli' }), true);
+  assert.equal(veils['host.codePair.resetApproval']({ kind: 'phone' }), false);
+  assert.deepEqual(parseParams('host.codePair.resetApproval', {}), {});
+});

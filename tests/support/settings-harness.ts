@@ -378,7 +378,7 @@ export async function setup(platform: { isMac?: boolean; isWin?: boolean } = {})
   m('components/pages/settings/MigrationReport.tsx', { MigrationAdvanced: stub('MigrationAdvanced') });
   m('components/browser/ClaudeInChromeNote.tsx', { ClaudeInChromeNote: stub('ClaudeInChromeNote') });
   m('components/pages/settings/BrowserImportData.tsx', { BrowserImportData: stub('BrowserImportData') });
-  m('lib/flags.ts', { isEnabled: (k: string) => ctl.flags[k] ?? true });
+  m('lib/flags.ts', { isEnabled: (k: string) => ctl.flags[k] ?? true, useFlag: (k: string) => ctl.flags[k] ?? false });
   m('lib/environments.ts', {
     readEnvironment: record('readEnvironment', async () => {
       if (ctl.env instanceof Error) throw ctl.env;

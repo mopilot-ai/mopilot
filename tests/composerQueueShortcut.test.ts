@@ -3,33 +3,67 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { act } from 'react';
 import './support/dom.ts';
-import { $, click } from './support/composer-kit.ts';
+import { $, click, mouse } from './support/composer-kit.ts';
 import { all, fx, last, mountComposer, reset, settle, setSessionState, store } from './support/composer-setup.ts';
 import { deferred } from './support/async-scenarios.ts';
 
 beforeEach(() => reset());
 const running = () => store.set({ runtime: { t1: { activeTurnId: 'turn' } } });
 
-for (const family of ['codex', 'claude', 'acp']) {
+/** The Send tooltip: its label and the submit chord. */
+async function sendTooltip() {
+  await mouse($('[aria-label="Send"]').parentElement!, 'mouseover');
+  await settle(460);
+  const label = $('.tooltip')?.textContent;
+  await mouse($('[aria-label="Send"]').parentElement!, 'mouseout');
+  return label;
+}
+
+// a machine's Claude Code or Codex chat is basic-tier here (`acp:host-claude:…`) and steers on its Host: main's `steer`
+// capability says so (tests/steerCaps.test.ts), and the label and hint read it; the keys name no harness either way
+for (const [family, harness, basic, cap] of [
+  ['codex', 'codex', null, 'native'],
+  ['claude', 'claude', null, 'native'],
+  ['acp', 'acp', 'opencode', 'absent'],
+  ['host-claude', 'acp', 'host-claude', 'native'],
+  ['host-codex', 'acp', 'host-codex', 'native'],
+  ['host-claude switched to a basic agent', 'acp', 'host-claude', 'absent'],
+] as const) {
   for (const followUp of ['queue', 'steer']) {
-    test(`${family}, ${followUp} preference: Enter requests immediate delivery and Cmd/Ctrl+Enter explicitly queues`, async () => {
+    test(`${family}, ${followUp} preference: Enter asks for the Follow-up setting and Cmd/Ctrl+Enter for the other`, async () => {
       running();
       store.set((s: any) => ({
         prefs: { ...s.prefs, followUp },
-        harnessOf: { t1: family },
-        basicOf: family === 'acp' ? { t1: 'opencode' } : {},
+        harnessOf: { t1: harness },
+        basicOf: basic ? { t1: basic } : {},
       }));
+      fx.chatCaps = { ...fx.chatCaps, steer: { state: cap, via: cap === 'native' ? 'rpc' : 'none' } };
       const m = await mountComposer({ threadId: 't1' });
       try {
-        assert.equal(m.editor().dataset.placeholder, family === 'acp' ? '⏎ to queue for later' : '⏎ to send, ⌘⏎ to queue for later');
-        for (const [text, keys, steer] of [
-          ['send now', {}, true],
-          ['after this', { metaKey: true }, false],
-          ['also later', { ctrlKey: true }, false],
+        const steers = cap === 'native';
+        assert.equal(
+          m.editor().dataset.placeholder,
+          !steers
+            ? '⏎ to queue for later'
+            : followUp === 'queue'
+              ? '⏎ to queue for later, ⌘⏎ to send now'
+              : '⏎ to send now, ⌘⏎ to queue for later',
+        );
+        await m.type('label');
+        assert.equal(await sendTooltip(), steers && followUp === 'steer' ? 'Steer⏎' : 'Queue message⏎');
+        await m.key('Enter');
+        await settle();
+        assert.equal(last('send')?.[4].steer, followUp === 'steer', 'Enter asks for what the label says, or for a steer main queues');
+        for (const [text, keys, alternate] of [
+          ['as set', {}, false],
+          ['the other', { metaKey: true }, true],
+          ['the other again', { ctrlKey: true }, true],
         ] as const) {
           await m.type(text);
           assert.equal(await m.key('Enter', keys), true);
           await settle();
+          // main queues a steer the chat's agent can't take (tests/composerSendKeys.test.ts drives that for ACP)
+          const steer = (followUp === 'steer') !== alternate;
           assert.deepEqual(last('send'), ['send', 't1', text, [], { plan: false, human: true, steer }]);
           assert.equal(m.text, '');
         }
@@ -44,12 +78,52 @@ for (const family of ['codex', 'claude', 'acp']) {
   }
 }
 
-test('Cmd+Enter send preference offers Shift+Cmd/Ctrl+Enter to queue and protects newlines and IME input', async () => {
+test("until main answers, the chat's tier stands in for its steer capability; while main is asked again, its last answer stands", async () => {
+  running();
+  store.set((s: any) => ({
+    prefs: { ...s.prefs, followUp: 'steer' },
+    harnessOf: { t1: 'acp', t2: 'codex' },
+    basicOf: { t1: 'host-claude' },
+  }));
+  const unloaded = () => ((fx.capsLoaded = false), (fx.chatCaps = { ...fx.chatCaps, steer: { state: 'absent', via: 'none' } }));
+  const loaded = (state: string) => ((fx.capsLoaded = true), (fx.chatCaps = { ...fx.chatCaps, steer: { state, via: 'rpc' } }));
+  // what an unloaded read holds is never read: a machine's chat waits for main's word
+  unloaded();
+  const m = await mountComposer({ threadId: 't1' });
+  try {
+    assert.equal(m.editor().dataset.placeholder, '⏎ to queue for later');
+    await m.type('wait');
+    assert.equal(await sendTooltip(), 'Queue message⏎');
+    loaded('native');
+    await m.rerender();
+    assert.equal(await sendTooltip(), 'Steer⏎');
+    await m.key('Enter');
+    await settle();
+    assert.equal(m.editor().dataset.placeholder, '⏎ to send now, ⌘⏎ to queue for later');
+    // a caps input changed (a turn started, the agent's usage arrived): Steer stays while main is asked again
+    unloaded();
+    await m.rerender();
+    assert.equal(m.editor().dataset.placeholder, '⏎ to send now, ⌘⏎ to queue for later');
+    // main's next word decides (the Host switched the chat to a basic agent)
+    loaded('absent');
+    await m.rerender();
+    assert.equal(m.editor().dataset.placeholder, '⏎ to queue for later');
+    // another chat never reads this one's answer: a first-tier chat steers by its tier until main answers for it
+    unloaded();
+    store.set({ runtime: { t2: { activeTurnId: 'turn' } } });
+    await m.rerender({ threadId: 't2' });
+    assert.equal(m.editor().dataset.placeholder, '⏎ to send now, ⌘⏎ to queue for later');
+  } finally {
+    await m.unmount();
+  }
+});
+
+test('Cmd+Enter send preference: Cmd/Ctrl+Enter queues as set, Shift added sends now, and newlines and IME input stay', async () => {
   running();
   store.set((s: any) => ({ prefs: { ...s.prefs, sendWith: 'cmdEnter' } }));
   const m = await mountComposer({ threadId: 't1' });
   try {
-    assert.equal(m.editor().dataset.placeholder, '⌘⏎ to send, ⇧⌘⏎ to queue for later');
+    assert.equal(m.editor().dataset.placeholder, '⌘⏎ to queue for later, ⇧⌘⏎ to send now');
     await m.type('still typing');
     for (const keys of [
       {},
@@ -62,12 +136,12 @@ test('Cmd+Enter send preference offers Shift+Cmd/Ctrl+Enter to queue and protect
     assert.equal(all('send').length, 0);
     await m.key('Enter', { metaKey: true });
     await settle();
-    assert.equal(last('send')?.[4].steer, true);
+    assert.equal(last('send')?.[4].steer, false);
     for (const modifier of ['metaKey', 'ctrlKey']) {
-      await m.type('later');
+      await m.type('now');
       await m.key('Enter', { [modifier]: true, shiftKey: true });
       await settle();
-      assert.equal(last('send')?.[4].steer, false);
+      assert.equal(last('send')?.[4].steer, true);
     }
   } finally {
     await m.unmount();
@@ -98,7 +172,8 @@ test('modified submit chords reach delivery while a mention menu is open, and pl
           assert.deepEqual(last('send')?.slice(2), [
             'see @a',
             [],
-            { plan: false, human: true, steer: sendWith === 'cmdEnter' && !shiftKey },
+            // the Queue setting: Cmd+Enter is the alternate chord of Enter, the submit chord of Cmd+Enter
+            { plan: false, human: true, steer: sendWith === 'enter' || shiftKey },
           ]);
         }
       }
@@ -142,8 +217,8 @@ test('queue intent keeps its attachments and plan when the turn finishes and pre
   setSessionState('t1', { plan: true });
   const m = await mountComposer({ threadId: 't1' });
   try {
-    await m.key('Enter', { metaKey: true });
-    await m.key('Enter', { ctrlKey: true });
+    await m.key('Enter');
+    await m.key('Enter');
     assert.equal(all('send').length, 0);
     await act(async () => store.set((s: any) => ({ runtime: {}, prefs: { ...s.prefs, followUp: 'steer' } })));
     await act(async () => refs.resolve([]));
@@ -164,13 +239,13 @@ for (const fails of [false, true]) {
     const m = await mountComposer({ threadId: 't1' });
     try {
       await m.type('keep this');
-      await m.key('Enter', { metaKey: true });
+      await m.key('Enter');
       await settle();
       assert.equal(m.text, 'keep this');
       assert.equal(last('send')?.[4].steer, false);
       fx.sendFails = null;
       fx.sendAnswer = () => true;
-      await m.key('Enter');
+      await m.key('Enter', { metaKey: true });
       await settle();
       assert.equal(last('send')?.[4].steer, true);
       assert.equal(m.text, '');
@@ -187,7 +262,7 @@ test('switching chats retires a pending queue preparation; the new chat still se
   const m = await mountComposer({ threadId: 't1' });
   try {
     await m.type('old chat');
-    await m.key('Enter', { metaKey: true });
+    await m.key('Enter');
     await m.rerender({ threadId: 't2' });
     await act(async () => refs.resolve([]));
     await settle();

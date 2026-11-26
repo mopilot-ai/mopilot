@@ -32,6 +32,7 @@ import { withMomoShell } from './scenariosMomoShell.mjs';
 import { withMomoChannels } from './scenariosMomoChannels.mjs';
 import { createFakeChannels } from './fakeMomoChannels.mjs';
 import { withLateEcho, withMomoEcho } from './scenariosMomoEcho.mjs';
+import { createMomoHomeBench, withMomoHome } from './scenariosMomoHome.mjs';
 
 const require = createRequire(import.meta.url);
 const { openRemote } = require('../../electron/remote/runtime.cjs');
@@ -238,6 +239,7 @@ export async function startHost({
     };
     /** @type {import('./controls.mjs').Bench} */
     const bench = { momo: false, brain: false, tasks: true, shell: false, voice: 'on', pushBody: false, suggestions: 'on', brief: 'off' };
+    const momoHomeBench = createMomoHomeBench();
     /** @type {any} */
     let momoFake = null;
     /** @type {any} */
@@ -258,6 +260,7 @@ export async function startHost({
       // MoMo is off until a scenario turns it on, as for an account that was never invited
       momoAllowed: () => bench.momo,
       momo: () => momoFake,
+      momoHome: momoHomeBench.momoHome,
       ...(hosts && { host: () => hosts }),
       version: 'dev-host',
     });
@@ -467,14 +470,19 @@ export async function startHost({
       service,
       remote: mac,
       shellsReal: terminals.real,
-      scenarios: withMomoChannels(
-        withMomoEcho(
-          withMomoShell(createScenarios({ app, now, controls }), bench, (area) => service.onMomoChanged(area)),
+      scenarios: withMomoHome(
+        withMomoChannels(
+          withMomoEcho(
+            withMomoShell(createScenarios({ app, now, controls }), bench, (area) => service.onMomoChanged(area)),
+            bench,
+          ),
           bench,
+          fakeChannels,
+          (area) => service.onMomoChanged(area),
         ),
+        momoHomeBench,
         bench,
-        fakeChannels,
-        (area) => service.onMomoChanged(area),
+        () => service.onMomoChanged('prefs'),
       ),
       stop,
       /** A pairing QR payload (a JSON string, also what a pasted code is) and when it stops working. */

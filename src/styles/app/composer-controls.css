@@ -2,7 +2,7 @@
 .composer-footer {
   display: flex;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   justify-content: space-between;
   min-height: 28px;
@@ -18,9 +18,12 @@
   max-width: 100%;
   min-width: 0;
 }
+/* The left group's chips are the footer's own flex items, so one footer distributes the shortage among them and the
+   right group: the host chip's machine name gives way first (below), then every label shrinks as before. */
 .composer-left {
-  flex: 0 1 auto;
-  gap: 6px;
+  display: contents;
+}
+.composer-left > :first-child {
   margin-left: -4px;
 }
 .composer-right {
@@ -28,6 +31,8 @@
   justify-content: flex-end;
   gap: 2px;
   margin-left: auto;
+  /* with the footer's 6px gap, the 8px that has always separated the two groups */
+  padding-left: 2px;
 }
 .composer-right .model-btn {
   flex: 1 1 0%;
@@ -50,9 +55,24 @@
   position: relative;
   margin-top: calc(var(--composer-footer-gap) + var(--dictation-note-row));
 }
-.composer-left > .tooltip-anchor:has(.perm-btn),
-.composer-left > .tooltip-anchor:has(.host-chip) {
+.composer-left > .tooltip-anchor:has(.perm-btn) {
   min-width: 0;
+}
+/* A machine's name ("LAPTOP-629FPQ3K") is longer than "This Mac": it is cut first, down to the chip's dot and laptop
+   (8px padding, 8px dot, 5px gap, 15px icon, 8px padding), before a permission or model label loses a letter. A chat
+   on a machine then keeps the same permission and model labels as a chat on this Mac at every pane width. The factor
+   is that large because shrinking is shared in proportion: at 1000 the other labels still lost a fraction of a pixel,
+   which is enough for their ellipsis. */
+.composer-left > .tooltip-anchor:has(.host-chip) {
+  flex-shrink: 100000;
+  min-width: 44px;
+}
+.host-chip > svg {
+  flex-shrink: 0;
+}
+/* a name cut to a sliver (a letter or a bare "…", HostChip.tsx useSliver) is not drawn; its box keeps its width */
+.host-name[data-sliver] {
+  visibility: hidden;
 }
 .composer-right > .tooltip-anchor,
 .composer-icon-btn {
@@ -231,6 +251,9 @@
    Other chips fold to icons in narrow panes while the footer keeps its single row on every harness. */
 @container composer (max-width: 520px) {
   /* dot and laptop icon only: 8 + 2 + 14 fits the 28px square the other chips collapse to */
+  .composer-left > .tooltip-anchor:has(.host-chip) {
+    min-width: 28px;
+  }
   .composer-left .host-chip {
     min-width: 28px;
     width: 28px;
@@ -261,6 +284,9 @@
   .composer-left:has(.goal-chip, .plan-chip) .host-chip {
     gap: 2px;
   }
+  .composer-left:has(.goal-chip, .plan-chip) > .tooltip-anchor:has(.host-chip) {
+    min-width: 28px;
+  }
   .composer-left:has(.goal-chip, .plan-chip) .host-chip > svg {
     width: 14px;
     height: 14px;
@@ -276,15 +302,17 @@
 }
 @container composer (max-width: 420px) {
   .composer-footer {
-    gap: 2px;
-  }
-  .composer-left {
-    flex: none;
+    /* 1px between the left squares, and with the right group's padding the 2px that separates the two groups */
     gap: 1px;
+  }
+  /* the left chips are 28px squares here: they keep them, and the model button takes what is left */
+  .composer-left > * {
+    flex: none;
   }
   .composer-right {
     flex: 1 1 0%;
     gap: 1px;
+    padding-left: 1px;
   }
   .composer-left .perm-btn,
   .composer-left .plan-chip,

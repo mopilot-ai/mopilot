@@ -20,7 +20,7 @@ module.exports = {
   setMode: invoke('acp:setMode', 2),
   setConfigOption: invoke('acp:setConfigOption', 3),
   recordedSettings: invoke('acp:recordedSettings', 1),
-  ownMcp: invoke('acp:ownMcp', 1),
+  ownMcp: invoke('acp:ownMcp', 2),
   onEvent: on('acp:event'),
   onItems: on('acp:items'),
 };

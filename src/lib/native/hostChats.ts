@@ -24,8 +24,13 @@ export type HostChatIndex = {
 declare module '../native' {
   interface NativeApi {
     hostChats: {
-      list(): Promise<HostChatIndex[]>;
+      /** `open`: the chats this window has open or selected, which the first read of a run never lets go of. */
+      list(open?: string[]): Promise<HostChatIndex[]>;
       onChanged(cb: (index: HostChatIndex[]) => void): () => void;
+      /** Takes a chat only the machine's Host lists into this Mac's list (it runs there; this Mac follows it); the app's id for the chat. Main takes the id and the folder from its own index of that machine, and refuses a machine that is offline or a chat the machine does not list. */
+      open(machineId: string, chatId: string): Promise<{ chatId: string }>;
+      /** Takes back a chat that was taken in and never reached this window (no record here, bound to that machine): it is unbound and no longer followed; nothing changes on the machine. */
+      release(machineId: string, chatId: string): Promise<{ released: boolean }>;
     };
   }
 }

@@ -54,6 +54,7 @@ export declare const SEMANTICS: readonly [
   'momoContext',
   'artifacts',
   'remoteControl',
+  'steer',
 ];
 type Semantic = (typeof SEMANTICS)[number];
 

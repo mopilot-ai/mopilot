@@ -83,6 +83,15 @@ test('with the chat store: the window that sent a change hears the config main m
   h.get('chats:patchMeta')({ sender: 'w1' }, 'c', { configKeys: { set: { permission: 'plan' }, unset: [] } });
   queued.splice(0).forEach((fn) => fn());
   assert.deepEqual(sent.at(-1)?.[1].meta.config, { model: 'opus', effort: 'low', permission: 'plan' });
+  const before = sent.length;
+  store.patchMeta('c', { rewoundAt: 11 });
+  store.patchMeta('c', { rewoundAt: 12 });
+  queued.splice(0).forEach((fn) => fn());
+  assert.equal(sent.length, before + 1);
+  assert.equal(sent.at(-1)?.[1].meta.rewoundAt, 12);
+  assert.equal(h.get('chats:patchMeta')({ sender: 'w1' }, 'c', { rewoundAt: 99 }), false);
+  assert.equal(h.get('chats:patchMeta')({ sender: 'w1' }, 'c', Object.assign([], { rewoundAt: 99 })), false);
+  assert.equal(new ChatsStore(threads, { uiState: ui }).snapshot().chats.c.meta.rewoundAt, 12);
 });
 
 test('a send that fails is reported and costs only its own chat: later changes still go', () => {

@@ -77,9 +77,9 @@ function Round({
       onPress={onPress}
       style={[
         {
-          width: 40,
-          height: 40,
-          borderRadius: 20,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: strong ? theme.orange : theme.sunken,

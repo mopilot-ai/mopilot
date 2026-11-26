@@ -1,4 +1,5 @@
 // The phone UI's words in English: one catalog, grouped by screen; `{{name}}` is filled in, `_one` and `_other` are the plural forms.
+import momoHome from './momoHome/en';
 export default {
   chats: {
     title: 'Chats',
@@ -101,6 +102,9 @@ export default {
     live: 'Live updates',
     liveValue: 'live events missed: {{missed}} · net re-reads: {{quiet}}',
     liveNote: 'Missed: re-reads that found rows the live feed never sent.',
+    video: 'Video {{n}}',
+    pick: 'Pick {{n}}',
+    upload: 'Upload {{n}}',
     share: 'Share numbers',
     reset: 'Reset numbers',
   },
@@ -418,4 +422,5 @@ export default {
     cancelTranscribing: 'Cancel transcription',
     starting: 'Starting… answer the microphone prompt if iOS asks.',
   },
+  momoHome,
 } as const;

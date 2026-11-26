@@ -1,6 +1,7 @@
 // e2e-runner: bench
 // e2e-covers: src/components/sidebar/projectGroups.ts src/components/sidebar/folderPrefs.ts src/lib/machineProject.ts
 // e2e-covers: src/components/sidebar/ProjectGroup.tsx src/components/sidebar/ThreadRow.tsx src/components/sidebar/projectRows.ts
+// e2e-covers: src/components/sidebar/projectLabels.ts
 // Remote Run audit M45: a new chat on a machine has the Worktree switch and the branch chip of a chat on This Mac, in the real Mac app against a real Host process over real ssh (this runner's sshd and the app's ssh tunnel) that has the repo's fake Claude Code. With the folder on the machine picked, the chip shows the machine's branch and its picker lists the machine's branches; with the Worktree switch on, the Host makes a worktree of the machine's repository on a new branch that starts from the picked one, and the chat starts there, while the repository's own folder stays on its branch. Everything is checked in the Host's own file system.
 // It turns on sshd and writes the user's ssh config, so it runs only on a CI runner. Named on the command line only: `node scripts/ci-cuj.mjs --spec tests/e2e/host-machine-worktree.spec.ts`.
 import { execFileSync } from 'node:child_process';

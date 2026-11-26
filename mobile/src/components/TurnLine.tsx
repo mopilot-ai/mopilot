@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { Tap } from '../ui/ds/Tap';
 import type { Clock } from '../presentation/toolRuns';
 import { THINKING_LAST_MS, workedWords, workingWords, type Tail } from '../presentation/workingLine';
+import { useComposerGrowth } from '../remote/frameLift';
 import { QUIET_LINE } from '../remote/useQuiet';
 import { monoFamily } from '../fonts';
 import { useTheme } from '../theme';
@@ -131,16 +132,31 @@ export function TurnLine({
   );
 }
 
-/** One chip above the composer after a turn: the lines this chat changed, which opens the Changes screen. */
-export function ChangesChip({ added, removed, open }: { added: number; removed: number; open: () => void }) {
+/** One chip above the composer after a turn: the lines this chat changed, which opens the Changes screen; without `open` (the chip a chat was left with, before the Mac answers) it is shown but does nothing. */
+export function ChangesChip({ added, removed, open }: { added: number; removed: number; open?: () => void }) {
   const theme = useTheme();
+  // its height goes back to the chat's view when a send hides it: the app's frame keeps it for the room under the sent message
+  const growth = useComposerGrowth();
+  useEffect(
+    () => () => {
+      if (growth) growth.chip = 0;
+    },
+    [growth],
+  );
   const mono = { fontFamily: monoFamily(), ...typo.caption } as const;
   const said = [added ? `${added} added` : '', removed ? `${removed} removed` : ''].filter(Boolean).join(', ');
   return (
-    <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 6 }}>
+    <View
+      onLayout={(event) => {
+        if (growth) growth.chip = event.nativeEvent.layout.height;
+      }}
+      style={{ flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 6 }}
+    >
       <Tap
         accessibilityRole="button"
         accessibilityLabel={`Changes${said ? `, ${said}` : ''}`}
+        accessibilityState={{ disabled: !open }}
+        disabled={!open}
         onPress={open}
         style={{
           flexDirection: 'row',

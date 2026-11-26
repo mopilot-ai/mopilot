@@ -208,3 +208,56 @@ test("a controller's proof is kept with its record (bounded), and when the Host 
     [proven],
   );
 });
+
+test('every controller record goes at once, believed or not: each is told as removed with its relay link, and the count is answered', (t) => {
+  const w = world(t);
+  const told: any[] = [];
+  w.pairing.onForgotten((fingerprint: string, kind: string, link: string | undefined) => told.push([fingerprint, kind, link]));
+  const a = w.pairing.add(w.key('r1'), { name: 'A', kind: 'controller', link: 'h_aaaaaaaaaaaaaaaa' });
+  const b = w.pairing.add(w.key('r2'), { name: 'B', kind: 'controller' });
+  const desk = w.pairing.add(w.key('r3'), { name: 'Desk', kind: 'desktop' });
+  // a record the Host no longer believes (its proof does not verify) still goes
+  w.pairing.believeControllers(() => false);
+  assert.equal(w.pairing.dropControllers(), 2);
+  assert.deepEqual(readControllers(w.configDir), {});
+  assert.deepEqual(told, [
+    [a, 'controller', 'h_aaaaaaaaaaaaaaaa'],
+    [b, 'controller', undefined],
+  ]);
+  assert.equal(w.removed.filter((e: any) => e.kind === 'client.removed').length, 2);
+  assert.ok(
+    w.pairing.list().some((c: any) => c.fingerprint === desk),
+    'other clients stay',
+  );
+  assert.equal(w.pairing.dropControllers(), 0, 'safe to repeat');
+});
+
+test('#5747: a Mac that pairs by code again names its new relay link, so removing it retires the link it uses; nothing else of its record changes, and no other record is dropped', (t) => {
+  const w = world(t);
+  const told: any[] = [];
+  w.pairing.onForgotten((_fp: string, _kind: string, link: string | undefined) => told.push(link));
+  const a = w.pairing.add(w.key('c1'), { name: 'A', kind: 'controller', link: 'h_aaaaaaaaaaaaaaaa' });
+  const b = w.pairing.add(w.key('c2'), { name: 'B', kind: 'controller', link: 'h_bbbbbbbbbbbbbbbb' });
+  const before = readControllers(w.configDir)[a];
+  assert.equal(w.pairing.add(w.key('c1'), { name: 'A again', kind: 'controller', link: 'h_cccccccccccccccc' }), a);
+  assert.deepEqual(readControllers(w.configDir)[a], { ...before, link: 'h_cccccccccccccccc' });
+  assert.equal(readControllers(w.configDir)[b].link, 'h_bbbbbbbbbbbbbbbb');
+  // the same link, or none, leaves the record as it is
+  w.pairing.add(w.key('c1'), { name: 'A', kind: 'controller', link: 'h_cccccccccccccccc' });
+  w.pairing.add(w.key('c1'), { name: 'A', kind: 'controller' });
+  assert.equal(readControllers(w.configDir)[a].link, 'h_cccccccccccccccc');
+  assert.equal(w.pairing.remove(a), true);
+  assert.deepEqual(told, ['h_cccccccccccccccc']);
+});
+
+test('#5747: a controller that names a new relay link tells the link it had, so it is retired; a first link or none tells nothing', (t) => {
+  const w = world(t);
+  const relinked: any[] = [];
+  w.pairing.onRelinked((fp: string, old: string) => relinked.push([fp, old]));
+  const a = w.pairing.add(w.key('c1'), { name: 'A', kind: 'controller', link: 'h_aaaaaaaaaaaaaaaa' });
+  w.pairing.add(w.key('c1'), { name: 'A', kind: 'controller', link: 'h_bbbbbbbbbbbbbbbb' });
+  const b = w.pairing.add(w.key('c2'), { name: 'B', kind: 'controller' });
+  w.pairing.add(w.key('c2'), { name: 'B', kind: 'controller', link: 'h_cccccccccccccccc' });
+  assert.deepEqual(relinked, [[a, 'h_aaaaaaaaaaaaaaaa']]);
+  assert.equal(readControllers(w.configDir)[b].link, 'h_cccccccccccccccc');
+});

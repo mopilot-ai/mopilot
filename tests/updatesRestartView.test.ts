@@ -48,6 +48,9 @@ mock.module('../electron/updates/updater.cjs', {
       configure() {
         return {};
       }
+      set(patch: any) {
+        this.state = { ...this.state, ...patch };
+      }
     },
   },
 });
@@ -92,6 +95,16 @@ function load(
   updates.openUpdates();
   return { updates, file: path.join(userData, 'restart-view.json'), shown, main, focus, live, on, sent };
 }
+
+test('when the previous version comes back after activation, About reports the missed update', () => {
+  const tracked: any[][] = [];
+  const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'updates-view-'));
+  load({}, '2.0.0', userData);
+  opts.activationAttempt('3.0.0', 'beta');
+  const { updates } = load({}, '2.0.0', userData, { track: (...a) => tracked.push(a) });
+  assert.match((updates.updater.state as { error: string }).error, /3\.0\.0/);
+  assert.deepEqual(tracked, [['update_failed', { stage: 'install', version: '3.0.0', channel: 'beta' }]]);
+});
 
 test('the exit gate asks the live keeps-running handle, and has none until the app wires one', () => {
   const { live } = load();

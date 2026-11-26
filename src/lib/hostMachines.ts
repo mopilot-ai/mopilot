@@ -50,6 +50,8 @@ export type HostMachineRow = {
   linkDroppedAt?: number;
   /** ssh answers and nobody waits to sign in, yet its Host does not: it is not running (the row offers Start Host) */
   hostStopped?: true;
+  /** a machine paired by code whose Host removed this Mac: its relay pair is gone, and the row offers Remove (#5747) */
+  peerRemoved?: true;
   /** whether the machine's Host may reach its local network (macOS Local Network privacy); 'unknown' while offline or from an older Host */
   localNetwork: 'allowed' | 'denied' | 'unknown';
   /** an offline machine nobody is signed in on: it restarted since it last answered, or was signed out; `locked`: FileVault holds its disk */
@@ -179,6 +181,7 @@ export function parseMachineList(v: unknown): HostMachineList | null {
       lastSeen: Number.isFinite(row.lastSeen) ? (row.lastSeen as number) : null,
       ...(Number.isFinite(row.linkDroppedAt) && { linkDroppedAt: row.linkDroppedAt as number }),
       ...(row.hostStopped === true && { hostStopped: true }),
+      ...(row.peerRemoved === true && { peerRemoved: true }),
       localNetwork: row.localNetwork === 'allowed' || row.localNetwork === 'denied' ? row.localNetwork : 'unknown',
       waitingForLogin: WAITS.has(row.waitingForLogin as string) ? (row.waitingForLogin as HostMachineRow['waitingForLogin']) : null,
       address: typeof row.address === 'string' ? row.address : '',

@@ -1,6 +1,7 @@
 // Main owns Mobile Remote consent and blocks access when persistence cannot be acknowledged.
 const { accountScope } = require('./accountScope.cjs');
 const { STATE_VERSION } = require('../platform/chatRecord.cjs');
+const { noteIgnored } = require('../ignored.cjs');
 
 function createConsent(live, readState, patchPrefsSync, stateFile) {
   let blocked = false;
@@ -16,7 +17,9 @@ function createConsent(live, readState, patchPrefsSync, stateFile) {
       state.prefs?.mobileRemoteOwner === key
     );
   };
-  const set = (value) => {
+  /** Told after every change asked of the switch, whether or not it was kept (this Mac's Host follows it, electron/host/allowConnections.cjs). @type {Set<() => void>} */
+  const listeners = new Set();
+  const write = (value) => {
     const key = scope();
     if (value && !key) throw new Error('Sign in to MoPilot first');
     blocked = true;
@@ -41,10 +44,28 @@ function createConsent(live, readState, patchPrefsSync, stateFile) {
       throw error;
     }
   };
+  const set = (value) => {
+    try {
+      write(value);
+    } finally {
+      for (const fn of listeners) {
+        try {
+          fn();
+        } catch (error) {
+          noteIgnored('tell what follows Mobile Remote consent', error);
+        }
+      }
+    }
+  };
   return {
     scope,
     enabled,
     set,
+    /** @param {() => void} fn @returns {() => void} the way to stop */
+    onChange(fn) {
+      listeners.add(fn);
+      return () => void listeners.delete(fn);
+    },
     get warning() {
       return warning;
     },

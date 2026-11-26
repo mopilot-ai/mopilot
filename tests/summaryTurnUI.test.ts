@@ -187,14 +187,14 @@ test('live and repeated editing turns update one summary entry, scoped to the cu
   files = [{ added: 4, removed: 1 }];
   const r = await mount();
   try {
-    const card = one(r.host, '.summary-changes');
+    const card = one(r.host, '.summary-change-items');
     assert.equal(card.textContent, 'Branch changes1 file+4 -1');
     files = [{ added: 6, removed: 2 }];
     await act(async () => store.set({ runtime: { t1: { turns: [edited, { ...edited, id: 'next', diff: '' }] } } }));
     assert.equal(card.textContent, 'Branch changes1 file+6 -2');
     assert.equal(one(card, '.summary-row').tagName, 'BUTTON');
     await r.rerender(createElement(SummaryPanel, { threadId: 't2' }));
-    assert.equal(one(r.host, '.summary-changes').textContent, 'Branch changes1 file+6 -2');
+    assert.equal(one(r.host, '.summary-change-items').textContent, 'Branch changes1 file+6 -2');
     assert.equal(r.host.querySelector('.summary-turn'), null);
   } finally {
     await r.unmount();

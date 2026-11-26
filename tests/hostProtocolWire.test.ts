@@ -64,6 +64,8 @@ test("a chat request before hello is refused; hello answers with this Host's ver
           'chatList',
           'chatPaging',
           'chatEvents',
+          'nativeList',
+          'nativeEvents',
           'commands',
           'codePair',
           SIDE_CHAT_FEATURE,
@@ -72,6 +74,11 @@ test("a chat request before hello is refused; hello answers with this Host's ver
   );
   assert.equal(res.features.includes('switch'), false, 'a runtime that cannot settle a switch does not offer one');
   assert.equal(res.features.includes('momo'), false, 'MoMo is named only to a client a live grant lets see it');
+  assert.equal(
+    res.features.includes('nativeList') || res.features.includes('nativeEvents'),
+    false,
+    'a Host not built to find native sessions (flag off) offers neither',
+  );
   assert.equal(res.features.includes('journalLifecycle'), false, 'an in-memory embedder cannot promise durable deletion');
   assert.equal(res.features.includes(SIDE_CHAT_FEATURE), false, 'an in-memory embedder cannot retire a persisted side chat');
   assert.equal(res.features.includes('historyPages'), false, 'an in-memory embedder cannot page a persisted journal');

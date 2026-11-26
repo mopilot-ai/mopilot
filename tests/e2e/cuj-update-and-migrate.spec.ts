@@ -264,22 +264,19 @@ test.describe('restart into an update', () => {
     expect(new Set(turnStarts(harness).map((e) => e.params.threadId)).size).toBe(1);
   });
 
-  test('update-and-migrate: Restart to update reopens the Claude Code chat the window showed, and it carries on', async ({
-    page,
-    harness,
-  }) => {
+  test('update-and-migrate: a staged restart reopens the Claude Code chat and it carries on', async ({ page, harness }) => {
     await expect(home(page)).toBeVisible();
     await pickModel(page, 'Claude Code', 'Fake Sonnet');
     await send(page, 'draft the post');
     await expect(transcript(page).getByText('fake-claude: draft the post', { exact: true })).toBeVisible();
-    await hook(harness, 'ready', '9.9.9');
+    await hook(harness, 'ready', '9.9.9', true);
     const restart = sidebar(page).getByRole('button', { name: 'Restart to update' });
     await expect(restart).toHaveAttribute('title', 'Restart to update · v9.9.9');
 
     const closed = closedNow(harness);
     await restart.click();
     await closed;
-    expect(fs.readFileSync(hookLog(harness), 'utf8')).toBe('quitAndInstall\n');
+    expect(fs.readFileSync(hookLog(harness), 'utf8')).toBe('activate:restart\n');
     // the user asked for this restart: only the chat is kept, and the window opens as usual
     const saved = JSON.parse(fs.readFileSync(restartFile(harness), 'utf8'));
     expect(saved.chatId).toEqual(expect.any(String));

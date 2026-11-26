@@ -212,7 +212,8 @@ test('the disk copies follow the account and computer in use, and a chat the com
       [...pictures.table.keys()].map((k) => JSON.parse(k)[2]),
       ['a'],
     );
-    assert.deepEqual(kept, ['a']);
+    // binding the account kept this account's three chats (another account's rows went), then the whole list kept the one it still has
+    assert.deepEqual(kept, ['a', 'b', 'c', 'a']);
     assert.deepEqual(recentRows(JSON.stringify(['u', 'p', 'gone'])), []);
     // signed out: the disk copy is unbound, and nothing is read from it
     await draw({ rowCache: null, pictureCache: null, chats: null, whole: false, account: undefined, pair: null });

@@ -1,7 +1,7 @@
 // Settings → Connections → Phone: the local opt-in and the paired phones; adding one opens Connect your phone.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { setup, responses, resetCtl, render, click, text, button, buttons, toggle, flush, calls } from './support/settings-harness.ts';
+import { setup, responses, resetCtl, render, click, text, button, buttons, toggle, flush, calls, ctl } from './support/settings-harness.ts';
 await setup();
 const { createElement: h, act } = await import('react');
 const { MobileRemote } = await import('../src/components/pages/settings/MobileRemote.tsx');
@@ -247,4 +247,49 @@ test('Refresh reads the phones again; a change that fails and whose re-read fail
   await click(button(v.host.querySelector('[role=alertdialog]')!, 'Turn off'));
   await flush(20);
   assert.match(text(v.host), /Could not save/);
+});
+
+test('a read that failed once and then works clears its error row; a change’s own error is not cleared by a read', async (t) => {
+  resetCtl();
+  let reads = 0;
+  responses['remoteSettings.state'] = () => (++reads === 2 ? Promise.reject(new Error('Status unavailable')) : base);
+  const v = await render(h(MobileRemote));
+  t.after(() => v.unmount());
+  await flush(1300);
+  assert.match(text(v.host), /Status unavailable/);
+  await flush(1100);
+  assert.doesNotMatch(text(v.host), /Status unavailable/);
+});
+
+test('the phone group with nothing else to show: a first read that fails shows its error; a later failure after a hidden answer shows nothing', async (t) => {
+  resetCtl();
+  responses['remoteSettings.state'] = () => Promise.reject(new Error('Status unavailable'));
+  const failing = await render(h(MobileRemote));
+  await flush(50);
+  assert.match(text(failing.host), /Status unavailable/);
+  await failing.unmount();
+  let reads = 0;
+  responses['remoteSettings.state'] = () => (++reads === 1 ? { visible: false } : Promise.reject(new Error('Status unavailable')));
+  const hidden = await render(h(MobileRemote));
+  t.after(() => hidden.unmount());
+  await flush(1300);
+  assert.equal(text(hidden.host), '', 'it was hidden, and a failed read does not bring it back');
+});
+
+test('with pairing by code on, Add asks Phone or Computer; Phone opens the phone dialog as before', async (t) => {
+  resetCtl();
+  ctl.flags['host.codePair'] = true;
+  responses['remoteSettings.state'] = { ...base };
+  responses['codePair.status'] = () => ({ approval: { available: false, reason: 'no_approval_helper' }, connections: true, offers: [] });
+  const v = await render(h(MobileRemote));
+  t.after(() => {
+    ctl.flags['host.codePair'] = false;
+    return v.unmount();
+  });
+  await flush(20);
+  await click(button(v.host, 'Add'));
+  assert.ok(button(v.host, 'Computer'), 'the kind of device is asked');
+  await click(button(v.host, 'Show the code'));
+  assert.equal(isConnectPhoneOpen(), true);
+  closeConnectPhone();
 });

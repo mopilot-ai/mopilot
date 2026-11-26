@@ -22,6 +22,9 @@ const WORDS: Record<string, string> = {
   'controller.connected': 'Mac connected by code',
   'client.refused': 'Request refused',
   'code.offered': 'Pairing code made',
+  'code.reset': 'Pairing approval reset',
+  'link.retired': 'Removed Mac’s relay link closed',
+  'link.forgotten': 'Removed Mac’s relay link deleted',
   'code.refused': 'Pairing by code refused',
 };
 /** Where a line came from when the Host names no one, only the kind of client. */

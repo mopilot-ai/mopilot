@@ -69,6 +69,10 @@ export function createApprovalKeys({ configDir, hostId, controllers, platform = 
   /** @param {string} message @param {string} code */
   const refusal = (code, message) => Object.assign(new Error(message), { code });
   return {
+    /** Forgets the enrolled key (pairing approval is reset): no pairing is accepted until one is enrolled again. */
+    reset() {
+      fs.rmSync(file, { force: true });
+    },
     /** Whether a pairing can be accepted here and why not: only a Mac with an enrolled approval key can. @returns {{ available: true, weak: boolean } | { available: false, reason: 'unsupported_platform' | 'no_approval_helper' }} */
     status() {
       if (platform !== 'darwin') return { available: false, reason: 'unsupported_platform' };

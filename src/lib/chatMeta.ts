@@ -10,6 +10,7 @@ import type { AuthoredInput } from './authoredInput';
 export interface ChatMeta {
   /** A linked session's initial task title, written by main before announcement; native titles take precedence. */
   initialTitle?: string | null;
+  rewoundAt?: number | null;
   archived: number | null;
   pinned: boolean;
   unread: boolean;
@@ -52,6 +53,7 @@ export interface ChatsSnapshot {
 export interface ChatMaps {
   /** Initial task titles from main, never sent back by a window. */
   chatInitialTitles?: Record<string, string>;
+  chatRewoundAt?: Record<string, number>;
   pinned: Record<string, boolean>;
   unread: Record<string, boolean>;
   worktreeOf: Record<string, string>;
@@ -99,6 +101,7 @@ const META_OF = {
 
 const empty = (): ChatMaps => ({
   chatInitialTitles: {},
+  chatRewoundAt: {},
   pinned: {},
   unread: {},
   worktreeOf: {},
@@ -138,6 +141,7 @@ function updateChatMaps(maps: ChatMaps, id: string, chat: ChatView | null, copy:
   };
   const m = chat?.meta;
   put('chatInitialTitles', typeof m?.initialTitle === 'string' ? m.initialTitle.trim() || null : null);
+  put('chatRewoundAt', typeof m?.rewoundAt === 'number' && Number.isFinite(m.rewoundAt) && m.rewoundAt > 0 ? m.rewoundAt : null);
   put('pinned', m?.pinned);
   put('unread', m?.unread);
   put('worktreeOf', m?.worktreeOf);

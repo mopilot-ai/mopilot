@@ -2,7 +2,7 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-ignore: plain ESM without declarations
-import { CONFIRM_MS, VERIFY_MS } from '../host/src/codePairService.mjs';
+import { CONFIRM_MS, LINGER_MS, VERIFY_MS } from '../host/src/codePairService.mjs';
 import { cp, crypto, A } from './support/host/codePairKit.ts';
 import { OFFER, enrollment, flush, world } from './support/host/codePairWorld.ts';
 
@@ -96,8 +96,13 @@ test('a pairing that fails after the link was enrolled takes the link back: the 
   const o = await s.service.offer(OFFER, s.who);
   await s.toConfirm(o.code);
   s.flags.sendFails = true;
+  // the link is forgotten before the record goes, so a removal's tombstone (#5747) is never made for a pairing that did not finish
+  const order: number[] = [];
+  const remove = (s.pairing as any).remove.bind(s.pairing);
+  (s.pairing as any).remove = (fp: string) => (order.push(s.forgot.length), remove(fp));
   await assert.rejects(s.accept(o.offerId, s.who), { code: 'relay' });
   assert.deepEqual(s.forgot, [enrollment.hostId]);
+  assert.deepEqual(order, [1]);
   assert.deepEqual(
     s.pairing.list().filter((c: any) => c.kind === 'controller'),
     [],
@@ -200,4 +205,57 @@ test('a name the protocol and the client table clean differently (trailing space
     assert.ok(![...controller.name].some((ch) => ch === '\ud83d' || ch === '\ud800'), 'no half of a character');
     assert.ok(controller.name.length <= 80);
   }
+});
+
+test('reset approval: refused while a code is open, then every controller and the key go; a step that fails says reset again, and the next reset finishes', async (t) => {
+  const w = world(t, { real: true });
+  const { offerId, code } = await w.service.offer(OFFER, w.who);
+  assert.throws(() => w.service.resetApproval(), { code: 'busy' });
+  await w.toConfirm(code);
+  assert.equal((await w.accept(offerId, w.who)).accepted, true);
+  assert.equal(w.pairing.list().filter((c: any) => c.kind === 'controller').length, 1);
+  mock.timers.tick(LINGER_MS);
+  assert.equal(w.service.open(), 0);
+  assert.deepEqual(w.service.resetApproval(), { reset: true, controllers: 1 });
+  assert.deepEqual(
+    w.pairing.list().filter((c: any) => c.kind === 'controller'),
+    [],
+  );
+  assert.deepEqual(w.service.status(w.who).approval, { available: false, reason: 'no_approval_helper' });
+  assert.equal(w.audited.at(-1).kind, 'code.reset', 'the reset itself is in the audit trail');
+  // a step that fails: said, and the next reset finishes it
+  let fails = true;
+  const f = world(t, {
+    reset: () => {
+      if (fails) throw new Error('disk full');
+    },
+  });
+  assert.throws(() => f.service.resetApproval(), { code: 'reset_incomplete' });
+  assert.ok(
+    f.reported.some((m: string) => /disk full/.test(m)),
+    JSON.stringify(f.reported),
+  );
+  fails = false;
+  assert.deepEqual(f.service.resetApproval(), { reset: true, controllers: 0 });
+  // a Host built without the ports cannot
+  assert.throws(() => world(t).service.resetApproval(), { code: 'unsupported' });
+});
+
+test('a controller paired by code keeps the name the person approved: renaming itself changes nothing, and its record stays believed', async (t) => {
+  const w = world(t, { real: true });
+  const { offerId, code } = await w.service.offer(OFFER, w.who);
+  await w.toConfirm(code);
+  const { fingerprint } = await w.accept(offerId, w.who);
+  const name = w.pairing.list().find((c: any) => c.fingerprint === fingerprint)?.name;
+  assert.ok(name);
+  // the controller introduces itself with another name (the app's own, or a later rename of the Mac)
+  assert.equal(w.pairing.rename(fingerprint, `${name} renamed`), true);
+  const after = w.pairing.list().find((c: any) => c.fingerprint === fingerprint);
+  assert.ok(after, 'still a controller: its proof still verifies');
+  assert.equal(after.name, name, 'the approved name is kept');
+  assert.equal(w.pairing.stillKnows(fingerprint), true);
+  // this Mac's own label: shown in the row, the approved name kept, the record still believed
+  assert.equal(w.pairing.rename(fingerprint, 'Studio', { owner: true }), true);
+  assert.equal(w.pairing.list().find((c: any) => c.fingerprint === fingerprint)?.name, 'Studio');
+  assert.equal(w.pairing.stillKnows(fingerprint), true, 'still believed under its label');
 });

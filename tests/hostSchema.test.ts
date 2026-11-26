@@ -129,7 +129,9 @@ const valid: Record<string, any> = {
   'host.codePair.cancel': { offerId: `r_${'A'.repeat(22)}` },
   'host.codePair.approvalText': { offerId: `r_${'A'.repeat(22)}` },
   'host.codePair.enrol': { key: 'AAAA', weak: false, signature: 'AAAA' },
+  'host.codePair.resetApproval': {},
   'host.codePair.status': {},
+  'host.codePair.connections': { open: false },
   'host.commands': { harness: 'claude', cwd: '/home/u/b' },
 };
 const invalid = (fn: () => unknown) => assert.throws(fn, (e: any) => e instanceof S.SchemaError && e.code === 'invalid');

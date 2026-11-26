@@ -12,7 +12,7 @@ import { startHost } from '../scripts/mobile-dev-host/host.mjs';
 import { startPhone, until } from './support/mobileStack.ts';
 
 const require = createRequire(import.meta.url);
-const crypto = createCrypto(require('../electron/remote/sodiumPrimitives.cjs').createSodiumPrimitives());
+const crypto = createCrypto(require('../electron/platform/sodiumPrimitives.cjs').createSodiumPrimitives());
 const scratch = mkdtempSync(path.join(tmpdir(), 'dev-host-gap-'));
 after(() => rmSync(scratch, { recursive: true, force: true }));
 

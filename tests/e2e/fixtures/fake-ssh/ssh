@@ -179,6 +179,8 @@ const hostBuild = () => said()?.build ?? process.env.FAKE_HOST_BUILD ?? (ownBuil
 // FAKE_HOST_OLD_CLONE: a Host from before a clone could borrow the app's sign-in; FAKE_HOST_OLD_GIT_SIGNIN: one from before GitHub device sign-in; FAKE_HOST_OLD_FAMILIES: one from before a continue took Claude Code and Codex (no `continueFamilies`)
 const FEATURES = ['epoch', 'dedupe', 'isolation', 'lanes', 'browser', 'stream2', 'gitWrite', ...(process.env.FAKE_HOST_OLD_GIT_SIGNIN ? [] : ['gitSignin']), ...(process.env.FAKE_HOST_OLD_FAMILIES ? [] : ['continueFamilies']), ...(process.env.FAKE_HOST_OLD_CLONE ? [] : ['cloneCredential']),
   ...(process.env.FAKE_HOST_SIDE_CHATS ? ['sideChats', 'journalLifecycle'] : []),
+  // FAKE_HOST_CHAT_LIST: a Host that lists its chats, pages the list, tells a watcher of each change (host-chats.cjs) and takes a chat's deletion (journalLifecycle)
+  ...(process.env.FAKE_HOST_CHAT_LIST ? ['chatList', 'chatPaging', 'chatEvents', 'journalLifecycle'] : []),
   // FAKE_HOST_FILES: a Host that takes uploads (chat.attach); FAKE_HOST_OLD_FILES: one from before files and folders (pictures only)
   ...(process.env.FAKE_HOST_FILES ? ['chatImages', ...(process.env.FAKE_HOST_OLD_FILES ? [] : ['chatFiles'])] : [])];
 // With FAKE_HOST_WIRE_SOCK set, the real Host wire (host-wire.mjs) answers the versioned protocol: every host.* but the handshake, chat.*, browser.* and desktop.*
@@ -187,7 +189,7 @@ const WIRE_METHOD = (m) => /^(chat|browser|desktop)\./.test(m) || (m.startsWith(
 // The real Host's rule (host/src/versionedMethods.mjs): a request of the versioned protocol is refused until `host.hello` came first on its connection
 const { VERSIONED_METHOD, BEFORE_HELLO } = require('../../../../host/src/versionedMethods.mjs');
 const { HelloRequiredError } = require('../../../../host/src/protocol.mjs');
-const CHAT_METHODS = new Set(['chat.start', 'chat.send', 'chat.stop', 'chat.answer', 'chat.permit', 'chat.subscribe', 'chat.attach', 'chat.remove']);
+const CHAT_METHODS = new Set(['chat.start', 'chat.send', 'chat.stop', 'chat.answer', 'chat.permit', 'chat.subscribe', 'chat.attach', 'chat.remove', ...(process.env.FAKE_HOST_CHAT_LIST ? ['host.chats', 'host.chats.watch', 'fake.seed', 'fake.bump'] : [])]);
 
 async function answer(method, params, say) {
   if (method.startsWith('chat.') || method.startsWith('git.carry') || method === 'git.inspect' || method === 'git.status' || method === 'fs.tree' || method === 'fs.read' || method === 'git.diff' || method === 'host.gitCommit' || method === 'host.gitDiscard' || method === 'fs.search' || method === 'git.clone' || (method === 'host.status' && params?.signIn)) note(method, params);

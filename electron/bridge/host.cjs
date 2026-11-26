@@ -109,6 +109,8 @@ module.exports = {
   bootView: call('host:bootView'),
   bootAllow: call('host:bootAllow'),
   bootDeny: call('host:bootDeny'),
+  addByCode: call('host:addByCode'),
+  cancelAddByCode: call('host:cancelAddByCode'),
   onBoot: on('host:boot'),
   attentions: invoke('host:attentions'),
   onAttention: on('host:attention'),

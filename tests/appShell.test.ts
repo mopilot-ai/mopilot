@@ -158,6 +158,8 @@ mock.module('../src/session/clipboard.ts', {
 mock.module('../src/session/harness/select.ts', {
   namedExports: { logoutRoute: (id: string | null) => ({ name: 'settings', section: 'accounts', tab: `logout:${id}` }) },
 });
+// how new chats start is its own (tests/newChatStart.test.ts): here only that the tray's New Chat starts from it
+mock.module('../src/session/newChatStart.ts', { namedExports: { applyNewChatDefault: rec('applyNewChatDefault') } });
 mock.module('../src/session/updates.ts', { namedExports: { useUpdatePrefsSync: () => {} } });
 let resizeProps: any = null;
 mock.module('../src/components/sidebar/SidebarResize.tsx', {
@@ -382,8 +384,14 @@ test('menu commands', async () => {
     assert.deepEqual(state.route, { name: 'settings', section: undefined });
     await cmd('settings', 'general');
     assert.deepEqual(state.route, { name: 'settings', section: 'general' });
+    calls.length = 0;
     await cmd('new-chat-default');
     assert.equal(state.newChatTemporary, false);
+    // the draft starts over, from Settings' fixed default when new chats use one
+    assert.deepEqual(
+      calls.slice(0, 2).map((c) => c[0]),
+      ['resetDefaults', 'applyNewChatDefault'],
+    );
     // refused, with why, when the harness it would run on can't run here
     state.tempBlocked = 'Sign in first';
     await cmd('new-temp-chat');

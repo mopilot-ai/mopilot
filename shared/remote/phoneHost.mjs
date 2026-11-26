@@ -33,6 +33,9 @@ export const PHONE_FEATURES = Object.freeze([
   'approvals2',
   'clients',
   'relay',
+  // MoMo's home on a Host: the phone's own look at what each Host holds, and the requests of the home's lanes (host.momo*)
+  'momo',
+  'momoLook',
 ]);
 
 export class PhoneHostError extends Error {

@@ -77,6 +77,7 @@ export function world(t: any, o: { dir?: string; hostId?: string; epoch?: number
     subscribed: undefined as undefined | ((chatId: string) => Promise<void>),
     wake: undefined as undefined | ((hostId: string) => unknown),
     canSend: (_chatId: string) => true,
+    taken: undefined as undefined | { takenIn?: (chatId: string) => boolean; refreshEpoch?: (chatId: string) => boolean },
     checkFolder: undefined as undefined | ((hostId: string, folder: string) => Promise<unknown>),
   };
   const outboxDir = path.join(dir, 'host-outbox');
@@ -90,6 +91,7 @@ export function world(t: any, o: { dir?: string; hostId?: string; epoch?: number
       onRowChange: (fn: () => void) => (rowListeners.add(fn), () => rowListeners.delete(fn)),
       subscribed: (chatId: string) => config.subscribed?.(chatId),
       canSend: (chatId: string) => config.canSend(chatId),
+      taken: () => config.taken,
       wake: (hostId: string) => config.wake?.(hostId),
       checkFolder: (hostId: string, folder: string) =>
         config.checkFolder ? config.checkFolder(hostId, folder) : Promise.reject(new Error('no folder checker')),

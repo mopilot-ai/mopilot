@@ -26,7 +26,7 @@ import { setElsewhere } from '../../store/threads';
 import { unhideFolder, rememberChatProject, setChatConfig } from '../../store/projects';
 import type { ChatGoal } from '../../store/types';
 import { chatProxy } from '../../harness/adapters/proxy';
-import { addPendingTurn } from '../../store/pendingTurns';
+import { addPendingTurn, rewindTurns } from '../../store/pendingTurns';
 import { claudeAnswer, promptUuidOf, type ApprovalResult, type ClaudeAnswer } from '../../harness/claudeTranslate';
 import { FAST_BLOCKED_TEXT, isClaudeAuthError, claudeSessionId, claudeThreadId } from '../../harness/types';
 import { flushHeld, showMainItems } from './claude/items';
@@ -359,10 +359,8 @@ export async function claudeEditMessage(chatId: string, turnId: string): Promise
   }
   // the process was replaced; the next one starts on the chat's current settings
   live.delete(nid);
-  patchRuntime(chatId, (rt) => {
-    const idx = rt.turns.findIndex((x) => x.id === turnId);
-    return idx < 0 ? {} : { turns: rt.turns.slice(0, idx) };
-  });
+  if (nativeOf(chatId) !== nid) return false;
+  patchRuntime(chatId, (rt) => rewindTurns(rt.turns, turnId));
   return true;
 }
 
@@ -422,12 +420,12 @@ function onEvent(e: ClaudeEvent) {
       body: e.body,
       status: e.status as ChatGoal['status'],
     });
-  // e.key is the native session; state updates go to the chat that owns it
   const nid = e.key;
   const threadId = chatOf(nid);
   switch (e.kind) {
     case 'message': {
       const m = e.msg;
+      if (e.activityAt && nid === nativeOf(threadId)) touchChat(threadId, undefined, e.activityAt);
       if (
         nid === nativeOf(threadId) &&
         !('parent_tool_use_id' in m && m.parent_tool_use_id) &&

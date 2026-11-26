@@ -220,6 +220,8 @@ test('taskCovers: scrolling, typing and plain clicks are ordinary; anything that
   assert.equal(taskCovers(read(), { kind: 'key', keys: 'Enter' }), false);
   assert.equal(taskCovers(read({ button: true, role: 'button' }), { kind: 'key', keys: 'Space' }), false);
   assert.equal(taskCovers(read(), { kind: 'key', keys: 'Tab Enter' }), false);
+  assert.equal(taskCovers(read(), { kind: 'key', keys: 'Tab ArrowDown' }), false);
+  assert.equal(taskCovers(read(), { kind: 'key', keys: 'ArrowDown Tab' }), true);
   assert.equal(taskCovers(read(), { kind: 'drag' }), false);
   assert.equal(taskCovers(read(), { kind: 'dialog' }), false);
   assert.equal(taskCovers(read({ name: undefined, button: true }), { kind: 'click' }), false);

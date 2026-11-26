@@ -1,4 +1,4 @@
-/* The chat's session rail, with compact environment, repository, activity, context and source cards. */
+/* The chat's session rail, its workspace rows, and its context, connector and change disclosures. */
 .summary-slot {
   width: calc(var(--summary-w) + 8px);
   flex: none;
@@ -13,7 +13,10 @@
   align-self: flex-start;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  background: color-mix(in srgb, var(--surface) 50%, var(--card-bg));
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
   font-size: var(--fs-small);
   line-height: 1.4;
   animation: pop-in 140ms var(--ease);
@@ -25,17 +28,16 @@
 .summary-panel > * {
   flex: none;
   min-width: 0;
-  background: color-mix(in srgb, var(--surface) 50%, var(--card-bg));
-  border: 1px solid var(--hairline);
-  border-radius: 9px;
+}
+.summary-panel > * + * {
+  border-top: 1px solid var(--hairline);
 }
 .summary-panel > .summary-group {
-  padding: 4px 10px;
+  padding: 8px 12px;
 }
-.summary-changes:empty {
+.summary-changes:has(.summary-change-items:empty) {
   display: none;
 }
-.summary-context,
 .summary-changes {
   container: session-rail / inline-size;
 }
@@ -43,51 +45,60 @@
 .summary-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 7px 10px 10px;
+  gap: 2px;
+  padding: 8px 12px;
 }
-.summary-identity {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.summary-folder {
-  flex: none;
-  color: var(--text-3);
-}
-.summary-project {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--fs-ui);
+.summary-heading {
+  margin: 0;
+  padding: 4px 0;
+  font-size: inherit;
   font-weight: 600;
   color: var(--text);
 }
-.summary-project.none {
-  color: var(--text-3);
-  font-weight: 500;
-}
+.summary-environment-row,
 .summary-machine,
 .summary-branch {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding-inline: 1px;
-  font-size: var(--fs-micro);
-  color: var(--text-3);
+  min-height: 28px;
 }
-.summary-branch {
-  font-family: var(--font-mono);
-}
+.summary-folder,
 .summary-machine > svg,
 .summary-branch > svg {
   flex: none;
+  color: var(--text-3);
+}
+.summary-project {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text);
+}
+.summary-path {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.summary-project.none,
+.summary-path {
+  color: var(--text-3);
+}
+.summary-machine {
+  flex: 1;
+}
+.summary-branch {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
 }
 .summary-header .icon-btn.xs {
+  margin-inline-start: auto;
   width: 28px;
   height: 28px;
   flex: none;
@@ -97,11 +108,6 @@
 .summary-header .icon-btn.xs:hover {
   background: var(--row-hover);
   color: var(--text);
-}
-.summary-header .summary-remote {
-  margin-top: 3px;
-  border-top: 1px solid var(--hairline);
-  padding-top: 7px;
 }
 .summary-remote > .summary-label {
   white-space: normal;
@@ -132,6 +138,9 @@
   flex: none;
   transition: transform var(--dur) ease;
 }
+.summary-card[open] > .summary-card-toggle > .summary-disclosure-arrow:last-of-type {
+  transform: rotate(90deg);
+}
 .summary-card[open] > .summary-card-toggle > svg:last-of-type {
   transform: rotate(180deg);
 }
@@ -139,31 +148,25 @@
   padding-inline-start: 23px;
 }
 
-/* Context: its tokens and share on one line, the meter full width under them */
-.summary-context > .summary-card-toggle {
-  display: grid;
-  row-gap: 0;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  grid-template-areas:
-    'label tokens value arrow'
-    'meter meter meter meter';
-  font-size: var(--fs-small);
-  color: var(--text-2);
+/* Context and connector status are readable while their details are collapsed. */
+.summary-context > .summary-card-toggle,
+.summary-connectors > .summary-card-toggle {
+  padding-inline: 12px;
+  font-weight: 600;
+  color: var(--text);
 }
-.summary-context-label {
-  grid-area: label;
-}
-.summary-context-tokens {
-  grid-area: tokens;
-  font-family: var(--font-mono);
-  font-size: var(--fs-micro);
+.summary-context-value,
+.summary-connector-hint {
+  margin-inline-start: auto;
+  text-align: end;
   color: var(--text-3);
 }
 .summary-context-value {
-  grid-area: value;
-  color: var(--text);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+}
+.summary-connector-hint {
+  overflow-wrap: anywhere;
+  font-weight: 400;
 }
 .summary-context[data-level='warn'] .summary-context-value {
   color: var(--orange);
@@ -172,14 +175,22 @@
   color: var(--red);
 }
 .summary-context meter {
-  grid-area: meter;
-  width: 100%;
-  height: 4px;
-  margin-top: 6px;
+  width: 32px;
+  height: 6px;
+  flex: none;
   border: none;
 }
-.summary-context > .summary-card-toggle > svg {
-  grid-area: arrow;
+.summary-connector > .summary-hint {
+  max-width: 55%;
+  text-align: end;
+  white-space: normal;
+}
+.summary-connector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 4px;
 }
 .summary-context meter::-webkit-meter-bar {
   background: var(--row-hover);
@@ -349,13 +360,6 @@
 }
 /* At larger chat font sizes, give secondary measurements their own line. */
 @container session-rail (max-width: 16em) {
-  .summary-context > .summary-card-toggle {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-areas:
-      'label value arrow'
-      'tokens tokens tokens'
-      'meter meter meter';
-  }
   .summary-branch-changes {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:

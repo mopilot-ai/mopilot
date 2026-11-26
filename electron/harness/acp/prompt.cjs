@@ -38,12 +38,13 @@ async function sendPrompt(host, key, p, meta = {}) {
   const clientId = typeof meta.uuid === 'string' && meta.uuid ? meta.uuid : crypto.randomUUID();
   const turnId = `at-${clientId}`;
   const audioIntent = audio ? host.audioDispatch.begin(key, clientId, p.display, host.now()) : null;
-  const run = { turnId, cancelled: false, audio, audioIntent, audioResponse: false };
+  const receipt = { received: false };
+  const run = { turnId, cancelled: false, audio, audioIntent, audioResponse: false, receipt };
   chat.prompting = run;
   const user = { id: `u-${clientId}`, clientId, content: Array.isArray(p.display) ? p.display : [] };
   host.items.append(key, { t: 'user', turnId, user, at: host.now() });
   host.emitEvent({ key, kind: 'turnStart', turnId, user, human: !!meta.human, cwd: chat.cwd });
-  chat.agent.request('session/prompt', { sessionId: chat.sessionId, prompt: blocks }).then(
+  chat.agent.request('session/prompt', { sessionId: chat.sessionId, prompt: blocks }, { receipt }).then(
     (res) => {
       run.audioResponse = true;
       if (host.admission?.acceptsBin?.(chat.harness, chat.agent.command, chat.agent.binaryStamp) !== false) host.signedInFn(chat.harness);

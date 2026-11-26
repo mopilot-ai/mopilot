@@ -10,24 +10,112 @@ const asset = (extra = {}) => ({
   assets: [{ base64: 'QUJD', fileName: 'a.png', mimeType: 'image/png', uri: 'file:///a.png', ...extra }],
 });
 
-test('library and camera return the picked photo as base64 with its name and type', async () => {
-  g.__phoneMedia = { libraryResult: asset(), cameraResult: asset({ fileName: null, mimeType: null }) };
-  assert.deepEqual(await nativeMedia.library(), { name: 'a.png', mime: 'image/png', base64: 'QUJD', uri: 'file:///a.png' });
-  assert.deepEqual(g.__phoneMedia.options, { base64: true, quality: 0.8, mediaTypes: ['images'] });
+const MB = 1024 * 1024;
+const photo = { base64: 'QUJD', fileName: 'a.png', mimeType: 'image/png', uri: 'file:///a.png', type: 'image' };
+const video = (extra = {}) => ({
+  base64: null,
+  fileName: 'v.mp4',
+  mimeType: 'video/mp4',
+  uri: 'file:///v.mp4',
+  type: 'video',
+  fileSize: 5 * MB,
+  ...extra,
+});
+const picked = (...assets: object[]) => ({ canceled: false, assets });
+
+test('the camera returns the photo as base64 with its name and type, and opens the single-photo picker', async () => {
+  g.__phoneMedia = { cameraResult: asset({ fileName: null, mimeType: null }) };
   assert.deepEqual(await nativeMedia.camera(), { name: 'photo.jpg', mime: 'image/jpeg', base64: 'QUJD', uri: 'file:///a.png' });
+  assert.deepEqual(g.__phoneMedia.options, { base64: true, quality: 0.8, mediaTypes: ['images'] });
 });
 
-test('cancelling a picker returns null and an unreadable photo is an error', async () => {
-  g.__phoneMedia = { libraryResult: { canceled: true, assets: null }, cameraResult: { canceled: false, assets: [] } };
-  assert.equal(await nativeMedia.library(), null);
+test('the library opens the system picker for several photos and videos, as many as there is room for, in the order they were picked', async () => {
+  g.__phoneMedia = { libraryResult: picked(photo) };
+  await nativeMedia.library(7);
+  assert.deepEqual(g.__phoneMedia.options, {
+    base64: true,
+    quality: 0.8,
+    mediaTypes: ['images', 'videos'],
+    allowsMultipleSelection: true,
+    selectionLimit: 7,
+    orderedSelection: true,
+    videoExportPreset: 6,
+    shouldDownloadFromNetwork: true,
+  });
+  assert.equal('allowsEditing' in g.__phoneMedia.options, false, 'editing would force a single selection on iOS');
+  await nativeMedia.library(0);
+  assert.equal(g.__phoneMedia.options.selectionLimit, 1, '0 would mean no limit to the picker');
+});
+
+test('every chosen asset comes back: photos as base64, a video as a file read from its cache copy with no thumbnail', async () => {
+  g.__phoneMedia = { libraryResult: picked(photo, video(), { ...photo, fileName: 'b.png', uri: 'file:///b.png' }) };
+  assert.deepEqual(await nativeMedia.library(10), {
+    picked: [
+      { name: 'a.png', mime: 'image/png', base64: 'QUJD', uri: 'file:///a.png' },
+      { name: 'v.mp4', mime: 'video/mp4', base64: 'bytes-of:file:///v.mp4' },
+      { name: 'b.png', mime: 'image/png', base64: 'QUJD', uri: 'file:///b.png' },
+    ],
+    refused: [],
+  });
+  assert.deepEqual(g.__phoneMedia.reads, ['file:///v.mp4'], 'only the video is read from disk');
+});
+
+test('a video with no name or type is an mp4', async () => {
+  g.__phoneMedia = { libraryResult: picked(video({ fileName: null, mimeType: null })) };
+  assert.deepEqual((await nativeMedia.library(1)).picked, [{ name: 'video.mp4', mime: 'video/mp4', base64: 'bytes-of:file:///v.mp4' }]);
+});
+
+test('a video the picker gives no size for is measured on the file before it is read: one that fits is read, one that does not or has no size is refused unread', async () => {
+  g.__phoneMedia = { libraryResult: picked(video({ fileSize: undefined })), sizes: { 'file:///v.mp4': 3 * MB } };
+  assert.equal((await nativeMedia.library(1)).picked.length, 1);
+  g.__phoneMedia = { libraryResult: picked(video({ fileSize: undefined })), sizes: { 'file:///v.mp4': 20 * MB + 1 } };
+  assert.deepEqual(await nativeMedia.library(1), { picked: [], refused: ['That video is larger than 20 MB. Trim it and try again.'] });
+  g.__phoneMedia = { libraryResult: picked(video({ fileSize: undefined })), sizes: {} };
+  assert.deepEqual(await nativeMedia.library(1), { picked: [], refused: ['That video could not be read.'] });
+  assert.equal(g.__phoneMedia.reads, undefined, 'neither refused video was read');
+});
+
+test('a copy the file system cannot open or measure is a plain "could not be read", never its own words', async () => {
+  g.__phoneMedia = { libraryResult: picked(video(), photo), unopenable: ['file:///v.mp4'] };
+  assert.deepEqual((await nativeMedia.library(2)).refused, ['That video could not be read.']);
+  g.__phoneMedia = { libraryResult: picked(video({ fileSize: undefined })), sizeThrows: true };
+  assert.deepEqual(await nativeMedia.library(1), { picked: [], refused: ['That video could not be read.'] });
+});
+
+test('a video above the 20 MB the Mac takes is refused before its bytes are read, and the others still come', async () => {
+  g.__phoneMedia = { libraryResult: picked(video({ fileSize: 20 * MB + 1 }), photo, video({ fileSize: 20 * MB, uri: 'file:///w.mp4' })) };
+  const got = await nativeMedia.library(10);
+  assert.deepEqual(got.refused, ['That video is larger than 20 MB. Trim it and try again.']);
+  assert.deepEqual(
+    got.picked.map((p: { name: string }) => p.name),
+    ['a.png', 'v.mp4'],
+  );
+  assert.deepEqual(g.__phoneMedia.reads, ['file:///w.mp4'], 'the large one was never read');
+});
+
+test('a photo with no bytes and a video that cannot be read are refused one by one; cancelling gives nothing', async () => {
+  g.__phoneMedia = { libraryResult: picked({ ...photo, base64: undefined }, video(), photo), unreadable: ['file:///v.mp4'] };
+  const got = await nativeMedia.library(10);
+  assert.deepEqual(got.refused, ['That photo could not be read.', 'That video could not be read.']);
+  assert.equal(got.picked.length, 1);
+  g.__phoneMedia = { libraryResult: { canceled: true, assets: null } };
+  assert.deepEqual(await nativeMedia.library(10), { picked: [], refused: [] });
+  g.__phoneMedia = { libraryResult: { canceled: false, assets: [] } };
+  assert.deepEqual(await nativeMedia.library(10), { picked: [], refused: [] });
+});
+
+test('cancelling the camera returns null and an unreadable photo is an error', async () => {
+  g.__phoneMedia = { cameraResult: { canceled: true, assets: null } };
   assert.equal(await nativeMedia.camera(), null);
-  g.__phoneMedia.libraryResult = asset({ base64: undefined });
-  await assert.rejects(nativeMedia.library(), /could not be read/);
+  g.__phoneMedia = { cameraResult: { canceled: false, assets: [] } };
+  assert.equal(await nativeMedia.camera(), null);
+  g.__phoneMedia = { cameraResult: asset({ base64: undefined }) };
+  await assert.rejects(nativeMedia.camera(), /could not be read/);
 });
 
 test('the photo library is opened through the system picker without asking for library access', async () => {
-  g.__phoneMedia = { library: 'denied', libraryResult: asset() };
-  assert.deepEqual(await nativeMedia.library(), { name: 'a.png', mime: 'image/png', base64: 'QUJD', uri: 'file:///a.png' });
+  g.__phoneMedia = { library: 'denied', libraryResult: picked(photo) };
+  assert.deepEqual((await nativeMedia.library(10)).picked, [{ name: 'a.png', mime: 'image/png', base64: 'QUJD', uri: 'file:///a.png' }]);
   assert.equal(g.__phoneMedia.libraryPermissionAsked, undefined);
 });
 
@@ -153,22 +241,22 @@ test('the recording level is the microphone meter from silence to full, and noth
 });
 
 test('taps while a picker is already on screen neither queue nor present another one', async () => {
-  g.__phoneMedia = { hold: true, cameraResult: asset(), libraryResult: asset() };
+  g.__phoneMedia = { hold: true, cameraResult: asset(), libraryResult: picked(photo) };
   const first = nativeMedia.camera();
   await new Promise((r) => setTimeout(r, 0));
   // double tap, then the other source: iOS cannot show two, and a queued one would pop up after the first closes
   assert.equal(await nativeMedia.camera(), null);
-  assert.equal(await nativeMedia.library(), null);
+  assert.deepEqual(await nativeMedia.library(10), { picked: [], refused: [] });
   g.__phoneMedia.release();
   assert.deepEqual(await first, { name: 'a.png', mime: 'image/png', base64: 'QUJD', uri: 'file:///a.png' });
   assert.deepEqual(g.__phoneMedia.presented, ['camera']);
   g.__phoneMedia.hold = false;
-  assert.ok(await nativeMedia.library(), 'the next tap works once the picker is closed');
+  assert.equal((await nativeMedia.library(10)).picked.length, 1, 'the next tap works once the picker is closed');
   assert.deepEqual(g.__phoneMedia.presented, ['camera', 'library']);
 });
 
 test('a picker that fails frees the guard so the next tap works', async () => {
-  g.__phoneMedia = { camera: 'denied', libraryResult: asset() };
+  g.__phoneMedia = { camera: 'denied', libraryResult: picked(photo) };
   await assert.rejects(nativeMedia.camera(), /camera access/);
-  assert.ok(await nativeMedia.library());
+  assert.equal((await nativeMedia.library(10)).picked.length, 1);
 });

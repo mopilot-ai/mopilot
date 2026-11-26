@@ -111,6 +111,8 @@ mock.module('../../../src/session/harness/select.ts', {
     harnessModels: (h: string) => fx.models[h] ?? [],
     selectionFor: (h: string) => fx.selFor?.[h] ?? { model: null },
     setSelection: rec('selection'),
+    // a composer's pick (session/harness/select.ts): recorded as the selection it writes
+    composerSelect: rec('selection'),
     makeSelectionDefault: rec('makeDefault'),
     chooseAccount: (a: any) => events.push(['chooseAccount', a.id]),
     setChatAccount: (...a: any[]) => (fx.failAccountCalls ? Promise.reject(new Error('chat is locked')) : rec('chatAccount')(...a)),

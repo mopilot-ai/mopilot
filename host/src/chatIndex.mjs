@@ -22,7 +22,20 @@ export function placeOf(cursor) {
 }
 
 /** Whether row `a` comes before row `b`. @param {{ updatedAt: number, chatId: string }} a @param {{ updatedAt: number, chatId: string }} b */
-const before = (a, b) => a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.chatId < b.chatId);
+export const before = (a, b) => a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.chatId < b.chatId);
+
+/** The index of the first row of `sorted` (newest activity first) that comes after a place, by bisection (the order is total). @param {{ updatedAt: number, chatId: string }[]} sorted @param {[number, string] | null} place */
+export function firstAfter(sorted, place) {
+  const after = place ? { updatedAt: place[0], chatId: place[1] } : null;
+  let lo = 0;
+  let hi = sorted.length;
+  while (after && lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (before(after, /** @type {{ updatedAt: number, chatId: string }} */ (sorted[mid]))) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
+}
 
 /** The kind of attention a state patch (or a summary) says: the Host publishes `{ kind, since, … }` or null; a bare string is a kind. @param {unknown} v */
 export const attentionKind = (v) =>
@@ -49,8 +62,20 @@ export const attentionKind = (v) =>
 export function createChatIndex({ load, epoch, now = Date.now, report, generation = crypto.randomUUID() }) {
   /** @type {Map<string, Row>} */
   const rows = new Map();
-  /** @type {Set<{ send: (e: ChatsEvent) => unknown, scope?: import('./chatScope.mjs').ChatScope, n: number, stale: boolean }>} */
+  /** @type {Set<{ send: (e: ChatsEvent) => unknown, scope?: import('./chatScope.mjs').ChatScope, n: number, stale: boolean, native?: true }>} */
   const watchers = new Set();
+  /** Who is told when a chat comes or goes (the native index drops a session this Host starts to run). @type {Set<(chatId: string) => void>} */
+  const rowListeners = new Set();
+  /** @param {string} chatId */
+  const rowChanged = (chatId) => {
+    for (const fn of [...rowListeners]) {
+      try {
+        fn(chatId);
+      } catch (error) {
+        report?.(`A chat-list listener failed: ${error}`);
+      }
+    }
+  };
   /** @type {Promise<boolean> | null} */
   let building = null;
   /** Whether a build of the journals' list has finished (well or not): until then what the hub sees waits for it, so a chat saved before this Host started keeps its own title and date. */
@@ -105,6 +130,7 @@ export function createChatIndex({ load, epoch, now = Date.now, report, generatio
       if (gone && rows.delete(chatId)) {
         order = null;
         tell('removed', gone);
+        rowChanged(chatId);
       }
       return;
     }
@@ -167,6 +193,7 @@ export function createChatIndex({ load, epoch, now = Date.now, report, generatio
       row.rev++;
       tell(kind, row);
     }
+    if (created) rowChanged(chatId);
   };
   const index = {
     generation,
@@ -218,15 +245,7 @@ export function createChatIndex({ load, epoch, now = Date.now, report, generatio
       const place = cursor === undefined ? null : placeOf(cursor);
       if (cursor !== undefined && !place) throw Object.assign(new Error('That is not a place in this list.'), { code: 'bad_cursor' });
       const sorted = (order ??= [...rows.values()].sort((a, b) => (before(a, b) ? -1 : 1)));
-      // the first row after the cursor, by bisection (the order is total)
-      let lo = 0;
-      let hi = sorted.length;
-      const after = place ? { updatedAt: place[0], chatId: place[1] } : null;
-      while (after && lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (before(after, /** @type {Row} */ (sorted[mid]))) hi = mid;
-        else lo = mid + 1;
-      }
+      const lo = firstAfter(sorted, place);
       /** @type {Row[]} */
       const got = [];
       for (let i = lo; i < sorted.length && got.length <= limit; i++) {
@@ -243,6 +262,41 @@ export function createChatIndex({ load, epoch, now = Date.now, report, generatio
         ...(complete ? {} : { incomplete: true }),
       };
     },
+    /**
+     * Tells the watchers that asked for them (and may see them) of a native session's row, on each one's own numbering; a watcher that is behind is told once to list again, as for a chat.
+     * @param {'created' | 'changed' | 'removed'} kind @param {string} chatId @param {number} rev @param {object} [chat] the whole row (none for a removal)
+     */
+    announce(kind, chatId, rev, chat) {
+      for (const w of [...watchers]) {
+        if (!w.native) continue;
+        try {
+          if (w.stale) {
+            if (w.send({ event: 'chats', generation, seq: ++w.n, op: 'resync' }) !== false) w.stale = false;
+            continue;
+          }
+          const sent = w.send({
+            event: 'chats',
+            chatId,
+            generation,
+            seq: ++w.n,
+            op: kind === 'removed' ? 'remove' : 'upsert',
+            kind,
+            rev,
+            ...(kind === 'removed' ? {} : { chat }),
+          });
+          if (sent === false) w.stale = true;
+        } catch (error) {
+          report?.(`A chat-list event could not be sent: ${error}`);
+        }
+      }
+    },
+    /** Calls `fn` with the id of each chat that comes or goes; returns what stops it. @param {(chatId: string) => void} fn */
+    onRow(fn) {
+      rowListeners.add(fn);
+      return () => void rowListeners.delete(fn);
+    },
+    /** Whether the Host holds a chat of this id (in the order of its list, whoever may see it). @param {string} chatId */
+    has: (chatId) => rows.has(chatId),
     /** A summary the list found from a journal for a chat that had a stand-in: kept without a change event, since nothing about the chat changed. @param {string} chatId @param {{ title: string, harness?: string }} found */
     filled(chatId, found) {
       const row = rows.get(chatId);
@@ -255,10 +309,10 @@ export function createChatIndex({ load, epoch, now = Date.now, report, generatio
     standIn: (chatId) => !!rows.get(chatId)?.standIn,
     /**
      * Starts telling a connection of changes. The events carry a count of this watch's own (`seq`; a list read after the watch says `at`, and events after it are news) and the Host's generation.
-     * @param {(e: ChatsEvent) => unknown} send what the connection takes an event with; a `false` answer says it is behind, and it is told once to list again @param {import('./chatScope.mjs').ChatScope} [scope]
+     * @param {(e: ChatsEvent) => unknown} send what the connection takes an event with; a `false` answer says it is behind, and it is told once to list again @param {import('./chatScope.mjs').ChatScope} [scope] @param {{ native?: boolean }} [asked] `native` also tells it of native sessions' rows (#5576), if its scope may see them, on the same numbering
      */
-    watch(send, scope) {
-      const w = { send, scope, n: 0, stale: false };
+    watch(send, scope, asked = {}) {
+      const w = { send, scope, n: 0, stale: false, ...(asked.native && scope?.native ? { native: /** @type {const} */ (true) } : {}) };
       watchers.add(w);
       return { at: 0, generation, seq: () => w.n, stop: () => void watchers.delete(w) };
     },

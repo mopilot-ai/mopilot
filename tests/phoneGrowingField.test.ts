@@ -153,3 +153,20 @@ test('under Reduce Motion the box takes every height at once', async () => {
     delete g.__phoneReduceMotion;
   }
 });
+
+test('a multi-line field emptied while it is focused (a send) takes its one-line height, and keeps it after the blur', async () => {
+  const r = await render({ value: 'one\ntwo\nthree' });
+  await r.layout(27);
+  await act(async () => r.input().__focus());
+  await r.layout(80);
+  assert.equal(r.box().height, 80, 'three lines');
+  await r.done();
+  const e = await render({ value: '' });
+  await e.layout(80);
+  await act(async () => e.input().__focus());
+  await e.layout(24);
+  assert.equal(e.box().height, 24, 'emptied while focused: one line');
+  await act(async () => e.input().__blur());
+  assert.equal(e.box().height, 24, 'and after the blur');
+  await e.done();
+});

@@ -260,9 +260,12 @@ export function createInitiator({ crypto: c, secret, hint, rendezvousId, claims,
   let started = null;
   /** @type {{ keys: ReturnType<typeof deriveKeys>, peer: NonNullable<ReturnType<typeof parseAd>> } | null} */
   let derived = null;
+  /** @type {import('./cpace.mjs').Run | null} between `verify` and `seal` */
+  let verified = null;
   const stop = (/** @type {CodePairError} */ error) => {
     step = 99;
     started = null;
+    verified = null;
     derived = null;
     return error;
   };
@@ -288,8 +291,8 @@ export function createInitiator({ crypto: c, secret, hint, rendezvousId, claims,
       });
       return wire({ Y: b64u(started.message.Y), ad: b64u(started.message.ad) });
     },
-    /** m3, from m2: verifies the responder's tag first and only then reveals its own; `carry` rides in the sealed body (the relay credential the controlling Mac minted). @param {string} m2 @param {Record<string, unknown>} [carry] */
-    second(m2, carry) {
+    /** The first half of m3, from m2: verifies the responder's tag and makes the keys, revealing nothing; `safety` is known after it and `seal(carry)` makes m3 (so what the carry holds is made only once the code has proved itself). @param {string} m2 */
+    verify(m2) {
       if (step !== 1) throw stop(new CodePairError('out_of_turn', 'Not the turn of the second message.'));
       step = 2;
       const f = /** @type {{ Y: Uint8Array, ad: Uint8Array, tag: Uint8Array } | null} */ (unwire(m2, ['Y', 'ad', 'tag']));
@@ -299,25 +302,35 @@ export function createInitiator({ crypto: c, secret, hint, rendezvousId, claims,
       if (peerAd.rendezvousId !== rendezvousId || peerAd.claims !== String(claims))
         throw stop(new CodePairError('bad_message', 'The reply is for another offer.'));
       try {
-        const run = /** @type {NonNullable<typeof started>} */ (started).finish({ Y: f.Y, ad: f.ad });
+        verified = /** @type {NonNullable<typeof started>} */ (started).finish({ Y: f.Y, ad: f.ad });
         started = null;
-        if (!verifyPeerConfirmation(run, f.tag)) throw new CodePairError('bad_confirmation', 'The code did not match.');
+        if (!verifyPeerConfirmation(verified, f.tag)) throw new CodePairError('bad_confirmation', 'The code did not match.');
         // the code did its job: it is spent whatever the person says next
         budget.confirmed();
-        const keys = deriveKeys(c, run, device.pub, peerAd.device, ephSecret, peerAd.eph, rendezvousId);
-        derived = { keys, peer: peerAd };
-        const proof = b64u(device.sign(proofMessage('initiator', keys.transcriptHash)));
-        const sealed = seal(c, keys.toB, keys.transcriptHash, {
-          name: nameOf(device.name),
-          claims,
-          proof,
-          ...(carryOf(carry) ? { carry: carryOf(carry) } : {}),
-        });
-        return wire({ tag: b64u(ownConfirmation(run)), sealed });
+        derived = { keys: deriveKeys(c, verified, device.pub, peerAd.device, ephSecret, peerAd.eph, rendezvousId), peer: peerAd };
       } catch (error) {
         // a failure anywhere in this step ends the run and leaves nothing of it
         throw stop(error instanceof CodePairError ? error : new CodePairError('bad_message', String(error)));
       }
+    },
+    /** m3, after `verify`; `carry` rides in the sealed body (the relay credential the controlling Mac minted). @param {Record<string, unknown>} [carry] */
+    seal(carry) {
+      if (!verified || !derived) throw stop(new CodePairError('out_of_turn', 'Not the turn of the second message.'));
+      const run = verified;
+      verified = null;
+      try {
+        const { keys } = derived;
+        const proof = b64u(device.sign(proofMessage('initiator', keys.transcriptHash)));
+        const body = { name: nameOf(device.name), claims, proof, ...(carryOf(carry) ? { carry: carryOf(carry) } : {}) };
+        return wire({ tag: b64u(ownConfirmation(run)), sealed: seal(c, keys.toB, keys.transcriptHash, body) });
+      } catch (error) {
+        throw stop(error instanceof CodePairError ? error : new CodePairError('bad_message', String(error)));
+      }
+    },
+    /** m3 from m2 in one step (`verify` then `seal`). @param {string} m2 @param {Record<string, unknown>} [carry] */
+    second(m2, carry) {
+      this.verify(m2);
+      return this.seal(carry);
     },
     /** What the person compares with the other Mac, once the responder's tag checked out. */
     get safety() {

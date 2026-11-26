@@ -8,8 +8,8 @@ import type { SavedProject } from '../../store/state';
 import { segmentNatives } from '../../store/chats';
 import { basename, isAbsolutePath } from '../../lib/paths';
 import { chatFolder, codexWorktreeRepo, foldClaudeWorktree, pathKey, samePath } from '../../lib/paths';
-import { projectlessFolderOf, type Thread } from '../../store/types';
-import { groupKey, sortProjectGroups } from '../../lib/projectGroupOrder';
+import { DEFAULT_PREFS, projectlessFolderOf, type Thread } from '../../store/types';
+import { compareProjectKeys, groupKey, sortProjectGroups } from '../../lib/projectGroupOrder';
 import { machineFolderKey, machineFolderOf } from '../../lib/machineFolder';
 import type { HostLocationKind } from '../../lib/hostLocation';
 import { machineProjectPath, machineProjectKey, machineProjectChatOrder } from '../../lib/machineProject';
@@ -17,7 +17,7 @@ import { machineOfChat, useHostChats } from '../../lib/hostChats';
 import { useHostMachines } from '../../lib/hostMachines';
 import { useFamilyLineage } from '../../session/harness/claude/desktopLineage';
 import { useProjectPaths } from '../../lib/useProjectPaths';
-import { byActivity } from '../../lib/chatActivity';
+import { byActivity, withChatRewinds } from '../../lib/chatActivity';
 import { sidebarFamilies } from '../../lib/sidebarFamilies';
 import { isMomoChat, momoOwned } from '../../lib/momoChats';
 import { useChatStarts, type ChatStart } from '../../lib/chatStarts';
@@ -96,12 +96,14 @@ const EMPTY_NAMES: Record<string, string> = {};
 const EMPTY_ORDER: Record<string, string[]> = {};
 export function useProjectGroups(withRepositories = false) {
   const starting = useChatStarts();
-  const threads = useStore((s) => s.threads);
+  const nativeThreads = useStore((s) => s.threads);
+  const rewoundAt = useStore((s) => s.chatRewoundAt);
+  const threads = useMemo(() => withChatRewinds(nativeThreads, rewoundAt), [nativeThreads, rewoundAt]);
   const order = useStore((s) => s.threadOrder);
   const savedProjects = useStore((s) => s.savedProjects);
   const worktreeOf = useStore((s) => s.worktreeOf);
   const pinnedP = useStore((s) => s.prefs.pinnedProjects ?? EMPTY_IDS);
-  const projectSort = useStore((s) => s.prefs.projectSort ?? 'updated');
+  const projectSort = useStore((s) => s.prefs.projectSort ?? DEFAULT_PREFS.projectSort);
   const sidebarFolders = useStore((s) => s.prefs.sidebarFolders ?? EMPTY_IDS);
   const chatSort = useStore((s) => s.prefs.chatSort ?? 'updated');
   const chatOrder = useStore((s) => s.prefs.chatOrder ?? EMPTY_ORDER);
@@ -316,7 +318,9 @@ export function useProjectGroups(withRepositories = false) {
         (onMachines.has(g.path) || onMachines.has(machineProjectPath(g.path)))
       )
         folders.delete(key);
-    groups.push(...folders.values());
+    const discovered = [...folders];
+    if (projectSort === 'custom') discovered.sort(([a], [b]) => compareProjectKeys(a, b));
+    groups.push(...discovered.map(([, group]) => group));
     // A pin can predate a saved project or the merging of two aliases: grouping and pin controls share that identity.
     const pins = new Set(pinnedP);
     const folderPins = new Map<string, string[]>();

@@ -9,7 +9,8 @@ export type ChangeCounts = { files: number; added: number; removed: number };
 
 /**
  * Read again when the turn ends or the Mac says the diff changed. `offered` is false where the app has no Changes screen; `enabled`
- * is false while a turn runs, so the Mac is not asked for every edit.
+ * is false while a turn runs, so the Mac is not asked for every edit. Undefined until a read answers (and while none is made); null when
+ * the read could not say.
  */
 export function useChangeCounts(
   runtime: MobileRuntime,
@@ -17,13 +18,15 @@ export function useChangeCounts(
   chatId: string,
   offered: boolean,
   enabled: boolean,
-): ChangeCounts | null {
+): ChangeCounts | null | undefined {
   const version = useReviewEvents(runtime, chatId, offered);
   const [read, setRead] = useState<{ chatId: string; counts: ChangeCounts | null } | null>(null);
   useEffect(() => {
     void version; // a changed diff is a new read
     // a turn that runs makes the last counts old: none show until the turn's end has been read
-    if (!offered || !enabled) return setRead(null);
+    if (!enabled) return setRead(null);
+    // the Changes screen is not offered while the computer is away (a reconnect): that says nothing new about the changes, so the last read stays
+    if (!offered) return;
     let active = true;
     void (async () => {
       let counts: ChangeCounts | null = null;
@@ -45,5 +48,5 @@ export function useChangeCounts(
       active = false;
     };
   }, [request, chatId, offered, enabled, version]);
-  return read?.chatId === chatId ? read.counts : null;
+  return read?.chatId === chatId ? read.counts : undefined;
 }

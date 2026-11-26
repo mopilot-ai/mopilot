@@ -44,6 +44,7 @@ A development build (`MOPILOT_BUILD_PROFILE=development`, or any of `MOPILOT_DEV
 
 - The Add to session sheet reads recent photos on iOS (`expo-media-library`, `NSPhotoLibraryUsageDescription` reworded); Android is unchanged and blocks the media-read permissions that library adds.
 - `platform/media.ts` `library()` no longer calls `requestMediaLibraryPermissionsAsync` before the photo picker: the picker needs none on iOS 14+ or Android, and the call asked Android 12 and older for storage access and iOS for the whole library.
+- The same picker now takes several photos and videos at once (`library(room)`). It still needs no permission: videos come through the system picker like photos, so `READ_MEDIA_VIDEO` stays blocked and no string is added. A video that fits 20 MB (the Mac's file limit) is read as it is; a larger one is made smaller by the app's own export (`mobile/modules/mopilot-video`, an `AVAssetExportSession` on the picked file in the app's own temporary folder, which uses no permission and sends nothing anywhere), and refused with a message when even the smallest size cannot hold it; the strip and the camera tile stay photo-only.
 - `expo-audio` background playback off (removes the `audio` background mode, two foreground-service permissions and a media service), `expo-camera` no longer adds `RECORD_AUDIO` for video, `expo-secure-store` no longer adds the Face ID string.
 - `UIBackgroundModes` `fetch` removed, store builds lose every dev-client leftover, `allowBackup` off.
 

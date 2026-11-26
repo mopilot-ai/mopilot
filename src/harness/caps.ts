@@ -61,6 +61,7 @@ export const FEATURE_LABEL: Record<Semantic, string> = {
   momoContext: "MoMo's memory",
   artifacts: 'artifacts and designs',
   remoteControl: 'Remote Control',
+  steer: 'steering a running turn',
 };
 
 /** `account`: what to go back to when the gateway can't do it ("Claude subscription", "ChatGPT account"). */

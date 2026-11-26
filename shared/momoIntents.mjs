@@ -13,10 +13,11 @@ export const INTENT_TABLE = {
   // where MoMo lives and its machines
   'choose-home': { lane: 'home', args: { machineId: 'string' }, lease: false },
   move: { lane: 'home', args: { toId: 'string' }, lease: false },
-  'move-cancel': { lane: 'home', args: {}, lease: false },
-  'move-retry': { lane: 'home', args: {}, lease: false },
-  'move-stay': { lane: 'home', args: {}, lease: false },
-  'move-ack': { lane: 'home', args: {}, lease: false },
+  // the move a card was drawn for: a card that outlived its move cannot act on the next one (optional: a client that does not send it acts on the move held)
+  'move-cancel': { lane: 'home', args: { moveId: 'string?' }, lease: false },
+  'move-retry': { lane: 'home', args: { moveId: 'string?' }, lease: false },
+  'move-stay': { lane: 'home', args: { moveId: 'string?' }, lease: false },
+  'move-ack': { lane: 'home', args: { moveId: 'string?' }, lease: false },
   reclaim: { lane: 'home', args: { moveId: 'string?', toId: 'string?' }, lease: false },
   wake: { lane: 'home', args: {}, lease: false },
   'update-machine': { lane: 'home', args: { machineId: 'string' }, lease: false },

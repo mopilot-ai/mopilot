@@ -19,3 +19,7 @@ export function Notice({ lead, text }: { /** Bold first words, e.g. "Stop not co
     </View>
   );
 }
+
+/** What the saved rows show while the Mac does not answer: they may be out of date. */
+export const SAVED_ON_PHONE = 'Saved on this phone · may be out of date';
+export const SavedOnPhone = () => <Notice text={SAVED_ON_PHONE} />;

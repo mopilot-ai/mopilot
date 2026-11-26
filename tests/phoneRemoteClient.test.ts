@@ -80,6 +80,7 @@ test('capabilities read methods and ceiling, with safe defaults', async () => {
     mirrors: null,
     renameChats: false,
     archiveChats: false,
+    olderRowsHeld: false,
     sideChats: false,
   });
   assert.doesNotThrow(() => client.needs(null, 'diff.list', 'x'));
@@ -418,4 +419,27 @@ test('a retry carries on from the part the Mac confirmed, and starts over under 
     sendChunks(request, file, 'file', () => {}, stop.signal, cancelled),
     Cancelled,
   );
+});
+
+test('a resumed upload whose chunk the connection lost is not started over: the caller sends it again from the confirmed part', async () => {
+  const sent: any[] = [];
+  const request = async (_m: string, p: any) => {
+    sent.push([p.stream, p.index]);
+    if (p.index === 1) throw new Error('relay disconnected');
+    return { stream: p.stream, received: p.index + 1, done: false };
+  };
+  const resume = { stream: 'kept', next: 1 };
+  await assert.rejects(
+    sendChunks(
+      request,
+      { name: 'v.mp4', mime: 'video/mp4', base64: 'A'.repeat(CHUNK * 2 + 4) },
+      'file',
+      () => {},
+      new AbortController().signal,
+      resume,
+    ),
+    /relay disconnected/,
+  );
+  assert.deepEqual(sent, [['kept', 1]], 'no new stream from the start');
+  assert.deepEqual(resume, { stream: 'kept', next: 1 });
 });

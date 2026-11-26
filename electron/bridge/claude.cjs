@@ -45,7 +45,7 @@ module.exports = {
   designLoginCode: invoke('claude:designLoginCode', 2),
   designLoginCancel: invoke('claude:designLoginCancel', 1),
   onDesignLogin: on('claude:designLogin'),
-  extras: invoke('claude:extras', 3),
+  extras: invoke('claude:extras', 4),
   catalog: invoke('claude:catalog', 3),
   onCatalog: on('claude:catalog'),
   watch: invoke('claude:watch', 1),

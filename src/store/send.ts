@@ -1,6 +1,6 @@
 // Sending messages and the turn and goal events main reports for them. @store-slice: tests' store stub replaces it whole (tests/support/stubs.ts).
 
-import { acceptSendReceipt, type SendReceipt } from '../../shared/sendReceipt.mjs';
+import { acceptSendReceipt, usedReceipt, type SendReceipt } from '../../shared/sendReceipt.mjs';
 import { userInput } from '../../shared/userInput.mjs';
 import type { UserInput } from '../protocol/v2/UserInput';
 import { codexApi } from '../harness/adapters/codexApi';
@@ -16,7 +16,8 @@ import { rememberSideChatBlock } from './hostSideChat';
 import { turnBusy } from './session/sessionState';
 import { isRunningTask } from '../lib/tasks';
 import { get, set, toast, patchRuntime, newTurn, patchTurn, setDraft, touchChat } from './core';
-import { modelChangeNote, setLastModel, nativeOf } from './chats';
+import { modelChangeNote, setLastModel, nativeOf, chatKind } from './chats';
+import type { HarnessKind } from '../harness/adapter';
 import { turnsAboveAfterSwitch } from './turnPages';
 import { modelLabel } from '../lib/format';
 import { codexChatSelection } from '../harness/codexSettings';
@@ -112,6 +113,13 @@ export async function loadCloudTasks() {
   }
 }
 
+/** Who hears of a message main took, with the harness it runs on (src/session/newChatStart.ts remembers it for new chats). */
+const sentListeners = new Set<(chatId: string, kind: HarnessKind) => void>();
+export function onMessageSent(listener: (chatId: string, kind: HarnessKind) => void): () => void {
+  sentListeners.add(listener);
+  return () => void sentListeners.delete(listener);
+}
+
 /**
  * Sends, queues or holds the message. Resolves false when main didn't take it (the user was told), so a
  * caller holding the text can keep it.
@@ -166,6 +174,8 @@ export async function sendMessage(
   // (while the app has not read which chats are on machines, it may be one: the message shows at once rather than after the machine's reply)
   const onMachine = onMachineNow(id);
   const early = idle && (ss.pendingSwitch || onMachine) ? crypto.randomUUID() : null;
+  // the harness this message runs on, read before main takes the switch it carries
+  const kind = ss.pendingSwitch?.harness ?? chatKind(chatId);
   if (early) showEarlyTurn(chatId, early, buildInput(text, attachments));
   return chatProxy
     .send(
@@ -187,6 +197,7 @@ export async function sendMessage(
       // a Host's refusal is said by the queue row (with its fix), so it is not said again in a toast
       if (error && (!early || onMachine) && (receipt as { waitingFor?: string }).waitingFor !== 'hostRefused')
         toast(`Couldn't send: ${error}${error.includes('kept in the queue') ? '' : ' Your message is kept in the queue.'}`, 'error');
+      if (usedReceipt(receipt)) for (const listener of sentListeners) listener(chatId, kind);
       return true;
     })
     .catch((e) => {

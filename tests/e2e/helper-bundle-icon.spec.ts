@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import edition from '../../shared/edition.json';
 
 test('macOS resolves the permission helper to the MoPilot icon', async ({}, testInfo) => {
   test.skip(process.platform !== 'darwin', 'the permission-owning macOS app bundle is macOS only');
@@ -25,7 +26,7 @@ test('macOS resolves the permission helper to the MoPilot icon', async ({}, test
         { encoding: 'utf8', timeout: 60_000 },
       ),
     );
-    expect(result.bundleId).toBe('ai.mopilot.code.computer-use');
+    expect(result.bundleId).toBe(`${edition.desktop.appId}.computer-use`);
     expect(result.iconFile).toBe('icon.icns');
     // Allow rasterizer rounding, while requiring a match far closer than the generic permission-page icon.
     expect(result.meanAbsoluteError).toBeLessThan(8);

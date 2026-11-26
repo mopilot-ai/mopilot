@@ -64,6 +64,30 @@ mock.module(require.resolve('expo-constants'), { defaultExport: { expoConfig: { 
 mock.module('../mobile/src/platform/crypto.ts', { namedExports: { phonePrimitives: () => ({ aeadOpen: () => null }) } });
 mock.module('../mobile/src/platform/lifecycle.ts', { namedExports: { onForeground: () => () => {} } });
 
+const momoCopy = { used: true, rows: new Map<string, any>(), marks: 0 };
+const copyApi = {
+  newest: async (user: string) => (momoCopy.rows.has(user) ? { status: 'ok', stamp: momoCopy.rows.get(user) } : { status: 'none' }),
+  keepStamp: async (user: string, stamp: any) => void momoCopy.rows.set(user, stamp),
+};
+mock.module('../mobile/src/platform/momoHomeStore.ts', {
+  namedExports: {
+    openMomoHomeCache: async () => copyApi,
+    momoHomeWasUsed: async () => momoCopy.used,
+    markMomoHomeUsed: async () => void momoCopy.marks++,
+  },
+});
+// a stamp is sealed here as "<home>:<epoch>" for the ref it names
+mock.module('../mobile/src/platform/pushStampContext.ts', {
+  namedExports: {
+    momoStampContext: async () => ({
+      user: 'u',
+      open: (sealed: string, ref: string) => {
+        const [homeId, epoch, forRef] = sealed.split(':');
+        return forRef === ref && Number(epoch) > 0 ? { homeId, leaseEpoch: Number(epoch) } : null;
+      },
+    }),
+  },
+});
 // variable specifiers keep React Native's global typings out of the repository-wide typecheck
 const notificationsPath = '../mobile/src/platform/notifications.ts';
 const productionPath = '../mobile/src/push/production.ts';
@@ -225,4 +249,36 @@ test('haptic feedback: the saved choice is kept in the keychain as on or off', a
   assert.equal(await control.read(), false);
   await control.set(true);
   assert.equal(rec.secure.get('haptics'), 'on');
+});
+
+test('production: a MoMo push from an old home is neither drawn in the foreground nor on Android; a newer one is', async () => {
+  g.__phonePlatform = 'ios';
+  const runtime: any = {
+    snapshot: () => ({ user: { id: 'u' }, pairs: [{ pairId: 'p_a' }], phase: 'online', selectedPair: 'p_a' }),
+    subscribe: () => () => {},
+    onEvent: () => () => {},
+    connect: async () => {},
+    pushRegister: async () => {},
+    pushUnregister: async () => {},
+  };
+  permissions = { granted: true };
+  rec.secure.delete('push-prefs');
+  const push = production.createProductionPush(runtime);
+  await push.start();
+  momoCopy.rows.set('u', { homeId: 'mini', leaseEpoch: 5 });
+  momoCopy.rows.set('u|push', { homeId: 'mini', leaseEpoch: 5 });
+  const stamped = (leaseEpoch: number) => note({ kind: 'momoNeedsYou', ref: 'm1', ss: `studio:${leaseEpoch}:m1` });
+  assert.equal((await rec.handler.handleNotification(stamped(1))).shouldShowBanner, false, 'an old home’s push is not drawn');
+  assert.equal((await rec.handler.handleNotification(stamped(6))).shouldShowBanner, true, 'a newer one is');
+  g.__phonePlatform = 'android';
+  rec.scheduled.length = 0;
+  await production.handleDataMessage({ kind: 'momoNeedsYou', ref: 'm1', ss: 'studio:1:m1' });
+  assert.equal(rec.scheduled.length, 0, 'a data message of an old home draws nothing');
+  await production.handleDataMessage({ kind: 'momoNeedsYou', ref: 'm1', ss: 'studio:7:m1' });
+  assert.equal(rec.scheduled.length, 1);
+  rec.scheduled.length = 0;
+  await production.handleDataMessage({ kind: 'momoNeedsYou', ref: 'm1' });
+  assert.equal(rec.scheduled.length, 0, 'once stamped pushes were seen, one with no stamp draws nothing');
+  assert.ok(momoCopy.marks >= 1);
+  g.__phonePlatform = undefined;
 });

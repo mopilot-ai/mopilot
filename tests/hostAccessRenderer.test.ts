@@ -157,6 +157,8 @@ test('the IPC answers with the gate and the bridge names its channels', async ()
     'bootView',
     'bootAllow',
     'bootDeny',
+    'addByCode',
+    'cancelAddByCode',
     'onBoot',
     'attentions',
     'onAttention',

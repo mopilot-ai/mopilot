@@ -9,6 +9,7 @@ const { interruptAndWatch } = require('./codexInterruptRepeat.cjs');
 const { assertInputReady, assertInputCurrent, carryInputGuard, hasInputReadiness } = require('../session/contract/inputGuard.cjs');
 const { outgoingRequest, THREAD_OPENS } = require('./codexOutgoing.cjs');
 const { stopTurnCommands } = require('./codexTurnCommands.cjs');
+const { samplePromptSuggestion } = require('./codexPromptSuggestion.cjs');
 
 class RpcError extends Error {
   constructor(code, message, data) {
@@ -64,6 +65,11 @@ const NO_COPIES = {
 const USES_THREAD = /^(turn\/|review\/start$|thread\/(realtime\/|(start|fork|resume|revert|shellCommand|compact\/start|queue\/start)$))/;
 
 class CodexConnection {
+  /** @this {CodexAdapter} */
+  promptSuggestion(threadId, turnId) {
+    return samplePromptSuggestion(this, threadId, turnId);
+  }
+
   /* -- connection --------------------------------------------------- */
   /**
    * Connect (again) after the app-server failed or exited: until then requests fail at once

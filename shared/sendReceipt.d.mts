@@ -12,3 +12,4 @@ export function sendReceipt(
 ): SendReceipt;
 export function isAcceptedReceipt(receipt: unknown): receipt is SendReceipt;
 export function acceptSendReceipt(receipt: unknown): string | null;
+export function usedReceipt(receipt: unknown): boolean;

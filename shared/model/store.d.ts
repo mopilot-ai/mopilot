@@ -277,6 +277,8 @@ export interface Prefs {
   folderNames: Record<string, string>;
   /** the folder the last chat started on each machine ran in, by machine id: picking the machine for a new chat starts there again */
   hostFolders: Record<string, string>;
+  /** the agent, model and effort the last chat started on each machine used, by machine id: a new chat there starts on them while the machine still offers them */
+  hostPicks: Record<string, { agent: string; model?: string; effort?: string | null }>;
   /** the last machine chosen in Run on for a new chat, or null for this computer */
   lastNewChatHost: { id: string; name: string } | null;
   /** realtime voice for voice mode */
@@ -315,7 +317,7 @@ export interface Prefs {
   importSync: boolean;
   visibleEfforts: string[] | null;
   sshHosts: string[];
-  sidebarOrganize: 'project' | 'list';
+  sidebarOrganize: 'project' | 'list' | 'machine';
   /** Project sorting is independent of chat sorting; newest activity comes first by default. */
   projectSort: 'custom' | 'updated' | 'name';
   /** Discovered folder groups remain visible after their last chat is archived. */
@@ -343,6 +345,15 @@ export interface Prefs {
    * through resolveDefaultHarness (src/harness/defaultHarness.ts), which says when it can't run and what runs instead.
    */
   defaultHarness: HarnessKind;
+  /**
+   * What new chats start with (src/store/newChatStart.ts): 'last' the harness, model and effort last used (a message
+   * sent, or a pick), 'default' the saved default harness and newChatDefault's model and effort.
+   */
+  newChatStart: 'last' | 'default';
+  /** The harness a message was last sent on (or picked for a new chat); 'last' new chats start on it. */
+  lastHarness: HarnessKind | null;
+  /** The fixed model and effort 'default' new chats start with, while `harness` is still defaultHarness. */
+  newChatDefault: { harness: HarnessKind; model: string | null; effort: string | null } | null;
   /** Claude Code model / effort / fast (Codex keeps using model, effort, serviceTier) */
   claudeSelection: Selection;
   /** a path the user gave for a basic harness's binary, by harness id (Settings → Other harnesses) */

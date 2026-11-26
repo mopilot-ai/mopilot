@@ -5,7 +5,7 @@ const os = require('node:os');
 const { adapterSettings } = require('../session/adapterSettings.cjs');
 const { TranscriptWriter } = require('../platform/transcriptWriter.cjs');
 const { SessionStore } = require('../session/state.cjs');
-const { localHostFor, remoteRoutes } = require('../host/wiring.cjs');
+const { localHostFor, remoteRoutes, capsFollowHost } = require('../host/wiring.cjs');
 const { createLazyContinueInbox } = require('../host/continueInbox.cjs');
 const { remoteNotice } = require('./computerAccess.cjs');
 const { ChatController } = require('../session/controller.cjs');
@@ -435,6 +435,7 @@ function createChatSessions({
     live.host = localHostFor({ live, controller, sessions, claudeTurns });
     capsService = new CapsService({
       ref: (chatId) => controller.ref(chatId),
+      onMachine: (chatId) => controller.remote.owns?.(chatId) === true,
       record: (chatId) => live.chats.record(chatId),
       session: (chatId) => sessions.get(chatId),
       isEnabled: isFlagEnabled,
@@ -454,6 +455,7 @@ function createChatSessions({
       acpQuirks: (kind) => acpQuirks.describe(parseKind(kind)?.basic),
     });
     claude.setProbeListener(capsChanged);
+    capsFollowHost(capsChanged);
     const peerNotices = createPeerNotices({
       broadcastAll,
       chatInView,

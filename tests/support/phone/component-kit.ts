@@ -5,6 +5,10 @@ import './register.ts';
 import { act, createElement } from 'react';
 const { createRoot } = await import('react-dom/client');
 export { act, createElement, createRoot };
+// a chat screen under test fills no older rows in the background (it would ask the test's runtime for pages nobody expects): the tests that ask for pages
+// themselves, and the one that tests the filling (phoneEarlierFill.test.ts), say what they want
+const useEarlierPath = '../../../mobile/src/remote/useEarlier';
+(await import(useEarlierPath)).backfill.rows = 0;
 export const flush = async () => {
   await act(async () => {
     await new Promise((resolve) => setImmediate(resolve));

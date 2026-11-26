@@ -92,3 +92,24 @@
   box-shadow: inset 0 2px 0 var(--accent);
 }
 
+/* By machine: a machine's status dot beside its name (green connected, grey not), and the one line a list's state asks for. */
+.by-machine-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+.by-machine-dot.on {
+  background: var(--green);
+}
+.machine-group .machine-note {
+  color: var(--text-3);
+}
+.machine-chat-row[aria-busy='true'] {
+  opacity: 0.6;
+}
+/* a chat of a machine that does not answer is the last it said */
+.machine-chat-row.not-live {
+  opacity: 0.55;
+}

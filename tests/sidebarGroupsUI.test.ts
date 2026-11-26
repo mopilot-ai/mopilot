@@ -95,10 +95,10 @@ test('chats group into saved projects, worktrees, folders and Recents, and new f
     '/work/hidden',
     '/work/p1',
     '/work/kept',
-    '/nowhere',
-    '/other/x/api',
     '/a/same/dup',
     '/b/same/dup',
+    '/nowhere',
+    '/other/x/api',
   ]);
   assert.deepEqual(saved[0].sidebarProjectOrder.slice().sort(), groups.map(label).sort());
   await view.unmount();

@@ -57,6 +57,11 @@ export const ROWS_MAX_GROWTH = 10;
  */
 export const ROWS_ACCEPTED: readonly { pr: number; rows: number; why: string }[] = [
   {
+    pr: 5768,
+    rows: 2,
+    why: "Settings › Harnesses › All harnesses: New chats start with (Last used or the default above) and the default's Thinking effort, the choice the owner asked for on 2026-11-26",
+  },
+  {
     pr: 5497,
     rows: 4,
     why: 'Accounts & billing › Providers & models: a key per provider, the saved model configs, Add model config and the unreadable-file notices for Your own provider (the approved routing plan, Part B3)',

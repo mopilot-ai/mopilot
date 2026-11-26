@@ -47,6 +47,9 @@ const present = async (kind: 'library' | 'camera', options: unknown) => {
   return s[`${kind}Result`];
 };
 export const launchImageLibraryAsync = (options: unknown) => present('library', options);
+/** The export presets the real module names; only the numbers the adapter picks matter here. */
+export const VideoExportPreset = { Passthrough: 0, MediumQuality: 2, H264_1280x720: 6 };
+export const UIImagePickerPreferredAssetRepresentationMode = { Automatic: 'automatic', Compatible: 'compatible', Current: 'current' };
 export const launchCameraAsync = (options: unknown) => present('camera', options);
 export const RecordingPresets = { HIGH_QUALITY: { extension: '.m4a', ios: { extension: '.m4a' } } };
 /** The session modes the adapter set, in order: iOS refuses to record until recording is allowed (expo-audio setAudioModeAsync). */
@@ -108,9 +111,24 @@ export const AudioModule = {
 export class File {
   uri: string;
   constructor(uri: string) {
+    if (state().unopenable?.includes(uri)) throw new Error('native: cannot open that file');
     this.uri = uri;
   }
-  base64 = async () => `bytes-of:${this.uri}`;
+  /** The file's size when the picker did not give one: `sizes[uri]`, or null for a file that is not there. */
+  get size() {
+    if (state().sizeThrows) throw new Error('native: no size');
+    return state().sizes?.[this.uri] ?? null;
+  }
+  /** Deletes the file: recorded, so a test reads which temporary files were cleared. */
+  delete = () => {
+    (state().deleted ??= []).push(this.uri);
+    if (state().deleteThrows) throw new Error('already gone');
+  };
+  base64 = async () => {
+    (state().reads ??= []).push(this.uri);
+    if (state().unreadable?.includes(this.uri)) throw new Error('file gone');
+    return `bytes-of:${this.uri}`;
+  };
 }
 let seed = 0;
 /** Distinct bytes per call, so ids made in one test never collide. */

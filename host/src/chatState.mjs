@@ -1,4 +1,5 @@
-// What a Host tells of a chat besides its turns (the chat's state lane on the stream): its automatic title, its /goal and its background tasks. Pure: an event of the runtime in, the chat and the patch it makes out.
+// The chat state a Host publishes alongside the turn stream.
+import { laneChoice } from './hostSwitch.mjs';
 
 /** Background tasks a patch carries, and the longest text of one: the lane is for a glance, not a log. */
 const TASKS_MAX = 50;
@@ -13,6 +14,19 @@ const clip = (/** @type {unknown} */ v) => (typeof v === 'string' && v.length > 
 
 /** A task or goal with its long strings cut. @param {any} o */
 const bounded = (o) => (isObject(o) ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, clip(v)])) : o);
+
+/** Selects the live session fields a Host publishes with the chat. @param {any} change */
+export function sessionLaneEvent({ chatId, patch }) {
+  const { goal, tasks, plan, promptSuggestion } = patch;
+  const fields = {
+    ...(goal === undefined ? {} : { goal }),
+    ...(tasks === undefined ? {} : { tasks }),
+    ...(typeof plan === 'boolean' ? { plan } : {}),
+    ...(promptSuggestion === undefined ? {} : { promptSuggestion }),
+    ...(Object.hasOwn(patch, 'pendingSwitch') ? { pendingSwitch: laneChoice(patch.pendingSwitch) } : {}),
+  };
+  return Object.keys(fields).length ? { kind: 'state', chatId, patch: fields } : null;
+}
 
 /**
  * The state patch a runtime event makes: `threadName` (the chat was titled; `provisional` is the cut-short title it replaces; `named`: the person chose the name) and `state` (the store's goal, background tasks, the agent the chat runs on or the choice of another one changed).
@@ -39,6 +53,7 @@ export function chatStateOf(e) {
   const patch = {};
   if (Object.hasOwn(e.patch, 'goal')) patch.goal = e.patch.goal === null ? null : bounded(e.patch.goal);
   if (Array.isArray(e.patch.tasks)) patch.tasks = e.patch.tasks.slice(-TASKS_MAX).map(bounded);
+  if (e.patch.promptSuggestion === null || typeof e.patch.promptSuggestion === 'string') patch.promptSuggestion = e.patch.promptSuggestion;
   // the mode the chat is in and whether its agent is planning, as the Host holds them: what a client shows and compares with before it sends (a client keeps no copy of its own)
   if (typeof e.patch.plan === 'boolean') patch.plan = e.patch.plan;
   if (typeof e.patch.permission === 'string' && MODES.has(e.patch.permission)) patch.permission = e.patch.permission;

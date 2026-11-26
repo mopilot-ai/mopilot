@@ -199,14 +199,15 @@ export async function connect(quiet = false) {
   const account = readAccount();
   const quota = get().accounts.accounts.length ? refreshRateLimits() : account.then(refreshRateLimits);
   void account.then(loadCloudTasks);
-  await Promise.allSettled([account.then(loadModels), loadConfig(), loadThreads(), quota]);
+  const threads = loadThreads().finally(() => {
+    // Once chat metadata is available, read the visible histories while the other startup reads are still running.
+    for (const id of visibleChats(get())) showThread(id);
+    reloadFromCodex(onScreenNow(), showThread);
+  });
+  await Promise.allSettled([account.then(loadModels), loadConfig(), threads, quota]);
   // in the background: the list is already shown from projects.json
   syncCodexProjects().catch(ignoring("import Codex's projects after connecting"));
   syncImports().catch(ignoring('re-import the sources kept in sync after connecting'));
-  // every chat a pane shows is read again, the primary's first
-  for (const id of visibleChats(get())) showThread(id);
-  // what was shown from disk while Codex was down is read from it again
-  reloadFromCodex(onScreenNow(), showThread);
 }
 
 const codexAccountKey = (account: ReturnType<typeof get>['account']) =>

@@ -63,6 +63,7 @@ test('the lists the windows read are empty while Host access is closed and the s
   let open = false;
   registerHostLists({
     ipcMain: { handle: (c: string, fn: () => unknown) => handlers.set(c, fn) },
+    handle: () => undefined,
     allowed: () => open,
     service: () => ({ list: () => ({ machines: ['m'] }), chatIndex: () => ['rows'] }),
   });

@@ -18,8 +18,15 @@ only macOS and Windows builds so older desktop readers can continue discovering 
 Every enabled update channel checks 10–15 seconds after startup and then about once a minute (plus up to
 five seconds of jitter and the time the previous check took). Checks do not overlap. Failed checks back off, up to about
 15 minutes; a successful check resets the interval. GitHub's HTTP/CDN caches can delay a newly published
-manifest even when the app checks every minute. Update download, signature verification and restart
-approval keep their existing behavior. macOS scheduled checks still require an app in Applications.
+manifest even when the app checks every minute. macOS scheduled checks require an app in Applications.
+
+On eligible macOS installations, **Restart to Update** appears after the helper has extracted the app
+on the destination volume, verified it against the running app's designated requirement, and completed
+its Gatekeeper assessment. The existing exit gate approves the restart. The helper waits for MoPilot
+to exit, rechecks the signed bundle, swaps the bundles and asks macOS to launch the
+installed version. If macOS rejects that launch, the helper restores the previous bundle. A normal
+Quit applies the prepared update without reopening MoPilot. Builds without the helper and locations
+where it cannot replace the app continue to use Electron's built-in updater.
 
 Checks continue while a downloaded update waits for its restart. When a release publishes several versions
 in a row, a strictly newer version replaces the waiting one before the restart (macOS downloads it and
@@ -33,7 +40,8 @@ withdrawn running or staged version, selected channel, older checked target and 
 source stays excluded from normal updates for that cohort while the rule is active or paused. On macOS
 the target's SHA-256 and size are checked before handing it to the signed native updater; a withdrawn
 stage loses restart authority before replacement starts and stays blocked if replacement fails. Its
-native cached copy may still apply on restart, so the client retains the warning and replacement retry.
+cached copy may still apply on restart with Electron's built-in updater, so the client retains that
+warning. The staged installer cancels its revoked helper.
 Windows and Linux retain the explicit package installer flow. See release lifecycle for pause,
 restore, compatibility and old-client limits.
 

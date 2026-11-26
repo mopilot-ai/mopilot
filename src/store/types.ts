@@ -89,6 +89,7 @@ export const DEFAULT_PREFS: Prefs = {
   hiddenFolders: [],
   folderNames: {},
   hostFolders: {},
+  hostPicks: {},
   lastNewChatHost: null,
   voice: 'cove',
   miniShortcut: false,
@@ -115,7 +116,7 @@ export const DEFAULT_PREFS: Prefs = {
   visibleEfforts: null,
   sshHosts: [],
   sidebarOrganize: 'project',
-  projectSort: 'updated',
+  projectSort: 'custom',
   sidebarFolders: [],
   chatSort: 'updated',
   showChatHarness: false,
@@ -124,6 +125,9 @@ export const DEFAULT_PREFS: Prefs = {
   projectSection: {},
   importedSources: [],
   defaultHarness: 'codex',
+  newChatStart: 'last',
+  lastHarness: null,
+  newChatDefault: null,
   claudeSelection: { model: null, effort: null, fast: false },
   acpBins: {},
   preferHighestCli: false,
@@ -167,13 +171,41 @@ export function loadPrefs(saved: unknown): Prefs {
   if (p.limitFallback === true && !('limitAsk' in p)) p.limitAsk = { codex: true, claude: true };
   for (const k of RETIRED_PREFS) delete p[k];
   if (!isHarnessKind(p.defaultHarness)) delete p.defaultHarness;
+  if (p.newChatStart !== 'last' && p.newChatStart !== 'default') delete p.newChatStart;
+  if (!isHarnessKind(p.lastHarness)) delete p.lastHarness;
+  p.newChatDefault = newChatDefaultOf(p.newChatDefault);
   const host = p.lastNewChatHost as Partial<NonNullable<Prefs['lastNewChatHost']>> | null | undefined;
   p.lastNewChatHost =
     typeof host?.id === 'string' && host.id && host.id !== 'local' && typeof host.name === 'string'
       ? { id: host.id, name: host.name }
       : null;
+  p.hostPicks = hostPicksOf(p.hostPicks);
   p.branchPrefix = branchPrefixOf(p.branchPrefix, p.prefsVersion);
   return { ...DEFAULT_PREFS, ...p, shareUsageData: shareUsageDataEnabled(p.shareUsageData) } as Prefs;
+}
+
+/** The saved fixed new-chat model and effort, or null when it is missing or malformed (a hand-edited or older file). */
+function newChatDefaultOf(saved: unknown): Prefs['newChatDefault'] {
+  const r = saved as { harness?: unknown; model?: unknown; effort?: unknown } | null | undefined;
+  if (!r || typeof r !== 'object' || !isHarnessKind(r.harness)) return null;
+  const text = (v: unknown) => (typeof v === 'string' && v ? v : null);
+  return { harness: r.harness as NonNullable<Prefs['newChatDefault']>['harness'], model: text(r.model), effort: text(r.effort) };
+}
+
+/** The saved per-machine starting picks, keeping only well-formed entries (a hand-edited or older file loses the rest). */
+function hostPicksOf(saved: unknown): Prefs['hostPicks'] {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
+  const out: Prefs['hostPicks'] = {};
+  for (const [id, v] of Object.entries(saved as Record<string, unknown>)) {
+    const r = v as { agent?: unknown; model?: unknown; effort?: unknown } | null;
+    if (!id || typeof r?.agent !== 'string' || !r.agent) continue;
+    out[id] = {
+      agent: r.agent,
+      ...(typeof r.model === 'string' && r.model ? { model: r.model } : {}),
+      ...(typeof r.effort === 'string' && r.effort ? { effort: r.effort } : {}),
+    };
+  }
+  return out;
 }
 
 /** A fresh draft starts on the last device picked in Run on, using the last folder there. */

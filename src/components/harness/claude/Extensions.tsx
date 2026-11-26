@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useEffectOn, useWindowListener } from '../../../lib/effects';
 import { useClaudeKey, refreshClaudeKey } from '../../../session/harness/billing';
+import { useClaudeConnectorTarget } from '../../../session/harness/mcpRows';
 import { currentCwdForNewChat } from '../../../store/projects';
 import { navigate, openPaneTab } from '../../../store/panes';
 import { useStore } from '../../../store/core';
@@ -101,8 +102,40 @@ function Hooks() {
 }
 
 export function ClaudeExtensions({ bin }: { bin: string }) {
-  const cwd = currentCwdForNewChat();
+  const chatId = useStore((s) => (s.route?.name === 'settings' ? s.route.connectorChatId : undefined));
+  return chatId ? <ClaudeChatExtensions key={chatId} bin={bin} chatId={chatId} /> : <DefaultClaudeExtensions bin={bin} />;
+}
+
+function DefaultClaudeExtensions({ bin }: { bin: string }) {
   const account = useStore((s) => s.claudeAccounts.active);
+  return <ClaudeExtensionsFor bin={bin} cwd={currentCwdForNewChat()} account={account} />;
+}
+
+function ClaudeChatExtensions({ bin, chatId }: { bin: string; chatId: string }) {
+  const { cwd, account, pending, ownerUnavailable, available } = useClaudeConnectorTarget(chatId);
+  if (!available) {
+    return (
+      <Group title="MCP servers">
+        <Row
+          title={pending && !ownerUnavailable ? 'Locating workspace…' : 'Claude Code connector settings are unavailable for this chat.'}
+        />
+      </Group>
+    );
+  }
+  return <ClaudeExtensionsFor bin={bin} cwd={cwd} account={account} connectorsOnly />;
+}
+
+function ClaudeExtensionsFor({
+  bin,
+  cwd,
+  account,
+  connectorsOnly = false,
+}: {
+  bin: string;
+  cwd: string;
+  account: string;
+  connectorsOnly?: boolean;
+}) {
   const mode = useClaudeKey()?.mode ?? 'subscription';
   useWindowListener('focus', () => {
     void refreshClaudeKey();
@@ -123,19 +156,21 @@ export function ClaudeExtensions({ bin }: { bin: string }) {
     setPluginsErr(null);
   }
   // read again for another binary or folder, and on Reload or Retry (a new tick)
-  useEffectOn([bin, cwd, account, mode, tick], () => {
+  useEffectOn([bin, cwd, account, mode, tick, connectorsOnly], () => {
     let alive = true;
     // a reload starts clean: an earlier failure must not hide what this read finds
     setErr(null);
     setPluginsErr(null);
     native.claude
-      .extras(bin, cwd, account)
+      .extras(bin, cwd, account, connectorsOnly)
       .then((r) => alive && setX(r))
       .catch((e) => alive && setErr(errorText(e)));
-    native.claude
-      .catalog(bin, cwd, account)
-      .then((c) => alive && setPlugins(c.plugins))
-      .catch((e) => alive && setPluginsErr({ message: errorText(e), retry: () => setTick((t) => t + 1) }));
+    if (!connectorsOnly) {
+      native.claude
+        .catalog(bin, cwd, account)
+        .then((c) => alive && setPlugins(c.plugins))
+        .catch((e) => alive && setPluginsErr({ message: errorText(e), retry: () => setTick((t) => t + 1) }));
+    }
     return () => {
       alive = false;
     };
@@ -153,23 +188,27 @@ export function ClaudeExtensions({ bin }: { bin: string }) {
         loaded={!!x}
         reload={() => setTick((t) => t + 1)}
       />
-      <ClaudePlugins bin={bin} plugins={plugins} error={pluginsErr} />
-      <Group title="Skills and commands" desc="From ~/.claude and this project.">
-        <Row
-          title="Available"
-          desc={
-            x
-              ? x.commands.length
-                ? x.commands
-                    .map((c) => `/${c.name}`)
-                    .slice(0, 24)
-                    .join('  ') + (x.commands.length > 24 ? `  … ${x.commands.length - 24} more` : '')
-                : 'None'
-              : 'Loading…'
-          }
-        />
-      </Group>
-      <Hooks />
+      {!connectorsOnly && (
+        <>
+          <ClaudePlugins bin={bin} plugins={plugins} error={pluginsErr} />
+          <Group title="Skills and commands" desc="From ~/.claude and this project.">
+            <Row
+              title="Available"
+              desc={
+                x
+                  ? x.commands.length
+                    ? x.commands
+                        .map((c) => `/${c.name}`)
+                        .slice(0, 24)
+                        .join('  ') + (x.commands.length > 24 ? `  … ${x.commands.length - 24} more` : '')
+                    : 'None'
+                  : 'Loading…'
+              }
+            />
+          </Group>
+          <Hooks />
+        </>
+      )}
     </>
   );
 }

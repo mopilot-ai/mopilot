@@ -29,6 +29,8 @@ export type MachineStatusLine = {
   title?: string;
   update?: { label: string };
   check?: { label: string };
+  /** the row's own Remove, when removing the machine here is the fix */
+  remove?: { label: string };
 };
 
 /** What the row knows besides the machine: the clock, the sign-in it speaks about, and an install under way on it. */
@@ -49,6 +51,8 @@ const ready = (m: HostMachineRow) => shownAgents(m.agents).filter((a) => a.state
 
 /** In order: the first state that matches says the line. The last one always matches. */
 export const MACHINE_STATES: readonly MachineState[] = [
+  // its Host removed this Mac: nothing it says matters until it is removed here (the note names the machine and the fix)
+  { id: 'peer-removed', match: (m) => m.peerRemoved === true, line: (m) => ({ dot: 'warn', text: m.note, remove: { label: 'Remove' } }) },
   // a machine that does not answer (shared with the phone: shared/host/machineLine.mjs)
   ...(LEAD_STATES as readonly MachineState[]),
   {

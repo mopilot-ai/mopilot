@@ -56,7 +56,7 @@ test("every harness shows this window's report until main's snapshot arrives, an
     const details = one(r.host, 'details') as HTMLDetailsElement;
     assert.equal(details.open, false);
     assert.match(one(r.host, 'summary').textContent!, /Context.*35%/);
-    assert.equal(one(r.host, '.summary-context-tokens').textContent, '35k / 100k');
+    assert.equal(one(r.host, '.summary-context-value').getAttribute('title'), '35k / 100k tokens');
     assert.equal(details.dataset.level, 'ok', 'room left reads quietly');
     assert.equal(one(r.host, 'meter').getAttribute('value'), '35');
     // the panel loads and reads only once the card is open
@@ -86,7 +86,7 @@ test('missing readings stay explicitly unavailable; over-capacity ones keep thei
   });
   await settle(act, 20);
   assert.equal(one(r.host, '.summary-context-value').textContent, '—');
-  assert.equal(r.host.querySelector('.summary-context-tokens'), null, 'no token counts without a reading');
+  assert.equal(one(r.host, '.summary-context-value').getAttribute('title'), null, 'no token counts without a reading');
   assert.equal((one(r.host, 'details') as HTMLElement).dataset.level, undefined, 'no reading, no level');
   assert.match(r.host.textContent!, /No context usage reported yet\./);
   assert.equal(r.host.querySelector('meter'), null);

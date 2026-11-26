@@ -136,7 +136,10 @@ const isTest = (data: unknown) => !!data && typeof data === 'object' && (data as
  * While the app is on screen every push triggers a drain, and `present` decides whether it is also drawn as a banner: the chat that is
  * open is not announced again (the live socket already shows it), another chat is.
  */
-export function quietForeground(onPush: (payload: PushPayload) => void, present: (payload: PushPayload) => boolean = () => false) {
+export function quietForeground(
+  onPush: (payload: PushPayload) => void,
+  present: (payload: PushPayload) => boolean | Promise<boolean> = () => false,
+) {
   Notifications.setNotificationHandler({
     handleNotification: async (n) => {
       const data = pushData(n.request);
@@ -144,7 +147,7 @@ export function quietForeground(onPush: (payload: PushPayload) => void, present:
       if (payload && !isTest(data)) onPush(payload);
       // a clearing is never drawn here: on a locked phone it replaces the waiting notification, and with the app open it could not, so that one is withdrawn instead
       if (payload?.kind === 'cleared') void withdrawDelivered(payload.ref).catch(() => undefined);
-      const show = isTest(data) || (!!payload && payload.kind !== 'cleared' && present(payload));
+      const show = isTest(data) || (!!payload && payload.kind !== 'cleared' && (await present(payload)));
       return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: false, shouldSetBadge: false };
     },
   });

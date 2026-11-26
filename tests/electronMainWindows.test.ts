@@ -1,5 +1,4 @@
-// electron/main.cjs: windows, navigation guard, Quick Chat, tray, menus, shortcuts, downloads and
-// Codex binary discovery, over a fake Electron (tests/support/electron-main-harness.ts).
+// Main's window, menu, tray, download and Codex discovery behavior over the fake Electron harness.
 import { test, mock, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerMenuShortcutCases } from './support/electron-wiring/menu-shortcuts';
@@ -9,6 +8,7 @@ import { EventEmitter } from 'node:events';
 import { pathToFileURL } from 'node:url';
 import { loadMain, unloadMain, flush } from './support/electron-main-harness.ts';
 import { DEFAULT_PALETTE } from '../shared/defaultPalette.mjs';
+import edition from '../shared/edition.json' with { type: 'json' };
 
 mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
 after(() => unloadMain());
@@ -232,12 +232,12 @@ test('tray: macOS template icon, menu actions, and the controlling chat on top',
   assert.equal(await h.invoke('app:setTray', true), undefined);
   const tray = h.trays[0];
   assert.match(tray.image.path, /trayTemplate\.png$/);
-  assert.equal(tray.tooltip, 'MoPilot');
+  assert.equal(tray.tooltip, edition.desktop.name);
   assert.equal(tray.title, null);
   const menu = tray.menu.template;
   assert.deepEqual(
     menu.map((i: any) => i.label ?? i.type),
-    ['Show MoPilot', 'New Chat', 'Open Quick Chat', 'separator', 'Quit MoPilot'],
+    [`Show ${edition.desktop.name}`, 'New Chat', 'Open Quick Chat', 'separator', `Quit ${edition.desktop.name}`],
   );
   const w = h.windows[0];
   h.emitIpc('window:ready', w.webContents);
@@ -246,7 +246,7 @@ test('tray: macOS template icon, menu actions, and the controlling chat on top',
   assert.deepEqual(w.webContents.on_('app:command'), [['new-chat-default']]);
   assert.deepEqual(w.log.slice(-2), ['show', 'focus']);
   w.close();
-  menu.find((item: any) => item.label === 'Show MoPilot').click();
+  menu[0].click();
   assert.equal(h.windows.length, 2, 'a window is opened to show');
   menu.find((item: any) => item.label === 'Open Quick Chat').click();
   assert.equal(h.windows.length, 3, 'Quick Chat');
@@ -268,7 +268,7 @@ test('tray: an empty icon gets the app name on macOS; Windows uses the .ico and 
   await h.ready();
   await h.invoke('app:setTray', true);
   assert.deepEqual(h.trays[0].image, { empty: true });
-  assert.equal(h.trays[0].title, 'MoPilot');
+  assert.equal(h.trays[0].title, edition.desktop.name);
   h = await loadMain({ platform: 'win32' });
   h.electron.nativeImage.createFromPath.mock.mockImplementation(() => ({ isEmpty: () => true }));
   await h.ready();
@@ -373,7 +373,7 @@ test('download destination inspection failures cancel before setting a save path
 test('the macOS menu sends each command to the focused window', async () => {
   const h = await ready({ state: { prefs: { keybindings: { 'new-chat': '' } } } });
   const template = calls(h.electron.Menu.setApplicationMenu)[0][0].template;
-  assert.equal(template[0].label, 'MoPilot');
+  assert.equal(template[0].label, edition.desktop.name);
   const newChat = template[1].submenu.find((i: any) => i.label === 'New Chat');
   assert.equal(newChat.accelerator, undefined, 'a removed binding');
   const w = h.windows[0];

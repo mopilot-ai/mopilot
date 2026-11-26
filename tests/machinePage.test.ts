@@ -415,6 +415,9 @@ test('activity: each kind in words, who did it where the Host says, repeats with
   assert.deepEqual(activityWords({ at: 1, kind: 'client.added', who: '' }), { title: 'Device added', who: '' });
   assert.deepEqual(activityWords({ at: 1, kind: 'policy.changed', who: 'x' }), { title: 'Rules changed', who: 'x' });
   assert.deepEqual(activityWords({ at: 1, kind: 'something.new', who: '' }), { title: 'something.new', who: '' });
+  // a removed Mac's relay link kept to refuse it, then deleted (#5747)
+  assert.equal(activityWords({ at: 1, kind: 'link.retired', who: '', whoKind: 'controller' }).title, 'Removed Mac’s relay link closed');
+  assert.equal(activityWords({ at: 1, kind: 'link.forgotten', who: '' }).title, 'Removed Mac’s relay link deleted');
   // a line the Host records with no name says what kind of client did it
   assert.deepEqual(
     ['desktop', 'phone', 'cli', 'other'].map((whoKind) => activityWords({ at: 1, kind: 'policy.changed', who: '', whoKind }).who),

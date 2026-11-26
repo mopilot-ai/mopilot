@@ -6,6 +6,7 @@ const { SEMANTICS } = require('../../shared/caps.mjs');
 const { acpHasPermissionModes } = require('../../shared/acpMode.mjs');
 const { parseKind } = require('../../shared/harnessKind.mjs');
 const { hostFamilyOfHarness } = require('../../shared/host/chatIds.mjs');
+const { agentTraitsOf } = require('./family.cjs');
 
 const rpc = (method) => ({ via: 'rpc', method });
 const pass = (template) => ({ via: 'passthrough', template });
@@ -81,6 +82,8 @@ function codexBindings(n) {
     artifacts: none('harness.noArtifacts'),
     // Codex's remoteControl/* links the whole app-server to the user's devices, not one thread (harness/codexRemoteControl.cjs)
     remoteControl: rpc('remoteControl/enable'),
+    // a message sent while a turn runs goes into it (electron/harness/codexTurns.cjs)
+    steer: rpc('turn/steer'),
     ...SHARED,
   });
 }
@@ -125,6 +128,8 @@ function claudeBindings() {
     artifacts: config('CLAUDE_CODE_ARTIFACT'),
     // the SDK query's enableRemoteControl, asked of the live session (electron/claudeRemoteControl.cjs)
     remoteControl: rpc('enableRemoteControl'),
+    // a message sent while a turn runs goes into it with priority "now" (electron/harness/claude/adapter.cjs)
+    steer: rpc('priority: now'),
     ...SHARED,
   });
 }
@@ -163,8 +168,21 @@ function acpBindings(acp, kind) {
     artifacts: none('harness.noArtifacts'),
     // the bridge is Claude Code's own: an ACP harness has no equivalent to turn on
     remoteControl: none('harness.noRemoteControl'),
+    // ACP has no way into a running prompt (a chat on a machine steers by its Host's agent: machineBindings)
+    steer: none('harness.noSteer'),
     ...SHARED,
   });
+}
+
+/**
+ * A chat on another machine runs its Host's agent, so a message into its running turn is that agent's to take (`chat.send`
+ * with followUp 'steer', electron/host/remotePicks.cjs `steersInto`); a chat of this Mac (`agent` undefined) keeps its own.
+ * @param {Bindings} bindings @param {unknown} agent the one its Host last said (the chat's `hostAgent`), else the one its kind names
+ * @returns {Bindings}
+ */
+function machineBindings(bindings, agent) {
+  if (agent === undefined) return bindings;
+  return all({ ...bindings, steer: agentTraitsOf(agent)?.steers ? rpc('chat.send followUp: steer') : none('harness.noSteer') });
 }
 
 /** Probes a semantic needs before it counts (Negotiated.probes). */
@@ -189,4 +207,4 @@ const PROBES_FOR = {
   },
 };
 
-module.exports = { codexBindings, claudeBindings, acpBindings, PROBES_FOR };
+module.exports = { codexBindings, claudeBindings, acpBindings, machineBindings, PROBES_FOR };

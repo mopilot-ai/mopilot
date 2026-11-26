@@ -1,8 +1,8 @@
-// The suggested next step after a turn that used browser or desktop control: one short follow-up, shown as the composer's placeholder (Tab accepts it), derived locally from the turn's tool calls.
+// The composer's suggested follow-up, with browser and desktop recovery decided from the turn's tool calls.
 //
 // No model call: the suggestion comes from what the turn's control steps did, read the same way for
 // every harness (MoPilot's browser_* and desktop_* tools under any namespace, vendor tools through the
-// narration adapters). A turn that used no control gets none.
+// narration adapters). Other turns may use the harness's prediction.
 import { controlStep, controlTool, hostOf, latestHandoff, ownDesktopTool } from './agentNarration';
 import { toolInvocation } from '../../shared/toolInvocation.mjs';
 import { latestBlocked } from './blockedChoices';
@@ -34,10 +34,10 @@ function pageFailed(item: unknown): boolean {
 }
 
 /** The suggested follow-up for a finished turn's items, or null; never one for an app computer use refused in it (`refused`). */
-export function suggestNextStep(items: unknown[], refused: RefusedApp[] = []): string | null {
+export function suggestNextStep(items: unknown[], refused: RefusedApp[] = [], prediction: string | null = null): string | null {
   items = items.map(toolInvocation);
   const steps = items.filter((i) => controlStep(i));
-  if (!steps.length) return null;
+  if (!steps.length) return refused.length ? null : prediction;
   const handoff = latestHandoff(items)?.handoff;
   if (handoff) return handoff.reason === 'signIn' ? 'Continue after I signed in' : 'Continue, I’m done in the browser';
   const blocked = latestBlocked(items);

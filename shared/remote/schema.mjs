@@ -90,7 +90,8 @@ export function tabLine(/** @type {unknown} */ tab) {
 /** The chat a request names; refused when it isn't one. */
 export function chatOf(/** @type {any} */ p) {
   const chatId = typeof p?.chatId === 'string' ? p.chatId : '';
-  if (!CHAT.test(chatId)) throw bad("That chat isn't in MoPilot.");
+  // a native session (#5576) is listed, not a chat: no chat request may name one
+  if (!CHAT.test(chatId) || chatId.startsWith('native:')) throw bad("That chat isn't in MoPilot.");
   return chatId;
 }
 

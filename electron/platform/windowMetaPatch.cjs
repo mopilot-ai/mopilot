@@ -5,9 +5,19 @@ const { isJsonRecord } = require('../../shared/jsonRecord.mjs');
 /**
  * Meta keys only main writes: which chats are MoMo's, the routine (or the topic of a chat an older build made) a MoMo background chat runs for (electron/momo/mainChat.cjs
  * startBackground), the model and effort its brain names (#2304), how an input no human wrote is shown (electron/session/authoredInput.cjs),
- * and a linked session's initial task title are never a window's to change.
+ * a linked session's initial task title, and a confirmed native rewind's timestamp are never a window's to change.
  */
-const MAIN_META_KEYS = ['momo', 'routineId', 'topicId', 'momoModel', 'momoEffort', 'authored', 'continueModel', 'initialTitle'];
+const MAIN_META_KEYS = [
+  'momo',
+  'routineId',
+  'topicId',
+  'momoModel',
+  'momoEffort',
+  'authored',
+  'continueModel',
+  'initialTitle',
+  'rewoundAt',
+];
 
 /**
  * The chat's config with a window's `configKeys` ({ set, unset }, src/lib/chatMeta.ts chatChanges) applied, null once no
@@ -37,7 +47,7 @@ function mergedNotes(current, added) {
  * only hold a copy older than main's): one that does has those keys left out.
  */
 function windowPatch(patch, meta) {
-  if (!isJsonRecord(patch)) return patch;
+  if (!isJsonRecord(patch)) return null;
   const { config: _config, notes: _notes, configKeys, notesAdded, ...out } = patch;
   for (const k of MAIN_META_KEYS) delete out[k];
   const config = mergedConfig(meta?.config, configKeys);

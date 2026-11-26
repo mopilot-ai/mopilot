@@ -22,6 +22,7 @@ export function registerEdits() {
       ),
     });
     assert.equal(await claude.claudeEditMessage(chat, tid), false);
+    assert.deepEqual(called('touchChat'), []);
     assert.match(asked[0], /a\.ts/);
     answer = true;
     assert.equal(await claude.claudeEditMessage(chat, tid), true);
@@ -74,6 +75,26 @@ export function registerEdits() {
         "Couldn't edit: raw",
       ],
     );
+  });
+
+  test('a Claude rewind from a retired native segment leaves the current chat activity alone', async () => {
+    const chat = claudeThreadId('rewind-retired');
+    fx.state.threads[chat] = { cwd: '/w' };
+    const turns = [{ id: `h-${UUID}` }];
+    fx.state.runtime[chat] = { turns };
+    baseNative({
+      rewind: async (_id: string, _options: unknown, _uuid: string, dryRun: boolean) => {
+        if (!dryRun)
+          fx.state.segments[chat] = [
+            { harness: 'claude', nativeId: chat },
+            { harness: 'codex', nativeId: 'next' },
+          ];
+        return { canRewind: true };
+      },
+    });
+    assert.equal(await claude.claudeEditMessage(chat, `h-${UUID}`), false);
+    assert.deepEqual(called('touchChat'), []);
+    assert.equal(fx.state.runtime[chat].turns, turns);
   });
 
   test('fork: the whole chat or up to a turn, named after its source', async () => {

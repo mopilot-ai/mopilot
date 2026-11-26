@@ -267,12 +267,20 @@ const assertions = (text: string, directMerge = false) =>
         .map((sentence) => {
           const value = sentence
             .trim()
-            .replace(/[.!;]+$/, '')
+            .replace(/[.!;:]+$/, '')
             .trim();
           // Branch names can contain words like "when" without making the merge conditional.
           return directMerge ? value.replace(LINKED_MERGE_DETAILS, '$1') : value;
         })
         .filter((value) => !UNASSERTED.test(value));
+
+/** Where a merge report may say the PR went: the default branch, named plainly or as the remote's ("remote main", "origin/main"). */
+const INTO_MAIN = String.raw`(?:\s+into\s+(?:the\s+)?(?:remote\s+|origin\/)?(?:main|master))?`;
+/** "Merged (via PR #N)" said by the agent, or "PR #N is merged" said of the PR, with where it went. */
+const MERGED = new RegExp(
+  String.raw`^(?:(?:(?:I|we)\s+(?:have\s+)?)?(?:committed and\s+)?(?:successfully\s+)?merged(?:\s+(?:via\s+)?(?:PR|pull request)(?:\s*#\d+)?)?|(?:the\s+)?(?:PR|pull request)(?:\s*#\d+)?\s+(?:(?:is|was|has been)\s+)?(?:successfully\s+)?merged)${INTO_MAIN}$`,
+  'i',
+);
 
 function reportedState(text: string, directMerge = false): PullRequestState | null {
   let state: PullRequestState | null = null;
@@ -283,25 +291,17 @@ function reportedState(text: string, directMerge = false): PullRequestState | nu
       )
     )
       state = 'open';
-    else if (
-      /^(?:(?:I|we)\s+(?:have\s+)?)?(?:committed and\s+)?(?:successfully\s+)?merged(?:\s+(?:via\s+)?(?:PR|pull request)(?:\s*#\d+)?)?(?:\s+into (?:main|master))?$/i.test(
-        value,
-      ) ||
-      /^(?:the\s+)?(?:PR|pull request)(?:\s*#\d+)?\s+(?:(?:is|was|has been)\s+)?(?:successfully\s+)?merged(?:\s+into (?:main|master))?$/i.test(
-        value,
-      )
-    )
-      state = 'merged';
+    else if (MERGED.test(value)) state = 'merged';
     else if (/^(?:the\s+)?(?:PR|pull request)(?:\s*#\d+)?\s+(?:is|was|has been)\s+closed\b|^closed\s+(?:PR|pull request)\b/i.test(value))
       state = 'closed';
     else if (
-      /\b(?:opened|created)\s+(?:a\s+)?draft\s+(?:PR|pull request)\b|^(?:the\s+)?(?:PR|pull request)(?:\s*#\d+)?\s+is\s+(?:a\s+)?draft\b/i.test(
+      /\b(?:opened|created)\s+(?:a\s+)?draft\s+(?:PR|pull request)\b|(?<!(?:not|n't|never)\s+)\b(?:pushed|opened)\s+(?:it\s+)?as\s+(?:a\s+)?draft\s+(?:PR|pull request)\b(?!\s+(?:comment|review|head|title|description|body)\b)|^(?:the\s+)?(?:PR|pull request)(?:\s*#\d+)?\s+is\s+(?:a\s+)?draft\b/i.test(
         value,
       )
     )
       state = 'draft';
     else if (
-      /\b(?:opened|created|reopened)\s+(?:PR|pull request)\b|^(?:the\s+)?(?:PR|pull request|it)(?:\s*#\d+)?\s+(?:is\s+(?:still\s+)?|remains\s+)open\b/i.test(
+      /\b(?:opened|created|reopened)\s+(?:PR|pull request)\b|(?<!(?:not|n't|never)\s+)\b(?:pushed|opened)\s+(?:it\s+)?as\s+(?:a\s+)?(?:PR|pull request)\b(?!\s+(?:comment|review|head|title|description|body)\b)|^(?:the\s+)?(?:PR|pull request|it)(?:\s*#\d+)?\s+(?:is\s+(?:still\s+)?|remains\s+)open\b/i.test(
         value,
       )
     )

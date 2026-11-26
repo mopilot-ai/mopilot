@@ -1,5 +1,6 @@
 // Settings' second-level pages, each a sheet page with ‹: the account (with Delete account), Notifications, Appearance, Privacy and About.
 import { useEffect, useRef, useState } from 'react';
+import { savedHistoryClear } from '../remote/savedHistory';
 import { Text, View } from 'react-native';
 import type { MobileRuntime, MobileSnapshot } from '../contracts';
 import { Group, GroupItem, GroupLabel } from '../components/Grouped';
@@ -183,6 +184,9 @@ export function AppearancePage({ mode, choose, back }: { mode: Appearance; choos
 export function PrivacyPage({ back }: { back: () => void }) {
   useHardwareBack(back);
   const theme = useTheme();
+  // only where this build keeps saved chat history: a copy of recent chats sealed on this phone, cleared here
+  const clear = savedHistoryClear();
+  const [cleared, setCleared] = useState(false);
   return (
     <SheetFrame title="Privacy" onClose={back} back>
       <Text style={{ ...muted, color: theme.ink2 }}>
@@ -192,6 +196,27 @@ export function PrivacyPage({ back }: { back: () => void }) {
         Notifications carry only a short fixed title. With Chat titles on the lock screen on, your Mac can also seal a chat title that only
         this phone can read.
       </Text>
+      {clear && (
+        <>
+          <Text style={{ ...muted, color: theme.ink2 }}>
+            This phone keeps an encrypted copy of your recent chats so they open at once. The copy can be included in a backup of this
+            phone, but it cannot be read without a key that stays in this phone's Keychain and never leaves it. The ids of the chats and
+            when they were saved are not encrypted. It goes when you sign out or remove a computer.
+          </Text>
+          <Text style={{ ...muted, color: theme.ink2 }}>Clearing removes the copy on this phone. Your chats stay on your Mac.</Text>
+          <Button
+            secondary
+            title={cleared ? 'Saved chat history cleared' : 'Clear saved chat history'}
+            disabled={cleared}
+            onPress={() =>
+              void clear().then(
+                () => setCleared(true),
+                () => undefined,
+              )
+            }
+          />
+        </>
+      )}
     </SheetFrame>
   );
 }

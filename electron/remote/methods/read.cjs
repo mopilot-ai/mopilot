@@ -3,6 +3,8 @@ const { stateOf } = require('../chatState.cjs');
 const { cleanComputerName } = require('../../../shared/remote/computerName.mjs');
 const { hostIdOf } = require('../phoneMachines.cjs');
 const { ledgerOf } = require('../sendIdentity.cjs');
+// the app's one MoMo gate (a main-process singleton, as for momoAllowed): whether the server said the account may not see MoMo, and which account it is
+const { momoRevokedFor, momoUserId } = require('../../momo/access.cjs');
 
 /** How long a list waits for the lines each chat's folder changed: Git answers a later list (the numbers are kept), never this one late. */
 const STATS_WAIT_MS = 150;
@@ -21,6 +23,9 @@ async function statsWithin(read, ms) {
   }
 }
 
+/** The account this Mac's word on MoMo is about (allowed, or said not to be); none when it says nothing of MoMo. */
+const speaksFor = (/** @type {any} */ svc) => (svc.momoAllowed() || momoRevokedFor() ? (momoUserId() ?? momoRevokedFor()) : null);
+
 /** The window's permission ceiling a phone may set, as the Mac's policy has it. */
 const ceilingOf = (/** @type {any} */ svc) => svc.policy.permissionCeiling?.() ?? 'auto-review';
 
@@ -34,6 +39,9 @@ module.exports = {
       methods: svc.methodsFor(client),
       // MoMo's two fields are absent (not false) for an account it is not allowed for, so such a phone learns nothing of it
       ...(svc.momoAllowed() ? { momo: true } : {}),
+      // …and `momo: false` only when the server said, in this run, that this account may not see it (a revoke); a Mac that is offline, signed out or still loading says nothing. `momoAccount` is whose answer it is: a phone of another account reads neither
+      ...(!svc.momoAllowed() && momoRevokedFor() ? { momo: false } : {}),
+      ...(speaksFor(svc) ? { momoAccount: speaksFor(svc) } : {}),
       // MoMo's home (momo.home.view / momo.home.intent / the momo.home.changed event): absent unless MoMo is allowed and the `momo.home` flag is on
       ...(svc.homeOffered() ? { momoHome: true } : {}),
       pushSettings: !!svc.pushSettings,

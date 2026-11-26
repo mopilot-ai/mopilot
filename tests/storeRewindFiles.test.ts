@@ -28,7 +28,7 @@ beforeEach(() => {
   impl['checkpoints.restore'] = async () => ({ ok: true, restored: 2, undo: 'u-1' });
   impl['checkpoints.undo'] = async () => ({ ok: true, restored: 2 });
   set({
-    threads: { r: { id: 'r', cwd: '/w/p' } as any },
+    threads: { r: { id: 'r', cwd: '/w/p', updatedAt: 1 } as any },
     runtime: { r: { turns: [{ id: 'a' }, { id: 'b' }] } as any },
   });
 });
@@ -55,11 +55,32 @@ test('saying no rewinds nothing; a long list is cut, and the question says what 
   answer = false;
   impl['checkpoints.plan'] = async () => ({ ok: true, files: Array.from({ length: 10 }, (_, i) => `f${i}`) });
   assert.equal(await S.revertThread('r', 'b'), false);
+  assert.equal(st().threads.r.recencyAt, undefined);
   assert.match(asked[0], /f7\n…and 2 more\n\nEdits made to them since, by anyone, are undone too\. Commits stay/);
   assert.deepEqual([callsOf('checkpoints.restore'), callsOf('codex.leased')], [[], []]);
   impl['checkpoints.plan'] = async () => ({ ok: true, files: ['one'] });
   await S.revertThread('r', 'b');
   assert.match(asked[1], /restores 1 file to/);
+});
+
+test('a successful rewind of a retired native segment leaves the current chat activity alone', async () => {
+  impl['codex.leased'] = async () => {
+    set({
+      segments: {
+        r: [
+          { harness: 'codex', nativeId: 'r' },
+          { harness: 'claude', nativeId: 'claude:next' },
+        ],
+      } as any,
+    });
+    return { result: {} };
+  };
+  assert.equal(await S.revertThread('r', 'b'), false);
+  assert.equal(st().threads.r.recencyAt, undefined);
+  assert.deepEqual(
+    st().runtime.r.turns.map((turn) => turn.id),
+    ['a', 'b'],
+  );
 });
 
 test('a turn with no checkpoint, or one that changed ignore rules, or no files to restore, rewinds the conversation only, said after', async () => {

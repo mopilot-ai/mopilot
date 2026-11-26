@@ -11,7 +11,7 @@ test('remote receive persists before dispatch and drops a replay after restart w
     const os = process.getBuiltinModule('os');
     const { RemoteChannel } = require(entry);
     const { DeviceList } = require('./deviceList.cjs');
-    const { createSodiumPrimitives } = require('./sodiumPrimitives.cjs');
+    const { createSodiumPrimitives } = require('../platform/sodiumPrimitives.cjs');
     const { createCrypto, toHex, toWire, encodeMessage } = require('./esm.cjs');
     const prim = createSodiumPrimitives();
     const crypto = createCrypto(prim);

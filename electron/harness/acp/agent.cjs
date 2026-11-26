@@ -29,7 +29,7 @@ function binStamp(bin) {
 const PROTOCOL_VERSION = 1;
 const INIT_TIMEOUT_MS = 20_000;
 const CLIENT_INFO = { name: 'mopilot', title: 'MoPilot', version: '0' };
-const CLIENT_CAPABILITIES = { fs: { readTextFile: true, writeTextFile: true }, terminal: true };
+const CLIENT_CAPABILITIES = { fs: { readTextFile: true, writeTextFile: true }, terminal: true, session: { promptSuggestions: {} } };
 
 /** What an initialize result declares, flattened. Anything not declared counts as unsupported. */
 function negotiate(init) {

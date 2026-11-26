@@ -18,6 +18,7 @@ const { codexCompaction, claudeCompaction } = require('../harness/compactionSign
 const { observeCompaction, retireCompaction } = require('./compactionQueue.cjs');
 const { noteTurnProgress, codexProgress, claudeProgress } = require('./turnProgress.cjs');
 const { turnSource } = require('./controllerSwitch.cjs');
+const { receivePromptSuggestion, retirePromptSuggestion } = require('./promptSuggestions.cjs');
 
 /** @typedef {InstanceType<typeof import('./controller.cjs').ChatController>} ChatController */
 
@@ -77,6 +78,7 @@ class ControllerEvents extends ControllerNames {
       return void this.resolveApproval(p.requestId);
     }
     if (msg.method === 'thread/readState/changed') return void followCodexReadState(this, p);
+    if (msg.method === 'thread/reverted' && p.threadId) return void this.noteRewind('codex', p.threadId);
     observeCompaction(this, codexCompaction(msg));
     if (codexProgress(msg.method) && p.threadId) {
       const chat = this.chatOf(p.threadId);
@@ -180,6 +182,7 @@ class ControllerEvents extends ControllerNames {
       }
       const ref = this.ref(chatId);
       retireCompaction(this, chatId);
+      retirePromptSuggestion(this, chatId);
       const { goal } = this.state.get(chatId);
       if (goal?.status === 'active') {
         this.state.patch(chatId, { goal: { ...goal, status: 'paused' } });
@@ -195,6 +198,8 @@ class ControllerEvents extends ControllerNames {
   /** @this {ChatController} */
   onAcpEvent(e) {
     if (!e || !e.key) return;
+    if (e.kind === 'promptSuggestion')
+      return receivePromptSuggestion(this, this.chatOf(e.key), { kind: 'acp', key: e.key }, e.text, e.turnId);
     /** @type {{ onLiveEvent?: (family: string, e: any) => void }} */ (this).onLiveEvent?.('acp', e);
     const chatId = this.chatOf(e.key);
     // the name the harness (or a machine's Host) gave the chat: its notifications carry it, as a Codex chat's carry its name
@@ -260,6 +265,7 @@ class ControllerEvents extends ControllerNames {
       case 'closed':
         if (!turnSource(this, chatId, { kind: 'acp', key: e.key }))
           return void this.clearSourceApprovals(chatId, { kind: 'acp', key: e.key });
+        retirePromptSuggestion(this, chatId);
         return void this.crash(chatId, e.error ?? 'The harness exited', { kind: 'acp', key: e.key });
       case 'session': {
         if (!this.isCurrentSource(chatId, { kind: 'acp', key: e.key })) return;
@@ -331,8 +337,10 @@ class ControllerEvents extends ControllerNames {
   /** @this {ChatController} */
   onClaudeEvent(e) {
     if (!e || !e.key) return;
+    if (e.kind === 'promptSuggestion') return receivePromptSuggestion(this, this.chatOf(e.key), { kind: 'claude', key: e.key }, e.text);
     /** @type {{ onLiveEvent?: (family: string, e: any) => void }} */ (this).onLiveEvent?.('claude', e);
     const chatId = this.chatOf(e.key);
+    if (e.kind === 'rewound') return void this.noteRewind('claude', e.key);
     if (e.kind === 'threadName') return void this.rememberName(chatId, e.name);
     // An active native compaction may establish its own hold; other events remain passive until registration.
     if (!e.msg?.parent_tool_use_id) observeCompaction(this, claudeCompaction(e));
@@ -372,6 +380,7 @@ class ControllerEvents extends ControllerNames {
         }
         // a session a switch is leaving neither starts nor ends the chat's turn
         if (!ours) return;
+        if (m.type === 'assistant' || m.type === 'user') e.activityAt = clock.now() / 1000;
         // the CLI's own turn-over signal: a steer it folds into the running loop gets no result of its own (#1834)
         if (m.type === 'system' && m.subtype === 'session_state_changed')
           return void (claudeTurnOver(r, m.state, r.token) && busy(s) && this.end(chatId));
@@ -438,7 +447,10 @@ class ControllerEvents extends ControllerNames {
         // finished tasks stay listed across the session's processes (electron/harness/claude/tasks.cjs)
         return void this.updateSourceTasks(chatId, e.key, e.tasks);
       case 'processStarted':
-        if (this.isCurrentSource(chatId, { kind: 'claude', key: e.key })) retireCompaction(this, chatId);
+        if (this.isCurrentSource(chatId, { kind: 'claude', key: e.key })) {
+          retireCompaction(this, chatId);
+          retirePromptSuggestion(this, chatId);
+        }
         return;
       case 'settings':
         if (!this.isCurrentSource(chatId, { kind: 'claude', key: e.key })) return;
@@ -455,11 +467,23 @@ class ControllerEvents extends ControllerNames {
         if (!turnSource(this, chatId, { kind: 'claude', key: e.key }))
           return void this.clearSourceApprovals(chatId, { kind: 'claude', key: e.key });
         retireCompaction(this, chatId);
+        retirePromptSuggestion(this, chatId);
         if (!needsCrashCleanup(s)) return;
         if (r.interrupted) return void this.end(chatId, { drain: false });
         // a goal that was running is held for Resume; the error itself is shown by the window (src/harness/claude.ts)
         this.claudeTurns.crashed(chatId);
         return void this.crash(chatId, crashText('claude'), { kind: 'claude', key: e.key });
+    }
+  }
+
+  /** @this {ChatController} */
+  noteRewind(kind, key) {
+    const chatId = this.chatOf(key);
+    if (!this.isCurrentSource(chatId, { kind, key })) return;
+    try {
+      this.chats.patchMeta(chatId, { rewoundAt: clock.now() / 1000 });
+    } catch (error) {
+      noteIgnored('save chat rewind activity', error);
     }
   }
 }

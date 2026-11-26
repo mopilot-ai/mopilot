@@ -1,5 +1,5 @@
 // The turn list with a harness's pending turn (`pending-<clientId>`) added: the one rule every harness's turnStarting shares,
-// and the one-running-turn rule every turn start keeps (#2332).
+// the one-running-turn rule every turn start keeps (#2332), and the turn list after a rewind.
 import type { TurnState } from './types';
 
 /** The early turn's id for a send: `itemId` is the request id the window sent, which main keeps as the queue item's id. */
@@ -24,6 +24,12 @@ export function settleOtherTurns(turns: TurnState[], startedId: string): TurnSta
 export function addPendingTurn(turns: TurnState[], turn: TurnState, itemId?: string): TurnState[] {
   const early = itemId ? earlyTurnId(itemId) : null;
   return settleOtherTurns([...turns.filter((t) => t.id !== early), turn], turn.id);
+}
+
+/** Trim a loaded conversation before the rewound turn, if that turn is loaded. */
+export function rewindTurns(turns: TurnState[], turnId: string): Partial<{ turns: TurnState[] }> {
+  const before = turns.findIndex((turn) => turn.id === turnId);
+  return before < 0 ? {} : { turns: turns.slice(0, before) };
 }
 
 /**

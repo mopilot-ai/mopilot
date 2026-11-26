@@ -11,10 +11,16 @@ let gitInfo: (p: string) => Promise<unknown> = async () => ({});
 const opened: string[] = [];
 installNativeStub({ git: { info: (p: string) => gitInfo(p) } });
 stubStore({
-  useStore: (f: any) => f(state),
+  useStore: (f: any) => f({ prefs: {}, ...state }),
   newChatTarget: () => target,
   codexUsable: (s: any) => s.codex,
   claudeUsable: (s: any) => s.claude,
+  savedDefaultHarness: (s: any) => s.prefs.defaultHarness,
+});
+// how new chats start is its own (tests/newChatStart.test.ts): here only when the page starts its draft from the default
+let applied = 0;
+mock.module('../src/session/newChatStart.ts', {
+  namedExports: { newChatStartMode: (s: any) => s.mode ?? 'last', applyNewChatDefault: () => (applied += 1) },
 });
 mock.module('../src/harness/launch.ts', { namedExports: { admittedBasics: (b: string[]) => b } });
 mock.module('../src/components/pages/Welcome.tsx', { namedExports: { openWelcome: () => opened.push('welcome') } });
@@ -92,4 +98,24 @@ test('with only a basic harness it offers to set up Codex or Claude Code', async
   await act(() => link.click());
   assert.deepEqual(opened, ['welcome']);
   await act(() => m.root.unmount());
+});
+
+test('the page starts its draft from its own pick or the fixed default when it opens, and again when the mode or default changes', async () => {
+  state = { codex: true, claude: true, basicHarnesses: [], prefs: { defaultHarness: 'codex', newChatDefault: null } };
+  target = null;
+  applied = 0;
+  const m = await mount();
+  assert.equal(applied, 1);
+  await act(() => m.root.unmount());
+  applied = 0;
+  state = { ...state, mode: 'default' };
+  const fixed = await mount();
+  assert.equal(applied, 1);
+  // the same default on the next render: nothing again; a changed one: applied again
+  await act(async () => fixed.root.render(createElement(Home)));
+  assert.equal(applied, 1);
+  state = { ...state, prefs: { defaultHarness: 'codex', newChatDefault: { harness: 'codex', model: 'gpt', effort: 'low' } } };
+  await act(async () => fixed.root.render(createElement(Home)));
+  assert.equal(applied, 2);
+  await act(() => fixed.root.unmount());
 });

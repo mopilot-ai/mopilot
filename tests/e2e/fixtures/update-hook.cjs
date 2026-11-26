@@ -16,10 +16,16 @@ function hookUpdates({ Module, global = globalThis, env = process.env, now = Dat
     updater: null,
     stealth: null,
     /** An update is downloaded and unpacked, as Squirrel's update-downloaded leaves it. */
-    ready(version) {
+    ready(version, staged = false) {
       const u = hook.updater;
       const available = { version, notes: '' };
-      u.stagedArtifact = { channel: u.channel, available, valid: true };
+      if (staged) u.macInstaller = {};
+      u.stagedArtifact = {
+        channel: u.channel,
+        available,
+        valid: true,
+        ...(staged && { stage: { commit: async (restart) => record(restart ? 'activate:restart' : 'activate:quit'), cancel() {} } }),
+      };
       u.set({ status: 'ready', available, error: null, checkedAt: Date.now() });
       return u.state;
     },

@@ -51,7 +51,8 @@ test('a send with a pick on Claude Code or Codex starts the chat on its machine 
   set({ newChatProjectId: null, newChatCwd: null, newChatHost: PICK });
   impl['acp.startHostAcpThread'] = async (o: any) => `acp:host-${o.harness}:1`;
   for (const family of ['claude', 'codex']) {
-    set({ prefs: { ...st().prefs, defaultHarness: family } });
+    // the machine's last agent would win over the default (prefs.hostPicks): each default is tested on a machine with none
+    set({ prefs: { ...st().prefs, defaultHarness: family, hostPicks: {} } });
     assert.equal(await S.createChatThread('hello'), `acp:host-${family}:1`);
   }
   assert.deepEqual(callsOf('acp.startHostAcpThread'), [[{ host: PICK, harness: 'claude' }], [{ host: PICK, harness: 'codex' }]]);
@@ -290,4 +291,51 @@ test('C3: a failed Check again on the offline toast says why', async () => {
   st().toasts[0].action.run();
   await new Promise((r) => setImmediate(r));
   assert.match(st().toasts.at(-1).text ?? st().toasts.at(-1).message, /no route to host/);
+});
+
+test('a start on a machine is remembered there: the next new chat on it starts on that agent, model and effort, until the machine is removed', async () => {
+  const { forgetHostMachine } = await import('../src/store/projects.ts');
+  machineAgents(['claude', 'ready'], ['codex', 'ready']);
+  impl['acp.startHostAcpThread'] = async (o: any) => `acp:host-${o.harness}:${callsOf('acp.startHostAcpThread').length}`;
+  const selection = { hostId: 'box', harness: 'claude', model: 'opus', effort: 'high' };
+  set({ prefs: { ...st().prefs, defaultHarness: 'codex', hostPicks: {} }, newChatProjectId: null, newChatCwd: null });
+  set({ newChatHost: { ...PICK, agent: 'claude', selection } });
+  assert.equal(await S.createChatThread('hello'), 'acp:host-claude:1');
+  assert.deepEqual(st().prefs.hostPicks, { box: { agent: 'claude', model: 'opus', effort: 'high' } });
+  assert.deepEqual(st().chatConfig['acp:host-claude:1'].hostSelection, selection);
+  // the next draft on the machine, with nothing picked: the machine's last agent, not the saved default
+  set({ newChatHost: PICK });
+  assert.equal(await S.createChatThread('hello'), 'acp:host-claude:2');
+  assert.deepEqual(st().prefs.hostPicks.box, { agent: 'claude' }, "an agent's default model is remembered as no model");
+  // the remembered agent signed out there since: the saved default, quietly
+  machineAgents(['claude', 'signin'], ['codex', 'ready']);
+  assert.equal(await S.createChatThread('hello'), 'acp:host-codex:3');
+  assert.equal(st().toasts.length, 0);
+  // a selection made for another agent is not this start's
+  set({ newChatHost: { ...PICK, agent: 'codex', selection } });
+  assert.equal(await S.createChatThread('hello'), 'acp:host-codex:4');
+  assert.deepEqual(st().prefs.hostPicks.box, { agent: 'codex' });
+  assert.equal(st().chatConfig['acp:host-codex:4']?.hostSelection, undefined);
+  forgetHostMachine('box');
+  assert.deepEqual(st().prefs.hostPicks, {});
+  assert.deepEqual(st().prefs.hostFolders, {});
+});
+
+test('a removed machine with only remembered picks (no folder) still forgets them, and an unknown one changes nothing', async () => {
+  const { forgetHostMachine } = await import('../src/store/projects.ts');
+  set({ prefs: { ...st().prefs, hostFolders: {}, hostPicks: { box: { agent: 'claude' }, mini: { agent: 'codex' } } } });
+  forgetHostMachine('box');
+  assert.deepEqual(st().prefs.hostPicks, { mini: { agent: 'codex' } });
+  const before = st().prefs;
+  forgetHostMachine('gone');
+  assert.equal(st().prefs, before);
+});
+
+test('a remote send with no draft pick starts on the last used harness while new chats follow it, else the saved default', async () => {
+  set({ newChatProjectId: null, newChatCwd: null, newChatHost: PICK, newChatHarnessPick: null });
+  impl['acp.startHostAcpThread'] = async (o: any) => `acp:host-${o.harness}:1`;
+  set({ prefs: { ...st().prefs, defaultHarness: 'codex', lastHarness: 'claude', hostPicks: {}, newChatStart: 'last' } });
+  assert.equal(await S.createChatThread('hello'), 'acp:host-claude:1');
+  set({ newChatHost: PICK, prefs: { ...st().prefs, hostPicks: {}, newChatStart: 'default' } });
+  assert.equal(await S.createChatThread('hello'), 'acp:host-codex:1');
 });

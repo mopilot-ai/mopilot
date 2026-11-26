@@ -128,3 +128,48 @@ test('saved prefs without a valid default load as Codex', async () => {
   assert.equal(st().prefs.defaultHarness, 'codex');
   assert.equal(S.savedDefaultHarness(), 'codex');
 });
+
+test('new chats start on the harness last used, or on the saved default once a fixed default is chosen', () => {
+  set({ conn: 'ready', requiresAuth: false, claude: { status: { state: 'ready' } as any, models: [] }, basicHarnesses: [] });
+  S.setDefaultHarness('codex');
+  // nothing used yet: the saved default
+  assert.equal(S.defaultHarness().kind, 'codex');
+  S.setPrefs({ lastHarness: 'claude' });
+  assert.deepEqual([S.defaultHarness().kind, S.newChatHarness(), S.savedDefaultResolved().kind], ['claude', 'claude', 'codex']);
+  // picking the harness the draft starts on anyway leaves no pick; another one is the draft's
+  S.pickNewChatHarness('claude');
+  assert.equal(st().newChatHarnessPick, null);
+  S.pickNewChatHarness('codex');
+  assert.deepEqual([st().newChatHarnessPick, S.defaultHarness().kind], ['codex', 'codex']);
+  S.resetNewChatDefaults();
+  assert.equal(S.defaultHarness().kind, 'claude');
+  // a fixed default: the saved one, whatever was used last
+  S.setPrefs({ newChatStart: 'default' });
+  assert.equal(S.defaultHarness().kind, 'codex');
+  S.pickNewChatHarness('codex');
+  assert.equal(st().newChatHarnessPick, null);
+});
+
+test("a last used harness that can't run now falls back like the saved default, and says so", () => {
+  set({ conn: 'ready', requiresAuth: false, claude: { status: { state: 'ready' } as any, models: [] }, basicHarnesses: [] });
+  S.setDefaultHarness('claude');
+  S.setPrefs({ lastHarness: 'acp:opencode' });
+  assert.deepEqual(S.defaultHarness(), { saved: 'acp:opencode', kind: 'codex', firstTier: 'codex', fallback: 'missing' });
+  assert.equal(S.defaultHarnessFallbackNote(), 'opencode isn’t installed; new chats start in Codex');
+});
+
+test('choosing the default anywhere is the latest choice while new chats follow the last used, and moves a fixed default', () => {
+  set({ conn: 'ready', requiresAuth: false, claude: { status: { state: 'ready' } as any, models: [] }, basicHarnesses: [] });
+  S.setPrefs({ lastHarness: 'codex', model: 'gpt-a', effort: 'low', claudeSelection: { model: 'opus', effort: 'high', fast: false } });
+  // the account menu and Welcome choose it the same way as Settings
+  S.setDefaultHarness('claude');
+  assert.deepEqual([st().prefs.lastHarness, S.defaultHarness().kind], ['claude', 'claude']);
+  assert.deepEqual(st().prefs.newChatDefault, { harness: 'claude', model: 'opus', effort: 'high' });
+  // a fixed default already for that harness is kept; with a fixed default the last used stays as it was
+  S.setPrefs({ newChatStart: 'default', newChatDefault: { harness: 'codex', model: 'gpt-b', effort: 'xhigh' } });
+  S.setDefaultHarness('codex');
+  assert.deepEqual([st().prefs.lastHarness, st().prefs.newChatDefault], ['claude', { harness: 'codex', model: 'gpt-b', effort: 'xhigh' }]);
+  // a basic harness keeps its own options
+  S.setDefaultHarness('acp:opencode');
+  assert.deepEqual(st().prefs.newChatDefault, { harness: 'acp:opencode', model: null, effort: null });
+});

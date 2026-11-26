@@ -22,6 +22,10 @@ function createSessionLifetime(state, { hold = winbin.holdWindowsTree, endHeld =
     active(s) {
       return state.sessions.get(s.key) === s;
     },
+    requireCurrent(s, value) {
+      if (state.sessions.get(s.key) !== s) throw new Error('The Claude process changed before the request completed.');
+      return value;
+    },
     owns(s) {
       return owners.get(s.key) === s;
     },
@@ -52,6 +56,8 @@ function createSessionLifetime(state, { hold = winbin.holdWindowsTree, endHeld =
       const s = state.sessions.get(key);
       if (!s) return false;
       state.sessions.delete(key);
+      // A replacement or rewind suppresses the stream's close event. Readers of the live CLI still need its invalidation.
+      if (s.replaced) state.emit({ key, kind: 'processRetired' });
       clock.clearTimeout(s.retireTimer);
       try {
         s.input.close();

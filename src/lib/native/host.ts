@@ -3,7 +3,7 @@ import type { ChatGoal } from '../../../shared/model/store';
 import type { ChatConfig } from '../../../shared/model/window';
 import type { HostSidebarRepositoryQuery } from '../../../shared/model/repositorySidebar';
 type HostSideChat = { chatId: string; hostId: string; cwd: string; config: ChatConfig };
-/** What a machine's Host says about the repository in a folder (host/src/hostRead.mjs): files with their added and removed lines against the base branch, untracked ones listed, with their lines counted (`counted`) for the first 20 small text files. */
+/** What a machine's Host says about the repository in a folder (host/src/hostRead.mjs): files with their added and removed lines against the base branch, untracked ones listed, with their lines counted (`counted`) for the first 20 small text files; `upstream`: where the branch is pushed (its remote's address and the branch there), absent from an older Host. */
 export type HostGitStatus =
   | { isRepo: false }
   | {
@@ -11,6 +11,7 @@ export type HostGitStatus =
       branch: string | null;
       head: string | null;
       remote: string | null;
+      upstream?: { remote: string; branch: string } | null;
       files: { path: string; added: number; removed: number; binary?: boolean; untracked?: boolean; counted?: boolean }[];
       truncated: boolean;
       unreadable: boolean;
@@ -29,7 +30,6 @@ export type HostDiff =
       unreadable: boolean /** the files in conflict, relative to the folder; absent from an older Host */;
       conflicted?: string[];
     };
-/** How a commit or discard on a machine ended (host/src/hostWrite.mjs): git's own refusal is `ok: false` with its words (`refused`: a sentence for the user), `warning` when committed with something to tell. */
 /** What a machine's Host says one turn changed: see `gitTurnDiff`. */
 export type HostTurnDiff =
   | { isRepo: false }
@@ -41,7 +41,7 @@ export type HostTurnDiff =
       truncated: boolean /** untracked files the Host left out of its snapshots as too big: how many, and the first few */;
       skipped?: { count: number; paths: string[] };
     };
-
+/** How a commit or discard on a machine ended (host/src/hostWrite.mjs): git's own refusal is `ok: false` with its words (`refused`: a sentence for the user), `warning` when committed with something to tell. */
 export type HostWriteResult = { ok: boolean; stderr: string; refused?: true; warning?: string };
 /** A folder's entries on a machine, folders first (host/src/hostFiles.mjs); `truncated` when the folder holds more than the Host lists. */
 /** One slash command or skill an agent on a machine offers: `insert` is the text the composer puts in the message for it. */
@@ -353,12 +353,12 @@ declare module '../native' {
       setPath(id: string, mode: HostPathMode): Promise<void>;
       /** Add by command: a new one-line command for a machine the Mac cannot SSH to (any earlier one is ended); refusals carry `code` (`no_relay`); `retryJoin` instead repeats the join of an allowed machine that did not finish (state `join_failed`), keeping it listed */
       bootStart(retryJoin?: boolean): Promise<HostBootView>;
-      /** how the command stands now */
       bootView(): Promise<HostBootView>;
       /** let the machine that ran the command join; resolves its id (it is listed at once and finishes joining in the background) */
       bootAllow(): Promise<{ id: string }>;
-      /** do not let it join, or end the command: its credential is revoked */
-      bootDeny(): Promise<void>;
+      bootDeny(): Promise<void>; // do not let it join, or end the command: its credential is revoked
+      addByCode(code: string): Promise<import('../hostCodePairTypes').AddByCodeResult>; // pair a Mac by its code (R2b, #5576, behind host.codePair)
+      cancelAddByCode(): Promise<void>;
       onBoot(cb: (view: HostBootView) => void): () => void;
       /** what each machine chat waits for, as its Host says (a chat with nothing is absent); changes arrive through onAttention */
       attentions(): Promise<Record<string, HostAttention>>;

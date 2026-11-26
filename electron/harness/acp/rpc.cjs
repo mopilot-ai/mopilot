@@ -129,10 +129,10 @@ class RpcPeer {
   /**
    * @param {string} method
    * @param params
-   * @param {{ timeoutMs?: number, signal?: AbortSignal }} [opts] an aborted signal stops waiting and asks the agent
-   *   to drop the request (ACP's $/cancel_request); the promise rejects with a Cancelled error
+   * @param {{ timeoutMs?: number, signal?: AbortSignal, receipt?: { received: boolean } }} [opts] the receipt is marked
+   *   before the next frame in the same read. Aborting asks the agent to drop the request and rejects with Cancelled.
    */
-  request(method, params, { timeoutMs, signal } = {}) {
+  request(method, params, { timeoutMs, signal, receipt } = {}) {
     if (this.closed) return Promise.reject(this.closed);
     if (signal?.aborted) return Promise.reject(new Cancelled(method));
     const id = this.next++;
@@ -150,7 +150,11 @@ class RpcPeer {
       };
       signal?.addEventListener('abort', abort, { once: true });
       this.pending.set(id, {
-        resolve: (v) => (done(), resolve(v)),
+        resolve: (v) => {
+          done();
+          if (receipt) receipt.received = true;
+          resolve(v);
+        },
         reject: (e) => (done(), reject(e)),
       });
       // a request that never went out fails now instead of waiting for an answer that cannot come

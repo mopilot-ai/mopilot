@@ -37,7 +37,7 @@ test('a pair id is made of what a SecureStore key may hold, since the title keys
   const { createRequire } = await import('node:module');
   const E = await import('../shared/remote/envelope.mjs');
   const C = await import('../shared/remote/crypto.mjs');
-  const { createSodiumPrimitives } = createRequire(import.meta.url)('../electron/remote/sodiumPrimitives.cjs');
+  const { createSodiumPrimitives } = createRequire(import.meta.url)('../electron/platform/sodiumPrimitives.cjs');
   const { checkSecureKey } = await import('./support/phone/secure-store-rules.ts');
   const crypto = C.createCrypto(createSodiumPrimitives());
   for (let i = 0; i < 300; i++) {

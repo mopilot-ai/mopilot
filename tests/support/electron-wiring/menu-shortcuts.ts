@@ -1,6 +1,7 @@
 // Native menu shortcut conflicts and legacy customization ownership using the real Electron main fixture.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import edition from '../../../shared/edition.json' with { type: 'json' };
 export function registerMenuShortcutCases({ ready, calls }: any) {
   test('legacy native-role overrides disable the competing role and route editing keys through the renderer', async () => {
     const h = await ready({ state: { prefs: { keybindings: { pin: '⌘Q', rename: '⌘Z', 'new-chat': '⌘M' } } } });
@@ -28,7 +29,7 @@ export function registerMenuShortcutCases({ ready, calls }: any) {
     const help = template.find((m: any) => m.role === 'help').submenu;
     assert.deepEqual(
       help.slice(-2).map((i: any) => i.label),
-      ['Check for Updates…', 'About MoPilot'],
+      ['Check for Updates…', `About ${edition.desktop.name}`],
     );
     const edit = template.find((m: any) => m.label === 'Edit').submenu;
     assert.equal(

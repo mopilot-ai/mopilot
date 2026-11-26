@@ -432,7 +432,7 @@ test('edit rewinds files (dry run first) and the next process resumes just befor
     { uuid: 'p2', dryRun: true },
     { uuid: 'p2', dryRun: false },
   ]);
-  assert.ok(queries[before].closed);
+  assert.deepEqual([queries[before].closed, events.filter((event) => event.kind === 'rewound').map((event) => event.key)], [true, [key]]);
   // until the edited message is sent again, reading the chat stops where it will go on from
   const chain = [{ uuid: 'p1' }, { uuid: 'a1' }, { uuid: 'p2' }, { uuid: 'a2' }];
   (globalThis as any).__fakeMessages = () => chain;

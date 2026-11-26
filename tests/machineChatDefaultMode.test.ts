@@ -99,7 +99,8 @@ test('a new chat on a machine starts in this Mac default, and in its own pick wh
         newChatProjectId: null,
         newChatCwd: null,
         newChatHost: PICK,
-        prefs: { ...st().prefs, defaultHarness: family, permission: mode },
+        // the machine's last agent would win over the default (prefs.hostPicks): each default is tested on a machine with none
+        prefs: { ...st().prefs, defaultHarness: family, permission: mode, hostPicks: {} },
       });
       const id = (await S.createChatThread('hello'))!;
       assert.deepEqual(st().chatConfig[id].hostPermission, { hostId: 'box', harness: family, value: mode }, `${family} ${mode}`);
@@ -109,7 +110,7 @@ test('a new chat on a machine starts in this Mac default, and in its own pick wh
       newChatProjectId: null,
       newChatCwd: null,
       newChatHost: { ...PICK, permission: picked },
-      prefs: { ...st().prefs, defaultHarness: family, permission: 'full-access' },
+      prefs: { ...st().prefs, defaultHarness: family, permission: 'full-access', hostPicks: {} },
     });
     const id = (await S.createChatThread('hello'))!;
     assert.equal(st().chatConfig[id].hostPermission.value, 'read-only', `${family}: the machine pick wins`);

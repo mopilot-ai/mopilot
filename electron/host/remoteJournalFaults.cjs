@@ -55,13 +55,14 @@ function createRemoteJournalFaults({ emit, state, report }) {
           .then(() => (f.synced ? void resuming.delete(f) : this.resume(f, resync, tried + 1)));
       }, RESUME_MS[tried]);
     },
-    /** @param {any} host @param {(chatId: string) => any} mine @param {(f: any, work: () => unknown) => unknown} run @param {(f: any) => Promise<unknown>} resync */
-    attach(host, mine, run, resync) {
+    /** @param {any} host @param {(chatId: string) => any} mine @param {(f: any, work: () => unknown) => unknown} run @param {(f: any) => Promise<unknown>} resync @param {(f: any) => void} retire */
+    attach(host, mine, run, resync, retire) {
       // Older Hosts/test transports have no close channel.
       return (
         host.events.onClosed?.(({ chatId, reason }) => {
           const f = mine(chatId);
           if (!f) return;
+          retire(f);
           if (typeof reason === 'string' && reason.startsWith('session_journal_')) void run(f, () => this.show(f, reason));
           else this.resume(f, () => resync(f));
         }) ?? (() => undefined)

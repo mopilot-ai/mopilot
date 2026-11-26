@@ -58,16 +58,19 @@ test('turned on for one device: its terminal runs after the Mac’s approval and
     ['folder', 'approve', 'spawn'],
     'the Mac was asked first',
   );
-  // the shell prints; the phone applies the slices with its own reader
+  // Release the prompt after the first chunk arrives, so the phone exercises split delivery.
   const [key, handlers] = [...seams.ptys].at(-1)!;
   assert.match(key, /^remote:/);
+  const terminalText = () => {
+    const decoder = new TextDecoder();
+    let terminal = phoneMirror.emptyTerminal();
+    for (const event of one.eventsOf('pty.data')) terminal = phoneMirror.applyData(terminal, decoder, event.at, event.data);
+    return phoneMirror.display(terminal.text);
+  };
   handlers.onData('hello\r\n');
+  await until(() => terminalText() === 'hello\n', 'the first terminal chunk');
   handlers.onData('$ ');
-  await until(() => one.eventsOf('pty.data').length >= 1, 'terminal output');
-  let term = phoneMirror.emptyTerminal();
-  const decoder = new TextDecoder();
-  for (const e of one.eventsOf('pty.data')) term = phoneMirror.applyData(term, decoder, e.at, e.data);
-  assert.equal(phoneMirror.display(term.text), 'hello\n$ ');
+  await until(() => terminalText() === 'hello\n$ ', 'the complete terminal output');
   await one.ask('pty.write', { stream: 's1', data: 'ls\n' });
   assert.deepEqual(seams.log.at(-1), ['write', key, 'ls\n']);
   assert.equal(two.eventsOf('pty.data').length, 0);

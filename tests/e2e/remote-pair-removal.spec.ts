@@ -11,7 +11,7 @@ test('an old removal preserves the active replacement and its reopened state', a
     const os = process.getBuiltinModule('os');
     const { PairingService } = require(entry);
     const { DeviceList } = require('./deviceList.cjs');
-    const { createSodiumPrimitives } = require('./sodiumPrimitives.cjs');
+    const { createSodiumPrimitives } = require('../platform/sodiumPrimitives.cjs');
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'remote-pair-removal-'));
     try {
       const safe = {

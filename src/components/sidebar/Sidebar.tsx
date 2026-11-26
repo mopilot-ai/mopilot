@@ -30,6 +30,8 @@ import { ProjectGroup } from './ProjectGroup';
 import { EMPTY_MAP, EMPTY_SECTIONS, SectionLabel, SidebarOptions, sectionedGroups } from './SidebarSections';
 import { CloudSection, OneList, PinnedSection, PrioritySection, RecentsSection, newStandaloneChat } from './ChatLists';
 import { SidebarNav } from './SidebarNav';
+import { MachineGroups } from './MachineGroups';
+import { useSidebarOrganize } from './useSidebarOrganize';
 import { SidebarFooter } from './SidebarFooter';
 import { projectRows, sortProjectRows } from './projectRows';
 import { focusedChat } from '../../store/split';
@@ -90,7 +92,7 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
     }
   };
   const collapsed = useStore((s) => s.collapsedProjects);
-  const organize = useStore((s) => s.prefs.sidebarOrganize ?? 'project');
+  const organize = useSidebarOrganize();
   const sections = useStore((s) => s.prefs.sidebarSections ?? EMPTY_SECTIONS);
   const projectSection = useStore((s) => s.prefs.projectSection ?? EMPTY_MAP);
   const revealed = useStore((s) => s.revealedChats);
@@ -144,7 +146,7 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
       <PhoneBanner />
       <div className="sidebar-scroll">
         {/* the one-list and activity views draw no project rows: there New chat is the home page's current entry */}
-        <SidebarNav homeRow={homeKey !== null && organize !== 'list' && !activityView} />
+        <SidebarNav homeRow={homeKey !== null && organize === 'project' && !activityView} />
 
         {activityView && <PrioritySection />}
         {!activityView && pinnedThreads.length > 0 && (
@@ -156,7 +158,7 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
             <div className="sidebar-section">
               <div className="side-label-row">
                 <button className="side-label with-chevron" onClick={() => setProjectsCollapsed((c) => !c)}>
-                  Projects
+                  {organize === 'machine' ? 'Machines' : 'Projects'}
                   <ChevronDown size={12} strokeWidth={2} className={projectsCollapsed ? 'rot-90' : ''} />
                 </button>
                 <div className="side-label-actions">
@@ -170,7 +172,8 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
               </div>
               <Collapse open={!projectsCollapsed} className="side-collapse">
                 {organize === 'list' && <OneList groups={listed} activeThread={activeThread} reorderChat={reorderChat} />}
-                {organize !== 'list' &&
+                {organize === 'machine' && <MachineGroups activeThread={activeThread} />}
+                {organize === 'project' &&
                   sectionedGroups(listed, sections, projectSection).map(({ section, items }) => (
                     <div key={section?.id ?? '_'}>
                       {section && <SectionLabel section={section} sections={sections} />}
@@ -195,7 +198,7 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
                     </div>
                   ))}
                 {/* nothing saved yet: with a saved project, the home page lists its own (homeKey) */}
-                {listed.length === 0 && !groups.some((g) => g.saved) && (
+                {organize !== 'machine' && listed.length === 0 && !groups.some((g) => g.saved) && (
                   <button className="side-row muted" onClick={addFolder}>
                     <span className="side-row-icon">
                       <Plus size={16} strokeWidth={1.7} />
@@ -205,7 +208,9 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
                 )}
               </Collapse>
             </div>
-            <RecentsSection activeThread={activeThread} list={recents} groups={listed} reorderChat={reorderChat} />
+            {organize !== 'machine' && (
+              <RecentsSection activeThread={activeThread} list={recents} groups={listed} reorderChat={reorderChat} />
+            )}
             <CloudSection tasks={cloud} />
             <MoreChats />
           </>

@@ -4,6 +4,72 @@ import assert from 'node:assert/strict';
 import { setup, codex, selectSegment } from './fixture';
 
 export function registerOwnershipCases() {
+  test('a self-started Claude turn publishes real message activity from the current native session', () => {
+    const { c, chats, s } = setup();
+    const chat = 'automatic-chat';
+    const key = 'claude:automatic';
+    selectSegment(c, chats, chat, [['claude', key]]);
+    s(chat);
+    const reply = () => ({ key, kind: 'message', msg: { type: 'assistant', message: { content: [] } }, activityAt: 0 });
+    const current = reply();
+    c.onClaudeEvent(current);
+    assert.match(s(chat).activeTurn.id, /^auto-/);
+    assert.ok(current.activityAt > 0);
+    const tool = { ...reply(), msg: { type: 'user', message: { content: [] } } };
+    c.onClaudeEvent(tool);
+    assert.ok(tool.activityAt >= current.activityAt);
+    selectSegment(c, chats, chat, [
+      ['claude', key],
+      ['codex', 'replacement'],
+    ]);
+    const retired = reply();
+    c.onClaudeEvent(retired);
+    assert.equal(retired.activityAt, 0);
+  });
+
+  test('a finished Claude rewind is saved for the owning chat only while its segment is current', () => {
+    const { c, chats } = setup();
+    const chat = 'mixed-rewind';
+    const key = 'claude:rewind';
+    selectSegment(c, chats, chat, [['claude', key]]);
+    const before = Date.now() / 1000;
+    c.onClaudeEvent({ key, kind: 'rewound' });
+    const rewoundAt = chats.get(chat).meta.rewoundAt;
+    assert.ok(rewoundAt >= before);
+    assert.equal(chats.get(key), null);
+    selectSegment(c, chats, chat, [
+      ['claude', key],
+      ['codex', 'next'],
+    ]);
+    c.onClaudeEvent({ key, kind: 'rewound' });
+    assert.equal(chats.get(chat).meta.rewoundAt, rewoundAt);
+  });
+
+  test('Codex confirms the rewind under the owning chat so all windows receive its activity', () => {
+    const { c, chats } = setup();
+    const chat = 'codex-rewind';
+    const key = 'current-codex';
+    selectSegment(c, chats, chat, [['codex', key]]);
+    c.onCodexMessage(codex('thread/reverted', {}));
+    assert.equal(chats.get(chat).meta.rewoundAt, null);
+    c.onCodexMessage(codex('thread/reverted', { threadId: key }));
+    const rewoundAt = chats.get(chat).meta.rewoundAt;
+    assert.ok(rewoundAt > 0);
+    assert.equal(chats.get(key), null);
+    const patchMeta = chats.patchMeta;
+    chats.patchMeta = () => {
+      throw new Error('write refused');
+    };
+    assert.doesNotThrow(() => c.onCodexMessage(codex('thread/reverted', { threadId: key })));
+    chats.patchMeta = patchMeta;
+    selectSegment(c, chats, chat, [
+      ['codex', key],
+      ['claude', 'claude:next'],
+    ]);
+    c.onCodexMessage(codex('thread/reverted', { threadId: key }));
+    assert.equal(chats.get(chat).meta.rewoundAt, rewoundAt);
+  });
+
   test('old Claude messages, controls and exit leave a replacement Codex turn and cards intact', () => {
     const retracted: string[] = [];
     const { c, s, chats, state, crashes, claudeCrashes } = setup({ retract: (id) => retracted.push(id) });

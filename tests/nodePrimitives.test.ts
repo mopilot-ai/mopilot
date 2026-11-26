@@ -9,7 +9,7 @@ import * as C from '../shared/remote/crypto.mjs';
 import { createNodePrimitives, hchacha20 } from '../shared/remote/nodePrimitives.mjs';
 
 const require = createRequire(import.meta.url);
-const { createSodiumPrimitives } = require('../electron/remote/sodiumPrimitives.cjs');
+const { createSodiumPrimitives } = require('../electron/platform/sodiumPrimitives.cjs');
 const V = JSON.parse(readFileSync(new URL('../shared/remote/vectors.json', import.meta.url), 'utf8'));
 const node = createNodePrimitives();
 const sodium = createSodiumPrimitives();

@@ -248,6 +248,18 @@ test('a run that times out is a coded refusal; output past its bound or too many
   assert.equal(emptyBranch.branch, null, 'an empty branch name is none');
   const full = await scripted(named(ok('1\t0\tz\0'), no, ok('\n'))).status({ path: dir });
   assert.deepEqual([full.files, full.branch, full.remote], [[{ path: 'z', added: 1, removed: 0 }], null, 'https://example.com/o/r.git']);
+  // where the branch is pushed: a remote whose address git cannot give (a failed or timed-out run) names none
+  const tracked = (address: any) => (args: string[]) =>
+    args.includes('for-each-ref')
+      ? ok('internal\0refs/heads/feat\n')
+      : args.includes('get-url') && args.includes('internal')
+        ? address
+        : named(ok(''), ok(''))(args);
+  assert.equal((await scripted(tracked(no)).status({ path: dir })).upstream, null);
+  assert.deepEqual((await scripted(tracked(ok('https://example.com/o/internal.git\n'))).status({ path: dir })).upstream, {
+    remote: 'https://example.com/o/internal.git',
+    branch: 'feat',
+  });
   // a row that is no numstat row is skipped
   const odd = await scripted(answers(ok('junk\0'), ok(''))).status({ path: dir });
   assert.deepEqual(odd.files, []);
@@ -323,4 +335,26 @@ test('a new file over the size bound is a header-only row: executable mode kept,
       ['tab\tname.txt', 280_000, '100644', 0],
     ],
   );
+});
+
+test('a branch says where it is pushed, without credentials, so its PR is found where origin is gone or elsewhere', async () => {
+  const dir = repo();
+  g(dir, 'remote', 'add', 'origin', 'https://example.com/o/deleted.git');
+  g(dir, 'remote', 'add', 'internal', 'https://user:secret@example.com/o/internal.git');
+  g(dir, 'checkout', '-qb', 'feature');
+  assert.equal((await read.status({ path: dir })).upstream, null, 'a branch that tracks nothing');
+  g(dir, 'config', 'branch.feature.remote', 'internal');
+  g(dir, 'config', 'branch.feature.merge', 'refs/heads/feat-up');
+  const s = await read.status({ path: dir });
+  assert.deepEqual(s.upstream, { remote: 'https://example.com/o/internal.git', branch: 'feat-up' });
+  assert.equal(s.remote, 'https://example.com/o/deleted.git', 'origin is still the remote it reports');
+  // the repository itself, a name git would take for an option, a remote with no address, and one whose address is a local path name no repository
+  g(dir, 'remote', 'add', 'mirror', '/srv/mirror.git');
+  for (const remote of ['.', '-evil', 'missing', 'mirror']) {
+    g(dir, 'config', 'branch.feature.remote', remote);
+    assert.equal((await read.status({ path: dir })).upstream, null, remote);
+  }
+  // a detached checkout has no branch to ask about
+  g(dir, 'checkout', '-q', '--detach');
+  assert.equal((await read.status({ path: dir })).upstream, null);
 });

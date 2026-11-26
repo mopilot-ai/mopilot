@@ -5,6 +5,7 @@
 // A message that says "nosignin" runs a git command that failed for a missing sign-in, with the Host's own line in its output.
 // A message that says "cutoff" is cut off once the way a Host restart cuts a turn off (ended as cancelled with `interrupted`), and runs to its end when sent again.
 // A message that says "approve" raises a permission card and waits for chat.answer; one that says "slow" streams until chat.stop; any other is answered with "fake-host: <text>" in two pieces.
+// The chat list the Mac's index follows (host.chats, host.chats.watch with its `chats` events, #5576): every chat it holds is a row, `running` while a turn is open and `attention` while a card waits; a spec seeds a chat another client started with `fake.seed` ({ chatId, title, folder, startedBy, text }), and ends its turn with chat.stop.
 // "report context" waits for the FAKE_HOST_CONTEXT_RELEASE file, then reports context just before ending the turn.
 // Every request it answers is appended to FAKE_HOST_LOG (one JSON line) so a spec can read what the app asked.
 const net = require('node:net');
@@ -20,6 +21,38 @@ const note = (method, params) =>
 
 /** @type {Map<string, { rev: number, seq: number, items: any[], tail: any[], subs: Set<(frame: any) => void>, inflight: Map<string, any[]>, state: Record<string, any>, turn: any, turns: number }>} */
 const chats = new Map();
+/** The connections that watch the chat list, and how many events they were told. */
+const watchers = new Set();
+let eventSeq = 0;
+const harnessOf = (id) => (id.startsWith('claude:') ? 'claude' : id.startsWith('acp:') ? id.split(':').slice(0, 2).join(':') : 'codex');
+/** One chat as the list shows it. */
+function rowOf(id) {
+  const c = chat(id);
+  const meta = c.meta ?? {};
+  return {
+    chatId: id,
+    title: meta.title ?? id,
+    harness: harnessOf(id),
+    createdAt: meta.createdAt ?? 0,
+    updatedAt: meta.updatedAt ?? 0,
+    epoch: meta.epoch ?? 1,
+    rev: c.rowRev ?? 0,
+    state: c.turn?.card || c.state?.attention ? 'attention' : c.turn ? 'running' : 'idle',
+    ...(meta.folder ? { folder: meta.folder } : {}),
+    ...(meta.startedBy ? { startedBy: meta.startedBy } : {}),
+  };
+}
+/** A change to a chat's row, told to every connection that watches. */
+let lastStamp = 0;
+/** A time that never repeats: chats changed in the same millisecond still have an order. */
+const stamp = () => (lastStamp = Math.max(Date.now(), lastStamp + 1));
+function touch(id, kind) {
+  const c = chat(id);
+  c.meta = { ...c.meta, updatedAt: stamp() };
+  c.rowRev = (c.rowRev ?? 0) + 1;
+  const ev = { event: 'chats', chatId: id, seq: ++eventSeq, generation: GENERATION, op: 'upsert', kind, chat: rowOf(id) };
+  for (const say of watchers) say(ev);
+}
 /** Replies kept by key: the same request again returns the first reply. */
 const replies = new Map();
 
@@ -281,6 +314,14 @@ function stage(p) {
 
 function startTurn(p) {
   const c = chat(p.chatId);
+  const created = !c.meta;
+  c.meta = {
+    createdAt: Date.now(),
+    title: String(p.title ?? p.text).slice(0, 60),
+    folder: p.folder ?? p.cwd ?? '',
+    startedBy: p.startedBy ?? 'the Mac',
+    ...c.meta,
+  };
   // files and folders by name, with what the Host holds of them: the reply says them, so a picture can show what arrived
   const names = [...new Set((p.files ?? []).map((f) => f.name))];
   const held = (p.files ?? []).reduce((n, f) => n + (blobs.get(f.id)?.length ?? 0), 0);
@@ -307,17 +348,45 @@ function startTurn(p) {
       content: [{ type: 'text', text: p.text, text_elements: [] }, ...names.map((name) => ({ type: 'mention', name }))],
     },
   });
-  void run(p.chatId, turnId, `${p.text}${seen}`);
+  const running = run(p.chatId, turnId, `${p.text}${seen}`);
+  touch(p.chatId, created ? 'created' : 'changed');
+  void running.finally(() => touch(p.chatId, 'turnEnded'));
   return { turnId };
 }
 
 function answer(method, p, subscribe) {
   switch (method) {
+    // a chat another client started on this machine, in the list and running its first turn
+    case 'fake.seed':
+      // a chat that has moved between clients before: its epoch is not the first one, and a message that does not carry it is refused
+      chat(p.chatId).meta = { epoch: 3 };
+      return { result: { replayed: false, result: startTurn({ key: `seed-${p.chatId}`, ...p }) } };
+    // another client continued the chat: the Host holds the next epoch, and the list says so
+    case 'fake.bump':
+      chat(p.chatId).meta = { ...chat(p.chatId).meta, epoch: (chat(p.chatId).meta?.epoch ?? 1) + 1 };
+      touch(p.chatId, 'changed');
+      return { result: { replayed: false, result: { epoch: chat(p.chatId).meta.epoch } } };
+    case 'host.chats':
+      return {
+        result: {
+          chats: [...chats]
+            .filter(([, c]) => c.meta)
+            .map(([id]) => rowOf(id))
+            .sort((a, b) => b.updatedAt - a.updatedAt),
+          at: eventSeq,
+          generation: GENERATION,
+        },
+      };
     case 'chat.remove':
       chats.delete(p.chatId);
+      // the list's watchers hear it, as a real Host tells them
+      for (const say of watchers)
+        say({ event: 'chats', chatId: p.chatId, seq: ++eventSeq, generation: GENERATION, op: 'remove', kind: 'removed' });
       return { result: { replayed: false, result: { removed: true } } };
     case 'chat.start':
     case 'chat.send': {
+      if (method === 'chat.send' && chat(p.chatId).meta?.epoch !== undefined && p.epoch !== chat(p.chatId).meta.epoch)
+        return { error: { code: 'stale_epoch', message: 'That chat moved on.' } };
       const kept = replies.get(`${method}:${p.key}`);
       if (kept) return { result: { replayed: true, result: kept } };
       const result = startTurn(p);
@@ -385,6 +454,7 @@ net
     socket.setEncoding('utf8');
     socket.on('error', () => socket.destroy());
     socket.on('close', () => {
+      watchers.delete(say);
       for (const [c, fn] of subs) c.subs.delete(fn);
     });
     socket.on('data', (chunk) => {
@@ -393,6 +463,11 @@ net
         const req = JSON.parse(buffer.slice(0, i));
         buffer = buffer.slice(i + 1);
         note(req.method, req.params);
+        if (req.method === 'host.chats.watch') {
+          watchers.add(say);
+          say({ id: req.id, result: { watching: true, at: eventSeq, generation: GENERATION } });
+          continue;
+        }
         const out = answer(req.method, req.params ?? {}, (c) => {
           const fn = (frame) => say({ event: 'frame', chatId: req.params.chatId, frame });
           subs.get(c) && c.subs.delete(subs.get(c));

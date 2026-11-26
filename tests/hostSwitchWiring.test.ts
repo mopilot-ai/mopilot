@@ -95,6 +95,14 @@ test('the remote chats reader: none while Host is off; every chat a machine owns
     { chatId: 'c1', hostId: 'box' },
     { chatId: 'c3', hostId: 'mini' },
   ]);
+  const file = path.join(dir, 'host-ownership.json');
+  const saved = fs.readFileSync(file);
+  fs.writeFileSync(file, '{');
+  assert.equal(owned().length, 2, 'the last good copy still identifies the Host');
+  fs.writeFileSync(`${file}.bak`, '{');
+  assert.throws(owned, /Could not read which chats run on a Host/);
+  fs.writeFileSync(file, saved);
+  assert.equal(owned().length, 2, 'the lookup recovers when the ownership store does');
 });
 
 function ipc(over: { live?: any; allowed?: () => boolean; dir?: string } = {}) {

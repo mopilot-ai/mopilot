@@ -9,6 +9,8 @@ import { PendingChatDeletions } from './PendingChatDeletions';
 import { visiblePoll } from '../../../lib/visiblePoll';
 import { MachineRow } from './MachineRow';
 import { openAddMachine } from '../../../lib/addMachine';
+import { useFlag } from '../../../lib/flags';
+import { AddByCodeDialog } from './AddByCodeDialog';
 import { HostSigninMethod } from './HostSigninMethod';
 import { HostRotateKey } from './HostRotateKey';
 import type { InstallAgent } from './MachineAgentActions';
@@ -28,6 +30,8 @@ export function HostMachines({ onInstall = installAndWait }: { onInstall?: Insta
   const signins = useHostSignins();
   const gitSignIns = useGitSignIn(machines);
   const now = useMinuteClock();
+  const codePair = useFlag('host.codePair');
+  const [byCode, setByCode] = useState(false);
   if (!allowed) return null;
   return (
     <section className="settings-group machines-page" aria-label="Machines">
@@ -36,7 +40,8 @@ export function HostMachines({ onInstall = installAndWait }: { onInstall?: Insta
           <h2 className="settings-group-title">Machines</h2>
           <div className="settings-group-desc">Run chats on your other computers.</div>
         </div>
-        <button className="btn-pill primary" onClick={openAddMachine}>
+        {/* with pairing by code on, Add opens the code dialog first (it offers SSH too); off, it is the SSH sheet as before */}
+        <button className="btn-pill primary" onClick={codePair ? () => setByCode(true) : openAddMachine}>
           Add machine
         </button>
       </div>
@@ -57,6 +62,7 @@ export function HostMachines({ onInstall = installAndWait }: { onInstall?: Insta
           ))
         )}
       </div>
+      {byCode && <AddByCodeDialog onClose={() => setByCode(false)} />}
       <PendingChatDeletions />
       <HostSigninMethod />
       <HostRotateKey machines={machines} />

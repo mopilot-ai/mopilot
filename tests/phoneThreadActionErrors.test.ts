@@ -59,21 +59,22 @@ test('an error the card handler claims shows no text and frees the busy composer
   s.host.remove();
 });
 
-test('an error with no handler (Stop) shows its message, clears busy and is replaced by the next try', async () => {
+test('an error with no handler (Stop) shows what it means, clears busy and is replaced by the next try', async () => {
   let fail = true;
   const s = await mount(() => (fail ? new Error('Computer is offline.') : null));
   await click('Stop');
   assert.equal(s.stop().disabled, true);
   await s.settle();
   await flush();
-  assert.match(s.host.textContent!, /Computer is offline\./);
+  // the runtime's words are worded for the person, as the other screens word them
+  assert.match(s.host.textContent!, /Your computer is offline or asleep\. Wake it and try again\./);
   assert.equal(s.stop().disabled, false);
   fail = false;
   await click('Stop');
-  assert.doesNotMatch(s.host.textContent!, /Computer is offline/, 'a new action clears the old error');
+  assert.doesNotMatch(s.host.textContent!, /computer is offline/, 'a new action clears the old error');
   await s.settle();
   await flush();
-  assert.doesNotMatch(s.host.textContent!, /Computer is offline/);
+  assert.doesNotMatch(s.host.textContent!, /computer is offline/);
   await act(async () => s.root.unmount());
   s.host.remove();
 });

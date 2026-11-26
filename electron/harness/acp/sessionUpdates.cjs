@@ -1,11 +1,25 @@
 // Native ACP updates keep each session's settings current, then record and publish its live turn.
 const { acpStateUpdate } = require('../../../shared/acpSessionState.mjs');
 const { isForeignSageCall } = require('./clientMethods.cjs');
+const { acpPromptSuggestion } = require('./promptSuggestions.cjs');
 function recordSessionUpdate(host, chat, update, meta) {
   if (!update || typeof update !== 'object') return;
   const normalize = host.quirksOf(chat.harness)?.normalizeUpdate;
   if (typeof normalize === 'function') update = normalize(update, meta);
   if (!update || typeof update !== 'object') return;
+  const standard = update.sessionUpdate === 'prompt_suggestions_update';
+  const legacy = update.sessionUpdate === 'session_info_update' && update._meta && Object.hasOwn(update._meta, 'promptSuggestions');
+  if (standard || legacy) {
+    const suggestion = acpPromptSuggestion(update);
+    const run = chat.prompting;
+    // An old offer can cross the next prompt in transit. Only accept it after that prompt's own reply has arrived.
+    if (suggestion !== undefined && !chat.loading && !chat.isolated && (!run || run.receipt?.received))
+      host.emitEvent({ key: chat.key, kind: 'promptSuggestion', turnId: run?.turnId ?? null, text: suggestion });
+    if (standard) return;
+    // Preserve other session metadata while keeping the prediction out of the transcript.
+    const { promptSuggestions, ...meta } = update._meta;
+    update = { ...update, _meta: meta };
+  }
   const next = acpStateUpdate(chat.state, update);
   if (next) Object.assign((chat.state ??= {}), next);
   // history the agent replays on session/load; the thread shows it from the transcript

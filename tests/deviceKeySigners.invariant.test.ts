@@ -12,7 +12,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** Every non-test file that signs with an Ed25519 key, and what it signs. */
 const SIGNERS: Record<string, string> = {
   'electron/host/pairingClient.cjs':
-    "the Host's challenges: `<label>\\n<hostId>\\n<nonce>`, label 'pair' or 'auth', and update manifests through updateSignature",
+    "the Host's challenges: `<label>\\n<hostId>\\n<nonce>`, label 'pair' or 'auth', update manifests through updateSignature, and (signCodePair) a pairing-by-code proof message, refused unless it is one",
   'shared/remote/phoneHost.mjs': "a phone's login to its Mac: `auth\\n<hostId>\\n<nonce>`",
   'host/src/codePairWiring.mjs':
     "this Host's own device key for pairing by code: it signs only what shared/host/codePair.mjs asks of it (the protocol's proof of holding the key)",
@@ -27,7 +27,7 @@ const SIGNERS: Record<string, string> = {
   'host/src/momoBundle.mjs': "a MoMo move's receipt, signed by the move's own key (not a device or client key): `receiptText(...)`",
   'shared/remote/crypto.mjs': 'the type of the primitive set: the declaration of edSign, no signature is made here',
   'shared/remote/phonePrimitives.mjs': 'the primitive set of the phone: the definition of edSign',
-  'electron/remote/sodiumPrimitives.cjs': 'the primitive set of the app: the definition of edSign',
+  'electron/platform/sodiumPrimitives.cjs': 'the primitive set of the app: the definition of edSign',
   'shared/remote/nodePrimitives.mjs': 'the primitive set of the Host: the definition of edSign',
 };
 /** Every way the code of this repository (or a library it may take up) signs with an Ed25519 key: the primitive sets' `edSign`, Node's `sign(null, ...)` (also over several lines, or with `undefined`), noble's `ed25519.sign(`, WebCrypto's `subtle.sign` (any algorithm but the named HMAC, RSA and ECDSA ones), libsodium's `crypto_sign*`, tweetnacl's `nacl.sign`, and a device's own `sign(` of the code pairing. */

@@ -281,3 +281,40 @@ test('a runtime that cannot say its connection changed is watched by the deviceâ
   assert.equal(reads, 1);
   stop();
 });
+
+/** The record's rows and a reply still streaming (one live item): what a chat whose turn is pending answers with. */
+const pending = (rows: number) =>
+  snap({
+    itemsShape: 'items',
+    history: Array.from({ length: rows }, (_, i) => ({ id: `h${i}`, role: i % 2 ? 'assistant' : 'user', text: `row ${i}` })),
+    items: [{ id: 'live-1', type: 'agentMessage', text: 'waiting for you' }],
+  });
+
+test('a re-read that returns the same record and the same live row brings nothing new: the net backs off 4, 8, 16, 30 s (#5686)', async () => {
+  const before = counts();
+  const r = rig([...Array(7).fill(pending(30))]);
+  r.feed.start();
+  await r.settle();
+  let reads = 1;
+  for (const wait of [4000, 8000, 16000, 30000]) {
+    await r.tick(wait - 1);
+    assert.equal(r.reads(), reads, `not before ${wait}`);
+    await r.tick(1);
+    assert.equal(r.reads(), ++reads, `at ${wait}`);
+  }
+  assert.deepEqual(since(before), { missed: 0, quiet: 4 }, 'every one of them found nothing');
+  r.feed.stop();
+});
+
+test('a re-read that holds one more row than the last is rows the live events missed, and starts the net over at 4 s: so a read that asks for one more row each time never lets it back off', async () => {
+  const before = counts();
+  const r = rig([pending(30), pending(31), pending(32), pending(33), pending(34)]);
+  r.feed.start();
+  await r.settle();
+  for (let again = 0; again < 4; again++) {
+    await r.tick(QUIET_MS);
+    assert.equal(r.reads(), again + 2, `read ${again + 2} came 4 s after the last: the net did not back off`);
+  }
+  assert.deepEqual(since(before), { missed: 4, quiet: 0 });
+  r.feed.stop();
+});

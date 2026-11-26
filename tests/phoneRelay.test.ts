@@ -93,14 +93,14 @@ test('relay close, failures, timeout and events retire pending operations', asyn
   assert.equal(closed, 1);
 });
 
-test('send failure and malformed oversized message are visible', async () => {
+test('a send the socket refuses (React Native throws INVALID_STATE_ERR on a socket that is not open) fails as a relay that is not connected; a malformed oversized message is visible', async () => {
   let ws: any,
     closed = 0;
   const relay = createPhoneRelay({
     open: () =>
       (ws = {
         send() {
-          throw new Error('send broke');
+          throw new Error('INVALID_STATE_ERR');
         },
         close() {},
       }),
@@ -113,7 +113,9 @@ test('send failure and malformed oversized message are visible', async () => {
   const connected = relay.connect('wss://example.com', 'token');
   ws.onmessage({ data: JSON.stringify({ t: 'hello' }) });
   await connected;
-  await assert.rejects(relay.join('p_12345678'), /send broke/);
+  await assert.rejects(relay.join('p_12345678'), { message: 'relay disconnected' });
+  // a frame that cannot be written is the caller's error, not a lost connection
+  await assert.rejects(relay.send({ pair: 'p_12345678', dir: 'p2m', ctr: 1, big: 1n } as never), TypeError);
   ws.onmessage({ data: new Uint8Array() });
   assert.equal(closed, 1);
 });

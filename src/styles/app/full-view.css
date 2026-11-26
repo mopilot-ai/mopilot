@@ -26,9 +26,6 @@
 .pane-float-composer .composer-footer {
   display: contents;
 }
-.pane-float-composer .composer-left {
-  order: 0;
-}
 .pane-float-composer .composer-input {
   order: 1;
   flex: 1;
@@ -39,6 +36,7 @@
 .pane-float-composer .composer-right {
   order: 2;
   flex: 0 0 auto;
+  padding-left: 0;
 }
 .pane-float-composer .composer:has(.dictation-note) {
   flex-wrap: wrap;

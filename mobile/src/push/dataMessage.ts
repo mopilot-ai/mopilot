@@ -26,7 +26,14 @@ type Open = (key: Uint8Array, nonce: Uint8Array, box: Uint8Array, aad: Uint8Arra
  */
 export async function buildNotification(
   data: unknown,
-  o: { keys: () => Promise<Uint8Array[]>; open: Open; prefs: () => Promise<PushPrefs>; now?: () => Date },
+  o: {
+    keys: () => Promise<Uint8Array[]>;
+    open: Open;
+    prefs: () => Promise<PushPrefs>;
+    now?: () => Date;
+    /** False for a push of an old MoMo home: nothing is drawn. */
+    admit?: (payload: PushPayload) => Promise<boolean>;
+  },
 ): Promise<LocalNotification | null> {
   const payload = parsePushPayload(data);
   if (!payload) return null;
@@ -34,6 +41,7 @@ export async function buildNotification(
   if (payload.kind === 'cleared') return null;
   const prefs = await o.prefs();
   if (!prefs.enabled) return null;
+  if (o.admit && !(await o.admit(payload))) return null;
   const body = prefs.titles ? await sealedBodyOr(payload, o) : null;
   return {
     // one notification per chat handle, so a later push for the same chat replaces the earlier one

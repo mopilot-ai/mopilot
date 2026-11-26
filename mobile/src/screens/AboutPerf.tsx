@@ -1,11 +1,17 @@
-// Settings › About's performance log: a switch (off at every launch), and while it is on the numbers it has counted: JS and UI frames over 25 and 50 ms, JS stalls, touch to first commit, renders per screen. Counts and milliseconds only.
+// Settings › About's performance log: a switch (off at every launch), and while it is on the numbers it has counted: JS and UI frames over 25 and 50 ms, JS stalls, touch to first commit, renders per screen, the newest picks, videos and uploads, and the last notes (the jump arrow's decisions). Counts, milliseconds and offsets only.
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Share } from 'react-native';
 import { Group, GroupItem, GroupLabel } from '../components/Grouped';
 import { liveNetCounts, onLiveNetCounts } from '../presentation/liveWatch';
 import { perf, type PerfReport } from '../perfLog';
+import { pickLine, uploadLine, videoLine } from '../presentation/perfLines';
 import { t } from '../ui/i18n';
 
+/** How many of the newest video and pick lines the screen shows. */
+const SHOWN = 6;
+/** The newest `count` notes, each with its place in the whole list (1 is the first ever noted), which is also its key. */
+const numbered = <T,>(notes: readonly T[], count: number): [number, T][] =>
+  notes.slice(-count).map((note, i, shown) => [notes.length - shown.length + i + 1, note]);
 const frames = (f: PerfReport['js']) => t('perf.frames', { total: f.total, slow: f.over25, over: f.over50 });
 
 export function AboutPerf() {
@@ -108,6 +114,21 @@ export function AboutPerf() {
               .join(' · ')}
           />
         )}
+        {report?.notes.map((n) => (
+          <GroupItem key={`note-${n.n}`} title={`${n.tag} · ${n.t} ms`} detail={n.fields} />
+        ))}
+        {report &&
+          numbered(report.picks, SHOWN).map(([n, note]) => (
+            <GroupItem key={`pick-${n}`} title={t('perf.pick', { n })} detail={pickLine(note)} />
+          ))}
+        {report &&
+          numbered(report.videos, SHOWN).map(([n, note]) => (
+            <GroupItem key={`video-${n}`} title={t('perf.video', { n })} detail={videoLine(note)} />
+          ))}
+        {report &&
+          numbered(report.uploads, SHOWN).map(([n, note]) => (
+            <GroupItem key={`upload-${n}`} title={t('perf.upload', { n })} detail={uploadLine(note)} />
+          ))}
         {report && (
           <GroupItem
             key="share"

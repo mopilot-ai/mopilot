@@ -70,7 +70,14 @@ test('compact ACP controls fit narrow panes and retain model, permission and sen
     }, width);
     const geometry = await page.locator('.composer-footer').evaluate((footer) => {
       const box = (selector: string) => footer.querySelector(selector)!.getBoundingClientRect();
-      const left = box('.composer-left'),
+      // the left chips are the footer's own items (.composer-left draws no box of its own): their group is the span they cover
+      const chips = [...footer.querySelectorAll('.composer-left > *')].map((chip) => chip.getBoundingClientRect());
+      const left = {
+          left: Math.min(...chips.map((r) => r.left)),
+          right: Math.max(...chips.map((r) => r.right)),
+          top: Math.min(...chips.map((r) => r.top)),
+          bottom: Math.max(...chips.map((r) => r.bottom)),
+        },
         right = box('.composer-right');
       const label = box('.model-name'),
         modeLabel = box('.acp-mode-trigger > span');

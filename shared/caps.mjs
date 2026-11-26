@@ -47,6 +47,7 @@ export const SEMANTICS = [
   'momoContext',
   'artifacts',
   'remoteControl',
+  'steer',
 ];
 
 /** Why Claude says Fast can't be used on this account (init.fast_mode_disabled_reason). */

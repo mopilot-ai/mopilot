@@ -45,6 +45,8 @@ test.use({
   harnesses: 'claude',
   shellPath: [FAKE_SSH_BIN],
   env: {
+    // this spec is the SSH add sheet: pairing by code (on in development) would put its code dialog first
+    MOPILOT_FLAGS: 'host.codePair=0',
     MOPILOT_HOST_DEV: '1',
     FAKE_HOST_ROOT: ROOT,
     FAKE_HOST_HARNESSES: JSON.stringify(BOX.harnesses),

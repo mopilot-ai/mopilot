@@ -243,9 +243,10 @@ export function OneList({
 }) {
   const v = useFamilyLineage();
   const threads = useStore((s) => s.threads);
+  const rewoundAt = useStore((s) => s.chatRewoundAt);
   const listed = useStore((s) => s.threadOrder);
   const momoChats = useStore((s) => s.momoChats);
-  const roots = familiesOf(v, listed, threads, momoChats, true).roots;
+  const roots = familiesOf(v, listed, threads, momoChats, true, rewoundAt).roots;
   const rank = new Map(roots.map((id, i) => [id, i]));
   const all = groups.flatMap((g) => g.threads.map((t) => ({ t, project: g.name }))).sort((a, b) => rank.get(a.t.id)! - rank.get(b.t.id)!);
   const manual = useStore((s) => s.prefs.chatSort === 'manual');

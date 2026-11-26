@@ -75,7 +75,9 @@ function MachinePicker({ threadId, hostId }: PickerOwner) {
   const models = agent?.models ?? [];
   // a new chat starts on the effort a new local chat of that harness shows (the one resolver the local picker uses: the remembered pick, then Codex's config file) when this machine's model offers it; a started chat keeps its own pick
   const remembered = useStore((s) => (threadId ? null : newChatEffortOf(harness, s)));
-  const selected = hostModelSelection(models, saved, hostId, harness, remembered);
+  // a new chat also starts on the model and effort the last chat started on this machine used, while it is the same agent
+  const last = useStore((s) => (threadId ? null : s.prefs?.hostPicks?.[hostId]));
+  const selected = hostModelSelection(models, saved, hostId, harness, remembered, last?.agent === harness ? last : null);
   const names = machineChoices(models, name);
   const chipLabel = selected.unavailable
     ? selected.model
@@ -111,13 +113,16 @@ function MachinePicker({ threadId, hostId }: PickerOwner) {
     if (threadId) setChatConfig(threadId, { hostSelection: pick });
     else set((s) => (s.newChatHost?.id === hostId ? { newChatHost: { ...s.newChatHost, agent: pick.harness, selection: pick } } : {}));
   };
-  // A new chat whose effort is not the Host's own default (the remembered one, or the shared rule for a Host that reports none): keep it as the pick, so the Host runs what the chip says.
-  const fallbackEffort = selected.model && !saved && selected.effort !== selected.model.defaultEffort ? selected.effort : null;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: save only writes the new-chat pick, and the model's id stands for the model
+  // A new chat whose model or effort is not the Host's own default (the machine's last one, the remembered effort, or the shared rule for a Host that reports none): keep it as the pick, so the Host runs what the chip says.
+  const hostDefault = models.find((m) => m.default) ?? models[0];
+  const fallback =
+    selected.model && !saved && (selected.model.id !== hostDefault?.id || selected.effort !== selected.model.defaultEffort)
+      ? { model: selected.model.id, effort: selected.effort }
+      : null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: save only writes the new-chat pick, and the ids stand for the pick
   useEffect(() => {
-    if (!threadId && fallbackEffort && selected.model && agent?.state === 'ready')
-      save({ hostId, harness, model: selected.model.id, effort: fallbackEffort });
-  }, [threadId, fallbackEffort, selected.model?.id, agent?.state, hostId, harness]);
+    if (!threadId && fallback && agent?.state === 'ready') save({ hostId, harness, model: fallback.model, effort: fallback.effort });
+  }, [threadId, fallback?.model, fallback?.effort, agent?.state, hostId, harness]);
   /** Another agent for this chat: the Host agrees first, and the chip above the composer shows the choice. `pick` names no model for an agent the machine reports none for (its own default). */
   const moveTo = (chatId: string, pick: Parameters<typeof switchMachineChat>[1]) =>
     void switchMachineChat(chatId, pick, name).then((line) => {

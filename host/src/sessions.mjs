@@ -17,7 +17,8 @@ import { HostRefusal } from './hostFs.mjs';
 import { userInput } from '../../shared/userInput.mjs';
 import { convertImage } from './imageDecoder.mjs';
 import { createMomoIsolation } from './momoIsolation.mjs';
-import { createHostSwitcher, folderReader, landsOn, laneChoice, readHold, settlingPick, switchRuntime } from './hostSwitch.mjs';
+import { createHostSwitcher, folderReader, landsOn, readHold, settlingPick, switchRuntime } from './hostSwitch.mjs';
+import { sessionLaneEvent } from './chatState.mjs';
 import { createContinueRuntime } from './continueRuntime.mjs';
 import { goalRuntime } from './goalRuntime.mjs';
 import { createChatRename, dropsTitle } from './chatRename.mjs';
@@ -166,7 +167,7 @@ export function createHostSessions({
   };
   acpHost.on('event', (/** @type {any} */ e) => {
     controller?.onAcpEvent(e);
-    emit(e);
+    if (e.kind !== 'promptSuggestion') emit(e);
   });
   // a chat's goal and background tasks reach the stream as they change in the store (./chatState.mjs)
   const published = sessions.publish;
@@ -174,20 +175,8 @@ export function createHostSessions({
     published.call(sessions, change);
     // a turn that ended or failed without starting the message taken for it leaves that message to the controller (it puts it back, or reports it)
     if (Object.hasOwn(change.patch, 'turn') && !['running', 'awaitingUser'].includes(change.patch.turn)) settled(change.chatId);
-    const { goal, tasks, plan } = change.patch;
-    // the person's choice of another agent, as clients show it (the agent and model, never the credential)
-    const choice = Object.hasOwn(change.patch, 'pendingSwitch') ? { pendingSwitch: laneChoice(change.patch.pendingSwitch) } : {};
-    if (goal !== undefined || tasks !== undefined || typeof plan === 'boolean' || 'pendingSwitch' in choice)
-      emit({
-        kind: 'state',
-        chatId: change.chatId,
-        patch: {
-          ...(goal === undefined ? {} : { goal }),
-          ...(tasks === undefined ? {} : { tasks }),
-          ...(typeof plan === 'boolean' ? { plan } : {}),
-          ...choice,
-        },
-      });
+    const lane = sessionLaneEvent(change);
+    if (lane) emit(lane);
   };
   /** @type {FamilyContext} */
   const ctx = {
