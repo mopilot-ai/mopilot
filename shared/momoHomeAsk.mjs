@@ -38,6 +38,9 @@ const STEP_WORDS = Object.freeze({
   climb_failed: 'MoMo’s new lease could not be brought above the older one. Check again.',
 });
 
+/** What a step list says when the home was stopped before the step: nothing was refused, and it is not told as done. */
+const STOPPED = 'stopped';
+
 /**
  * Runs steps of the shared rules (`decide().steps`, `reviveSteps`, `createSteps`) through its `execute`: a start is repeated up the ladder, and a stand-down is
  * told the lease the start ACTUALLY returned (nobody is stood down when the start failed). The same steps are run once each; a Host too old to know one is left
@@ -47,9 +50,10 @@ const STEP_WORDS = Object.freeze({
  * @param {Set<string>} o.told the step lists already done or refused
  * @param {(error: unknown) => void} o.report
  * @param {() => number} [o.now]
+ * @param {() => boolean} [o.alive] false once the home was stopped: nothing is begun, and the list is not counted as done; but once a call of the list was sent, the rest goes (every rung of a start's climb and the stand-down that follows), or two homes would stay live
  * @returns {(steps: import('./host/momoHomeClient.mjs').Step[], again?: boolean) => Promise<{ ran: boolean, failure: string | null }>}
  */
-export function createSteps({ call, told, report, now = Date.now }) {
+export function createSteps({ call, told, report, now = Date.now, alive = () => true }) {
   /** When a step list that a Host did not know is tried again. @type {Map<string, number>} */
   const retryAt = new Map();
   return async (steps, again = false) => {
@@ -58,7 +62,17 @@ export function createSteps({ call, told, report, now = Date.now }) {
     told.add(key);
     /** @type {unknown} */
     let refusal = null;
+    /** A call of this list was sent: the rest of it goes, whatever happens to the home meanwhile. */
+    let started = false;
+    /** The home was stopped before a group began: what was not sent is left for the next home. */
+    let stopped = false;
     const done = await execute(steps, async (step) => {
+      // a stopped home begins nothing; one that already began finishes (the climb's next rung, the stand-down), or two homes would stay live
+      if (!started && !alive()) {
+        stopped = true;
+        return { ok: false, code: STOPPED };
+      }
+      started = true;
       const { climbTo, own, ...params } = /** @type {any} */ (step.params);
       try {
         const r = await call(step.host, step.call, params);
@@ -72,6 +86,10 @@ export function createSteps({ call, told, report, now = Date.now }) {
       }
     });
     const code = done.ok ? /** @type {any} */ (refusal)?.code : done.code;
+    if (stopped) {
+      told.delete(key);
+      return { ran: false, failure: null };
+    }
     if (!refusal && done.ok) return { ran: steps.length > 0, failure: null };
     if (TRANSPORT.has(code)) {
       told.delete(key);

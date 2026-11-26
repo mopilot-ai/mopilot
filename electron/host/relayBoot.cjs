@@ -10,7 +10,8 @@ const { clock } = require('../platform/ports/clock.cjs');
 const { noteIgnored } = require('../ignored.cjs');
 const { bootCommand, bootScript } = require('./bootScript.cjs');
 const { NO_RELAY } = require('./relayLane.cjs');
-const { createNodePrimitives } = require('../../shared/remote/nodePrimitives.mjs');
+// the app's crypto runs in Electron, whose OpenSSL has no ChaCha20-Poly1305: sodium's (electron/platform/sodiumPrimitives.cjs) is the one that seals there
+const { createSodiumPrimitives } = require('../platform/sodiumPrimitives.cjs');
 const { createCrypto } = require('../../shared/remote/crypto.mjs');
 const { fromBase64, toBase64 } = require('../../shared/remote/envelope.mjs');
 const { enrollKeys, openEnroll, sealEnroll } = require('../../shared/host/relayEnroll.mjs');
@@ -95,7 +96,7 @@ function createRelayBoot({
   bundle,
   updateKeyPem = () => null,
   onChange = () => undefined,
-  prim = createNodePrimitives(),
+  prim = createSodiumPrimitives(),
 }) {
   const c = createCrypto(prim);
   /** @type {BootView} */

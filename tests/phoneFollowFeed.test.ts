@@ -1,11 +1,15 @@
-// A followed chat keeps itself current: a re-read when the live feed cannot be trusted, one at a time with the newest winning, retried with backoff and told to the person only after the last try.
+// A followed chat keeps itself current: a re-read when the live feed cannot be trusted, one at a time with the newest winning, retried with backoff and told to the person only after the last try; a first read that fails is told at once and read again by itself.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 const feedPath = '../mobile/src/presentation/followFeed';
 const catchUpPath = '../mobile/src/catchUp';
 const { startCatchUp, catchingUp, CATCH_UP_MS } = await import(catchUpPath);
-const { RESYNC_MS, RETRY_MS, QUIET_FAILURE, CATCH_UP_FLUSH_MS, FRAME_MS } = await import(feedPath);
+const { RESYNC_MS, RETRY_MS, FIRST_RETRY_MS, QUIET_FAILURE, CATCH_UP_FLUSH_MS, FRAME_MS } = await import(feedPath);
 import { live, rig, snap } from './support/followFeedRig.ts';
+const threadPath = '../mobile/src/presentation/thread';
+const followPath = '../mobile/src/presentation/follow';
+const { UNREADABLE } = await import(threadPath);
+const { COMPUTER_CHANGED } = await import(followPath);
 
 test('the first read is shown; a live event after it updates the rows and never leaves the feed stale', async () => {
   const r = rig([snap({ historyStale: true, liveUnavailable: true })]);
@@ -164,8 +168,8 @@ test('a quiet read that fails is tried again after 1, 2 and 4 seconds, then the 
   assert.equal(r.shown.at(-1)!.reread, true);
 });
 
-test('a first read that fails says so at once, and a refresh then reads the chat', async () => {
-  const r = rig([new Error('No such chat'), snap()]);
+test('a first read that fails because the chat is gone says so at once and is not read again by itself; a refresh then reads the chat', async () => {
+  const r = rig([new Error('No such chat'), snap()], { final: (m: string) => /no such chat/i.test(m) });
   r.feed.start();
   await r.settle();
   assert.deepEqual(r.failed, [{ message: 'No such chat', quiet: false }]);
@@ -416,4 +420,60 @@ test('rows held only as saved history are kept the same way when a quiet re-read
   assert.equal(last.history.length, 1);
   assert.equal(last.rev, 4);
   r.feed.stop();
+});
+
+test('a first read that fails (a relay that hangs) says why at once and is read again by itself after 2, 4 and 8 s, then every 15 s, until one answers (#5686)', async () => {
+  const hung = new Error('The request timed out.');
+  const r = rig([hung, hung, hung, hung, hung, hung, snap()]);
+  r.feed.start();
+  await r.settle();
+  assert.deepEqual(r.failed, [{ message: hung.message, quiet: false }]);
+  assert.equal(r.shown.length, 0);
+  const waits = [...FIRST_RETRY_MS, FIRST_RETRY_MS.at(-1)!];
+  for (const [i, ms] of waits.entries()) {
+    await r.tick(ms - 1);
+    assert.equal(r.reads(), i + 1, `read ${i + 2} waits ${ms} ms`);
+    await r.tick(1);
+    assert.equal(r.reads(), i + 2);
+    assert.equal(r.failed.length, i + 2, 'each failure says why again (the Retry stays)');
+    assert.ok(r.failed.every((f: { quiet: boolean }) => !f.quiet));
+  }
+  // the relay answers: the chat shows, and nothing more is scheduled
+  await r.tick(FIRST_RETRY_MS.at(-1)!);
+  assert.equal(r.reads(), 7);
+  assert.equal(r.shown.length, 1);
+  assert.equal(r.timers(), 0);
+});
+
+test('the person’s Retry while a first read waits to be tried again reads now and starts the waits over; stopping drops the wait', async () => {
+  const boom = new Error('offline');
+  const r = rig([boom, boom, boom, boom]);
+  r.feed.start();
+  await r.settle();
+  await r.tick(FIRST_RETRY_MS[0]);
+  assert.equal(r.reads(), 2);
+  r.feed.refresh();
+  await r.settle();
+  assert.equal(r.reads(), 3, 'read at once');
+  assert.equal(r.timers(), 1);
+  await r.tick(FIRST_RETRY_MS[0]);
+  assert.equal(r.reads(), 4, 'the first wait again, not the third');
+  r.feed.stop();
+  assert.equal(r.timers(), 0);
+});
+
+test('a first read whose answer this phone cannot read, or whose computer changed, says so and is not read again by itself (another read cannot cure it)', async () => {
+  for (const message of [UNREADABLE, COMPUTER_CHANGED]) {
+    const r = rig([new Error(message), snap()]);
+    r.feed.start();
+    await r.settle();
+    assert.deepEqual(r.failed, [{ message, quiet: false }]);
+    assert.equal(r.timers(), 0, message);
+  }
+  // an answer that is not a snapshot fails the read with that message
+  const odd = rig([{ not: 'a snapshot' }]);
+  odd.feed.start();
+  await odd.settle();
+  assert.deepEqual(odd.failed, [{ message: UNREADABLE, quiet: false }]);
+  assert.equal(odd.timers(), 0);
 });

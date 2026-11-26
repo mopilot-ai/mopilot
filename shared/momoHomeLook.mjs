@@ -160,6 +160,7 @@ export async function lookAtHosts({ hosts, look: lookOf, status: statusOf, seen,
     live: asked
       .flatMap((a) => (answerOf(a).kind === 'home' ? [{ id: a.id, .../** @type {any} */ (answerOf(a)) }] : []))
       .map((h) => ({ id: h.id, homeId: h.homeId, leaseEpoch: h.leaseEpoch, name: h.name })),
+    // `decision.older` comes from `asked`, which is one entry per machine of the single `hosts.machines()` read above: each has its machine and its answer
     older: decision.older.map((o) => ({
       machine: /** @type {MachineRecord} */ (machines.find((m) => m.id === o.host)),
       lastActive: o.lastActive,

@@ -11,7 +11,7 @@ import { createCrypto } from '../shared/remote/crypto.mjs';
 import * as E from '../shared/remote/envelope.mjs';
 
 const require = createRequire(import.meta.url);
-const native = require('../electron/remote/sodiumPrimitives.cjs').createSodiumPrimitives();
+const native = require('../electron/platform/sodiumPrimitives.cjs').createSodiumPrimitives();
 const authError = '[react-native-libsodium][crypto_aead_xchacha20poly1305_ietf_decrypt] crypto_aead_xchacha20poly1305_ietf_decrypt failed';
 // Stand-in has the 1.7.0 JS API and delegates crypto to the desktop's native sodium implementation.
 const sodium = {

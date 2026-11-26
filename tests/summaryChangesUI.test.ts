@@ -10,6 +10,7 @@ const store = fakeStore({ threads: { chat: { cwd: '/repo' } }, runtime: { chat: 
 const fixture = { files: [{ added: 12, removed: 3 }], scope: [] as string[], fail: false };
 stubStore(store.exports);
 installNativeStub({
+  codex: { onItem: () => () => {}, onStatus: () => () => {}, api: async () => ({ data: [] }) },
   // main's context snapshots (src/session/useContextSnapshot.ts): none known
   context: { get: async () => null, refresh: async () => null, onSnapshot: () => () => {} },
   git: {

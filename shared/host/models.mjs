@@ -31,11 +31,14 @@ export const modelDefaultEffort = (model) => model.defaultEffort ?? defaultEffor
 /**
  * @param {MachineModel[]} models @param {HostModelPick | null | undefined} pick @param {string} hostId @param {string} harness
  * @param {string | null} [remembered] the effort a new chat of this harness remembers on this Mac (its prefs); used only with no pick of its own, and only when the model offers it
+ * @param {{ model?: string, effort?: string | null } | null} [last] what the last chat started on this machine with this harness used (prefs.hostPicks): with no pick of its own, its model while the machine still lists it, and its effort while that model still offers it; a stale one falls back quietly, never "unavailable"
  */
-export function hostModelSelection(models, pick, hostId, harness, remembered = null) {
+export function hostModelSelection(models, pick, hostId, harness, remembered = null, last = null) {
   const own = pick?.hostId === hostId && pick.harness === harness ? pick : null;
-  const model = (own ? models.find((m) => m.id === own.model) : (models.find((m) => m.default) ?? models[0])) ?? null;
-  const kept = !own && remembered && model?.efforts.includes(remembered) ? remembered : null;
+  const lastModel = !own && last?.model ? models.find((m) => m.id === last.model) : undefined;
+  const model = (own ? models.find((m) => m.id === own.model) : (lastModel ?? models.find((m) => m.default) ?? models[0])) ?? null;
+  const lastEffort = lastModel && last?.effort && lastModel.efforts.includes(last.effort) ? last.effort : null;
+  const kept = own ? null : (lastEffort ?? (remembered && model?.efforts.includes(remembered) ? remembered : null));
   const effort =
     model && own?.effort && model.efforts.includes(own.effort) ? own.effort : (kept ?? (model ? modelDefaultEffort(model) : null));
   return { model, effort, unavailable: !!own && (!model || (!!own.effort && !model.efforts.includes(own.effort))) };

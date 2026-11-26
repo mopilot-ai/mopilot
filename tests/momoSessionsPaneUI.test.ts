@@ -26,7 +26,7 @@ let world: any = EMPTY;
 let hostOwners = new Map<string, string>();
 let hostAnswered = true;
 let machines: any[] = [];
-const reads = { family: 0 };
+const reads = { family: 0, rewoundAt: undefined as Record<string, number> | undefined };
 const opened: any[] = [];
 const ensured: string[] = [];
 const saved: any[] = [];
@@ -55,7 +55,11 @@ mockSource('src/store/session/useSession.ts', {
 mockSource('src/session/harness/claude/desktopLineage.ts', { useSidebarLineage: () => ({}), useFamilyLineage: () => ({}) });
 mockSource('src/lib/sidebarFamilyIndex.ts', {
   // a root the threads no longer hold (removed between the list and this read) is left out
-  familiesOf: (_v: unknown, order: string[]) => (reads.family++, { roots: [...order.filter((id) => id !== 'child'), 'ghost'] }),
+  familiesOf: (_v: unknown, order: string[], _threads: unknown, _momo: unknown, _sorted: boolean, rewoundAt?: Record<string, number>) => {
+    reads.family++;
+    reads.rewoundAt = rewoundAt;
+    return { roots: [...order.filter((id) => id !== 'child'), 'ghost'] };
+  },
 });
 mockSource('src/lib/hostChats.ts', {
   useHostChats: () => ({ owners: hostOwners, status: 'ready', answered: hostAnswered }),
@@ -126,6 +130,7 @@ test('the Sessions button is there only with `momo.sessions`, and is the third a
 
 test('the pane lists the other chats in the design’s groups with their harness and place, in list order, and leaves out MoMo’s own, children and quiet chats', async () => {
   reset();
+  world.chatRewoundAt = { 'claude:a': 12 };
   const r = await open();
   assert.equal(pane(r).querySelector('h2')!.textContent, 'Sessions');
   assert.deepEqual(
@@ -134,6 +139,7 @@ test('the pane lists the other chats in the design’s groups with their harness
   );
   const rows = [...pane(r).querySelectorAll('[data-session-row]')].map((b: any) => [b.dataset.sessionRow, b.textContent]);
   assert.deepEqual([...new Set(ensured)].sort(), ['acp:kimi:c', 'claude:a', 'codex-b', 'ghost', 'momo:main', 'quiet']);
+  assert.equal(reads.rewoundAt, world.chatRewoundAt);
   assert.deepEqual(rows, [
     ['claude:a', 'Chat claude:aClaude Code · This Mac'],
     ['codex-b', 'Chat codex-bCodex · Studio'],

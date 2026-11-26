@@ -10,11 +10,14 @@ export type PushPayload = {
   /** MoMo's opt-in body (`sb`), sealed on the Mac; only on a momoNeedsYou. */
   sealedBody?: string;
   card?: string;
+  /** The lease of the MoMo home that sent it, sealed for this phone under the Host enrollment's key (`ss`): the relay forwards it unread, and the phone alone opens it and refuses an old home's push. */
+  sealedStamp?: string;
   requestId?: string;
 };
 // `requestId` is set after a Host card blob opened (the controller adds it), never read from the wire.
 
 const MAX_REF = 128;
+const MAX_STAMP = 256; // a sealed stamp is far under it (shared/remote/stampSeal.mjs)
 const MAX_SEALED = 2048; // the relay forwards at most this much (relay/src/pushPayload.mjs)
 
 const text = (value: unknown, max: number) => (typeof value === 'string' && value.length > 0 && value.length <= max ? value : undefined);
@@ -32,6 +35,7 @@ export function parsePushPayload(data: unknown): PushPayload | null {
     count: Number.isSafeInteger(count) && count >= 1 && count <= 99 ? count : 1,
     sealedTitle: text(raw.st, MAX_SEALED),
     ...(raw.kind === 'momoNeedsYou' && text(raw.card, MAX_REF) ? { card: text(raw.card, MAX_REF) } : {}),
+    ...(raw.kind === 'momoNeedsYou' && text(raw.ss, MAX_STAMP) ? { sealedStamp: text(raw.ss, MAX_STAMP) } : {}),
     ...(raw.kind === 'momoNeedsYou' && text(raw.sb, MAX_SEALED) ? { sealedBody: text(raw.sb, MAX_SEALED) } : {}),
   };
 }

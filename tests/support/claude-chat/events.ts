@@ -18,6 +18,21 @@ import {
 } from './fixture.ts';
 
 export function registerEvents() {
+  test('Claude activity from main uses the native session even when the local turn has a different automatic id', () => {
+    const id = claudeThreadId('automatic');
+    fx.state.threads[id] = { id, updatedAt: 1, preview: '' };
+    fx.state.runtime[id] = { turns: [], activeTurnId: 'auto-local' };
+    onEvent({ kind: 'message', key: id, msg: reply('background result'), activityAt: 2 });
+    assert.deepEqual(called('touchChat'), [[id, undefined, 2]]);
+    assert.equal(fx.state.threads[id].recencyAt, 2);
+    fx.state.segments[id] = [
+      { harness: 'claude', nativeId: id },
+      { harness: 'codex', nativeId: 'replacement' },
+    ];
+    onEvent({ kind: 'message', key: id, msg: reply('retired result'), activityAt: 3 });
+    assert.equal(fx.state.threads[id].recencyAt, 2);
+  });
+
   test('events about logins, limits, goals, approvals and toasts', () => {
     const chat = claudeThreadId('ev-1');
     onEvent({ kind: 'toast', text: 'hello', level: 'info' });

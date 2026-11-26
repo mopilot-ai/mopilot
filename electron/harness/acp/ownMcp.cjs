@@ -77,9 +77,9 @@ class OwnMcp {
   }
 
   /** What Settings and the chat's note show for a harness. */
-  status(harness) {
+  status(harness, readOnly = false) {
     // a restart that waited on a session still opening, or on a start that failed, goes once nothing is working
-    if (this.pending.has(harness)) this.apply(harness);
+    if (!readOnly && this.pending.has(harness)) this.apply(harness);
     const q = this.o.quirksOf(harness);
     const choice = choiceOf(this.o.prefs(), harness);
     // a server's entry (its command, arguments, URL) stays in main: Settings is told only whether the gateway runs it

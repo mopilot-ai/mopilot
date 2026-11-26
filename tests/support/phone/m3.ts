@@ -88,11 +88,23 @@ export function scripted(
   return { runtime, calls, state };
 }
 
+/** What the library picker returns for a test's `library` override: one photo, none (null), a list, or `{ picked, refused }` as it is. */
+const chosen = (value: any) =>
+  value === null
+    ? { picked: [], refused: [] }
+    : Array.isArray(value)
+      ? { picked: value, refused: [] }
+      : value.picked
+        ? value
+        : { picked: [value], refused: [] };
+
 export function fakeMedia(over: Record<string, any> = {}) {
   const log: string[] = [];
+  /** The room the sheet asked the library picker for, one entry per open. */
+  const rooms: number[] = [];
   const photo = { name: 'photo.jpg', mime: 'image/jpeg', base64: 'QUJD' };
   const media = {
-    library: async () => (log.push('library'), over.library === undefined ? photo : over.library),
+    library: async (room: number) => (log.push('library'), rooms.push(room), chosen(over.library === undefined ? photo : over.library)),
     camera: async () => {
       log.push('camera');
       if (over.cameraError) throw new Error(over.cameraError);
@@ -120,5 +132,5 @@ export function fakeMedia(over: Record<string, any> = {}) {
       if (over.cancelError) throw new Error('x');
     },
   };
-  return { media, log };
+  return { media, log, rooms };
 }

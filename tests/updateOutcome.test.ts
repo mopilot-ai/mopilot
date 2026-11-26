@@ -6,7 +6,9 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 
-const { reportInstalledVersion, updateFailure, failureWatcher } = createRequire(import.meta.url)('../electron/updates/outcome.cjs');
+const { recordActivation, reportInstalledVersion, takeActivationFailure, updateFailure, failureWatcher } = createRequire(import.meta.url)(
+  '../electron/updates/outcome.cjs',
+);
 
 function scratch(t: TestContext) {
   const userData = mkdtempSync(path.join(os.tmpdir(), 'update-outcome-'));
@@ -16,6 +18,26 @@ function scratch(t: TestContext) {
     reportInstalledVersion({ userData: dir, version, channel: 'beta', track: (...a: unknown[]) => tracked.push(a) });
   return { userData, tracked, start };
 }
+
+test('accepted activation reports the offered version once when the previous app reopens', (t) => {
+  const { userData } = scratch(t);
+  recordActivation(userData, '2.0.0', 'beta');
+  assert.deepEqual(takeActivationFailure(userData, '1.0.0'), { stage: 'install', version: '2.0.0', channel: 'beta' });
+  assert.equal(takeActivationFailure(userData, '1.0.0'), null);
+  recordActivation(userData, '2.0.0', 'beta');
+  assert.equal(takeActivationFailure(userData, '2.0.0'), null);
+  recordActivation(path.join(userData, 'missing'), '2.0.0', 'beta');
+  for (const bad of [
+    'invalid',
+    '{}',
+    '{"version":"invalid","channel":"beta"}',
+    '{"version":"3.0.0"}',
+    '{"version":"3.0.0","channel":"other"}',
+  ]) {
+    writeFileSync(path.join(userData, 'pending-mac-update.json'), bad);
+    assert.equal(takeActivationFailure(userData, '2.0.0'), null);
+  }
+});
 
 test('a first install reports nothing; a new version reports once, with where it came from', (t) => {
   const { tracked, start } = scratch(t);
@@ -63,6 +85,14 @@ test('a failure is read from how the updater left a stage', () => {
     updateFailure({ status: 'installing', error: null }, { status: 'ready', error: 'no restart', available: { version: '2.0.0' } }),
     { stage: 'install', version: '2.0.0' },
   );
+  assert.deepEqual(updateFailure({ status: 'installing', available: { version: '2.0.0' } }, { status: 'error', error: 'handoff failed' }), {
+    stage: 'install',
+    version: '2.0.0',
+  });
+  assert.deepEqual(updateFailure({ status: 'installing' }, { status: 'error', error: 'handoff failed' }), {
+    stage: 'install',
+    version: undefined,
+  });
 });
 
 test('a failed check, a kept warning, and finishing cleanly are not failures', () => {

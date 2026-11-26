@@ -12,6 +12,16 @@ class HostError extends Error {
   }
 }
 
+/** A call that cannot be served now: the tunnel is down or reconnecting, or the connection broke under it. */
+class HostUnreachableError extends HostError {
+  /** @param {string} hostId @param {string} reason */
+  constructor(hostId, reason) {
+    super(/** @type {any} */ ('host_unreachable'), `The host is unreachable: ${reason}`);
+    this.hostId = hostId;
+    this.reason = reason;
+  }
+}
+
 /** What the machine running this Host can do for a chat. The local Host runs in the app, so it can do all of it. */
 function localHostInfo() {
   return { id: 'local', kind: 'local', capabilities: { iab: true, cu: true, bu: true, shell: true } };
@@ -36,4 +46,4 @@ function assertHost(host) {
   return host;
 }
 
-module.exports = { HOST_METHODS, HostError, localHostInfo, ownedChat, assertHost };
+module.exports = { HOST_METHODS, HostError, HostUnreachableError, localHostInfo, ownedChat, assertHost };

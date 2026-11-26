@@ -15,15 +15,18 @@ const agentOf = (harness) => (typeof harness === 'string' && harness.startsWith(
  * @param {H} host a remote Host speaking the Host's own chat ids (remote.cjs)
  * @param {{ forHarness: (harness: string) => string | null }} keys
  * @param {{ lend: (host: any, harness: string) => Promise<boolean> }} [org] the organization's lease (orgAccess/service.cjs), used before a key when there is one
- * @returns {H}
+ * @param {boolean} [controlledByCode] this Mac only controls that one (paired by code): it takes no key, lease, policy or tasks from this one and runs chats on its own sign-in, so its `forbidden` is that and nothing else
+ * @returns {H & { controlledByCode: boolean }}
  */
-function withCredentials(host, keys, org = NO_ORG) {
+function withCredentials(host, keys, org = NO_ORG, controlledByCode = false) {
   /** An organization lease first; a Host without the feature runs the chat on the key or its own sign-in. A sign-in that ended throws, and the message waits for it. @param {string} harness */
   const lendOrg = async (harness) => {
     try {
       return await org.lend(host, harness);
     } catch (e) {
-      if (/** @type {any} */ (e)?.code === 'feature_missing') return false;
+      // feature_missing: a Host without leases; forbidden from a Mac this one only controls (paired by code): it runs the chat on its own sign-in
+      const code = /** @type {any} */ (e)?.code;
+      if (code === 'feature_missing' || (code === 'forbidden' && controlledByCode)) return false;
       throw e;
     }
   };
@@ -37,13 +40,15 @@ function withCredentials(host, keys, org = NO_ORG) {
     try {
       await host.modelKey({ harness, key: keys.forHarness(harness) });
     } catch (e) {
-      // feature_missing: a Host without keys; invalid: one that takes no key for this agent yet (an older build): either runs the chat on its own sign-in
+      // feature_missing: a Host without keys; invalid: one that takes no key for this agent yet (an older build); forbidden: a Mac this one
+      // only controls (paired by code), which takes no key from it: each runs the chat on its own sign-in
       const code = /** @type {any} */ (e)?.code;
-      if (code !== 'feature_missing' && code !== 'invalid') throw e;
+      if (code !== 'feature_missing' && code !== 'invalid' && !(code === 'forbidden' && controlledByCode)) throw e;
     }
   };
   return {
     ...host,
+    controlledByCode,
     start: async (chatId, item, opts) => (await lend(familyOf(item?.harness), agentOf(item?.harness)), host.start(chatId, item, opts)),
     // the agent a chat is moved to gets its key before the Host judges it ready (one that is installed and signed out runs on a lent key)
     switchTo: async (chatId, pick, opts) => (

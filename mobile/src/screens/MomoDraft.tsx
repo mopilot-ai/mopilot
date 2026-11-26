@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Linking, Share, Text, TextInput, View } from 'react-native';
 import Animated, { Easing, FadeIn, useReducedMotion } from 'react-native-reanimated';
+import { ButtonRow } from './ButtonRow';
 import { Tap } from '../ui/ds/Tap';
 import { Icon } from '../components/Icon';
 import { copyText } from '../platform/clipboard';
@@ -186,7 +187,7 @@ export function DraftCard({ draft, send = null }: { draft: Draft; send?: Send | 
           ))}
         </View>
       ) : (
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+        <ButtonRow top={4}>
           {editing ? (
             <>
               <Pill title={t('momoDraft.cancel')} onPress={cancel} />
@@ -206,14 +207,14 @@ export function DraftCard({ draft, send = null }: { draft: Draft; send?: Send | 
               ) : null}
             </>
           )}
-        </View>
+        </ButtonRow>
       )}
       {choosing && !editing && !send ? (
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <ButtonRow top={0}>
           {view.options.map((pick) => (
             <Pill key={pick} title={t(`momoDraft.pick_${pick}`)} onPress={() => void open(pick)} />
           ))}
-        </View>
+        </ButtonRow>
       ) : null}
       {line ? (
         <Text

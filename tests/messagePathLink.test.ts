@@ -3,6 +3,7 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
+import { remoteCwd } from '../src/lib/remotePaths.ts';
 import { autoMock, render, settle, callsTo, moduleCalls, native } from './support/thread-kit.ts';
 
 autoMock('src/session/open.ts', 'open');
@@ -91,5 +92,73 @@ test("a click's lookup is the link's own: a file gone by the click turns the lin
   assert.equal(v.$('a'), null);
   assert.equal(v.$('code')!.textContent, 'MoPilot_film_9x16.mp4');
   answers['MoPilot_film_9x16.mp4'] = { path: '/repo/MoPilot_film_9x16.mp4', kind: 'file' };
+  await v.unmount();
+});
+
+const showLink = async (href: string | undefined, cwd = '/repo') => {
+  const { MessageLink } = await import('../src/components/markdown/MessagePathLink.tsx');
+  const v = await render(h(MessageLink, { href, cwd, children: 'words' }));
+  await settle();
+  return v;
+};
+
+test('a Markdown link to a file that is there: the path menu on a right-click, with Open with default app; a click opens it as a link', async () => {
+  const v = await showLink('src/a.ts#L12');
+  const link = v.$('a')!;
+  assert.equal(link.getAttribute('href'), 'src/a.ts#L12');
+  assert.equal(link.title, 'src/a.ts#L12');
+  assert.equal(link.textContent, 'words');
+  assert.equal(link.getAttribute('data-menu-for'), '/repo/src/a.ts');
+  await settle(() => link.click());
+  const [href, cwd, , asUrl] = callsTo('open:openMessageLink')[0];
+  assert.deepEqual([href, cwd, asUrl], ['src/a.ts#L12', '/repo', true]);
+  await settle(() => v.$('[data-item="Open with default app"]')!.click());
+  assert.deepEqual(callsTo('open:openFile'), [['/repo/src/a.ts']]);
+  await v.unmount();
+});
+
+test('a Markdown link to a folder has the path menu without a default-app item', async () => {
+  const v = await showLink('~/Downloads/MoPilot_film_v2/');
+  assert.equal(v.$('a')!.getAttribute('data-menu-for'), '/Users/me/Downloads/MoPilot_film_v2');
+  assert.equal(v.$('[data-menu] [data-item]'), null);
+  await v.unmount();
+});
+
+test('a web link, a file that is not there, a link on a machine and a link without an address have no path menu; the link stays the same element', async () => {
+  const asked: string[] = [];
+  const real = native.fs.messagePath;
+  native.fs.messagePath = async (p: string) => (asked.push(p), real(p));
+  for (const [href, cwd] of [
+    ['https://example.com/src/a.ts', '/repo'],
+    ['src/missing.ts', '/repo'],
+    ['src/a.ts', remoteCwd('m1', '/repo')],
+    [undefined, '/repo'],
+  ] as const) {
+    const v = await showLink(href, cwd);
+    const link = v.$('a')!;
+    assert.equal(link.getAttribute('data-menu-for'), null, String(href));
+    assert.equal(v.$('[data-menu]'), null, String(href));
+    await settle(() => link.click());
+    await v.unmount();
+  }
+  // only the local path was looked up; the link with no address opens nothing
+  assert.deepEqual(asked, ['src/missing.ts']);
+  assert.deepEqual(
+    callsTo('open:openMessageLink').map((c) => c[0]),
+    ['https://example.com/src/a.ts', 'src/missing.ts', 'src/a.ts'],
+  );
+  native.fs.messagePath = real;
+});
+
+test('a link whose file appears gets the menu on the element it already was', async () => {
+  const { lookupMessagePath } = await import('../src/lib/messagePaths.ts');
+  const v = await showLink('later.md');
+  const link = v.$('a')!;
+  assert.equal(link.getAttribute('data-menu-for'), null);
+  answers['later.md'] = { path: '/repo/later.md', kind: 'file' };
+  await settle(() => lookupMessagePath('later.md', '/repo'));
+  assert.equal(v.$('a'), link);
+  assert.equal(link.getAttribute('data-menu-for'), '/repo/later.md');
+  delete answers['later.md'];
   await v.unmount();
 });

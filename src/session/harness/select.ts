@@ -241,6 +241,40 @@ export function setSelection(h: HarnessId, patch: Partial<Selection>, threadId?:
   setPrefs(p);
 }
 
+/** What the user picked in a new chat's composer, for the draft (by its harness revision) it was picked in. */
+let draftPick: { rev: number; h: HarnessId; sel: Selection } | null = null;
+/** The open draft's own pick, which outlasts picks elsewhere and a fixed default (src/session/newChatStart.ts), or null. */
+export const draftPicked = (s: AppState = getState()) => (draftPick?.rev === s.newChatHarnessRevision ? draftPick : null);
+export const clearDraftPick = () => void (draftPick = null);
+/** setSelection from a composer: in a new chat's draft the pick is the draft's until a chat starts from it. */
+export function composerSelect(h: HarnessId, patch: Partial<Selection>, threadId: string | null) {
+  setSelection(h, patch, threadId);
+  if (!threadId) draftPick = { rev: getState().newChatHarnessRevision, h, sel: selectionFor(h) };
+}
+
+/**
+ * A message sent in a Codex or Claude chat makes its own model and effort the ones later new chats on that harness start
+ * with (src/session/newChatStart.ts). A chat on the defaults, about to switch harness, or on MoMo's brain changes nothing.
+ */
+export function rememberChatSelection(threadId: string) {
+  const s = getState();
+  const pending = heldSwitch(threadId);
+  if (codexOwnsSelection('codex', threadId, pending)) {
+    const next = codexChatSelection(s.prefs, s.chatConfig[threadId]);
+    const same = next.model === s.prefs.model && next.effort === s.prefs.effort && next.serviceTier === s.prefs.serviceTier;
+    if (!same) setPrefs(next);
+    return;
+  }
+  if (!ownsSelection('claude', threadId, pending) || pinnedModel('claude', threadId, s, pending)) return;
+  const own = knownClaudeSettings(s.runtime[threadId]?.settings, s.chatConfig[threadId]);
+  if (!own) return;
+  const defaults = s.prefs.claudeSelection;
+  const mine = claudeOwnSelection(own, s.chatConfig[threadId], harnessModels('claude', s), defaults);
+  const effort = mine.effort ?? defaults.effort;
+  if (mine.model !== defaults.model || effort !== defaults.effort)
+    setPrefs({ claudeSelection: { ...defaults, model: mine.model, effort } });
+}
+
 /** The family the composer targets: a pending switch's harness, the chat's own, or the new-chat default (a basic harness included). */
 export const composerFamily = (threadId: string | null, s: AppState = getState()): HarnessFamily =>
   familyWith(threadId, sessionOf(threadId).pendingSwitch?.harness, s);

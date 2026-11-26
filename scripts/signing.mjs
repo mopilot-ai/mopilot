@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { ADHOC_REQUIREMENT, HELPER_NAME } from './build-helper.mjs';
 import { SAGE_MCP_IDENTIFIER } from './build-sage-mcp.mjs';
 import { AUTH_COMMAND_IDENTIFIER } from './build-auth-command.mjs';
+import { CODE_PAIR_APPROVE_IDENTIFIER } from './build-code-pair-approve.mjs';
 import { DISCLAIM_IDENTIFIER } from './build-disclaim.mjs';
+import { UPDATE_INSTALL_IDENTIFIER } from './build-update-install.mjs';
 import { CORE_BUILDS, HOST_CORE_ADDON } from '../shared/host/coreBuild.mjs';
 import edition from '../shared/edition.json' with { type: 'json' };
 
@@ -21,7 +23,9 @@ export const ENTITLEMENTS = {
   helper: path.join(root, 'build/entitlements.helper.plist'),
   sageMcp: path.join(root, 'build/entitlements.sage-mcp.plist'),
   authCommand: path.join(root, 'build/entitlements.auth-command.plist'),
+  codePairApprove: path.join(root, 'build/entitlements.code-pair-approve.plist'),
   disclaim: path.join(root, 'build/entitlements.disclaim.plist'),
+  updateInstall: path.join(root, 'build/entitlements.update-install.plist'),
 };
 
 /**
@@ -178,8 +182,22 @@ function fileSignOptions(filePath, appEntitlements, adHoc) {
       additionalArguments: ['--identifier', AUTH_COMMAND_IDENTIFIER],
     };
   }
+  if (filePath.endsWith('/Contents/Helpers/code-pair-approve')) {
+    return {
+      hardenedRuntime: true,
+      entitlements: ENTITLEMENTS.codePairApprove,
+      additionalArguments: ['--identifier', CODE_PAIR_APPROVE_IDENTIFIER],
+    };
+  }
   if (filePath.endsWith('/Contents/Helpers/disclaim')) {
     return { hardenedRuntime: true, entitlements: ENTITLEMENTS.disclaim, additionalArguments: ['--identifier', DISCLAIM_IDENTIFIER] };
+  }
+  if (filePath.endsWith('/Contents/Helpers/update-install')) {
+    return {
+      hardenedRuntime: true,
+      entitlements: ENTITLEMENTS.updateInstall,
+      additionalArguments: ['--identifier', UPDATE_INSTALL_IDENTIFIER],
+    };
   }
   return { hardenedRuntime: true, entitlements: appEntitlements };
 }
@@ -195,6 +213,8 @@ export function nestedCodePaths(appPath) {
     sageMcp: path.join(helpers, 'sage-mcp'),
     authCommand: path.join(helpers, 'auth-command'),
     disclaim: path.join(helpers, 'disclaim'),
+    updateInstall: path.join(helpers, 'update-install'),
+    codePairApprove: path.join(helpers, 'code-pair-approve'),
     passkeys: path.join(helpers, 'passkeys.node'),
   };
 }

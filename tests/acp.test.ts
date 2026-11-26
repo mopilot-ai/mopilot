@@ -101,6 +101,7 @@ test('initialize, session/new with sage-mcp, a streamed reply, and the transcrip
   const init = agentLog().find((l: any) => l.kind === 'in' && l.msg.method === 'initialize');
   assert.equal(init.msg.params.protocolVersion, 1);
   assert.deepEqual(init.msg.params.clientCapabilities, {
+    session: { promptSuggestions: {} },
     fs: { readTextFile: true, writeTextFile: true },
     terminal: true,
     elicitation: { form: {} },

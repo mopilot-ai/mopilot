@@ -10,9 +10,11 @@ import { QuickChatSender, quickChatSends } from '../../lib/quickChat';
 import { boot } from '../../store/boot';
 import { useStore, get as getState } from '../../store/core';
 import { createChatThread, interrupt } from '../../store/send';
-import { resetNewChatDefaults, clearNewChatProject, anyHarnessUsable, harnessesChecking } from '../../store/chats';
+import { resetNewChatDefaults, clearNewChatProject, anyHarnessUsable, harnessesChecking, chatKind } from '../../store/chats';
+import { applyNewChatDefault, rememberUsedChat } from '../../session/newChatStart';
 import { navigate } from '../../store/panes';
 import { chatProxy } from '../../harness/adapters/proxy';
+import { usedReceipt } from '../../../shared/sendReceipt.mjs';
 import { useResolvedDark } from '../markdown/Markdown';
 import { ModelPicker } from '../harnessPicker/HarnessPicker';
 import { ThreadView } from '../thread/ThreadView';
@@ -59,6 +61,7 @@ export function Mini() {
       ([, saved]) => {
         if (!alive) return;
         resetNewChatDefaults();
+        applyNewChatDefault();
         clearNewChatProject();
         setText(saved.text);
         if (saved.threadId) navigate({ name: 'thread', id: saved.threadId });
@@ -144,7 +147,12 @@ export function Mini() {
           await save();
           return id;
         },
-        (id, value, requestId) => chatProxy.send(id, value, [], { human: true }, getState().prefs.followUp, requestId),
+        // a message main used makes its chat the last used, as one sent from the main window does
+        (id, value, requestId) =>
+          chatProxy.send(id, value, [], { human: true }, getState().prefs.followUp, requestId).then((receipt) => {
+            if (usedReceipt(receipt)) rememberUsedChat(id, chatKind(id));
+            return receipt;
+          }),
       );
       // never null here: submit already checked the text, and `submitting` keeps the sender free
       setText('');
@@ -164,6 +172,7 @@ export function Mini() {
     setError(null);
     if (!(await saved({ threadId: null, text: '' }))) return;
     resetNewChatDefaults();
+    applyNewChatDefault();
     clearNewChatProject();
     navigate({ name: 'home' });
     setText('');

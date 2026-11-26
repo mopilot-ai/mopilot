@@ -50,7 +50,9 @@ test('at large text the computer’s name on its card and a chat title cut to on
     online,
   );
   s.runtime.start = async () => {};
-  const v = await mount(createElement(MobileApp, { runtime: s.runtime, media: { library: async () => null } as any }));
+  const v = await mount(
+    createElement(MobileApp, { runtime: s.runtime, media: { library: async () => ({ picked: [], refused: [] }) } as any }),
+  );
   const lines = (text: string) => {
     const n = [...v.host.querySelectorAll('span')].find((span) => span.textContent === text)!;
     return n.getAttribute('numberoflines') ?? n.getAttribute('numberOfLines');
@@ -113,11 +115,12 @@ const FIXED_HEIGHTS = new Set([
   'screens/MomoPage.tsx:56', // the round mark on MoMo's page, holding the spark (a drawing, not text)
   'screens/MomoCapsule.tsx:7', // the status capsule's dot
   'screens/Momo.tsx:48', // the glass capsule that holds the ⋯ glyph
-  'screens/MomoChat.tsx:40', // MoMo's round send and stop buttons: glyphs that do not scale
-  'screens/MomoVoice.tsx:40', // MoMo's round microphone, Cancel and Stop buttons: glyphs that do not scale
+  'screens/MomoChat.tsx:44', // MoMo's round send and stop buttons: glyphs that do not scale
+  'screens/MomoVoice.tsx:44', // MoMo's round microphone, Cancel and Stop buttons: glyphs that do not scale
   'screens/NewChat.tsx:8', // the computer chip's state dot
   'components/MachineSheets.tsx:8', // a machine's state dot
   'components/Segmented.tsx:1', // the selected pill's shadow offset, not a box
+  'remote/useEndMeasure.ts:0', // the list's end marker: a view with no content that only says where the rows end, so no text to grow
 ]);
 
 test('fixed heights are only dots, handles, the camera view and round buttons that hold a glyph that does not scale', () => {

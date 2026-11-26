@@ -1,8 +1,10 @@
 // The sidebar's project sections (grouping, naming inline, the Section submenu) and the Projects header options menu.
 import { useStore, set as setState, setPrefs } from '../../store/core';
+import { useHostAccess } from '../../lib/host';
 import { Menu, MenuItem, MenuSeparator, SubMenu, Tooltip, useAnchor } from '../ui/Popover';
 import { ArrowUpDown, LayoutList, Rows3, Ellipsis, X } from '../ui/icons';
 import type { AppState } from '../../store/state';
+import { DEFAULT_PREFS } from '../../store/types';
 import { cancelOnEscape, isEnter } from '../../lib/focus';
 
 export const EMPTY_SECTIONS: { id: string; name: string }[] = [];
@@ -101,8 +103,10 @@ export function SectionLabel({ section, sections }: { section: { id: string; nam
 export function SidebarOptions() {
   const m = useAnchor();
   const organize = useStore((s) => s.prefs.sidebarOrganize ?? 'project');
+  // the machine view needs Host: without it the item is not offered
+  const hostOn = useHostAccess();
   const sort = useStore((s) => s.prefs.chatSort ?? 'updated');
-  const projectSort = useStore((s) => s.prefs.projectSort ?? 'updated');
+  const projectSort = useStore((s) => s.prefs.projectSort ?? DEFAULT_PREFS.projectSort);
   const showHarness = useStore((s) => s.prefs.showChatHarness ?? false);
   return (
     <>
@@ -119,6 +123,11 @@ export function SidebarOptions() {
           <MenuItem checked={organize === 'list'} onSelect={() => setPrefs({ sidebarOrganize: 'list' })}>
             In one list
           </MenuItem>
+          {hostOn && (
+            <MenuItem checked={organize === 'machine'} onSelect={() => setPrefs({ sidebarOrganize: 'machine' })}>
+              By machine
+            </MenuItem>
+          )}
         </SubMenu>
         <SubMenu icon={<ArrowUpDown size={15} />} label="Project order">
           <MenuItem checked={projectSort === 'custom'} onSelect={() => setPrefs({ projectSort: 'custom' })}>

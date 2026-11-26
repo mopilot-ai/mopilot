@@ -5,7 +5,7 @@ const { SEMANTICS, resolveCaps, present } = require('../../shared/caps.mjs');
 const { gatewayEntry, gatewayDrops } = require('../../shared/mopilotCaps.mjs');
 const { harnessOff, channelKey } = require('../../shared/killSwitch.cjs');
 const { claudeProbes } = require('../harness/versions.cjs');
-const { codexBindings, claudeBindings, acpBindings, PROBES_FOR } = require('../harness/bindings.cjs');
+const { codexBindings, claudeBindings, acpBindings, machineBindings, PROBES_FOR } = require('../harness/bindings.cjs');
 const { noteIgnored } = require('../ignored.cjs');
 const { parseKind } = require('../../shared/harnessKind.mjs');
 const { chatModelChoice, effectiveModel } = require('../../shared/modelChoice.mjs');
@@ -329,8 +329,8 @@ function view(b) {
 
 /**
  * The pure part: everything the layers need, already gathered. Returns { semantic: {state, via, why?, fix?} }.
- * @param {Omit<import('../../shared/caps.mjs').CapsInput, 'tier' | 'bindings' | 'probesFor'> & { kind: string, acp?: Parameters<typeof acpBindings>[0] }} i
- *   kind: 'codex' | 'claude' | 'acp:<id>'; acp: a basic harness's session (modes, config options) and plan
+ * @param {Omit<import('../../shared/caps.mjs').CapsInput, 'tier' | 'bindings' | 'probesFor'> & { kind: string, acp?: Parameters<typeof acpBindings>[0], agent?: unknown }} i
+ *   kind: 'codex' | 'claude' | 'acp:<id>'; acp: a basic harness's session (modes, config options) and plan; agent: the Host's agent of a chat on a machine
  */
 function computeCaps(i) {
   const fam = familyCaps(i.kind);
@@ -341,7 +341,7 @@ function computeCaps(i) {
     if (probes.every((p) => i.negotiated && p in i.negotiated.probes)) probesFor[s] = probes;
   const caps = resolveCaps({
     tier: fam.tier,
-    bindings: fam.bindings(i),
+    bindings: machineBindings(fam.bindings(i), i.agent),
     negotiated: i.negotiated,
     probesFor,
     provider: i.provider,
@@ -373,6 +373,7 @@ class CapsService {
    * @param {(harness: string) => { failover: string, perChat: boolean, usage: string } | null} [o.accounts] a harness's account lane (its identity driver's `lane`)
    * @param {() => Promise<Record<string, {fast: boolean}> | null>} [o.modelCaps] MoPilot's gateway table
    * @param {() => any} o.prefs ui prefs: model, claudeSelection
+   * @param {(chatId: string) => boolean} [o.onMachine] the chat runs on another machine: its sends take the Host's path (remotePicks.cjs)
    * @param {(kind: string) => ({ plan?: { mode?: string, configOption?: string } | null, agentModes?: string[] | null } | null)} [o.acpQuirks]
    *   a basic harness's quirks as described: its plan marker and the agent's own modes
    */
@@ -456,6 +457,7 @@ class CapsService {
 
     const caps = computeCaps({
       kind,
+      agent: chatId && o.onMachine?.(chatId) ? (rec?.meta?.config?.hostAgent ?? kind) : undefined,
       negotiated: read.negotiated,
       acp: read.acp,
       provider,

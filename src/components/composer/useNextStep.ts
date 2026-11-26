@@ -1,9 +1,10 @@
-// The composer's suggested next step after a turn that used browser or desktop control (src/lib/nextStep.ts), for the chat's latest finished turn.
+// The composer's follow-up for the latest finished turn, including browser and desktop recovery hints.
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../store/core';
 import { suggestNextStep } from '../../lib/nextStep';
 import { refusedApps } from '../../lib/controlRefusal';
+import { useSessionField } from '../../store/session/useSession';
 
 const NO_IDS: string[] = [];
 
@@ -13,6 +14,7 @@ const NO_IDS: string[] = [];
  */
 export function useNextStep(threadId: string | null): string | null {
   const running = useStore((s) => (threadId ? !!s.runtime[threadId]?.activeTurnId : false));
+  const nativeSuggestion = useSessionField(threadId, (s) => (s.turn === 'idle' && !s.compaction ? s.promptSuggestion : null));
   const turn = useStore((s) => (threadId && !running ? s.runtime[threadId]?.turns.at(-1) : undefined));
   // the apps computer use refused in it (the chat's saved notes) get no follow-up
   const notes = useStore((s) => (threadId ? s.chatNotes?.[threadId] : undefined));
@@ -20,17 +22,12 @@ export function useNextStep(threadId: string | null): string | null {
   const turnIds = useStore(
     useShallow((s) => (threadId && !running && notes?.length ? (s.runtime[threadId]?.turns.map((t) => t.id) ?? NO_IDS) : NO_IDS)),
   );
-  return useMemo(
-    () =>
-      turn?.items
-        ? suggestNextStep(
-            turn.items,
-            refusedApps(
-              notes,
-              turnIds.map((id) => ({ id })),
-            ),
-          )
-        : null,
-    [turn, turnIds, notes],
-  );
+  return useMemo(() => {
+    if (running) return null;
+    const refused = refusedApps(
+      notes,
+      turnIds.map((id) => ({ id })),
+    );
+    return suggestNextStep(turn?.items ?? [], refused, nativeSuggestion ?? null);
+  }, [running, turn, turnIds, notes, nativeSuggestion]);
 }

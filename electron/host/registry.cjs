@@ -97,7 +97,7 @@ function setupReason(s) {
 }
 
 /**
- * @typedef {{ id: string, name: string, kind: 'ssh' | 'cloud', cloud: ReturnType<typeof cloudOf>, address: string, socketPath: string, hostKey: string, capabilities: Record<string, boolean>, harnesses: { id: string, detected: boolean, signedIn: boolean, installable?: boolean }[], lastHeartbeat: number | null, setup: string, identity: string, localNetwork: 'allowed' | 'denied' | 'unknown', startup: Startup, platform: 'darwin' | 'linux' | '', hostBuild: string, hostAppVersion: string, hostPending: { build: string, since: number, awaitingStatus?: true } | null, computerName: string, renamed: boolean, policy: ReturnType<typeof policyOf>, pushSkipped: number, cloudState: ReturnType<typeof cloudStateOf> }} HostRecord `computerName`: the name of the computer as its Host last said it ('' before it has, or from an older Host); `renamed`: a person chose `name` (Settings › My machines › Rename), or it is this Mac's or a cloud machine's own, so no answer replaces it; `policy`: the managed policy the Host last reported (null when none); `hostBuild`: the build its Host last said it runs ('' before it has answered, or from a Host that names none); `hostAppVersion`: the version of the app that built it ('' when it names none); `hostPending`: the staged build and first observed time (null when there is none); a saved wait needs a fresh status before publication; `identity`: the key file the machine signs in with ('' for this Mac's own ssh setup); `localNetwork`: what the Host last said of its reach into the local network; `startup`: whether it last said it starts at boot, and FileVault; `platform`: the system it runs on; `pushSkipped`: the waiting cards it last said found no phone linked (never kept across a restart); `cloudState`: what a cloud machine's Host last said of its idle stop (never kept across a restart)
+ * @typedef {{ id: string, name: string, kind: 'ssh' | 'cloud', cloud: ReturnType<typeof cloudOf>, address: string, socketPath: string, hostKey: string, capabilities: Record<string, boolean>, harnesses: { id: string, detected: boolean, signedIn: boolean, installable?: boolean }[], lastHeartbeat: number | null, setup: string, identity: string, localNetwork: 'allowed' | 'denied' | 'unknown', startup: Startup, platform: 'darwin' | 'linux' | '', hostBuild: string, hostAppVersion: string, hostPending: { build: string, since: number, awaitingStatus?: true } | null, computerName: string, renamed: boolean, policy: ReturnType<typeof policyOf>, pushSkipped: number, cloudState: ReturnType<typeof cloudStateOf>, pairedBy?: 'code' }} HostRecord `computerName`: the name of the computer as its Host last said it ('' before it has, or from an older Host); `renamed`: a person chose `name` (Settings › My machines › Rename), or it is this Mac's or a cloud machine's own, so no answer replaces it; `pairedBy`: 'code' for a Mac this one only controls (paired by an 8-character code), which runs chats on its own sign-in and settings; `policy`: the managed policy the Host last reported (null when none); `hostBuild`: the build its Host last said it runs ('' before it has answered, or from a Host that names none); `hostAppVersion`: the version of the app that built it ('' when it names none); `hostPending`: the staged build and first observed time (null when there is none); a saved wait needs a fresh status before publication; `identity`: the key file the machine signs in with ('' for this Mac's own ssh setup); `localNetwork`: what the Host last said of its reach into the local network; `startup`: whether it last said it starts at boot, and FileVault; `platform`: the system it runs on; `pushSkipped`: the waiting cards it last said found no phone linked (never kept across a restart); `cloudState`: what a cloud machine's Host last said of its idle stop (never kept across a restart)
  * @typedef {'restarted' | 'signed-out' | 'locked' | 'host-stopped'} LoginWait `host-stopped`: ssh answers and nobody waits to sign in, yet the Host does not answer
  * @typedef {HostRecord & { rawName: string, status: 'online' | 'offline' | 'needs-setup', reason: string, checked: boolean, linkDroppedAt: number | null, waitingForLogin: Exclude<LoginWait, 'host-stopped'> | null, hostStopped: boolean }} HostRow `name`: what surfaces show (with the address when another machine has the same name); `rawName`: the name itself, which Rename starts from; `waitingForLogin`: an offline machine nobody is signed in on (it restarted since it last answered, or was signed out)
  */
@@ -180,6 +180,7 @@ function createRegistry({
         renamed:
           typeof raw.renamed === 'boolean' ? raw.renamed : Boolean(cloudOf(raw.cloud)) || raw.name !== addressName(String(raw.address)),
         hostAppVersion: text(raw.hostAppVersion) ? raw.hostAppVersion : '',
+        ...(raw.pairedBy === 'code' ? { pairedBy: /** @type {const} */ ('code') } : {}),
         hostPending: savedPendingUpdate(raw.hostPending),
         policy: policyOf(raw.policy),
         pushSkipped: 0,
@@ -412,7 +413,7 @@ function createRegistry({
       if (next === record.name || next === shownName(record)) return;
       commit(new Map(records).set(id, { ...record, name: next, renamed: true }));
     },
-    /** @param {{ id: string, name?: string, cloud?: unknown, address: string, socketPath?: string, hostKey?: string, capabilities?: Record<string, boolean>, harnesses?: HostRecord['harnesses'], identity?: string, startup?: unknown, platform?: unknown, renamed?: boolean }} h `startup` and `platform`: what the Host's status said; `renamed`: the name is not to be replaced by the Host's (this Mac's own) */
+    /** @param {{ id: string, name?: string, cloud?: unknown, address: string, socketPath?: string, hostKey?: string, capabilities?: Record<string, boolean>, harnesses?: HostRecord['harnesses'], identity?: string, startup?: unknown, platform?: unknown, renamed?: boolean, pairedBy?: 'code' }} h `startup` and `platform`: what the Host's status said; `renamed`: the name is not to be replaced by the Host's (this Mac's own) */
     add(h) {
       if (!text(h?.id)) throw new HostError('invalid', 'A machine needs an id.');
       if (!text(h.address)) throw new HostError('invalid', 'A machine needs an address.');
@@ -437,6 +438,7 @@ function createRegistry({
         hostBuild: '',
         computerName: '',
         renamed: prior?.renamed === true || h.renamed === true || Boolean(cloudOf(h.cloud)),
+        ...(h.pairedBy === 'code' || prior?.pairedBy === 'code' ? { pairedBy: /** @type {const} */ ('code') } : {}),
         hostAppVersion: '',
         hostPending: null,
         policy: null,

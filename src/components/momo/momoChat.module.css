@@ -100,9 +100,20 @@
   grid-row: 20;
   align-self: end;
 }
+/* the coding footer lays its left chips out as its own items (composer-controls.css); this grid places them as one group */
 .chat :global(.composer-left) {
+  display: flex;
+  gap: 6px;
   grid-column: 1;
   margin-left: 0;
+}
+.chat :global(.composer-left) > :first-child {
+  margin-left: 0;
+}
+@container composer (max-width: 420px) {
+  .chat :global(.composer-left) {
+    gap: 1px;
+  }
 }
 .chat :global(.composer) > :global(.composer-editor) {
   grid-column: 2;

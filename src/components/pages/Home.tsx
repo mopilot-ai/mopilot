@@ -5,7 +5,7 @@ import { native } from '../../lib/native';
 import { noteIgnored } from '../../lib/ignored';
 import { useStore } from '../../store/core';
 import { newChatTarget } from '../../store/projects';
-import { codexUsable, claudeUsable } from '../../store/chats';
+import { codexUsable, claudeUsable, savedDefaultHarness } from '../../store/chats';
 import { admittedBasics } from '../../harness/launch';
 import { launchKind } from '../../lib/welcome';
 import { openWelcome } from './Welcome';
@@ -13,6 +13,7 @@ import { Composer } from '../composer/Composer';
 import { MoPilotMark } from '../ui/icons';
 import { useAnchor } from '../ui/Popover';
 import { ProjectMenu } from '../composer/ProjectMenu';
+import { applyNewChatDefault, newChatStartMode } from '../../session/newChatStart';
 
 export function Home() {
   // subscribe so the title follows project changes
@@ -25,6 +26,9 @@ export function Home() {
   const menu = useAnchor();
   const basicOnly = useStore((s) => launchKind(codexUsable(s), claudeUsable(s), admittedBasics(s.basicHarnesses).length) === 'basic-only');
   const temporary = useStore((s) => s.newChatTemporary);
+  // the draft shows its own pick, else Settings' fixed default when new chats use one; again once the saved prefs load
+  const start = useStore((s) => JSON.stringify([newChatStartMode(s), savedDefaultHarness(s), s.prefs.newChatDefault]));
+  useEffect(() => void (start && applyNewChatDefault()), [start]);
   // Like the official app: "build" for git repositories, "work on" for plain folders.
   const root = project?.path;
   const [isRepo, setIsRepo] = useState(true);

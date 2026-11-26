@@ -709,6 +709,22 @@
         "source": "Claude Code",
         "verified": ""
       }
+    },
+    {
+      "semantic": "steer",
+      "label": "steering a running turn",
+      "codex": {
+        "via": "rpc",
+        "detail": "turn/steer",
+        "source": "Codex",
+        "verified": ""
+      },
+      "claude": {
+        "via": "rpc",
+        "detail": "priority: now",
+        "source": "Claude Code",
+        "verified": ""
+      }
     }
   ],
   "contracts": [

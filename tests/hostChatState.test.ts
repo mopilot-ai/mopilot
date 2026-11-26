@@ -173,7 +173,8 @@ test('A: the Host’s store changes reach the stream: a goal and background task
   const sessions = createHostSessions({ paths, env: {}, runtime });
   try {
     const events: any[] = [];
-    sessions.events.on('event', (e: any) => e.kind === 'state' && events.push(e));
+    const forwarded: any[] = [];
+    sessions.events.on('event', (e: any) => (e.kind === 'state' ? events.push(e) : forwarded.push(e)));
     const chatId = 'acp:fake:g1';
     const goal = { status: 'active', objective: 'ship it', createdAt: 1 };
     sessions.state.patch(chatId, { goal });
@@ -182,6 +183,15 @@ test('A: the Host’s store changes reach the stream: a goal and background task
     // whether the agent plans is a boolean the Host tells (Plan entered by a client or by the agent, and left); a store's null says nothing
     sessions.state.patch(chatId, { plan: true });
     sessions.state.patch(chatId, { plan: false });
+    sessions.state.patch(chatId, { promptSuggestion: 'Run the focused test.' });
+    runtime.host.emit('event', { kind: 'promptSuggestion', key: chatId, turnId: null, text: 'Raw, unowned prediction' });
+    runtime.host.emit('event', { kind: 'update', key: chatId, update: { sessionUpdate: 'agent_message_chunk' } });
+    assert.deepEqual(
+      forwarded.map((e) => e.kind),
+      ['update'],
+    );
+    sessions.state.step(chatId, 'start', { turnId: 'new', human: true });
+    sessions.state.patch(chatId, { pendingSwitch: { harness: 'claude', model: 'opus' } });
     assert.deepEqual(
       events.map((e) => [e.chatId, e.patch]),
       [
@@ -189,6 +199,9 @@ test('A: the Host’s store changes reach the stream: a goal and background task
         [chatId, { tasks: [{ id: 'b1', status: 'running' }] }],
         [chatId, { plan: true }],
         [chatId, { plan: false }],
+        [chatId, { promptSuggestion: 'Run the focused test.' }],
+        [chatId, { promptSuggestion: null }],
+        [chatId, { pendingSwitch: { harness: 'claude', model: 'opus' } }],
       ],
     );
   } finally {

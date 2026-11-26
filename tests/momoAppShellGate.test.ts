@@ -156,6 +156,8 @@ mock.module('../src/session/clipboard.ts', {
 mock.module('../src/session/harness/select.ts', {
   namedExports: { logoutRoute: (id: string | null) => ({ name: 'settings', section: 'accounts', tab: `logout:${id}` }) },
 });
+// how new chats start is its own (tests/newChatStart.test.ts)
+mock.module('../src/session/newChatStart.ts', { namedExports: { applyNewChatDefault: () => {} } });
 mock.module('../src/session/updates.ts', { namedExports: { useUpdatePrefsSync: () => {} } });
 let _resizeProps: any = null;
 mock.module('../src/components/sidebar/SidebarResize.tsx', {

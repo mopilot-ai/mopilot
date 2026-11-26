@@ -124,6 +124,7 @@ export const useStore = create<AppState>(() => ({
   navigationBookmarks: {},
   chatForkOf: {},
   chatInitialTitles: {},
+  chatRewoundAt: {},
   momoChats: {},
   momoModels: {},
   authoredInputs: {},
@@ -338,8 +339,8 @@ export function upsertThread(t: Thread, bump = false) {
 }
 
 /** Activity in a chat now: it moves up the sidebar (lib/chatActivity.ts). */
-export function touchChat(chatId: string, started?: { text: string }) {
-  set((s) => touched(s, chatId, Date.now() / 1000, started));
+export function touchChat(chatId: string, started?: { text: string }, now = Date.now() / 1000) {
+  set((s) => touched(s, chatId, now, started));
 }
 
 export function threadTitle(t: Thread | undefined | null, initialTitles = get().chatInitialTitles) {

@@ -29,7 +29,8 @@ without a window (#253, #254), a setting or keybinding some path ignores (#27, #
   module `plugin/harness-gate` exempts.
 - In main, shared session code (`electron/session`, `electron/app`, `electron/app/ipc`) routes by the chat's current
   segment: the controller's `adapterOf(chatId)`, a trait from `electron/harness/family.cjs` (`traitsOf(kind)`: steers,
-  native goal, holds the goal, ...), or a per-family table read with `byFamily(table, kind)`
+  native goal, holds the goal, ...; for a chat on a machine, `agentTraitsOf` reads the traits of the agent its Host runs,
+  as its remote sends and its `steer` capability do), or a per-family table read with `byFamily(table, kind)`
   (`electron/session/contract/route.cjs`, which throws for a kind this build doesn't know). The capability differences live in
   one declarative table, `FAMILY_CAPS` in `electron/session/caps.cjs`; a basic harness's `null` entry in a table such
   as the switch's `IN_PLACE` is refused with a message, never routed to Codex.

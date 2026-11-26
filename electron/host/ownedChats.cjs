@@ -15,6 +15,7 @@ function remoteChatOwners({ dir, allowed }) {
     if (!allowed()) return [];
     ownership ??= new OwnershipStore(path.join(dir, 'host-ownership.json'));
     ownership.refresh();
+    if (ownership.lost) throw new Error('Could not read which chats run on a Host.');
     return ownership.owned();
   };
 }

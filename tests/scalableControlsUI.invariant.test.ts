@@ -113,9 +113,11 @@ test('permission, model and plan controls grow with the font while composer foot
     '<div class="composer-footer"><div class="composer-left"><button class="perm-btn"><svg></svg><span>Ask for approval</span></button><button class="plan-chip">Plan</button><button class="goal-chip">Goal</button></div><div class="composer-right"><button class="model-btn"><svg></svg><span class="model-name">A long admitted harness model name</span><span class="model-effort">High</span></button><button class="send-btn">↑</button></div></div>',
   );
   try {
-    for (const element of host.querySelectorAll('.composer-footer, .composer-left, .composer-right')) {
+    for (const element of host.querySelectorAll('.composer-footer, .composer-right')) {
       assert.equal(getComputedStyle(element).flexWrap, 'nowrap', `${element.className}: pane width does not add a toolbar row`);
     }
+    // the left chips are the footer's own items, so the footer's single row holds them too
+    assert.equal(getComputedStyle(host.querySelector('.composer-left')!).display, 'contents');
     intrinsicHeight(host.querySelector('.composer-footer')!, 'composer footer');
     for (const button of host.querySelectorAll('.perm-btn, .model-btn, .plan-chip, .goal-chip')) {
       intrinsicHeight(button, button.className);

@@ -76,7 +76,12 @@ export function createHostClients({ pairing, connected, close, homeLink }) {
         if (removed) setImmediate(() => close(p.fingerprint));
         return { removed };
       }
-      // host.clientRename: the caller's own record (the CLI has none)
+      // host.clientRename: another client's row only by the CLI on this machine (this Mac's own app reaches its Host as the CLI);
+      // never by a paired desktop, which may be another Mac added over SSH; else the caller's own record (the CLI has none)
+      if (p.fingerprint != null && p.fingerprint !== who.fingerprint) {
+        if (who.kind !== 'cli') throw refused();
+        return { renamed: pairing.rename(p.fingerprint, p.name, { owner: true }) };
+      }
       return { renamed: pairing.rename(who.fingerprint, p.name) };
     },
   };

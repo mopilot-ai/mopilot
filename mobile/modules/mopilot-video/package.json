@@ -1,0 +1,8 @@
+{
+  "name": "mopilot-video",
+  "version": "0.1.0",
+  "description": "Makes a picked video smaller so it fits what the computer takes: an export down a ladder of sizes with a length limit, progress, cancel and its own temporary files (#5638).",
+  "license": "UNLICENSED",
+  "author": "MoPilot",
+  "homepage": "https://mopilot.ai"
+}

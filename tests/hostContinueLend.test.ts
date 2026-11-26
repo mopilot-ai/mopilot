@@ -79,8 +79,12 @@ test('A: a chat whose id spells Codex and that was continued on another agent le
       ['send', ID, 'acp:gemini'],
     ],
   );
-  assert.equal(l.broadcasts.length, 1, 'the windows are told, so the picker follows the agent');
-  assert.deepEqual(l.broadcasts[0][0], 'chats:changed');
+  // the picker follows the agent, and so does what the chat can do (a message into its running turn)
+  assert.deepEqual(
+    l.broadcasts.map((b: any[]) => b[0]),
+    ['chats:changed', 'session:capsChanged'],
+    'the windows are told',
+  );
   // the same chat read without what the continue kept is the one the id spells
   assert.deepEqual((await firstMessage(() => 'codex')).map((t) => t[1]).slice(0, 1), ['codex']);
 });
@@ -109,5 +113,8 @@ test('I: the agent is kept in the wire’s spelling, only for a chat that went t
   keepAgent(l.deps, ID, 'codex');
   keepAgent(l.deps, ID, 'codex');
   keepAgent({ live: {}, broadcastAll: () => undefined }, ID, 'codex');
-  assert.equal(l.broadcasts.length, 1);
+  assert.deepEqual(
+    l.broadcasts.map((b: any[]) => b[0]),
+    ['chats:changed', 'session:capsChanged'],
+  );
 });

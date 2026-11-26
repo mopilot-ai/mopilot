@@ -58,6 +58,7 @@ Binding kinds: **native** is the harness doing it itself (`rpc` a protocol metho
 | MoMo's memory (`momoContext`) | native (config) `turnContext` | Codex | - | polyfill `momoContext` | MoPilot | - |
 | artifacts and designs (`artifacts`) | none: This chat's harness can't publish artifacts or designs. | - | - | native (config) `CLAUDE_CODE_ARTIFACT` | Claude Code | - |
 | Remote Control (`remoteControl`) | native (rpc) `remoteControl/enable` | Codex | - | native (rpc) `enableRemoteControl` | Claude Code | - |
+| steering a running turn (`steer`) | native (rpc) `turn/steer` | Codex | - | native (rpc) `priority: now` | Claude Code | - |
 
 - Browser and computer control work for every harness. Codex threads use Codex's own Browser and Computer use (the bundled unified-computer-use plugin), and Claude Code sessions on a claude.ai subscription start with --chrome (Claude in Chrome), each with its own approvals, but only where that vendor runtime is installed on this Mac; MoPilot then hides its own equivalent tools. Everywhere else (managed and helper Codex threads, other Claude logins with --no-chrome, a missing runtime, basic-tier harnesses) MoPilot's own browser_* and desktop_* tools are the fallback. The user is never asked to open the ChatGPT or Claude desktop apps.
 - A Codex user's own node_repl or connector tools can still appear in a Codex thread; the helper's event tap covers them.

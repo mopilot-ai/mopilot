@@ -53,10 +53,20 @@ export function createMoveRunner({ home, machine, newId, changed, run = moveHome
     });
   }
 
+  /**
+   * A screen that names the move it is showing acts only on that move: a card left on a screen after one move ended and another began must not cancel,
+   * retry, put away or dismiss the new one. A call without the id (a client that does not send it) acts on the move this runner holds.
+   * @param {{ moveId?: string }} [which]
+   */
+  const mine = (which = {}) => {
+    if (which.moveId && which.moveId !== move?.moveId) throw new IntentError('That move is over. The home was read again.');
+  };
+
   const api = {
     start,
     /** Cancel, until the switch starts; after it the epoch has moved and the move is finished by its own steps. */
-    cancel() {
+    cancel(/** @type {{ moveId?: string }} */ which = {}) {
+      mine(which);
       if (!move?.running) throw new IntentError('There is no move to cancel.');
       if (!cancellable(move.step)) throw new IntentError('It is too late to cancel: the switch has started.');
       move.cancelled = true;
@@ -143,7 +153,8 @@ export function createMoveRunner({ home, machine, newId, changed, run = moveHome
       changed();
     },
     /** Try a move that did not finish again, to the same machine. */
-    async retry() {
+    async retry(/** @type {{ moveId?: string }} */ which = {}) {
+      mine(which);
       if (!move || move.running || move.result?.ok !== false) throw new IntentError('There is no move to try again.');
       // the move that failed may have left the old home paused (its Cancel or the target's answer was lost): it is settled with the target first,
       // so the new move does not meet "Another move started" from its own stale one (F1)
@@ -155,13 +166,15 @@ export function createMoveRunner({ home, machine, newId, changed, run = moveHome
       await start(move.to.id);
     },
     /** Stay: a failed move is put away; the old home runs as it did. */
-    stay() {
+    stay(/** @type {{ moveId?: string }} */ which = {}) {
+      mine(which);
       if (!move || move.running || move.result?.ok !== false) throw new IntentError('There is no move to put away.');
       move = null;
       changed();
     },
     /** "Got it" after a move that finished. */
-    acknowledge() {
+    acknowledge(/** @type {{ moveId?: string }} */ which = {}) {
+      mine(which);
       if (!move || move.running) throw new IntentError('There is no finished move to dismiss.');
       move = null;
       changed();

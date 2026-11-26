@@ -5,7 +5,10 @@ import './support/dom.ts';
 import { one } from './support/shell-panels-kit.ts';
 import { summaryPanelKit } from './support/summary-panel-kit.ts';
 
-let state: { machine: { id: string; name: string; away: boolean } | null; pending: boolean } = { machine: null, pending: false };
+let state: { machine: { id: string; name: string; away: boolean } | null; pending: boolean; ownerUnavailable?: true } = {
+  machine: null,
+  pending: false,
+};
 mock.module('../src/lib/chatMachine.ts', {
   namedExports: {
     useLocalFolder: (_id: string, cwd: string) => ({ ...state, cwd: state.machine || state.pending ? '' : cwd }),
@@ -88,6 +91,11 @@ test('while the owner is not known the folder is not read either, and a chat on 
   reset({ t1: { cwd: '/srv/app' } }, { t1: { turns: [] } });
   state = { machine: null, pending: true };
   let m = await mount();
+  assert.deepEqual(calls, []);
+  await m.unmount();
+  state = { machine: null, pending: true, ownerUnavailable: true };
+  m = await mount();
+  assert.equal(one(m.host, '.summary-connector-hint').textContent, 'Unavailable');
   assert.deepEqual(calls, []);
   await m.unmount();
   state = { machine: null, pending: false };

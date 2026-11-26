@@ -48,6 +48,20 @@ test('a chat on this Mac reads its own folder', async () => {
   await r.unmount();
 });
 
+test('a scoped reader waits through lookup failure unless the chat already has a known Host', async () => {
+  const StrictFolder = () => h('i', { 'data-out': JSON.stringify(useLocalFolder('chat', '/srv/app', true)) });
+  chats = { ...LOCAL, status: 'failed' };
+  const r = await render(h(StrictFolder));
+  assert.deepEqual(out(r.host), { cwd: '', machine: null, pending: true, ownerUnavailable: true });
+  chats = LOCAL;
+  await r.rerender(h(StrictFolder));
+  assert.deepEqual(out(r.host), { cwd: '/srv/app', machine: null, pending: false });
+  chats = { ...ON_BOX(BOX.id), status: 'failed' };
+  await r.rerender(h(StrictFolder));
+  assert.deepEqual(out(r.host), { cwd: '', machine: { id: BOX.id, name: BOX.id, away: false }, pending: false });
+  await r.unmount();
+});
+
 test('a chat whose owner is not known yet reads no folder, and one on a machine reads none and names it', async () => {
   chats = { ...LOCAL, status: 'unknown' };
   const r = await render(h(Probe));

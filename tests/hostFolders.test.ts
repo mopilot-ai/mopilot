@@ -281,7 +281,8 @@ test('status asks the machine for a repository’s branch and changes, reads the
     truncated: false,
   };
   const w = world({ answer: { 'git.status': good } });
-  assert.deepEqual(await w.folders.status('box', { path: '/srv/app' }), { ...good, unreadable: false });
+  // a Host that sends no upstream (an older one) is read as having none
+  assert.deepEqual(await w.folders.status('box', { path: '/srv/app' }), { ...good, upstream: null, unreadable: false });
   assert.deepEqual(w.calls[0], { hostId: 'box', method: 'git.status', params: { path: '/srv/app' }, opts: { timeoutMs: 45_000 } });
   assert.equal(w.opened[0].closed, 1);
   // not a repository, and the optional facts left out
@@ -289,7 +290,16 @@ test('status asks the machine for a repository’s branch and changes, reads the
   const bare = await world({
     answer: { 'git.status': { isRepo: true, files: [], unreadable: true, truncated: true, branch: '', head: 7 } },
   }).folders.status('box', { path: '/srv' });
-  assert.deepEqual(bare, { isRepo: true, branch: null, head: null, remote: null, files: [], truncated: true, unreadable: true });
+  assert.deepEqual(bare, {
+    isRepo: true,
+    branch: null,
+    head: null,
+    remote: null,
+    upstream: null,
+    files: [],
+    truncated: true,
+    unreadable: true,
+  });
   // an answer that is not a status is refused, not drawn
   const bad = (reply: any) =>
     assert.rejects(world({ answer: { 'git.status': reply } }).folders.status('box', { path: '/srv' }), /cannot read/);

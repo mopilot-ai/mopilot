@@ -15,12 +15,11 @@ import { createChatOn, createTurns } from './momoHomeTurns.mjs';
 
 /** How long an answer of the Hosts is reused before they are asked again (an intent, and a change a Host tells of, ask at once). */
 export const READ_TTL_MS = 5_000;
-/** How long one Host may take to say what it keeps: one that hangs is "no answer", never a stalled view. */
-export const STATUS_TIMEOUT_MS = 6_000;
-/** How long a call that does something (a send, a lane's intent) may take. */
-export const CALL_TIMEOUT_MS = 20_000;
+export const STATUS_TIMEOUT_MS = 6_000; // how long one Host may take to say what it keeps: one that hangs is "no answer", never a stalled view
+export const CALL_TIMEOUT_MS = 20_000; // how long a call that does something (a send, a lane's intent) may take
 /** A burst of machine-row changes (a heartbeat of each machine) is one look. */
 export const CHANGE_DEBOUNCE_MS = 1_500;
+export const FRESH_MS = 10 * 60_000; // how long the owner's confirmed Start fresh lets a home be made though one was remembered (once, and it lapses)
 /**
  * @typedef {import('./momoHomeView.mjs').MachineRecord} MachineRecord
  * @typedef {object} Hosts what the app knows of its machines and how it asks one
@@ -38,6 +37,7 @@ export const CHANGE_DEBOUNCE_MS = 1_500;
  * @param {object} o
  * @param {Hosts} o.hosts
  * @param {() => number} [o.now]
+ * @param {string} [o.handOff] set by a client that must not start, move, stand down or reset a home (a phone: those stay with the Mac): the steps of the shared rules are not run, and the owner is told these words instead
  * @param {{ read: () => string[], write: (kept: string[]) => void }} [o.kept] the older MoMos the owner chose to keep, kept across runs (they are not told again)
  * @param {{ read: () => number, write: (seen: number) => void }} [o.seen] the highest lease this account has seen on any Host, kept across runs: a new home starts above it
  * @param {{ read: () => HomeNote | null, write: (note: HomeNote | null) => void }} [o.memory] where MoMo was last seen to live, kept across runs (per account)
@@ -53,6 +53,7 @@ export const CHANGE_DEBOUNCE_MS = 1_500;
 export function createRealHome({
   hosts,
   now = Date.now,
+  handOff = '',
   seen: seenMemory,
   kept: keptMemory,
   memory,
@@ -98,9 +99,7 @@ export function createRealHome({
   /** Counted up when what was remembered is forgotten: a read or a write that began before is not applied. */
   let gen = 0;
   const live = (/** @type {number} */ g) => alive && g === gen;
-  /** Until when the owner's confirmed fresh start lets a home be made though one was remembered: used once, and it lapses. */
-  let freshUntil = 0;
-  const FRESH_MS = 10 * 60_000;
+  let freshUntil = 0; // until when the owner's confirmed fresh start lets a home be made though one was remembered: used once, and it lapses
   /** The highest lease this account has seen on any Host: a home started afresh starts above it, so the old one cannot win when it comes back. */
   let epochSeen = Math.max(0, remembered?.leaseEpoch ?? 0, seenMemory?.read() ?? 0);
   const confirm = createConfirmations({ now, newId });
@@ -133,8 +132,10 @@ export function createRealHome({
     call: (id, method, params) => callWithin(id, method, params, statusMs),
     grant: hosts.grant,
   });
-  /** The lease and stand-down steps the shared rules ask for. */
-  const runSteps = createSteps({ call: (id, method, params) => callWithin(id, method, params, callMs), told, report, now });
+  // the lease and stand-down steps the shared rules ask for (a client that hands them off runs none)
+  const runSteps = handOff
+    ? async () => ({ ran: false, failure: handOff })
+    : createSteps({ call: (id, m, p) => callWithin(id, m, p, callMs), told, report, now, alive: () => alive });
 
   /** @param {HomeNote | null} next */
   function remember(next) {
@@ -196,9 +197,9 @@ export function createRealHome({
       void runSteps(r.decision.steps).then((done) => {
         if (!live(g)) return;
         if (done.ran) older.retired(r.decision.replaced);
+        const news = done.ran || (!!done.failure && done.failure !== failure); // the same failure again is steady, or a client that re-reads on every event would loop
         if (done.failure) failure = done.failure;
-        // the Hosts changed: they are asked again and every client hears it
-        if (done.ran || done.failure) {
+        if (news) {
           invalidate();
           void emitNow();
         }
@@ -290,6 +291,7 @@ export function createRealHome({
       rest: {
         chat: chatRows(r),
         problems: [...leaseProblems({ ...r, failure }), ...older.problems(r), ...mail.problems()],
+        keptOlder: older.kept(),
         ...(googlePart ? { setup: { step: 'done', google: googlePart.setupGoogle, notifications: 'unknown' } } : {}),
       },
     };
@@ -391,13 +393,13 @@ export function createRealHome({
       older.movable(await read(), toId);
       return runner.start(toId);
     }),
-    'move-cancel': () => runner.cancel(),
-    'move-retry': async () => {
+    'move-cancel': (i) => runner.cancel(i),
+    'move-retry': async (i) => {
       await read();
-      return runner.retry();
+      return runner.retry(i);
     },
-    'move-stay': () => runner.stay(),
-    'move-ack': () => runner.acknowledge(),
+    'move-stay': (i) => runner.stay(i),
+    'move-ack': (i) => runner.acknowledge(i),
     // the owner's Reclaim: the runner asks the target first; a move this device did not run is found by asking the other machines (momoHomeFix.mjs)
     reclaim: reclaimOf({ read, runner }),
     // wakes the machine MoMo lives on (a closed lid or a stopped cloud machine): what the app does for it, not a Host call
@@ -458,6 +460,7 @@ export function createRealHome({
     api: Object.assign(api, { hostCall: callHome }),
     /** What the one table still has no handler for. */
     pending: () => registry.pending(),
+    startOver: one(fixes.startOver), // in the same queue as choose-home and the fixes, so a fresh start never interleaves with a pick. The owner confirmed a fresh start on a client that asked first: forget where MoMo lived, allow one home, and ask where
     /** Asks the Hosts again at once, reads the rows and Google, and tells every listener the fresh view. */
     refresh: async () => {
       invalidate();

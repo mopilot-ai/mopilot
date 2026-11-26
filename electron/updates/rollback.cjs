@@ -19,6 +19,7 @@ function retireForRollback(updater, update) {
   if (!update.rollback || !updater.stagedArtifact) return;
   updater.stagedArtifact.valid = false;
   updater.stagedArtifact.rollbackRevoked = true;
+  updater.stagedArtifact.stage?.cancel();
   updater.stopIdleWait();
   updater.set({ restartWhenIdle: false });
 }

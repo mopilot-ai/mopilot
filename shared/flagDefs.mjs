@@ -216,6 +216,15 @@ export const FLAG_DEFS = Object.freeze(
         'A background Host on this Mac (Remote Run H1): "This Mac · keeps running" is offered as a second place to run, and the quit sheet counts its chats (H2). On since scenario S11 passed with a real app process on a runner; nothing is installed until a chat is started there. While off, nothing of it is installed or shown',
     },
     {
+      key: 'hosts.nativeSessions',
+      default: false,
+      owner: 'host',
+      remove: '2027-03-31',
+      mode: 'toggle',
+      description:
+        "Remote Run, native sessions (#5576, Phase 4): a machine's list also shows the Claude Code and Codex sessions a person started on it outside MoPilot, read-only, to the person's own Macs only; the Host finds them only when it runs with MOPILOT_HOST_NATIVE_SESSIONS=1. This app flag is not read by anything yet (the app does not set that variable on a Host, nor ask for native rows), so it is inert; it stays off until the slices are reviewed and run against real harnesses in a VM",
+    },
+    {
       key: 'host.managedPolicy',
       default: false,
       owner: 'host',
@@ -250,6 +259,15 @@ export const FLAG_DEFS = Object.freeze(
       mode: 'toggle',
       description:
         'A phone follows, sends to, stops and starts a chat on a Host directly, with the Mac asleep (Remote Run X4, #2709); on since the real-iPhone checks with the Mac asleep passed (2026-11-16); off, a machine chat is read through the Mac only',
+    },
+    {
+      key: 'host.codePair',
+      default: false,
+      owner: 'host',
+      remove: '2027-03-31',
+      mode: 'toggle',
+      description:
+        'Pairing a Mac by an 8-character code (R2b, #5576): the controlling Mac claims the offer, runs the PAKE over the relay and adds the machine (machines.addByCode); off, the app does not offer it and the IPC refuses.',
     },
     kill(
       'host.enabled',

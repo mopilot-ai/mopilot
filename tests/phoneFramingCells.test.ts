@@ -51,12 +51,12 @@ test('Simplified Chinese: the routine card says it finished or did not, the mark
   }
 });
 
-test('an ordinary chat’s user row (MessageBubble, as CachedRows and TranscriptBlocks draw it) is the card too', async () => {
+test('an ordinary chat’s user row (MessageBubble, as TranscriptBlocks draws it) is the card too', async () => {
   const v = await render(createElement(MessageBubble, { role: 'liveUser', text: reportText('Inbox sweep', true, 'Done.') }));
   assert.match(v.host.textContent ?? '', /“Inbox sweep” finished/);
   assert.doesNotMatch(v.host.textContent ?? '', LEAK);
   await v.done();
-  for (const f of ['mobile/src/components/CachedRows.tsx', 'mobile/src/components/TranscriptBlocks.tsx']) {
+  for (const f of ['mobile/src/components/TranscriptBlocks.tsx']) {
     assert.match(fs.readFileSync(f, 'utf8'), /MessageBubble|SentBubble/, f);
   }
 });

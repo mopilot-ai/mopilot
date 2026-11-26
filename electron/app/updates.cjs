@@ -1,6 +1,6 @@
 // App updates: the update prefs and channel, the updater, the exit gate Quit and Restart to update go through, and the stealth restart.
 const { Updater } = require('../updates/updater.cjs');
-const { failureWatcher, reportInstalledVersion } = require('../updates/outcome.cjs');
+const { failureWatcher, recordActivation, reportInstalledVersion, takeActivationFailure } = require('../updates/outcome.cjs');
 const { updateChannel } = require('../updates/channel.cjs');
 const { installId } = require('../platform/install.cjs');
 const { refreshFlags, isEnabled } = require('../platform/flags.cjs');
@@ -86,6 +86,7 @@ function createUpdates({ app, ipcMain, dialog, claude, readState, win, broadcast
       gate: (reason) => exitGate.request(reason, { quiet: !!stealth?.installing }),
       idle: async () => isEmpty(await exitGate.collect()),
       token: () => live.mopilot.accessToken(),
+      activationAttempt: (version, channel) => recordActivation(app.getPath('userData'), version, channel),
     });
     {
       const p = readState().prefs || {};
@@ -97,6 +98,11 @@ function createUpdates({ app, ipcMain, dialog, claude, readState, win, broadcast
       channel: updater.channel,
       track: (name, props) => live.telemetry?.track(name, props),
     });
+    const missed = takeActivationFailure(app.getPath('userData'), app.getVersion());
+    if (missed) {
+      updater.set({ status: 'error', error: `Could not install MoPilot ${missed.version}. Check for updates to try again.` });
+      live.telemetry?.track('update_failed', missed);
+    }
     stealth = createStealthUpdate({
       enabled: () => isEnabled('app.update.stealth') && updatePrefs.auto !== false,
       // Windows installs by hand (the installer is downloaded in the browser): nothing to restart into

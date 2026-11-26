@@ -45,7 +45,7 @@ test('the native adapter refuses with a typed error that names what was refused'
 
 test('a refused camera shows Open Settings, which opens the app settings; another failure does not', async () => {
   const media: any = {
-    library: async () => null,
+    library: async () => ({ picked: [], refused: [] }),
     camera: async () => {
       throw new AccessDenied('camera', 'Allow camera access in Settings to take a photo.');
     },

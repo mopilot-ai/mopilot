@@ -37,8 +37,11 @@ function fakeRelay() {
   const rotate = new Set<string>();
   const modes: Record<string, string> = {};
   const laneFns = new Set<() => void>();
+  const removed = new Set<string>();
   return {
     enrolled: (a: string) => enrolled.has(a),
+    removed,
+    removedByPeer: (a: string) => removed.has(a),
     needsRotation: (a: string) => rotate.has(a),
     calls: [] as any[],
     fail: null as Error | null,
@@ -161,11 +164,15 @@ test('rows say Direct, Via relay with its round trip, or SSH; a paired machine i
     m.forget(row, { state: () => 'online', call: async () => undefined });
     m.forget(other, { state: () => 'offline' });
     m.forget({ address: 'c' });
+    // one whose Host removed this Mac has no pair left, only its mark, which goes too (#5747)
+    relay.removed.add('d');
+    m.forget({ address: 'd' }, { state: () => 'offline' });
     assert.deepEqual(
       relay.calls.filter((c: any) => c[0] === 'forget'),
       [
         ['forget', 'far', true],
         ['forget', 'b', false],
+        ['forget', 'd', false],
       ],
     );
     // the lane's changes reach the list; disposing stops both
@@ -442,4 +449,48 @@ test('relay paths: the default token is the MoPilot sign-in’s, a kept enrollme
   t.after(() => empty.dispose());
   assert.equal(empty.enrolled('far'), false);
   assert.equal(empty.modeOf('far'), 'auto');
+});
+
+test('a relay path made elsewhere is kept to be replaced as soon as the machine answers, unless its credential never left a sealed run (pairing by code)', (t) => {
+  const createSocket = () => ({ send: () => undefined, close: () => undefined, onopen: null, onmessage: null, onclose: null });
+  const paths = createRelayPaths({
+    dir: scratch(t),
+    url: () => 'wss://r/v1/ws',
+    getToken: async () => 'tok',
+    safeStorage: safe,
+    createSocket,
+  });
+  t.after(() => paths.dispose());
+  const e = { hostId: 'h_a', pairId: 'p_a', relayUrl: 'wss://r/v1/ws', root: 'cm9vdA==' };
+  paths.adopt('relay:h_a', e);
+  assert.equal(paths.needsRotation('relay:h_a'), true, 'a command’s credential travelled in a script');
+  paths.adopt('relay:h_b', { ...e, hostId: 'h_b' }, { rotate: false });
+  assert.equal(paths.needsRotation('relay:h_b'), false, 'a code’s credential was sealed in the run');
+  assert.equal(paths.enrolled('relay:h_b'), true);
+});
+
+test('a relay-only machine (paired by code: relay:<host id>, no socket of its own) has its path in its row and says it was paired by code; one with an SSH address and no socket has neither', () => {
+  const relayOnly = {
+    id: 'relay:h_abcdefghijklmnop',
+    address: 'relay:h_abcdefghijklmnop',
+    socketPath: '',
+    status: 'online',
+    pairedBy: 'code',
+  };
+  const bare = { id: 'ssh:bare', address: 'bare', socketPath: '', status: 'online' };
+  const registry = fakeRegistry([relayOnly, bare]);
+  const relay: any = fakeRelay();
+  relay.setMode('relay:h_abcdefghijklmnop', 'relay');
+  const m = createMachineRelay({
+    relay,
+    registry,
+    pool: { get: () => ({ path: 'relay', latencyMs: 12 }) },
+    targetOf: (r: any) => r,
+    allowed: () => true,
+    openPaired: async () => ({ call: async () => null, close: () => undefined }),
+    onChange: () => undefined,
+  });
+  assert.deepEqual(m.row(relayOnly), { path: { mode: 'relay', relay: false, path: 'relay', latencyMs: 12 }, pairedBy: 'code' });
+  assert.deepEqual(m.row(bare), {});
+  m.dispose?.();
 });

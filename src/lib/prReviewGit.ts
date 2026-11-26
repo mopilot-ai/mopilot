@@ -2,6 +2,7 @@
 
 import { native } from './native';
 import { errorText } from './ignored';
+import { checkoutPullRequest } from './pullRequestSources';
 import { sameReviewLines } from './diffReview';
 import { parseUnifiedDiff, type DiffFile } from './diff';
 import { REVIEW_THREADS_QUERY, parseReviewThreads, prRef, type PrRef, type ReviewThread } from './prReviewThreads';
@@ -9,10 +10,14 @@ import type { DiffCommentRange } from '../../shared/diffComments.mjs';
 
 export type BranchReview = { pr: PrRef & { url: string }; head: string | null; threads: ReviewThread[]; limited: boolean };
 
-async function gh(cwd: string, args: string[]): Promise<string> {
-  const r = await native.git.gh(cwd, args);
+/** A gh run's output, or its first error line thrown. */
+function stdoutOf(r: { ok: boolean; stdout: string; stderr: string }): string {
   if (!r.ok) throw new Error(r.stderr.split('\n')[0] || 'gh failed');
   return r.stdout;
+}
+
+async function gh(cwd: string, args: string[]): Promise<string> {
+  return stdoutOf(await native.git.gh(cwd, args));
 }
 
 /**
@@ -22,7 +27,10 @@ async function gh(cwd: string, args: string[]): Promise<string> {
 export async function readBranchReview(cwd: string): Promise<BranchReview | null> {
   let view: { url?: unknown; state?: unknown };
   try {
-    view = JSON.parse(await gh(cwd, ['pr', 'view', '--json', 'url,state']));
+    // the branch's PR where gh finds it, or where the branch is pushed when gh cannot (a deleted origin)
+    view = JSON.parse(
+      stdoutOf(await checkoutPullRequest(cwd, 'url,state', { gh: (c, a) => native.git.gh(c, a), git: (c, a) => native.git.run(c, a) })),
+    );
   } catch (error) {
     if (
       /no pull requests found|no pull request associated|not a git repository|no git remotes|none of the git remotes.*GitHub/i.test(

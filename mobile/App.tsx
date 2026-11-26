@@ -14,6 +14,8 @@ import { openChatCache, openListCache, openPictureCache } from './src/platform/c
 import { openTraceStore } from './src/platform/traceStore';
 import { attachTraceStore } from './src/launchTrace';
 import { openMomoCache } from './src/platform/momoStore';
+import { markMomoHomeUsed, momoHomeWasUsed, openMomoHomeCache } from './src/platform/momoHomeStore';
+import { MomoHomeCacheProvider } from './src/screens/momoPhone/HomeCacheProvider';
 import { startDevPairLink } from './src/platform/devPairLink';
 import { nativeMedia } from './src/platform/media';
 import { displayVersion } from './src/appVersion';
@@ -84,22 +86,24 @@ function MainApp() {
   return (
     // gestures (drawer, sheets, image viewer) are recognised on the UI thread through this root
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <MobileApp
-        runtime={runtime}
-        media={nativeMedia}
-        momo={{ cache: momoCache }}
-        rows={rowCache}
-        lists={listCache}
-        pictures={pictureCache}
-        push={push}
-        appearance={appearance}
-        haptics={haptics}
-        phoneUi={phoneUiControl}
-        homeLayout={homeLayout}
-        version={displayVersion(Constants)}
-        phoneName={phoneName(Constants, deviceModel())}
-        devEndpoints={devEndpointsOf(endpoints)}
-      />
+      <MomoHomeCacheProvider runtime={runtime} open={openMomoHomeCache} wasUsed={momoHomeWasUsed} mark={markMomoHomeUsed}>
+        <MobileApp
+          runtime={runtime}
+          media={nativeMedia}
+          momo={{ cache: momoCache }}
+          rows={rowCache}
+          lists={listCache}
+          pictures={pictureCache}
+          push={push}
+          appearance={appearance}
+          haptics={haptics}
+          phoneUi={phoneUiControl}
+          homeLayout={homeLayout}
+          version={displayVersion(Constants)}
+          phoneName={phoneName(Constants, deviceModel())}
+          devEndpoints={devEndpointsOf(endpoints)}
+        />
+      </MomoHomeCacheProvider>
     </GestureHandlerRootView>
   );
 }

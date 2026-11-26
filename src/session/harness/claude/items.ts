@@ -6,7 +6,8 @@ import { flushSessionPatches } from '../../../store/session/useSession';
 import { native } from '../../../lib/native';
 
 /** What the items show: text and thinking deltas once per frame, everything else in order at once (lib/streamNotifications.ts). */
-const display = createStreamNotifications(applyNotification);
+// Main's SDK events record activity before these translated display items arrive.
+const display = createStreamNotifications((method, params) => applyNotification(method, params, false));
 
 /** Before an event that is not a delta: the text shown so far, and the session patches main sent before it (a crash, #2847). */
 export function flushHeld() {

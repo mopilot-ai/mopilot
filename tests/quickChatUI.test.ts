@@ -84,6 +84,14 @@ stubStore({
   clearNewChatProject: () => events.push(['clearProject']),
   anyHarnessUsable: (s: any) => s.usable,
   harnessesChecking: (s: any) => s.checking,
+  chatKind: (id: string) => id.split(':')[0],
+});
+// how new chats start is its own (tests/newChatStart.test.ts): here when the bar starts its draft and what it remembers
+mock.module('../src/session/newChatStart.ts', {
+  namedExports: {
+    applyNewChatDefault: () => events.push(['applyDefault']),
+    rememberUsedChat: (id: string, kind: string) => events.push(['remember', id, kind]),
+  },
 });
 mock.module('../src/harness/adapters/proxy.ts', { namedExports: { chatProxy: { send: (...a: any[]) => sendImpl(...a) } } });
 const useState_ = (sel: (s: any) => any) =>
@@ -159,7 +167,7 @@ test('Quick Chat stays in place, retains the draft until accepted, and opens the
   let release!: () => void;
   sendImpl = async (...a) => {
     events.push(['send', ...a]);
-    await new Promise<void>((r) => (release = r));
+    return new Promise((r) => (release = () => r({ action: 'started', id: 'turn' })));
   };
   const m = await mount();
   assert.ok(document.documentElement.classList.contains('mini-root'));
@@ -178,15 +186,26 @@ test('Quick Chat stays in place, retains the draft until accepted, and opens the
   assert.equal(m.q('[data-composer-chat="claude:quick"] [data-queued]').dataset.queued, 'claude:quick');
   const send = events.find((e) => e[0] === 'send');
   assert.deepEqual(send.slice(1, 6), ['claude:quick', 'hello from quick chat', [], { human: true }, 'queue']);
+  // a fresh draft: from Settings' fixed default when new chats use one
+  assert.deepEqual(events.filter((e) => e[0] === 'resetDefaults' || e[0] === 'applyDefault').slice(0, 2), [
+    ['resetDefaults'],
+    ['applyDefault'],
+  ]);
   await act(async () => release());
   assert.equal(m.input().value, '');
   assert.deepEqual(saved, { threadId: 'claude:quick', text: '' });
+  // the message went: its chat is the last used
+  assert.deepEqual(
+    events.find((e) => e[0] === 'remember'),
+    ['remember', 'claude:quick', 'claude'],
+  );
   await act(() => update({ runtime: { 'claude:quick': { activeTurnId: 'turn-1' } } }));
   await m.click('Stop');
   assert.deepEqual(events.at(-1), ['stop', 'claude:quick']);
   await m.click('Open in app');
   assert.deepEqual(events.at(-1), ['open', 'claude:quick']);
   await m.click('New chat');
+  assert.deepEqual(events.slice(-3, -1), [['resetDefaults'], ['applyDefault']]);
   assert.deepEqual(saved, { threadId: null, text: '' });
   assert.equal(state.route.name, 'home');
   assert.equal(state.runtime['claude:quick'].activeTurnId, 'turn-1', 'New chat does not stop previous work');

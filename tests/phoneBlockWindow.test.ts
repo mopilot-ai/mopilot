@@ -44,6 +44,8 @@ async function mount(n: number) {
     const event = new Event('scroll');
     Object.assign(event, { contentOffset: { y: 0 } });
     await act(async () => void document.querySelector('[scrolleventthrottle]')!.dispatchEvent(event));
+    // the finger lifts: the page of rows that waited for the reader to rest joins
+    await act(async () => (globalThis as any).__scrollEvents.onScrollEndDrag({ nativeEvent: { velocity: { y: 0 } } }));
     await flush();
   };
   return {
@@ -180,4 +182,46 @@ test('a folded run of steps is known by its own key in the list, a row by the ro
   // a window of two over [row, run, row]: it starts at the run and remembers it by that key
   assert.deepEqual(windowStart([row('a'), run, row('b')], null, 2), { from: 1, anchor: 'run:steps-1' });
   assert.deepEqual(windowStart([row('a'), run, row('b')], 'run:steps-1', 2), { from: 1, anchor: 'run:steps-1' });
+});
+
+test('steps that join the run a window starts at from above change its key, and the window still starts at that run, not at the end of the chat', () => {
+  const row = (key: string) => ({ type: 'row', row: { key, role: 'assistant', text: key } }) as any;
+  const run = (...keys: string[]) =>
+    ({ type: 'run', key: keys[0], steps: keys.map((key) => ({ key, role: 'step', text: key })), summary: 'Ran', running: false }) as any;
+  const before = [row('a'), run('s2', 's3'), row('b')];
+  assert.deepEqual(windowStart(before, 'run:s2', 1), { from: 1, anchor: 'run:s2' });
+  // a page of older steps joined the run from above: it is known by s0 now
+  const after = [row('a'), run('s0', 's1', 's2', 's3'), row('b')];
+  assert.deepEqual(windowStart(after, 'run:s2', 1), { from: 1, anchor: 'run:s0' }, 'the same run, under its new key');
+  assert.deepEqual(windowStart(after, 'run:s0', 1), { from: 1, anchor: 'run:s0' });
+  assert.deepEqual(
+    windowStart(after, 'run:gone', 1),
+    { from: 2, anchor: 'b' },
+    'a block that is nowhere starts the window again at the end',
+  );
+  assert.deepEqual(windowStart(after, 'row-gone', 1), { from: 2, anchor: 'b' }, 'a row that is nowhere too');
+});
+
+test('rows mounted above a reader wait for the finger to lift, or for the glide after it to end: nothing joins above them mid-scroll (#5686)', async () => {
+  const t = await mount(400);
+  const ev = () => (globalThis as any).__scrollEvents;
+  const top = async () => {
+    const event = new Event('scroll');
+    Object.assign(event, { contentOffset: { y: 0 } });
+    await act(async () => void document.querySelector('[scrolleventthrottle]')!.dispatchEvent(event));
+    await flush();
+  };
+  await act(async () => ev().onScrollBeginDrag());
+  await top();
+  assert.equal(shownCount(t.host), WINDOW, 'the finger is still down: nothing is mounted above the rows being read');
+  await act(async () => ev().onScrollEndDrag({ nativeEvent: { velocity: { y: 0 } } }));
+  assert.equal(shownCount(t.host), 2 * WINDOW, 'it lifted: the rows join');
+  // a lift with speed: the glide has to end first
+  await act(async () => ev().onScrollBeginDrag());
+  await top();
+  await act(async () => ev().onScrollEndDrag({ nativeEvent: { velocity: { y: 2 } } }));
+  assert.equal(shownCount(t.host), 2 * WINDOW, 'still gliding');
+  await act(async () => ev().onMomentumScrollEnd());
+  assert.equal(shownCount(t.host), 3 * WINDOW, 'the glide ended: the rows join');
+  await t.done();
 });

@@ -5,6 +5,7 @@ import { FILE_FEATURE, FILE_MIME, fileRefs } from './files.mjs';
 import { credentialOf } from './logins.mjs';
 import { SIDE_CHAT_FEATURE, sideChatUuid } from './sideChats.mjs';
 import { GOAL_FEATURE } from './chatGoal.mjs';
+import { nativeNeeds } from './nativeChats.mjs';
 
 /** Features required by an input. Refuse older peers that would silently drop part of it. */
 export function chatInputNeeds(method, params) {
@@ -14,6 +15,8 @@ export function chatInputNeeds(method, params) {
     ...((message && params?.files?.length) || (method === 'chat.attach' && params?.mime === FILE_MIME) ? [FILE_FEATURE] : []),
     ...(method === 'chat.start' && params?.sideChat != null ? [SIDE_CHAT_FEATURE, 'journalLifecycle'] : []),
     ...(message && params?.goal === true ? [GOAL_FEATURE] : []),
+    // a list or watch of native sessions (#5576) needs the peer's own features, or an older Host would answer with its chats only
+    ...nativeNeeds(method, params),
   ];
 }
 

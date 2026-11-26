@@ -65,7 +65,16 @@ export const KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   mini: ['Floating window', 'Quick Chat shortcut'],
   shortcuts: ['Hotkeys', 'Key bindings'],
   privacy: ['Share usage data', 'Crash reports', 'Telemetry', 'Request log', 'Privacy policy', "Delete data you've shared"],
-  harnesses: ['New chats use', 'Use for new chats', 'Default for new chats', 'Default harness', 'Use highest installed CLI version'],
+  harnesses: [
+    'New chats start with',
+    'Last used',
+    'Thinking effort',
+    'New chats use',
+    'Use for new chats',
+    'Default for new chats',
+    'Default harness',
+    'Use highest installed CLI version',
+  ],
   codex: [
     'Models',
     'Reasoning',

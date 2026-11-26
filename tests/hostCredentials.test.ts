@@ -236,9 +236,17 @@ test('A: a message lends its agent’s key on the control channel first, never i
   // a Host that takes keys, but none for Codex yet
   refuse = Object.assign(new Error('That agent takes no key.'), { code: 'invalid' });
   assert.equal(await wrapped.send('thread-1', { text: 'z' }), 'sent');
+  // a Mac this one only controls (paired by code) takes no key from it: the message goes, on that Mac's own sign-in
+  refuse = Object.assign(new Error('This client may not do that.'), { code: 'forbidden' });
+  const controlled = withCredentials(host, { forHarness: () => key }, undefined, true);
+  assert.equal(controlled.controlledByCode, true);
+  assert.equal(await controlled.send('claude:1', { text: 'z' }), 'sent');
+  // the same refusal from a Mac this one pairs as usual is a real refusal: the message does not go
+  assert.equal(wrapped.controlledByCode, false);
+  await assert.rejects(wrapped.send('claude:1', { text: 'z' }), (e: any) => e.code === 'forbidden');
   refuse = Object.assign(new Error('The machine did not answer.'), { code: 'unreachable' });
   await assert.rejects(wrapped.send('claude:1', { text: 'w' }), /did not answer/);
-  assert.equal(calls.filter((c) => c[0] === 'send').length, 2);
+  assert.equal(calls.filter((c) => c[0] === 'send').length, 3);
   assert.deepEqual([harnessOfChat('claude:x'), harnessOfChat('acp:a:b'), harnessOfChat('abc')], ['claude', 'acp', 'codex']);
 });
 

@@ -1,7 +1,7 @@
 // src/lib/chatActivity.ts: a chat's last activity (the sidebar's order) and the store change that records it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activityAt, byActivity, touched } from '../src/lib/chatActivity.ts';
+import { activityAt, byActivity, isChatOutput, touched, withChatRewinds } from '../src/lib/chatActivity.ts';
 
 test("a chat's activity is the later of its harness's last write and the last activity seen here", () => {
   // Codex moves recencyAt only when the user starts a turn; the agent's output after it moves updatedAt
@@ -19,6 +19,24 @@ test("a chat's activity is the later of its harness's last write and the last ac
     chats.sort(byActivity).map((c) => c.id),
     ['answered', 'sent-to', 'idle'],
   );
+});
+
+test('an item boundary requires output, excluding synthetic notes and output polling', () => {
+  assert.equal(isChatOutput('item/completed'), false);
+  assert.equal(isChatOutput('item/completed', 'statusNote'), false);
+  assert.equal(isChatOutput('item/updated', 'commandExecution'), false);
+  assert.equal(isChatOutput('item/started', 'commandExecution'), true);
+  const state = { threads: { chat: { updatedAt: 9, preview: '' } }, threadOrder: ['chat'] };
+  assert.equal(touched(state, 'chat', 3).threads?.chat.updatedAt, 9);
+});
+
+test('rewind activity decorates only loaded chats with newer activity without changing the original rows', () => {
+  const threads = { first: { updatedAt: 2 }, second: { updatedAt: 1, recencyAt: 1 } };
+  assert.equal(withChatRewinds(threads), threads);
+  assert.equal(withChatRewinds(threads, { first: 2, unloaded: 9, toString: 9 }), threads);
+  const shown = withChatRewinds(threads, { first: 3, second: 4 });
+  assert.deepEqual(shown, { first: { updatedAt: 2, recencyAt: 3 }, second: { updatedAt: 1, recencyAt: 4 } });
+  assert.deepEqual(threads.second, { updatedAt: 1, recencyAt: 1 });
 });
 
 test('activity sets both timestamps; only a starting turn leads the list and fills an empty preview', () => {

@@ -102,6 +102,9 @@ test("entitlements: the helper and sage-mcp get their own, everything else the a
   const ac = signOptionsForFile(`${app}/Contents/Helpers/auth-command`);
   assert.equal(ac.entitlements, ENTITLEMENTS.authCommand);
   assert.deepEqual(ac.additionalArguments, ['--identifier', 'ai.mopilot.code.auth-command']);
+  const cpa = signOptionsForFile(`${app}/Contents/Helpers/code-pair-approve`);
+  assert.equal(cpa.entitlements, ENTITLEMENTS.codePairApprove);
+  assert.deepEqual(cpa.additionalArguments, ['--identifier', 'ai.mopilot.code.code-pair-approve']);
   const dc = signOptionsForFile(`${app}/Contents/Helpers/disclaim`);
   assert.equal(dc.entitlements, ENTITLEMENTS.disclaim);
   assert.deepEqual(dc.additionalArguments, ['--identifier', 'ai.mopilot.code.disclaim']);
@@ -182,7 +185,7 @@ test('local packages allow teamless Electron libraries; release packages retain 
     assert.ok(dev.includes(key));
     assert.ok(release.includes(key));
   }
-  for (const file of ['sage-mcp', 'auth-command', 'disclaim', 'MoPilot.app']) {
+  for (const file of ['sage-mcp', 'auth-command', 'code-pair-approve', 'disclaim', 'MoPilot.app']) {
     const nested = `${app}/Contents/Helpers/${file}`;
     // the same entitlements either way; only a dev build skips the timestamp
     assert.deepEqual(signOptionsForFile(nested, { release: false }), {

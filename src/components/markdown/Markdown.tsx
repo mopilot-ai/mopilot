@@ -24,7 +24,7 @@ import { AgentChatContext } from '../agents/AgentChatContext';
 import { Copy, Check, WrapText, FileText } from '../ui/icons';
 import { ZoomableImage } from '../ui/ImageLightbox';
 import { SkillLink } from './SkillLink';
-import { InlineCodePath } from './MessagePathLink';
+import { InlineCodePath, MessageLink } from './MessagePathLink';
 import { skillPath } from '../../lib/skills';
 import { Visualization } from './Visualization';
 import { PullRequestLink } from './PullRequestLink';
@@ -145,18 +145,10 @@ export const Markdown = memo(function Markdown({
           return <MessagePullRequestLink url={url} href={target} cwd={linkCwd} />;
         }
         return (
-          <a
-            href={href}
-            onClick={(e) => {
-              e.preventDefault();
-              if (!href) return;
-              openMessageLink(href, linkCwd, e, true);
-            }}
-            title={href}
-          >
+          <MessageLink href={href} cwd={linkCwd}>
             {href && !issueRef && <Favicon href={href} />}
             <InLink.Provider value={true}>{children}</InLink.Provider>
-          </a>
+          </MessageLink>
         );
       },
       code: ({ className, children, node, ...rest }) => {

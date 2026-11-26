@@ -34,6 +34,8 @@ const pemOf = (publicKey) =>
 /** @param {any} d */
 const isPair = (d) => typeof d?.privateKey === 'string' && typeof d?.publicKey === 'string';
 const WHAT = 'this app’s Host key';
+/** What every pairing-by-code proof message starts with (after a length): shared/host/codePair.mjs. */
+const CODE_PAIR_PROOF = 'mopilot-code-pair-v1|device-proof';
 /** The file could not be read: an error naming it, after a copy is kept beside it. @param {string} file @param {unknown} error */
 function unreadable(file, error) {
   try {
@@ -118,6 +120,16 @@ function loadIdentity(file, safe) {
     signManifest: (facts) => signManifest(facts, crypto.createPrivateKey(saved.privateKey)),
     /** The proof of holding the key for one challenge of one Host: a signature over the purpose, that Host's name and the nonce, so a proof made for one Host is worth nothing to another. @param {'pair' | 'auth'} purpose @param {string} hostId @param {string} nonce */
     sign: (purpose, hostId, nonce) => sign(saved, Buffer.from(`${purpose}\n${hostId}\n${nonce}`)),
+    /**
+     * The signature (64 bytes) pairing by code needs: this key over a run's proof message (shared/host/codePair.mjs), which is refused unless it is one, so it cannot be a signature over anything else this key signs.
+     * @param {Uint8Array} message
+     */
+    signCodePair(message) {
+      const bytes = Buffer.from(message);
+      const at = bytes.indexOf(CODE_PAIR_PROOF);
+      if (at < 0 || at > 8) throw new HostError('invalid', 'That is not a pairing proof.');
+      return crypto.sign(null, bytes, crypto.createPrivateKey(saved.privateKey));
+    },
     /** The next key of a rotation under way, made on first ask and kept until the rotation ends: asked again after a failed attempt it is the same key. */
     startRotation() {
       const next = saved.next ?? makePair();

@@ -27,7 +27,7 @@ const { gateRemote } = require('../../electron/remote/gate.cjs');
 const { dropSharedLedgers } = require('../../electron/remote/sendLedger.cjs');
 const { openPhoneItems } = require('../../electron/app/chromePanelPhones.cjs');
 const { rowsOf, olderRowsOf } = require('../../electron/capabilities/browser/chromePanelLive.cjs');
-const native = require('../../electron/remote/sodiumPrimitives.cjs').createSodiumPrimitives();
+const native = require('../../electron/platform/sodiumPrimitives.cjs').createSodiumPrimitives();
 
 /** Waits (real sockets and disk) until the condition holds. */
 export async function until(cond: () => unknown, what = 'condition', ms = 8000) {

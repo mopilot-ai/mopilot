@@ -105,7 +105,6 @@ test.describe('saved projects', () => {
   });
 
   test('pinning keeps projects above Custom order and archiving preserves another collapsed project', async ({ page, harness }) => {
-    // Recent activity is the default project order (53c07999); this checks pinning against Custom order
     await orderMenu(page, 'Project order', 'Custom');
     await expect(projectNames(page)).toHaveText(['taiwan', 'alpha']);
     await group(page, 'alpha').locator('.project-row').click({ button: 'right' });
@@ -125,10 +124,11 @@ test.describe('saved projects', () => {
     await expect(projectNames(p)).toHaveText(['taiwan', 'alpha']);
   });
 
-  test('Recent activity is the default and Recents opens the chat in its collapsed project', async ({ page }) => {
+  test('default project headings stay in place and Recents opens the chat in its collapsed project', async ({ page }) => {
     await expect(chatNames(page, 'taiwan')).toHaveText(['Latest itinerary', 'Older itinerary']);
+    await expect(projectNames(page)).toHaveText(['taiwan', 'alpha']);
     await archive(page, 'taiwan', 'Latest itinerary');
-    await expect(projectNames(page)).toHaveText(['alpha', 'taiwan']);
+    await expect(projectNames(page)).toHaveText(['taiwan', 'alpha']);
     await group(page, 'taiwan').locator('.project-row').click();
     await expect(chatNames(page, 'taiwan')).toHaveCount(0);
     const recents = sidebar(page)

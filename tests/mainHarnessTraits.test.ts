@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { MAIN_TRAITS, traitsOf } = require('../electron/harness/family.cjs');
+const { MAIN_TRAITS, traitsOf, agentTraitsOf } = require('../electron/harness/family.cjs');
 
 test('every family answers every trait with a boolean', () => {
   assert.deepEqual(Object.keys(MAIN_TRAITS).sort(), ['acp', 'claude', 'codex']);
@@ -40,4 +40,17 @@ test("a segment kind reads its family's traits; a kind this build doesn't know i
     ],
   );
   assert.throws(() => traitsOf('gemini'), /Unknown harness kind/);
+});
+
+test("the agent a kind runs: a machine's Claude Code or Codex chat, drawn here as ACP, is that agent's; an unknown kind has none", () => {
+  for (const [kind, family] of [
+    ['codex', 'codex'],
+    ['claude', 'claude'],
+    ['acp:host-claude', 'claude'],
+    ['acp:host-codex', 'codex'],
+    ['acp:host-claude:thread', 'claude'],
+    ['acp:kimi', 'acp'],
+  ] as const)
+    assert.equal(agentTraitsOf(kind), MAIN_TRAITS[family], kind);
+  for (const kind of [undefined, null, '', 'gemini', 42]) assert.equal(agentTraitsOf(kind), null, String(kind));
 });

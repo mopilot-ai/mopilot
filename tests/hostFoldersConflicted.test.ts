@@ -40,3 +40,22 @@ test('status keeps the counted flag of a row, and only when it is true', async (
     ],
   );
 });
+
+test('status keeps where the branch is pushed as two bounded strings, and none from an older Host or a malformed one', async () => {
+  const upstream = async (value: unknown) =>
+    (await folders({ isRepo: true, files: [], upstream: value }).status('box', { path: '/x' })).upstream;
+  assert.deepEqual(await upstream({ remote: 'https://github.com/o/internal.git', branch: 'feat', extra: 1 }), {
+    remote: 'https://github.com/o/internal.git',
+    branch: 'feat',
+  });
+  for (const bad of [
+    undefined,
+    null,
+    'https://github.com/o/r',
+    { remote: 'https://github.com/o/r' },
+    { remote: '', branch: 'feat' },
+    { remote: 7, branch: 'feat' },
+    { remote: 'x'.repeat(1001), branch: 'feat' },
+  ])
+    assert.equal(await upstream(bad), null, JSON.stringify(bad));
+});

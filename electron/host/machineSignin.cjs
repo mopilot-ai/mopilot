@@ -34,7 +34,8 @@ function createMachineSignin({ registry, hostFor, openExternal, onChange, report
   async function remoteFor(id) {
     const record = registry.list().find((r) => r.id === id);
     if (!record) throw refusal('That machine is not in the list.', 'unknown_machine');
-    if (!record.socketPath) throw refusal('This machine has no Host socket on record.');
+    // a machine with only a relay path (`relay:<host id>`) needs no socket of its own: its relay tunnel ends at the Host's socket
+    if (!record.socketPath && !record.address.startsWith('relay:')) throw refusal('This machine has no Host socket on record.');
     notice(id, record);
     const place = places.get(id);
     const host = hostFor(id);

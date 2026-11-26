@@ -13,7 +13,7 @@ const approvalOf = (v) =>
     ? { text: v.text, sig: v.sig }
     : undefined;
 
-/** @typedef {{ key: string, name: string, kind: 'desktop' | 'phone' | 'cli' | 'home' | 'controller' | 'unknown', addedAt: number, addedBy: string, link?: string, approval?: { text: string, sig: string } }} ClientRecord */
+/** @typedef {{ key: string, name: string, kind: 'desktop' | 'phone' | 'cli' | 'home' | 'controller' | 'unknown', addedAt: number, addedBy: string, link?: string, approval?: { text: string, sig: string }, label?: string }} ClientRecord */
 /** @typedef {{ codeHash: string | null, expires: number, wrong: number, clients: Record<string, ClientRecord> }} PairingState */
 /** @typedef {{ added: { id: string, pem: string }[], revoked: string[], seen: Record<string, number> }} UpdateKeyState */
 
@@ -81,6 +81,8 @@ export function readControllers(configDir) {
           kind: 'controller',
           ...(LINK.test(v?.link) ? { link: v.link } : {}),
           ...(approvalOf(v?.approval) ? { approval: approvalOf(v.approval) } : {}),
+          // this Mac's own label for it, beside the name the person approved (which its proof signs and never changes)
+          ...(typeof v?.label === 'string' && cleanName(v.label) ? { label: cleanName(v.label) } : {}),
         };
       } catch {
         // one record that is not a client is no client; the rest stand

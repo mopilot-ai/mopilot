@@ -4,7 +4,9 @@ const path = require('node:path');
 const { retirementRoutes, machineRetirement } = require('../../host/retirementRoutes.cjs');
 const { registerHostPicture } = require('../hostPicture.cjs');
 const { hostAccess, onHostAccess } = require('../../host/access.cjs');
-const { registerLocalHost } = require('../../host/localHost.cjs');
+const { registerLocalHost, LOCAL_ID } = require('../../host/localHost.cjs');
+const { createAllowConnections } = require('../../host/allowConnections.cjs');
+const { createHostReturned } = require('../../host/hostReturned.cjs');
 const { macDefaultOf } = require('../../host/remotePicks.cjs');
 const { createMachines, chatCapabilities, hostOwnership } = require('../../host/machines.cjs');
 const { createHostFolders } = require('../../host/folders.cjs');
@@ -112,23 +114,16 @@ function register(
       report: (problem) => noteIgnored('continue a chat on another host', new Error(problem)),
     }));
   };
-  /** What each machine's status was at the last snapshot: a machine that turns online is told what was continued without it. @type {Map<string, string>} */
-  const seen = new Map();
-  /** @param {{ machines: { id: string, status: string }[] }} snapshot */
-  const returned = (snapshot) => {
-    for (const m of snapshot.machines) {
-      const was = seen.get(m.id);
-      seen.set(m.id, m.status);
-      if (m.status === 'offline' || was === m.status || !deps?.live?.switchRunner) continue;
-      const id = m.id;
-      // after the machines service has been returned to its first caller: this runs inside its own change callback
-      queueMicrotask(() =>
-        continueService()
-          .hostReturned(id)
-          .catch((e) => noteIgnored('tell a returning host what was continued without it', e)),
-      );
-    }
-  };
+  const returned = createHostReturned({
+    live: deps?.live,
+    hostReturned: (id) => continueService().hostReturned(id),
+  });
+  // "Allow connections" told to this Mac's own Host: when the switch changes, and when that Host comes online in the list (pairing by code makes no code while it is off)
+  const allowConnections = createAllowConnections({
+    machines: () => machines,
+    consent: () => deps?.live?.remoteConsent,
+    report: (error) => noteIgnored('tell this Mac’s Host whether connections are allowed', error),
+  });
   // ssh's questions while a machine is added (host key, password) are asked in the windows; the askpass socket and shared connections live in the user's private temp folder, short enough for a socket path
   const prompts = createConnectPrompts({ broadcast: (e) => deps?.broadcastAll('host:prompt', e) });
   const sshDir = path.join(os.tmpdir(), `mopilot-ssh-${process.getuid?.() ?? 0}`);
@@ -170,6 +165,7 @@ function register(
         // a machine that is no longer in the list takes its computer-use approvals with it (never while Host access is off or the list is not read yet: it is empty then)
         if (allowed() && snapshot.resolved) d.live?.computerUse?.hostDesktop?.approvals.sweep(new Set(snapshot.machines.map((m) => m.id)));
         returned(snapshot);
+        allowConnections.rows(snapshot);
         // a machine that came back: what waited for it goes, and its chats catch up
         remote()
           ?.resume()
@@ -177,6 +173,7 @@ function register(
         chats.followAll();
       },
       onStep: (e) => d.broadcastAll('host:installStep', e),
+      beforeLocalPair: (socketPath) => allowConnections.beforePair(socketPath), // this Mac's own Host learns this app's key first
       apiKeys,
       // the organization's lease goes before a key (registered below, once `handle` exists; read only when a message goes out)
       orgAccess: { lend: (host, harness) => orgAccess.lend(host, harness), covers: (harness) => orgAccess.covers(harness) },
@@ -223,6 +220,7 @@ function register(
     kindOf: (chatId) => kindOfChat(deps?.live, chatId),
     permissionOf: (chatId) => deps?.live.chats?.get(chatId)?.meta?.config?.hostPermission,
     userDefaultOf: macDefaultOf(deps?.readState),
+    taken: () => deps?.live.machineChats,
     selectionOf: (chatId) => deps?.live.chats?.get(chatId)?.meta?.config?.hostSelection,
     paused: (chatId) => deps?.live.notifier?.notify('approval', chatId, { title: 'Run paused: no one answered its approvals', body: '' }),
     approvalMs: devApprovalMs(process.env, deps?.app.isPackaged !== false),
@@ -260,6 +258,7 @@ function register(
     chats.get()?.dispose();
     remote()?.dispose();
     local.dispose();
+    allowConnections.dispose();
     stopHome?.();
     machines?.dispose();
     orgAccess.dispose();
@@ -270,8 +269,8 @@ function register(
     deps.live.hostOwnership = hostOwnership({ dir: deps.app.getPath('userData'), allowed });
     deps.live.connectedHostFor = (/** @type {string} */ id) => service().connectedHost(id);
     deps.live.hostNameOf = (/** @type {string} */ id) => service().row(id)?.name ?? null;
+    deps.live.localHostSocket = () => machines?.row(LOCAL_ID)?.socketPath ?? '';
   }
-  require('./hostLists.cjs').registerHostLists({ ipcMain, allowed, service });
   /** @type {ReturnType<typeof createHostFolders> | null} */
   let folders = null;
   // made on the first folder request, which comes only once the gate is open
@@ -301,6 +300,7 @@ function register(
         return { error: { message: String(e?.message ?? 'Something went wrong.'), ...(e?.code ? { code: e.code } : {}) } };
       }
     });
+  const lists = require('./hostLists.cjs').registerHostLists({ ipcMain, handle, allowed, service, deps, chats, folders: foldersService });
   const ownerPolicy = registerOwnerPolicy({ handle, userData: () => /** @type {any} */ (deps).app.getPath('userData'), service });
   const orgAccess = registerOrgAccess({
     handle,
@@ -407,11 +407,7 @@ function register(
       hostFor: (/** @type {string} */ id) => (allowed() ? service().hostFor(id) : null),
       rowOf: (/** @type {string} */ id) => (allowed() ? service().row(id) : null),
       onRows: (/** @type {() => void} */ fn) => service().onRowChange(fn),
-      /** @param {string} chatId @param {{ hostId: string, folder: string }} at */
-      adopt: async (chatId, at) => {
-        foldersService().bind(chatId, at);
-        await chats.get()?.follow(chatId);
-      },
+      ...lists.adoption,
     };
   // what a paired phone may do with the machines (app/hostPhone.cjs): the same services, the same refusals
   if (deps?.live)
@@ -461,7 +457,7 @@ function register(
     service().setStartAtBoot(String(id ?? ''), on === true, typeof password === 'string' ? password : ''),
   );
   handle('host:startAtBootCommand', (id) => service().startAtBootCommand(String(id ?? '')));
-  handle('host:rotateKey', () => service().rotateKey());
+  handle('host:rotateKey', () => allowConnections.after(service().rotateKey()));
   handle('host:removePlan', (id) => service().removePlan(String(id ?? '')));
   // the administrator password goes straight to the machine's sudo and is not kept (electron/host/uninstallHost.cjs)
   handle('host:uninstall', (id, password) => service().uninstallHost(String(id ?? ''), typeof password === 'string' ? password : ''));

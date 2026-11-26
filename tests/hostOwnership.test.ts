@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const require = createRequire(import.meta.url);
-const { OwnershipStore, LOCAL_HOST_ID } = require('../electron/host/ownership.cjs');
+const { OwnershipStore, LOCAL_HOST_ID, onOwnershipMoved } = require('../electron/host/ownership.cjs');
 
 const tmpFile = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mopilot-ownership-')), 'host-ownership.json');
 const rec = (hostId: string, epoch = 1, folder: string | null = '/work') => ({ hostId, ownerHostId: hostId, epoch, folder });
@@ -87,11 +87,18 @@ test('W3: when the file and its copy are both unreadable, writes refuse until re
   assert.equal(store.error, null);
 });
 
-test('W3: a copy that fails to write after the file is saved leaves the cache matching the file', () => {
+test('W3: a copy that fails to write after the file is saved leaves the cache matching the file, and the move is told', () => {
   const file = tmpFile();
   const store = new OwnershipStore(file);
   fs.mkdirSync(`${file}.bak`);
-  assert.throws(() => store.set('c1', rec('h1')));
+  let told = 0;
+  const off = onOwnershipMoved(() => void told++);
+  try {
+    assert.throws(() => store.set('c1', rec('h1')));
+    assert.equal(told, 1, 'the file holds the move, so what follows it is told');
+  } finally {
+    off();
+  }
   assert.equal(store.get('c1').hostId, 'h1');
   assert.equal(new OwnershipStore(file).get('c1').hostId, 'h1');
 });
@@ -103,7 +110,11 @@ test('W3: a failed write keeps the cache and the file as they were', () => {
   const before = fs.readFileSync(file, 'utf8');
   fs.rmSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(path.dirname(file), 'a file where the folder was');
+  let told = 0;
+  const off = onOwnershipMoved(() => void told++);
   assert.throws(() => store.set('c2', rec('h2')));
+  off();
+  assert.equal(told, 0, 'nothing was written, so no move is told');
   assert.equal(store.get('c2').epoch, 0);
   assert.equal(store.get('c1').hostId, 'h1');
   assert.ok(before.includes('h1'));
@@ -158,4 +169,36 @@ test('remoteChats lists the chats a machine runs, with the machine and the folde
     { chatId: 'a', hostId: 'box', folder: '/srv/a' },
     { chatId: 'c', hostId: 'other', folder: null },
   ]);
+});
+
+test('a write that moves a chat to or from a machine is told in this process, by any store on the file; one that keeps where it runs is not', () => {
+  const file = tmpFile();
+  const [a, b] = [new OwnershipStore(file), new OwnershipStore(file)];
+  let heard = 0;
+  // a listener that throws neither fails the write nor keeps the others from hearing it
+  const offBroken = onOwnershipMoved(() => {
+    throw new Error('broken listener');
+  });
+  const off = onOwnershipMoved(() => void heard++);
+  try {
+    a.set('c1', rec('h1'));
+    assert.equal(heard, 1, 'this Mac to a machine');
+    a.set('c1', rec('h1', 2, '/elsewhere'));
+    assert.equal(heard, 1, 'a new epoch or folder on the same machine moves nothing');
+    b.set('c1', rec('h2', 3));
+    assert.equal(heard, 2, 'to another machine, by another store');
+    a.remove('c1');
+    assert.equal(heard, 3, 'back to this Mac');
+    a.remove('c1');
+    // a record that keeps a chat on this Mac (its owner elsewhere) moves nothing, written or removed
+    a.set('c2', { hostId: LOCAL_HOST_ID, ownerHostId: 'h1', epoch: 1 });
+    a.remove('c2');
+    assert.equal(heard, 3);
+    assert.deepEqual(a.get('c1'), { hostId: LOCAL_HOST_ID, ownerHostId: LOCAL_HOST_ID, epoch: 0, folder: null });
+  } finally {
+    off();
+    offBroken();
+  }
+  a.set('c3', rec('h1'));
+  assert.equal(heard, 3, 'unsubscribed');
 });

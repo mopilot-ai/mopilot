@@ -19,7 +19,7 @@ for (const ending of ['completed', 'stopped', 'failed']) {
       harness: 'kimi',
       sessionId: 's',
       state: {},
-      agent: { caps: {}, request: (...args: any[]) => (sent.push(args), new Promise(() => {})) },
+      agent: { caps: {}, request: (method: string, params: unknown) => (sent.push([method, params]), new Promise(() => {})) },
     };
     const host: any = {
       starting: new Map(),

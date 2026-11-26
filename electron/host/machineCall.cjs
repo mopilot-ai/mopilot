@@ -16,8 +16,9 @@ const refusal = (message, code) => Object.assign(new Error(message), code ? { co
 function createMachineCall({ pool, targetOf, relay, connect }) {
   /** The tunnel to a machine once it is up, held until the caller releases it; throws when it does not come up in time. @param {{ address: string, socketPath: string, identity?: string }} record */
   async function lease(record) {
-    // a record without a socket is never given one by guessing (the registry holds what the Host said)
-    if (!record.socketPath) throw refusal('This machine has no Host socket on record.');
+    // a record without a socket is never given one by guessing (the registry holds what the Host said); a machine with only a relay
+    // path (paired by code, `relay:<host id>`) needs none: its relay tunnel ends at the Host's own socket on the other side
+    if (!record.socketPath && !record.address.startsWith('relay:')) throw refusal('This machine has no Host socket on record.');
     const tunnel = pool.get(targetOf(record));
     const held = tunnel.acquire();
     let timer;

@@ -43,6 +43,17 @@ test('set keeps the document privately and sends it to each machine; failures ar
         throw Object.assign(new Error('old'), { code: 'feature_missing' });
       },
     },
+    controlled: {
+      controlledByCode: true,
+      policy: async () => {
+        throw Object.assign(new Error('This client may not do that.'), { code: 'forbidden' });
+      },
+    },
+    refusing: {
+      policy: async () => {
+        throw Object.assign(new Error('This client may not do that.'), { code: 'forbidden' });
+      },
+    },
     broken: {
       policy: async () => {
         throw new Error('boom');
@@ -63,11 +74,17 @@ test('set keeps the document privately and sends it to each machine; failures ar
   assert.deepEqual(out.machines, [
     { id: 'ok', ok: true, generation: 'g1' },
     { id: 'old', ok: false, code: 'feature_missing' },
+    { id: 'controlled', ok: false, code: 'forbidden' },
+    { id: 'refusing', ok: false, code: 'forbidden' },
     { id: 'broken', ok: false, code: 'failed' },
     { id: 'away', ok: false, code: 'offline' },
     { id: 'noMethod', ok: false, code: 'offline' },
   ]);
-  assert.equal(reported.length, 1, 'only the failure that is not an older Host is reported');
+  assert.equal(
+    reported.length,
+    2,
+    'reported: the failure, and a refusal from a Mac paired as usual; not an older Host or a Mac this one only controls',
+  );
   await assert.rejects(policy.set({ version: 1, permissionMax: 'root' }), (e: any) => e.code === 'invalid');
   assert.equal(policy.get().permissionMax, 'default', 'an invalid document leaves the kept one');
   fs.rmSync(dir, { recursive: true, force: true });

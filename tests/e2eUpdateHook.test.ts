@@ -85,6 +85,18 @@ test('the updater main loads acts as a signed build with its update downloaded, 
   assert.equal(fs.readFileSync(path.join(userData, 'update-hook.log'), 'utf8'), 'quitAndInstall\n');
 });
 
+test('the staged updater fixture records the actual activation command the quit path asks for', async () => {
+  const { Module, hook, userData } = setup();
+  const { Updater } = Module._load('../updater.cjs');
+  const u = new Updater({ broadcast() {} });
+  hook.ready('9.9.9', true);
+  assert.ok(u.macInstaller);
+  await u.stagedArtifact.stage.commit(true);
+  await u.stagedArtifact.stage.commit(false);
+  u.stagedArtifact.stage.cancel();
+  assert.equal(fs.readFileSync(path.join(userData, 'update-hook.log'), 'utf8'), 'activate:restart\nactivate:quit\n');
+});
+
 test("the stealth restart runs on the hook's clock, and only its own checks", async () => {
   const { Module, hook } = setup();
   const create = Module._load('./stealthUpdate.cjs').createStealthUpdate;

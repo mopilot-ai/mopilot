@@ -3,10 +3,12 @@
 import { isInvalidStreamNotification } from '../../shared/streamDelta.mjs';
 import { limitNoteHome } from '../../shared/limitNotices.mjs';
 import { retryAfterModelProgress } from '../lib/modelRetry';
+import { isChatOutput } from '../lib/chatActivity';
 import { contextReportOwner, contextUsageKey } from './contextUsage';
 import { respondToCodex } from '../harness/adapters/codex';
 import { errorText, ignoring } from '../lib/ignored';
 import { sessionOf } from './session/useSession';
+import { EMPTY_SESSION } from './session/sessionState';
 import type { PendingRequest, ThreadItem, TurnState } from './types';
 import { answerTaken } from './answerRetired';
 import { turnFromServer } from '../../shared/codexTurns.mjs';
@@ -114,8 +116,8 @@ export function onScreenNow(): Set<string> {
 type NotificationParams<M extends ServerNotification['method']> = Extract<ServerNotification, { method: M }>['params'];
 
 /** Applies a notification at once; Claude and ACP translators batch their own deltas before this (lib/streamNotifications.ts). */
-export function applyNotification(method: string, p: unknown) {
-  applyNow(method, p);
+export function applyNotification(method: string, p: unknown, trackActivity = true) {
+  applyNow(method, p, trackActivity);
 }
 /** What Codex shows: text, reasoning and output deltas once per frame, every other notification in order at once. */
 const codexDisplay = createStreamNotifications(applyNow);
@@ -125,17 +127,24 @@ export const flushStreamNotifications = codexDisplay.flush;
 export function onNotification(method: string, params: unknown) {
   codexDisplay.emit(method, params as Record<string, unknown>);
 }
+
 /**
  * A notification under its chat's id: main maps a later segment's thread to the chat that owns it
  * and keeps its hidden helper threads' events to itself; Claude's translator reports the same way.
  */
-function applyNow(method: string, params: unknown) {
+function applyNow(method: string, params: unknown, trackActivity = true) {
   if (isInvalidStreamNotification(method, params)) return;
   // the fields most notifications share; each case below reads its own method's params
   const head = params as { threadId: string; turnId?: string; item?: { type?: string } };
   // A retry is over as soon as model output resumes, rather than at turn completion.
-  // Tool output and user steering can arrive while the model stream is still disconnected.
   const runtime = get().runtime[head.threadId];
+  if (
+    trackActivity &&
+    isChatOutput(method, head.item?.type) &&
+    head.turnId &&
+    head.turnId === currentTurnId(head.threadId, runtime?.activeTurnId)
+  )
+    touchChat(head.threadId);
   if (runtime?.retry) {
     const retry = retryAfterModelProgress(runtime, method, head);
     if (retry !== runtime.retry) patchRuntime(head.threadId, () => ({ retry }));
@@ -453,6 +462,11 @@ function applyNow(method: string, params: unknown) {
       break;
     }
   }
+}
+
+function currentTurnId(chatId: string, displayed: string | null | undefined) {
+  const session = sessionOf(chatId);
+  return session === EMPTY_SESSION ? displayed : session.activeTurn?.id;
 }
 
 const AGENT_MESSAGE = { type: 'agentMessage', text: '', phase: null, memoryCitation: null, delivery: null };

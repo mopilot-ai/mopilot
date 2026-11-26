@@ -1,8 +1,8 @@
 {
   "exceptions": {
     "electron/app/sessions.cjs": {
-      "maxLines": 642,
-      "reason": "Composes session services, adapters and their shared ports. Wires the selected ACP discovery policy to both admission and process launch for one startup lifetime. Goal status, peer gating and optional observations keep their logic in their respective modules."
+      "maxLines": 644,
+      "reason": "Composes session services, adapters and their shared ports. Wires the selected ACP discovery policy to both admission and process launch for one startup lifetime. Goal status, peer gating and optional observations keep their logic in their respective modules. The capabilities read which chats run on a machine from the controller's remote routes, as its sends do, and follow moves and Host's gate (host/wiring.cjs capsFollowHost)."
     }
   }
 }

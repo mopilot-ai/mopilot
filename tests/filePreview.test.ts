@@ -48,7 +48,11 @@ const stubs: Record<string, Record<string, unknown>> = {
   'lib/skills.ts': { skillPath: nul },
 };
 // the bridge the modules read, installed in the native port (src/lib/native.ts)
-installNativeStub({ fs: { readText: (p: string) => f.readText(p) }, clipboard: { write: async () => {} } });
+installNativeStub({
+  // main's answer for a path a link names: a file beside the document
+  fs: { readText: (p: string) => f.readText(p), messagePath: async (p: string, cwd: string) => ({ path: `${cwd}/${p}`, kind: 'file' }) },
+  clipboard: { write: async () => {} },
+});
 for (const [rel, exports] of Object.entries(withStoreSlices(stubs))) mockSource(`src/${rel}`, exports);
 // Vite inlines CSS imports; under node they are empty modules
 registerHooks({
@@ -127,6 +131,8 @@ test('relative links and images resolve from the document folder', async () => {
     assert.equal(image?.getAttribute('src'), 'codex-asset:///repo/docs/images/diagram.png');
     await act(async () => (m.host.querySelector('a') as HTMLElement).click());
     assert.deepEqual(fixture.links[0].slice(0, 2), ['other.md', '/repo/docs']);
+    // the file is there: the link offers the path menu (Reveal in Finder) on a right-click
+    assert.equal(m.host.querySelector('a')?.getAttribute('aria-haspopup'), 'menu');
   } finally {
     await m.close();
   }

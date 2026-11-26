@@ -9,6 +9,8 @@ import { PARSERS } from '../shared/host/schema.mjs';
 // @ts-ignore
 import { CONTROLLER_ALLOWED, PHONE_ALLOWED, kindAllows, refuseByKind } from '../host/src/controllerRefusals.mjs';
 import { servedHost } from './support/hostClientsWorld.ts';
+import { HANDED_OFF_METHODS } from '../mobile/src/momoPhone/phoneHome/handOff.ts';
+import { phoneMomoHosts } from '../mobile/src/momoPhone/phoneHome/hosts.ts';
 
 const root = new URL('..', import.meta.url).pathname;
 /** The line protocol's methods, read from the server itself: every `req.method === '…'` and the paired-only set. */
@@ -104,9 +106,10 @@ test('the Host methods named in the shared code the phone imports are ones a pho
   assert.ok(sharedImportedByPhone(phoneSources()).length > 20, 'the import graph is followed');
   assert.ok(named.has('host.momoGoogle'), 'the scan finds a call made by shared code');
   assert.deepEqual(
-    [...named].filter(([m]) => !PHONE_ALLOWED.includes(m)),
+    // a method the shared home names but a phone hands to the Mac is exempt: the next test shows the phone's wrapper and the Host both refuse it
+    [...named].filter(([m]) => !PHONE_ALLOWED.includes(m) && !HANDED_OFF_METHODS.includes(m)),
     [],
-    'shared code the phone imports names a method a phone is refused: allow it on purpose or keep it out of the phone',
+    'shared code the phone imports names a method a phone is refused: allow it on purpose, hand it off to the Mac (mobile/src/momoPhone/phoneHome/handOff.ts) or keep it out of the phone',
   );
   assert.deepEqual(unresolvable, [], 'a Host method built by a template cannot be checked: name it in full');
 });
@@ -149,7 +152,8 @@ test('a phone may ask exactly the methods its own code sends: a new call fails h
   const called = calledByPhone();
   assert.ok(called.has('chat.send') && called.has('host.chats') && called.has('host.momoGoogle'), 'the scan finds what the phone sends');
   // what the phone sends is what its sources name and what the shared code they import names (a step table, a shared client)
-  const sent = new Set([...called.keys(), ...namedInImportedShared().named.keys()]);
+  // (the four the shared home names but a phone hands to the Mac are not sent: the test below proves it)
+  const sent = new Set([...called.keys(), ...namedInImportedShared().named.keys()].filter((m) => !HANDED_OFF_METHODS.includes(m)));
   assert.deepEqual(
     [...sent].sort(),
     [...PHONE_ALLOWED].sort(),
@@ -230,4 +234,32 @@ test('a served Host serves a phone its chats and refuses it everything else, wit
   assert.equal(w.sends.length, 1);
   for (const method of ['host.status', 'host.chats', 'host.pending', 'chat.history'])
     assert.notEqual((await conn.call(method, method === 'chat.history' ? {} : {})).code, 'forbidden', method);
+});
+
+test('what a phone hands to the Mac is never sent: the phone’s wrapper refuses each before a request leaves, and the Host refuses each to a phone', async () => {
+  assert.deepEqual(
+    [...HANDED_OFF_METHODS].sort(),
+    ['host.momoHomeStart', 'host.momoMove', 'host.momoReset', 'host.momoStandDown'],
+    'the exempt list is the four the Host review named',
+  );
+  let asked = 0;
+  const hosts = phoneMomoHosts({
+    sessions: {
+      records: () => [{ machineId: 'm', name: 'M' }],
+      reachable: () => true,
+      agents: () => null,
+      session: async () => ({ request: async () => void (asked += 1) }),
+    },
+    account: () => 'a1',
+    onChange: () => () => undefined,
+  });
+  for (const method of HANDED_OFF_METHODS) {
+    await assert.rejects(hosts.call('m', method, {}, { timeoutMs: 1 }), /is not sent from a phone/, method);
+    assert.equal(kindAllows('phone', method), false, `the Host refuses ${method} to a phone`);
+    assert.equal(PHONE_ALLOWED.includes(method), false, method);
+  }
+  assert.equal(asked, 0, 'no request left the phone');
+  // a method the phone does send goes through
+  await hosts.call('m', 'host.momoStatus', {}, { timeoutMs: 1 });
+  assert.equal(asked, 1);
 });

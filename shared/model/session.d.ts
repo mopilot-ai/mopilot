@@ -117,6 +117,8 @@ export interface SessionState {
   questions: import('../acpForm.mjs').AcpQuestion[];
   approvals: SessionApproval[];
   pendingSwitch: PendingSwitch | null;
+  /** The current harness's ephemeral follow-up for the composer. */
+  promptSuggestion: string | null;
   /** basic tier: what the harness declared for the session */
   acp: AcpSessionState | null;
   /** what the chat's model takes in; null: unknown (computer use then sends a screenshot and the element list) */

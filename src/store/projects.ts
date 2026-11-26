@@ -89,12 +89,13 @@ function setHostPick(newChatHost: NonNullable<AppState['newChatHost']>) {
 const targetBefore = (s: AppState, kept: AppState['newChatHost']) =>
   kept ? kept.before : { projectId: s.newChatProjectId, cwd: s.newChatCwd };
 
-/** A machine was removed: its remembered folder goes (one added again under its id picks a folder anew), and so does a new chat's pick of it. */
+/** A machine was removed: its remembered folder and starting picks go (one added again under its id picks a folder anew), and so does a new chat's pick of it. */
 export function forgetHostMachine(id: string) {
   const s = get();
-  if (id in s.prefs.hostFolders) {
+  if (id in s.prefs.hostFolders || id in s.prefs.hostPicks) {
     const { [id]: _gone, ...rest } = s.prefs.hostFolders;
-    setPrefs({ hostFolders: rest });
+    const { [id]: _picked, ...picks } = s.prefs.hostPicks;
+    setPrefs({ hostFolders: rest, hostPicks: picks });
   }
   const kept = newChatHostPick(s);
   if (kept?.id === id) dropNewChatHost(kept);

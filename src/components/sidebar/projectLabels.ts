@@ -33,11 +33,13 @@ export function labelProjects(
   const clouds = new Map(machines.map((machine) => [machine.id, machine.cloud]));
   const kindOf = (id: string) => hostLocationKind(id, clouds.get(id));
   for (const g of groups) {
-    const { shared, hosts } = projectSessionLocations(g, ownerOf, descendants);
+    const { shared, hosts, local } = projectSessionLocations(g, ownerOf, descendants);
     g.sessionHostId = shared;
-    const kinds = new Set(hosts.map(kindOf));
+    // Marks for only the remote sessions would read as the whole project's location, so a project with local sessions
+    // (no Host) takes no marks from its sessions (a machine folder keeps its own) and each remote session shows its icon.
+    const kinds = new Set(local ? [] : hosts.map(kindOf));
     if (g.machine) kinds.add(kindOf(g.machine.id));
-    if (g.cloudTasks?.length) kinds.add('cloud');
+    if (g.cloudTasks?.length && !local) kinds.add('cloud');
     // A pinned project with no sessions can still name the places it can start one.
     if (!g.threads.length && !g.starting?.length && !g.cloudTasks?.length) {
       for (const location of g.locations ?? []) kinds.add(location.kind === 'cloud' ? 'cloud' : kindOf(location.id));

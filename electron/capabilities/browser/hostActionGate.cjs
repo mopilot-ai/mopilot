@@ -20,7 +20,9 @@ function createActionGate({ tabs, grants, pageGate, checkPage, refused, chromeRo
   return async (tab, ctx, action) => {
     // the site's own card first, wherever the action came from: a write on a site allowed for reading asks (#1319 G22)
     await pageGate(tab, 'write', ctx);
-    const intent = needsIntent(action) ? await tabs.intent(tab, action.target || {}) : null;
+    // every key reads the focus (#5599): a Backspace or an arrow in a plain text field is as ordinary as typing into it, and a
+    // key nobody read would ask each time on a high-risk site, whatever the user allowed there
+    const intent = needsIntent(action) || action.kind === 'key' ? await tabs.intent(tab, action.target || {}) : null;
     checkPage(tab, 'write', ctx);
     const route = refused || chromeRoute?.(ctx.chatId) ? 'chrome' : 'pane'; // the user's Chrome: no pane hand-off or sign-in
     if (intent?.secret && typesText(action))
@@ -28,7 +30,8 @@ function createActionGate({ tabs, grants, pageGate, checkPage, refused, chromeRo
         `${intent.name ? `"${oneLine(intent.name, 80)}"` : 'This field'} is a password field: agents never type passwords. ${SIGN_IN[route]}`,
         'password_field',
       );
-    refuseBotCheck(intent, action, HANDOFF[route]);
+    // a key read only for its allowance (Tab, Escape, PageDown) may still leave a bot check's frame, as before
+    refuseBotCheck(needsIntent(action) ? intent : null, action, HANDOFF[route]);
     const sensitive = sensitiveAction(intent, action);
     const summary = `${action.summary}${sensitive?.detail && !String(action.summary).includes(sensitive.detail) ? ` ("${sensitive.detail}")` : ''}`;
     // "Allow for this task" on a financial site covers an ordinary action (#2328); a send carries its declared kind and typed text
@@ -48,7 +51,7 @@ function createActionGate({ tabs, grants, pageGate, checkPage, refused, chromeRo
         `The focus moved to a password field while the user was being asked: agents never type passwords. ${SIGN_IN[route]}`,
         'password_field',
       );
-    refuseBotCheck(now, action, HANDOFF[route]);
+    refuseBotCheck(needsIntent(action) ? now : null, action, HANDOFF[route]);
     if (asked && taint && taint.to !== (submitTaint(now, action)?.to ?? ''))
       throw new ToolError('The form destination changed while you answered. Read the page and try again.', 'page_changed');
     if (ordinary && asked && !taskCovers(now, action))

@@ -69,4 +69,5 @@ test("the user's own MCP servers: the host asks the app's choice for each start'
     servers: [],
     pending: false,
   });
+  assert.equal((await h.invoke('acp:ownMcp', 'gemini', true)).supported, false);
 });

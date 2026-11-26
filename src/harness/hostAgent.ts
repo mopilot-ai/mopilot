@@ -19,6 +19,26 @@ export interface HostAgentChoice {
 export const agentIdOf = (kind: HarnessKind): string => acpHarnessOf(kind) ?? kind;
 
 /**
+ * The agent a new chat on a machine asks for: the draft's own pick on that machine, else a harness picked in this draft's
+ * picker, else the agent the last chat started there used, else the saved default. The remembered agent counts only while
+ * the machine lists it ready (or reports no readiness at all): one gone since then gives way to the default without a note.
+ */
+export function wantedHostAgent(o: {
+  pick?: string;
+  draft: HarnessKind | null;
+  remembered?: string;
+  saved: HarnessKind;
+  agents: readonly MachineAgent[];
+}): string {
+  if (o.pick) return o.pick;
+  if (o.draft) return agentIdOf(o.draft);
+  const known = o.agents.filter((a) => a.state !== null);
+  const r = o.remembered;
+  if (r && (!known.length || known.some((a) => a.id === r && a.state === 'ready'))) return r;
+  return agentIdOf(o.saved);
+}
+
+/**
  * Resolve the agent for a machine from its row. `want` is the pick (the saved default, or the one chosen for this
  * folder). Returns null while the row reports no readiness at all (an older Host): the caller keeps its own rule then.
  */

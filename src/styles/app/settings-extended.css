@@ -439,6 +439,8 @@
   display: flex;
   gap: 2px;
   margin: 0 0 16px;
+  /* its place is kept while the tabs wait for main's answer on Host */
+  min-height: 28px;
 }
 .settings-group-actions {
   display: flex;

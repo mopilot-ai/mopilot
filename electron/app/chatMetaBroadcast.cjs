@@ -3,7 +3,7 @@
 // it into, so no window keeps showing a copy older than what the chat runs on (#2520).
 
 /** What a window must not miss about a chat. */
-const keyOf = (meta) => JSON.stringify([meta?.config ?? null, meta?.notes ?? null, meta?.account ?? null]);
+const keyOf = (meta) => JSON.stringify([meta?.config ?? null, meta?.notes ?? null, meta?.account ?? null, meta?.rewoundAt ?? null]);
 
 /**
  * @param {{ broadcast: (id: string, chat: unknown) => void, get: (id: string) => unknown, failed: (what: string, error: unknown) => void,

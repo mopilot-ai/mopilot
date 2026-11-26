@@ -7,7 +7,7 @@ import { openSessionPane } from '../../store/outputs/pane';
 import { currentNativeId } from '../../harness/ownership';
 import { openPath, showInFinder } from '../../session/open';
 import { openAppLabel } from '../../lib/openApps';
-import { basename, codexWorktreeRepo, foldClaudeWorktree } from '../../lib/paths';
+import { abbreviateHome, basename, codexWorktreeRepo, dirname, foldClaudeWorktree } from '../../lib/paths';
 import { repoOfRemote } from '../../lib/machinePullRequest';
 import { sshTargetOf } from '../../lib/machineShell';
 import { useLocalFolder } from '../../lib/chatMachine';
@@ -28,6 +28,7 @@ import {
 } from '../ui/icons';
 import { SummaryActivity } from './SummaryActivity';
 import { SummaryBranchChanges } from './SummaryChanges';
+import { SummaryConnectors } from './SummaryConnectors';
 import { SummaryContext } from './SummaryContext';
 import { SummaryMachine, SummaryRemoteControl } from './SummaryEnvironment';
 import { SummaryPhone } from './SummaryPhone';
@@ -45,8 +46,8 @@ export function SummaryPanel({ threadId }: { threadId: string }) {
 function ChatSummary({ threadId }: { threadId: string }) {
   const chatCwd = useStore((s) => s.threads[threadId]?.cwd ?? '');
   const worktreeOf = useStore((s) => s.worktreeOf?.[threadId]);
-  const location = useLocalFolder(threadId, chatCwd);
-  const { cwd, machine, pending } = location;
+  const location = useLocalFolder(threadId, chatCwd, true);
+  const { cwd, machine, pending, ownerUnavailable } = location;
   // Streamed item deltas leave these repository refresh triggers alone.
   const turnCount = useStore((s) => s.runtime[threadId]?.turns.length ?? 0);
   const lastDiff = useStore((s) => s.runtime[threadId]?.turns.at(-1)?.diff);
@@ -63,20 +64,21 @@ function ChatSummary({ threadId }: { threadId: string }) {
   const hostRepo = remote.repo?.state === 'ready' ? remote.repo : null;
   const branch = machine ? hostRepo?.branch : local.git?.branch;
   const checkout = local.git?.root || chatCwd;
+  const folded = foldClaudeWorktree(checkout);
+  const managedProject = codexWorktreeRepo(checkout);
+  const projectPath = cwd && worktreeOf ? worktreeOf : folded;
   const project = machine
     ? basename(repoOfRemote(hostRepo?.remote) ?? chatCwd)
-    : worktreeOf && cwd
-      ? basename(worktreeOf)
-      : (codexWorktreeRepo(checkout) ?? basename(foldClaudeWorktree(checkout)));
+    : ((cwd && worktreeOf ? null : managedProject) ?? basename(projectPath));
+  const isWorktree = !!(worktreeOf || managedProject || folded !== checkout);
+  const parent = chatCwd && abbreviateHome(dirname(projectPath));
 
   return (
     <section className="summary-panel" aria-label="Session details">
-      <header className="summary-header" aria-label="Environment">
-        <div className="summary-identity">
-          <Folder size={16} className="summary-folder" aria-hidden="true" />
-          <span className={chatCwd ? 'summary-project' : 'summary-project none'} title={chatCwd}>
-            {project || 'No folder'}
-          </span>
+      <header className="summary-header">
+        <h2 className="summary-heading">Environment</h2>
+        <div className="summary-environment-row">
+          <SummaryMachine machine={machine} pending={pending} unavailable={ownerUnavailable} />
           <button
             type="button"
             ref={menu.ref}
@@ -90,37 +92,52 @@ function ChatSummary({ threadId }: { threadId: string }) {
             <Ellipsis size={16} />
           </button>
         </div>
-        <SummaryMachine machine={machine} pending={pending} />
+        <div className="summary-environment-row" title={chatCwd}>
+          <Folder size={15} className="summary-folder" aria-hidden="true" />
+          <span className={chatCwd ? 'summary-project' : 'summary-project none'} title={chatCwd}>
+            {project || 'No folder'}
+          </span>
+          {parent && <span className="summary-path">· {parent}</span>}
+        </div>
         {branch && (
           <span className="summary-branch" title={branch}>
-            <GitBranch size={13} aria-hidden="true" />
+            <GitBranch size={15} aria-hidden="true" />
             <span className="summary-label">{branch}</span>
+            {isWorktree && <span className="summary-hint">Worktree</span>}
           </span>
         )}
         {!machine && !pending && <SummaryRemoteControl key={nativeId} threadId={threadId} />}
       </header>
+      <SummaryContext threadId={threadId} />
+      <SummaryConnectors
+        chatId={threadId}
+        cwd={chatCwd}
+        location={ownerUnavailable ? 'workspaceUnavailable' : pending ? 'pending' : machine ? 'remote' : 'local'}
+      />
       <section className="summary-group summary-changes" aria-label="Changes">
-        {machine && chatCwd && <SummaryRemoteRepo machine={machine} repo={remote.repo} />}
-        {!machine && !pending && (
-          <>
-            {(local.git || local.failed) && <SummaryBranchChanges totals={local.totals} failed={local.failed} />}
-            <PullRequestRow
-              chatId={threadId}
-              checkoutVersion={local.checkoutVersion}
-              hasRemote={!!local.git?.remote}
-              branchPr={local.pr}
-              entering={tracking}
-              setEntering={setTracking}
-              retryLookup={() => void local.refresh()}
-            />
-          </>
-        )}
+        <h2 className="summary-heading">Changes</h2>
+        <div className="summary-change-items">
+          {machine && chatCwd && <SummaryRemoteRepo machine={machine} repo={remote.repo} />}
+          {!machine && !pending && (
+            <>
+              <PullRequestRow
+                chatId={threadId}
+                checkoutVersion={local.checkoutVersion}
+                hasRemote={!!local.git?.remote}
+                branchPr={local.pr}
+                entering={tracking}
+                setEntering={setTracking}
+                retryLookup={() => void local.refresh()}
+              />
+              {(local.git || local.failed) && <SummaryBranchChanges totals={local.totals} failed={local.failed} />}
+            </>
+          )}
+        </div>
       </section>
       <Suspense fallback={null}>
         <SummaryPullRequests threadId={threadId} />
       </Suspense>
       <SummaryActivity threadId={threadId} />
-      <SummaryContext threadId={threadId} />
       <SummarySources threadId={threadId} />
       <Menu anchor={menu.anchor} open={menu.open} onClose={menu.close} placement="bottom-end" width={220}>
         {cwd && (

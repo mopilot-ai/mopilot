@@ -41,6 +41,10 @@ export function createMomoOutbox({ store, now }) {
     settle(turnId) {
       update((all) => all.filter((e) => e.turnId !== turnId));
     },
+    /** Messages written for no home in particular are tied to this one (the home they were written under), so they can never go to a home chosen after them. @param {string} homeId */
+    bindHome(homeId) {
+      update((all) => all.map((e) => (e.homeId ? e : { ...e, homeId })));
+    },
     /**
      * The home said it has not accepted this turn (yet): it goes out again under the SAME id, once the person agrees. The home accepts one
      * copy and answers the other as a duplicate, so the original, if it is still on its way, can never run as well. @param {string} turnId

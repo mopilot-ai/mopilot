@@ -36,6 +36,7 @@ const NO_ROWS: string[] = [];
 function ChildList({ parentId, activeThread, view, projectHostId }: Props) {
   const v = useSidebarLineage();
   const threads = useStore((s) => s.threads);
+  const rewoundAt = useStore((s) => s.chatRewoundAt);
   const initialTitles = useStore((s) => s.chatInitialTitles);
   const listed = useStore((s) => s.threadOrder);
   const momoChats = useStore((s) => s.momoChats);
@@ -43,7 +44,7 @@ function ChildList({ parentId, activeThread, view, projectHostId }: Props) {
   const open = useStore(useShallow(visibleChats));
   useAdapterTasksRevision();
   const hidden = useNestedHidden(view, parentId);
-  const family = familiesOf(v, listed, threads, momoChats, !manual).descendants.get(parentId) ?? NO_ROWS;
+  const family = familiesOf(v, listed, threads, momoChats, !manual, rewoundAt).descendants.get(parentId) ?? NO_ROWS;
   const key = family.join('\n');
   // only this family's members: a delta in another chat leaves these slices shallow-equal
   const runtimes = useStore(useShallow((s) => family.map((id) => rowRuntime(s.runtime[id]))));

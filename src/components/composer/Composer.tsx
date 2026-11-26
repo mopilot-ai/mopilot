@@ -26,7 +26,7 @@ import { activityUx } from '../../session/activityUx';
 import { StartingChat, type StartingChatProps } from '../thread/StartingChat';
 import { useClaudeCommands, useCommandProvider } from '../../session/harness/claude';
 import { composeCommands, resolveTyped } from '../../harness/commands';
-import { useCap, useCaps } from '../../store/session/useCaps';
+import { useCap, useChatCaps } from '../../store/session/useCaps';
 import { copy } from '../../harness/copy';
 import { parseBang } from '../../harness/polyfills/shell';
 import { codexAttachBlocked } from '../../harness/entries';
@@ -56,7 +56,8 @@ import { useNextStep } from './useNextStep';
 import { acceptsNextStep } from '../../lib/nextStep';
 import { recordPrompt } from '../../lib/promptHistory';
 import { useComposerHistory } from './useComposerHistory';
-import { composerSendIntent, composerSendShortcuts } from '../../lib/composerSendKeys';
+import { composerSendHint, composerSendIntent, composerSendShortcuts } from '../../lib/composerSendKeys';
+import { useComposerSteers } from './useComposerSteers';
 import { imeComposing } from '../../lib/focus';
 import { ComposerStrips } from './ComposerStrips';
 import type { BrowserTabOption } from './BrowserTabMentions';
@@ -130,7 +131,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
   // typing and the / menu both read this provider (Claude's catalog or Codex's table)
   const provider = useCommandProvider(threadId, chatCwd);
   // commands the harness can't do at all stay out of the menu; the footer says so
-  const chatCaps = useCaps(threadId, hint);
+  const { caps: chatCaps, loaded: capsLoaded } = useChatCaps(threadId, hint);
   const hiddenCommands = nativeCmds ? composeCommands(nativeCmds, chatCaps as never).hidden.length > 0 : false;
   // finished tasks stay in the list (the Background tasks tab shows them): only running ones count
   const liveTasks = session.tasks.filter((t) => !t.ambient && isRunningTask(t));
@@ -151,11 +152,12 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
     ? (targetChatId: string) =>
         window.dispatchEvent(new CustomEvent('mopilot:peer-compose', { detail: { sourceChatId: threadId, targetChatId } }))
     : undefined;
-  // after a turn that used browser or desktop control: one suggested follow-up, as the placeholder
-  const nextStep = useNextStep(threadId);
+  const suggestedFollowUp = useNextStep(threadId);
+  const nextStep = busyNote || attachments.length ? null : suggestedFollowUp;
   const sendKeys = composerSendShortcuts(prefs.sendWith);
-  const queuesFollowUps = !!basic || prefs.followUp === 'queue';
-  const sendHint = basic ? `${sendKeys.send} to queue for later` : `${sendKeys.send} to send, ${sendKeys.queue} to queue for later`;
+  const steers = useComposerSteers(threadId, capsLoaded ? chatCaps.steer : null, basic);
+  const queuesFollowUps = !steers || prefs.followUp === 'queue';
+  const sendHint = composerSendHint(prefs.sendWith, prefs.followUp, steers);
   // a temporary chat can't have a goal: the Goal entries are greyed with the reason (D-49)
   const goalSessionOff = useStore((s) => goalOff(threadId, s));
   const goalOffWhy = composerGoalReason(chatCaps.goal, goalSessionOff);
@@ -420,13 +422,13 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
         }
       }
     }
-    if (acceptsNextStep(e, text, nextStep) && !attachments.length) {
+    if (acceptsNextStep(e, text, nextStep)) {
       e.preventDefault();
       setText(nextStep);
       return;
     }
     if (onStopKey(e)) return;
-    const intent = composerSendIntent(e, prefs.sendWith);
+    const intent = composerSendIntent(e, prefs.sendWith, prefs.followUp);
     if (intent) {
       e.preventDefault();
       send(running && !goalMode ? { steer: intent === 'steer' } : undefined);
@@ -652,7 +654,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
             ) : canSend ? (
               <SendButton
                 label={running ? (queuesFollowUps ? 'Queue message' : 'Steer') : 'Send'}
-                shortcut={running && !goalMode && queuesFollowUps ? sendKeys.queue : sendKeys.send}
+                shortcut={sendKeys.submit}
                 block={sendBlock}
                 morph={morph}
                 onAnimationEnd={morphEnd}

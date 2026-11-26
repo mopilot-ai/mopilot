@@ -8,7 +8,7 @@ import { openHostPush } from '../mobile/src/push/hostCard';
 import { locateTarget } from '../mobile/src/push/route';
 
 const require = createRequire(import.meta.url);
-const prim = require('../electron/remote/sodiumPrimitives.cjs').createSodiumPrimitives();
+const prim = require('../electron/platform/sodiumPrimitives.cjs').createSodiumPrimitives();
 const cards = createCardPush(prim);
 const key = cards.cardKey(new Uint8Array(32).fill(4));
 const ref = chatRef('hp', 'c1');

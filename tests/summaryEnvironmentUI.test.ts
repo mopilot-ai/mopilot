@@ -45,7 +45,9 @@ test('a local chat names this computer, with the laptop glyph and its name on ho
 test('the rail waits for the owner and uses the machine identity behind its repository actions', async () => {
   const machine = { id: 'ssh:me@box', name: 'box', away: false };
   const r = await render(h(SummaryMachine, { machine: null, pending: true }));
-  assert.equal(r.host.textContent, '');
+  assert.equal(r.host.textContent, 'Locating workspace…');
+  await r.rerender(h(SummaryMachine, { machine: null, pending: true, unavailable: true }));
+  assert.equal(r.host.textContent, 'Workspace unavailable');
   await r.rerender(h(SummaryMachine, { machine, pending: false }));
   assert.equal(r.host.querySelector('.summary-label')!.textContent, 'box');
   assert.ok(r.host.querySelector('svg.lucide-server'), 'another machine shows the server glyph');

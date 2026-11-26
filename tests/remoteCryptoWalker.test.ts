@@ -6,7 +6,7 @@ import { createCrypto, createWalker, CATCH_UP_SKIP } from '../shared/remote/cryp
 import { toHex } from '../shared/remote/envelope.mjs';
 
 const require = createRequire(import.meta.url);
-const { createSodiumPrimitives } = require('../electron/remote/sodiumPrimitives.cjs');
+const { createSodiumPrimitives } = require('../electron/platform/sodiumPrimitives.cjs');
 const c = createCrypto(createSodiumPrimitives());
 const root = Uint8Array.from({ length: 32 }, (_, i) => i + 1);
 

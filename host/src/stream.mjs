@@ -112,7 +112,10 @@ export function createStreamHub({
     const c = chat(chatId);
     const frame = { ...body, seq: storage ? storage.next(chatId) : c.seq + 1 };
     if (body.t === 'durable') storage?.durable(chatId, /** @type {any} */ (frame));
-    if (body.t === 'state') storage?.state(chatId, /** @type {object} */ (body.patch));
+    if (body.t === 'state') {
+      const { promptSuggestion, ...durable } = /** @type {Record<string, unknown>} */ (body.patch);
+      if (Object.keys(durable).length) storage?.state(chatId, durable);
+    }
     c.seq = frame.seq;
     // Reentrant subscribers must see the committed projection, not a retired ephemeral key or stale state.
     if (body.t === 'durable') {

@@ -25,6 +25,15 @@ const other = { ...local, id: 'other', path: '/local/other' };
 const task = { id: 'task_a', environment_id: 'env', updated_at: '2026-01-01T00:00:00Z', status: 'ready' };
 const env = { id: 'env', label: 'Build environment', repo: 'Org/App', repositories: ['Org/App'], pinned: false };
 
+test('unranked repository projects have stable fallback placement only in Custom order', () => {
+  const z = { ...other, id: null, repositoryKey: 'repo:github.com/org/z' };
+  const a = { ...other, id: null, repositoryKey: 'repo:github.com/org/a' };
+  assert.deepEqual(sortProjectGroups([z, a], [], [], 'custom'), [a, z]);
+  assert.deepEqual(sortProjectGroups([z, a], [groupKey(z), groupKey(a)], [], 'custom'), [z, a]);
+  assert.deepEqual(sortProjectGroups([z, a], [], [], 'name'), [z, a]);
+  assert.deepEqual(sortProjectGroups([z, a], [], [], 'updated'), [z, a]);
+});
+
 test('same-named projects using the mixed glyph keep distinct folder hints', () => {
   const machines = parseMachineList({
     machines: [{ id: 'relay:vm', name: 'Cloud VM', note: '', status: 'online', cloud: { id: 'vm', provider: 'oci' } }],

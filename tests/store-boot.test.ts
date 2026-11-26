@@ -119,7 +119,7 @@ test('a window opened on a Claude Code chat opens it without Codex, and when Cod
     resetAll();
     location.hash = '#thread=claude:abc';
     bootImpls({
-      'state.read': async () => null,
+      'state.read': async () => ({ prefs: { defaultHarness: 'claude' } }),
       'codex.used': async () => codex === 'failing',
       // main's record names the chat's harness
       'chats.snapshot': async () => ({ chats: { 'claude:abc': { kind: 'claude', meta: {} } }, newer: [] }),

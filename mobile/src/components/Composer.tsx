@@ -1,7 +1,7 @@
 // The chat's composer as the baseline draws it: one rounded box with the message field, and under it + (attachments), the model pill, a mic, and one round button that sends or stops a running turn (a running turn with text typed shows Stop beside Send).
 import { KeyboardMinimize } from './KeyboardMinimize';
 import { Icon } from './Icon';
-import React, { type ComponentRef, useRef, useState, type ReactNode } from 'react';
+import React, { type ComponentRef, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { armRise, measureTop } from '../sendOrigin';
 import { GrowingField } from './GrowingField';
@@ -10,6 +10,7 @@ import { useTheme } from '../theme';
 import { ComposerButton } from './ComposerBox';
 import { typo } from '../typography';
 import { usePerfRender } from '../perfLog';
+import { useComposerGrowth } from '../remote/frameLift';
 
 export function Composer({
   draft,
@@ -32,6 +33,7 @@ export function Composer({
   fieldProps,
   sendLabel = 'Send message',
   attached = false,
+  bare = true,
 }: {
   draft: string;
   setDraft: (text: string) => void;
@@ -67,6 +69,8 @@ export function Composer({
   sendLabel?: string;
   /** Files are attached and ready: they send without words. */
   attached?: boolean;
+  /** Nothing but the field is in the composer (no quote, no skill, no / or @ menu): with an empty field it is at its resting height. */
+  bare?: boolean;
 }) {
   usePerfRender('Composer');
   const theme = useTheme();
@@ -76,8 +80,23 @@ export function Composer({
   const stopping = running && !typed;
   const shown = open || !!menuOpen;
   const box = useRef<ComponentRef<typeof View>>(null);
+  // how much taller than at rest the composer is (lines typed, files, a quote, a skill, the voice note): a send gives it all back to the chat's view, so the frame keeps it for the room under the sent message
+  const growth = useComposerGrowth();
+  const rest = useRef<number | null>(null);
+  const atRest = bare && !draft && !attached && !shown;
+  useEffect(
+    () => () => {
+      if (growth) growth.extra = 0;
+    },
+    [growth],
+  );
   return (
     <View
+      onLayout={(event) => {
+        const height = event.nativeEvent.layout.height;
+        if (atRest) rest.current = height;
+        if (growth) growth.extra = rest.current === null ? 0 : Math.max(0, height - rest.current);
+      }}
       style={{ flexShrink: 1, minHeight: 0, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8, gap: 8, backgroundColor: theme.bg }}
     >
       {above}

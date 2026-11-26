@@ -3,7 +3,7 @@ const net = require('node:net');
 const path = require('node:path');
 const { hostAccess, onHostAccess } = require('./access.cjs');
 const { createRegistry } = require('./registry.cjs');
-const { createLinkWatch } = require('./linkWatch.cjs');
+const { createConnectionWatch } = require('./proofWatch.cjs');
 const { createHostStarter } = require('./startHost.cjs');
 const started = require('./started.cjs');
 const { createInstaller, createSshChannel } = require('./install.cjs');
@@ -28,6 +28,7 @@ const { fileStamp } = require('../platform/fsutil.cjs');
 const { capabilitiesOf } = require('../../shared/host/schema.mjs');
 const { createMachineRelay } = require('./machineRelay.cjs');
 const { createMachineBoot } = require('./machineBoot.cjs');
+const { codePairActions } = require('./codePairWiring.cjs');
 const { createRemoteHost } = require('./remote.cjs');
 const { requestOverSocket } = require('./hostRequest.cjs');
 const { createMachineCall, refusal } = require('./machineCall.cjs');
@@ -63,8 +64,7 @@ function ownedReader(dir) {
   const file = path.join(dir, 'host-ownership.json');
   /** @type {InstanceType<typeof OwnershipStore> | null} */
   let owners = null;
-  /** @type {string | null} */
-  let seen = null;
+  let /** @type {string | null} */ seen = null;
   return (/** @type {string} */ chatId) => {
     owners ??= new OwnershipStore(file);
     const now = fileStamp(file);
@@ -100,7 +100,7 @@ function ownedReader(dir) {
  * @param {Parameters<typeof createInstaller>[0]['keyAccess']} [o.keyAccess] how a machine that took a password gets MoPilot's key (the app passes sshKey.cjs over real ssh); none skips that step, so a test never touches the real ~/.ssh
  * @param {(id: string, host: ReturnType<typeof createRemoteHost>) => (() => void) | void} [o.onRemoteHost] told when a connection to a machine is made; what it returns is called when that connection ends (the app's tools are offered through it)
  * @param {(id: string) => void} [o.onRemoteEnd] told when a machine's connection ends (the machine left, Host access closed, the app closed): what was built on it goes too
- * @param {(id: string) => void} [o.onRemoved] told after a machine's registry removal commits, whether it had a connection or not
+ * @param {(id: string) => void} [o.onRemoved] told after a machine's registry removal commits, whether it had a connection or not @param {(socketPath: string) => Promise<unknown>} [o.beforeLocalPair] this Mac's own Host is told this app's key and "Allow connections" before this app pairs with it (with pairing by code on, a Host never told keeps every client out)
  * @param {{ forHarness: (harness: string) => string | null, hasFor: (harness: string) => boolean }} [o.apiKeys] the user's model keys (apiKeys.cjs), lent to a machine with each message; default none
  * @param {{ lend: (host: any, harness: string) => Promise<boolean>, covers: (harness: string) => boolean }} [o.orgAccess] the organization's access (orgAccess/service.cjs), lent before a key; default none
  * @param {ReturnType<typeof import('./relayPaths.cjs').createRelayPaths> | null} [o.relay] the relay path to the machines (#2709); none: SSH only
@@ -131,6 +131,7 @@ function createMachines({
   onRemoteHost,
   onRemoteEnd,
   onRemoved,
+  beforeLocalPair,
   apiKeys = NO_KEYS,
   orgAccess = NO_ORG,
   relay = null,
@@ -147,7 +148,7 @@ function createMachines({
   const machineCall = createMachineCall({ pool, targetOf, relay, connect });
   const { lease } = machineCall;
   const call = givenCall ?? machineCall.call;
-  const links = createLinkWatch({ onChange: () => onChange(list()), onUp: () => void registry.check() });
+  const links = createConnectionWatch({ relay, onChange: () => onChange(list()), onUp: () => void registry.check() });
   const registry =
     givenRegistry ??
     createRegistry({
@@ -160,8 +161,7 @@ function createMachines({
   const bundle = bundleOnce({ root, outDir: path.join(dir, 'host-bundle') });
   const runtime = createRuntimeCache({ dir: path.join(dir, 'host-runtime') });
   let disposed = false;
-  /** @type {ReturnType<typeof loadIdentity> | null} */
-  let identity = null;
+  let /** @type {ReturnType<typeof loadIdentity> | null} */ identity = null;
   const key = () => (identity ??= loadIdentity(path.join(dir, 'host-client-key.json'), safeStorage));
   const installer = givenInstaller ?? createInstaller({ channel, registry, bundle, updateKey: () => key().publicKey, runtime, keyAccess }); // the machine takes updates from this app
   const updates = createUpdateStates({ appBuild: () => appHostBuild(root), appVersion: () => appHostVersion(root) });
@@ -215,7 +215,7 @@ function createMachines({
       };
     });
     return {
-      machines: allowed() ? rows : [],
+      machines: allowed() ? links.rows(rows) : [], // a machine that refuses this app's proof is attention, saying why (proofWatch.cjs)
       resolved: registry.resolved(),
       ...(registry.membershipIncomplete?.() && { registryUnreadable: true }),
     };
@@ -235,10 +235,8 @@ function createMachines({
     autoUpdate.consider();
     onChange(list());
   });
-  // the relay path (#2709): each machine's row says how it is reached, and a machine reached over SSH is given a relay path once
-  const viaRelay = createMachineRelay({ relay, registry, pool, targetOf, allowed, openPaired, onChange: () => onChange(list()) });
-  // Add by command (machineBoot.cjs): a machine the Mac cannot SSH to joins through the relay
-  const boot = createMachineBoot({ relay, registry, bundle, updateKey: () => key().publicKey, pair, openPaired, onView: onBoot });
+  const viaRelay = createMachineRelay({ relay, registry, pool, targetOf, allowed, openPaired, onChange: () => onChange(list()) }); // the relay path (#2709): each machine's row says how it is reached, and a machine reached over SSH is given a relay path once
+  const boot = createMachineBoot({ relay, registry, bundle, updateKey: () => key().publicKey, pair, openPaired, onView: onBoot }); // Add by command (machineBoot.cjs): a machine the Mac cannot SSH to joins through the relay
   /** One connection per machine, made when a chat first sends to it or a sign-in first asks; `detach` undoes what onRemoteHost set up on it. @type {Map<string, { address: string, socketPath: string, host: ReturnType<typeof createRemoteHost>, detach?: (() => void) | void }>} */
   const hosts = new Map();
   const epochOf = epochReader(dir);
@@ -246,7 +244,7 @@ function createMachines({
   /** The remote Host of a machine in the list (null for one that is not, or has no socket on record), connected on first use by the caller. @param {string} id */
   function hostFor(id) {
     const record = registry.list().find((r) => r.id === id);
-    if (!record || !record.socketPath || disposed || !allowed()) return null;
+    if (!record || (!record.socketPath && !record.address.startsWith('relay:')) || disposed || !allowed()) return null; // relay-only: no socket
     const open = hosts.get(id);
     if (open?.address === record.address && open.socketPath === record.socketPath) return withAppChatIds(open.host, known);
     // another machine answers to this id now: the old connection goes back to its tunnel
@@ -262,7 +260,7 @@ function createMachines({
       epochOf: (hostChat) => epochOf(typeof hostChat === 'string' && known(appChatId(hostChat)) ? appChatId(hostChat) : hostChat),
     });
     // a message carries the user's key for its agent on the control channel first (remoteCredentials.cjs)
-    const host = withCredentials(remote, apiKeys, orgAccess);
+    const host = withCredentials(remote, apiKeys, orgAccess, record.pairedBy === 'code');
     const seen = withAppChatIds(host, known);
     hosts.set(id, { address: record.address, socketPath: record.socketPath, host, detach: wireHost(id, seen) });
     return seen;
@@ -311,7 +309,7 @@ function createMachines({
         onEvent,
         connect,
         report: (e) => noteIgnored('hand a Host event to its listener', e),
-      }).then((session) => introduce(record.id, session));
+      }).then(...links.session(record.id, (session) => introduce(record.id, session))); // its proof's answer is the row's too (proofWatch.cjs)
       let released = false;
       return {
         call: opened.call,
@@ -332,6 +330,7 @@ function createMachines({
     refuseUnlessAllowed();
     const record = registry.list().find((r) => r.id === id);
     if (!record) throw refusal('That machine is not in the list.', 'unknown_machine');
+    if (isLocal(record.address)) await beforeLocalPair?.(record.socketPath);
     const paired = await pairWith((method, params) => call(record, method, params), key(), code);
     registry.pin(id, paired.hostId); // the machine's Host is known by this name from now on
     dropHosts(id); // a standing connection made before this holds the Host's "unknown client" answer: the next use agrees and proves the key again
@@ -419,6 +418,7 @@ function createMachines({
       }
     },
     cancelAdd: (destination) => installer.cancel(destination),
+    ...codePairActions({ dir, relay, registry, key }, refuseUnlessAllowed), // pairing by a code typed here (R2b, #5576), behind host.codePair
     pair,
     check: async () => (refuseUnlessAllowed(), registry.check()), // ask every machine now: a row's Check again
     startHost: (id) => (refuseUnlessAllowed(), starter(id)), // the machine answers over ssh and its Host does not: start it there

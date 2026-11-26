@@ -216,39 +216,50 @@ const scrollTo = (y: number) =>
   );
 const reads = (calls: any[]) => calls.filter(([m]) => m === 'chat.read').length;
 
-test('a scroll that reaches the top asks for one page per gesture: a scroll with no finger, or right after a page lands, asks for nothing (#4734)', async () => {
+const pause = (ms: number) => act(async () => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+
+test('a finger at the top asks for one page per gesture; a scroll within three screens of the top asks ahead, with no finger, and farther away asks for nothing (#4734, #5379)', async () => {
   const { runtime, calls } = rig([
     { chatId: 'c', rows: [{ id: 'r8', role: 'user', text: 'page one' }], more: true },
     { chatId: 'c', rows: [{ id: 'r7', role: 'user', text: 'page two' }], more: true },
     { chatId: 'c', rows: [{ id: 'r6', role: 'user', text: 'page three' }], more: false },
   ]);
   const host = await mount(runtime);
-  await scrollTo(40);
-  assert.equal(reads(calls), 0, 'no finger on the list: the list moving by itself near the top asks for nothing');
+  await scrollTo(5000);
+  assert.equal(reads(calls), 0, 'far from the top: nothing, finger or not');
   await act(async () => events().onScrollBeginDrag());
-  await scrollTo(500);
-  assert.equal(reads(calls), 0, 'a gesture still away from the top asks for nothing');
+  await scrollTo(2500);
+  assert.equal(reads(calls), 0, 'a gesture still four screens from the top asks for nothing');
   await scrollTo(60);
   await flush();
   assert.equal(reads(calls), 1);
+  // the page waits for the finger to lift: nothing is mounted above a reader mid-scroll
+  assert.doesNotMatch(host.textContent!, /page one/);
+  await act(async () => events().onScrollEndDrag({ nativeEvent: { velocity: { y: 0 } } }));
   assert.match(host.textContent!, /page one/);
-  // the page landed and the list did not hold the place: the next scroll event is near the top again, under the same finger
+  assert.deepEqual(calls.filter(([m]) => m === 'chat.read').at(-1), ['chat.read', { chatId: 'c', before: 'r10', limit: 40 }]);
+  // the page landed and the list did not hold the place: the next scroll events are near the top again, under the same finger
   await scrollTo(10);
   await scrollTo(0);
   await flush();
-  assert.equal(reads(calls), 1, 'one gesture, one page');
-  await act(async () => events().onScrollBeginDrag());
-  await scrollTo(30);
+  assert.equal(reads(calls), 1, 'one gesture, one page at the top');
+  await pause(350);
+  // no finger: the list within three screens of the top fetches the page ahead of the reader, a bigger one
+  await act(async () => events().onMomentumScrollEnd());
+  await scrollTo(1700);
   await flush();
-  assert.equal(reads(calls), 2, 'the next gesture asks for the next page');
-  assert.deepEqual(calls.filter(([m]) => m === 'chat.read').at(-1), ['chat.read', { chatId: 'c', before: 'r8', limit: 40 }]);
-  await act(async () => events().onScrollBeginDrag());
-  await scrollTo(30);
+  assert.equal(reads(calls), 2);
+  assert.deepEqual(calls.filter(([m]) => m === 'chat.read').at(-1), ['chat.read', { chatId: 'c', before: 'r8', limit: 80 }]);
+  assert.match(host.textContent!, /page two/);
+  await pause(350);
+  await scrollTo(1700);
   await flush();
+  await act(async () => events().onScrollEndDrag({ nativeEvent: { velocity: { y: 0 } } }));
   assert.equal(reads(calls), 3);
-  await act(async () => events().onScrollBeginDrag());
-  await scrollTo(30);
+  await pause(350);
+  await scrollTo(1700);
   await flush();
+  await act(async () => events().onScrollEndDrag({ nativeEvent: { velocity: { y: 0 } } }));
   assert.equal(reads(calls), 3, 'the chat starts there: nothing more to ask for');
 });
 
@@ -282,33 +293,59 @@ test('a gesture that ends in a failed page does not ask again by itself, and a c
   await act(async () => new Promise<void>((resolve) => setTimeout(resolve, 500)));
   assert.match(host.textContent!, /fresh start/);
   await scrollTo(10);
-  assert.equal(reads(asked), 0, 'the new snapshot has a row to page from, and no finger');
+  await flush();
+  assert.deepEqual(
+    asked.filter(([m]) => m === 'chat.read'),
+    [['chat.read', { chatId: 'c', before: 'r20', limit: 80 }]],
+    'the new snapshot has a row to page from: the earlier failure and the old finger are forgotten, and the page ahead is asked from its own first row',
+  );
 });
 
-test('a gesture lasts while the finger is down and while its momentum runs: a scroll after it asks for nothing (#4734)', async () => {
-  const { runtime, calls } = rig([
-    { chatId: 'c', rows: [{ id: 'r8', role: 'user', text: 'fling page' }], more: true },
-    { chatId: 'c', rows: [{ id: 'r7', role: 'user', text: 'later page' }], more: true },
-  ]);
+test("pages asked ahead with no finger stop after a few in a row, so a list that does not hold the reader's place cannot run down to the start of the chat; a finger on the list, or the button, starts the count again (#4734)", async () => {
+  const more = (n: number) => ({ chatId: 'c', rows: [{ id: `r${n}`, role: 'user', text: `page ${n}` }], more: true });
+  const { runtime, calls } = rig([more(9), more(8), more(7), more(6), more(5), more(4), more(3)]);
   await mount(runtime);
-  // a drag that stops away from the top and lifts: over
-  await act(async () => events().onScrollBeginDrag());
-  await scrollTo(800);
-  await act(async () => events().onScrollEndDrag({ nativeEvent: { velocity: { y: 0 } } }));
-  await scrollTo(20);
-  assert.equal(reads(calls), 0, 'no finger and no momentum: a scroll near the top asks for nothing');
+  for (let i = 1; i <= 4; i++) {
+    await pause(350);
+    await scrollTo(100);
+    await flush();
+    assert.equal(reads(calls), i, `page ${i} ahead of the reader`);
+  }
+  await pause(350);
+  await scrollTo(100);
+  await flush();
+  assert.equal(reads(calls), 4, 'four pages with no finger: the fifth is for a finger to ask');
   // a fling: the finger lifts with speed and the list runs on to the top
   await act(async () => events().onScrollBeginDrag());
-  await scrollTo(900);
+  await scrollTo(5000);
   await act(async () => events().onScrollEndDrag({ nativeEvent: { velocity: { y: -2.5 } } }));
+  await pause(350);
   await scrollTo(40);
   await flush();
-  assert.equal(reads(calls), 1, 'the momentum of the gesture reaches the top: one page');
-  await scrollTo(10);
-  assert.equal(reads(calls), 1);
+  assert.equal(reads(calls), 5, 'the momentum of the gesture reaches the top: one page, and the count starts again');
   await act(async () => events().onMomentumScrollEnd());
-  await scrollTo(10);
-  assert.equal(reads(calls), 1, 'the list has stopped: the gesture is over');
+  await pause(350);
+  await scrollTo(100);
+  await flush();
+  assert.equal(reads(calls), 6, 'ahead again');
+  await click('Load earlier messages');
+  assert.equal(reads(calls), 7, 'the button asks whatever the count');
+});
+
+test('a page ahead also mounts the rows the phone holds but has not mounted, once the reader is within three screens of the top', async () => {
+  const { runtime, calls } = rig([]);
+  const many = Array.from({ length: 200 }, (_, i) => ({ id: `h${String(i).padStart(3, '0')}`, role: 'user', text: `held ${i}` }));
+  const base = runtime.request;
+  runtime.request = async (method: string, p: any) =>
+    method === 'chat.follow'
+      ? { rev: 1, feedSeq: 0, session: { turn: 'idle', cards: [] }, itemsShape: 'rows', items: many }
+      : base(method, p);
+  const host = await mount(runtime);
+  assert.doesNotMatch(host.textContent!, /held 0held 1/, 'the oldest held rows are not mounted yet');
+  await scrollTo(1700);
+  await flush();
+  assert.match(host.textContent!, /held 0held 1/, 'mounted ahead of the reader');
+  assert.equal(reads(calls), 0, 'and the computer is not asked while rows are held');
 });
 
 test('rows paged in above hold their place: they neither fade in nor glide, and the rows already there do not glide to make room (#4734)', async () => {

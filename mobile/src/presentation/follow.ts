@@ -2,6 +2,8 @@
 import type { MobileRuntime } from '../contracts';
 /** Rows asked for when a chat opens: the last page only, so an open costs the same however long the chat is. */
 export const FOLLOW_ROWS = 30;
+/** The computer the phone follows changed while a request waited: the page follows the new one instead. */
+export const COMPUTER_CHANGED = 'The connected computer changed. Try again.';
 const tails = new WeakMap<MobileRuntime, Map<string, Promise<unknown>>>();
 /** `rows`: how many of the chat's last rows a follow asks for (a read again of a chat paged back asks for what is on screen). */
 export function followRequest(
@@ -19,7 +21,7 @@ export function followRequest(
   const owner = runtime.snapshot();
   const send = () => {
     if (runtime.snapshot().selectedPair !== owner.selectedPair || runtime.snapshot().generation !== owner.generation)
-      throw new Error('The connected computer changed. Try again.');
+      throw new Error(COMPUTER_CHANGED);
     return runtime.request(method, method === 'chat.follow' ? { chatId, items: rows } : { chatId });
   };
   const tail = queue.get(chatId);

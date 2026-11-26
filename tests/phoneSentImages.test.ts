@@ -324,3 +324,24 @@ test('an older Mac cannot accept image-only start silently and the uploaded tile
   assert.equal(calls.filter(([method]) => method === 'chat.start').length, 0);
   assert.equal(button(view.host, 'Start chat')!.disabled, false);
 });
+
+test('a message with pictures lands without the rise of its words (the words sit under the pictures, not where a words-only bubble lands); words alone still rise', async () => {
+  const originPath = '../mobile/src/sendOrigin';
+  const { watchLaunch } = await import(originPath);
+  const blank = await mount(scripted(() => undefined).runtime, fakeMedia().media);
+  await act(async () => blank.root.unmount());
+  blank.host.remove();
+  const view = await chat();
+  const launches: { text: string }[] = [];
+  const stop = watchLaunch((launch: { text: string }) => launches.push(launch));
+  try {
+    await attach('Photo library');
+    await flush();
+    await click('Send message');
+    await flush();
+    assert.deepEqual(launches, [], 'pictures: no rise');
+  } finally {
+    stop();
+    await view.done();
+  }
+});

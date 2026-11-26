@@ -14,7 +14,14 @@ import { HARNESS_LABEL, type HarnessId, type HarnessModel, type PendingSwitch } 
 import { firstTierOf } from '../../harness/family';
 import { SwitchSheet } from './SwitchSheet';
 import { AcpSwitchSheet } from './AcpSwitchSheet';
-import { canPinChats, setSelection, useEffectiveSelection, useHarnessAccounts, useHarnessStatus } from '../../session/harness/select';
+import {
+  canPinChats,
+  composerSelect,
+  setSelection,
+  useEffectiveSelection,
+  useHarnessAccounts,
+  useHarnessStatus,
+} from '../../session/harness/select';
 import { fastBillingNote, type Account } from '../../harness/accounts';
 import { Popover, Tooltip, useAnchor } from '../ui/Popover';
 import { MenuList, MenuRow } from '../ui/MenuList';
@@ -49,6 +56,8 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
   // ACP uses the same chat, with its native settings supplied when the session opens.
   const [basicSheet, setBasicSheet] = useState<string | null>(null);
   const { modelId, model, automatic, efforts, effort, fast, tiers, tier, fastUnavailable, fastHidden } = useEffectiveSelection(h, threadId);
+  // a new chat's draft keeps what is picked here over Settings' fixed default (session/newChatStart.ts)
+  const select = (patch: Parameters<typeof composerSelect>[1]) => composerSelect(h, patch, threadId);
   const allowAutomatic = useStore((s) => !threadId || !s.momoModels?.[threadId]);
   const hStatus = useHarnessStatus(h);
   const a = useAnchor();
@@ -82,11 +91,10 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
     const eff = mapped !== undefined ? mapped : cur && m.efforts.includes(cur) ? cur : m.defaultEffort;
     // Fast (or a tier) stays only where the new model offers it
     const keepTier = target === h && tier ? !!m.tiers?.some((t) => t.id === tier) : m.fast;
-    setSelection(
-      target,
-      { model: m.id || null, effort: eff, ...(keepTier ? {} : { fast: false }) },
-      target === onHarness ? threadId : null,
-    );
+    const patch = { model: m.id || null, effort: eff, ...(keepTier ? {} : { fast: false }) };
+    // a switch confirmed in an existing chat is no new chat's pick, even when it names no chat
+    if (!threadId) composerSelect(target, patch, null);
+    else setSelection(target, patch, target === onHarness ? threadId : null);
   };
   const pick = (target: HarnessId, m: HarnessModel) => {
     l1.close();
@@ -150,9 +158,9 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
           efforts={efforts}
           effort={effort}
           noEffort={model ? 'This model has no effort levels' : ''}
-          onEffort={(e) => setSelection(h, { effort: e }, threadId)}
+          onEffort={(e) => select({ effort: e })}
           // only the effort, to the model's own default: the model and speed stay as chosen
-          onReset={() => setSelection(h, { effort: model?.defaultEffort ?? null }, threadId)}
+          onReset={() => select({ effort: model?.defaultEffort ?? null })}
           // the title row leads to the harness list, with each harness's models beside it
           onBack={l1.toggle}
           titleRef={l1.ref}
@@ -168,7 +176,7 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
                 <button
                   className={`effort-icon-btn ${fast ? 'on' : ''}`}
                   disabled={!!fastUnavailable}
-                  onClick={() => setSelection(h, tiers.length ? { tier: fast ? null : tiers[0].id } : { fast: !fast }, threadId)}
+                  onClick={() => select(tiers.length ? { tier: fast ? null : tiers[0].id } : { fast: !fast })}
                   aria-label="Toggle fast mode"
                 >
                   <Zap size={16} strokeWidth={1.7} fill={fast ? 'currentColor' : 'none'} />
@@ -186,7 +194,7 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
                   className="menu-item has-desc"
                   role="radio"
                   aria-checked={tier === t.id}
-                  onClick={() => setSelection(h, { tier: t.id }, threadId)}
+                  onClick={() => select({ tier: t.id })}
                 >
                   <span className="menu-label">
                     <span className="menu-title">{t.name}</span>

@@ -29,6 +29,7 @@ export function hostModelSelection(
   hostId: string,
   harness: string,
   remembered?: string | null,
+  last?: { model?: string; effort?: string | null } | null,
 ): {
   model: MachineModel | null;
   effort: string | null;

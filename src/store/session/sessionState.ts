@@ -32,6 +32,7 @@ export const EMPTY_SESSION: SessionState = Object.freeze({
   approvals: [],
   questions: [],
   pendingSwitch: null,
+  promptSuggestion: null,
   acp: null,
   modality: null,
   computer: null,

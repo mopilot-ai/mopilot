@@ -7,6 +7,7 @@ const jsx = pathToFileURL(require.resolve('react/jsx-runtime')).href;
 const runtime = new URL('./entry-runtime.ts', import.meta.url).href;
 const app = new URL('./entry-view.tsx', import.meta.url).href;
 const momoStore = new URL('./entry-momo.ts', import.meta.url).href;
+const momoHomeStore = new URL('./entry-momo-home.ts', import.meta.url).href;
 const chatStore = new URL('./entry-chat-store.ts', import.meta.url).href;
 const traceStore = new URL('./entry-trace-store.ts', import.meta.url).href;
 const probe = new URL('./entry-probe.tsx', import.meta.url).href;
@@ -37,6 +38,8 @@ registerHooks({
       return { url: liveActivity, shortCircuit: true };
     if (context.parentURL?.endsWith('/mobile/App.tsx') && specifier === './src/platform/momoStore')
       return { url: momoStore, shortCircuit: true };
+    if (context.parentURL?.endsWith('/mobile/App.tsx') && specifier === './src/platform/momoHomeStore')
+      return { url: momoHomeStore, shortCircuit: true };
     if (context.parentURL?.endsWith('/mobile/App.tsx') && specifier === './src/platform/chatStore')
       return { url: chatStore, shortCircuit: true };
     if (context.parentURL?.endsWith('/mobile/App.tsx') && specifier === './src/platform/traceStore')

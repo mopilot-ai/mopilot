@@ -236,8 +236,11 @@ test('another account does not land in the previous account’s New chat', async
 });
 
 test('retrying a multi-part upload resumes the same stream from the confirmed part', async () => {
-  const { useAttachments } = await import(attachmentsModulePath);
+  const { useAttachments, uploadRetry } = await import(attachmentsModulePath);
   const { ownedRequest } = await import(clientModulePath);
+  // no waits: the part is refused at once and the person retries (an upload under way otherwise waits for the computer: phoneAttachmentMemory)
+  const waits = uploadRetry.waits;
+  uploadRetry.waits = [];
   let fail = true;
   const { runtime, calls } = scripted((m, p) => {
     if (m !== 'chat.attach') return undefined;
@@ -263,6 +266,7 @@ test('retrying a multi-part upload resumes the same stream from the confirmed pa
     attach.map((a) => a[1]),
     [0, 1, 1],
   );
+  uploadRetry.waits = waits;
 });
 
 test('the app opens the terminal from a chat and returns to it', async () => {

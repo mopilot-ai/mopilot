@@ -1,5 +1,11 @@
 // Main session controller wiring cases using shared fake timers and main harness.
 import { test, assert, calls, ready, delegates } from './fixture.ts';
+import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+const { OwnershipStore } = createRequire(import.meta.url)('../../../electron/host/ownership.cjs');
 
 export function registerController() {
   test('the harness switch runner and controller get their collaborators', async () => {
@@ -135,6 +141,11 @@ export function registerController() {
     delegates(o.session, h.one('SessionStore').get, ['c']);
     delegates(o.codex, h.one('CodexAdapter').info, []);
     delegates(o.claudeLogin, h.one('ClaudeAdapter').pickedLogin, ['c']);
+    // a chat on a machine is the one the controller's remote route owns, as its sends ask (its steer is its Host agent's)
+    ctl.remote = { owns: (chatId: string) => chatId === 'on-machine' };
+    assert.deepEqual([o.onMachine('on-machine'), o.onMachine('here')], [true, false]);
+    ctl.remote = {};
+    assert.equal(o.onMachine('on-machine'), false, 'no remote route: a chat of this Mac');
     const id = h.one('IdentityRegistry');
     id.instances = () => ['i'];
     assert.deepEqual(o.instances('codex'), ['i']);
@@ -150,5 +161,15 @@ export function registerController() {
     assert.equal(o.acpQuirks('acp:x'), null);
     calls(h.claude.setProbeListener)[0][0]();
     assert.equal(h.windows[0].webContents.on_('session:capsChanged').length, 1);
+    // a chat moved to a machine: the windows ask what it can do again (its steer follows its Host agent)
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'caps-moved-'));
+    try {
+      new OwnershipStore(path.join(dir, 'host-ownership.json')).set('c', { hostId: 'h1', ownerHostId: 'h1', epoch: 1, folder: null });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    // told after the task that wrote
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    assert.equal(h.windows[0].webContents.on_('session:capsChanged').length, 2);
   });
 }

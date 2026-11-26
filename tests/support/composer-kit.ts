@@ -83,3 +83,15 @@ export function setRect(el: Element, r: { left?: number; top?: number; width?: n
 
 /** Text content of all matching elements. */
 export const texts = (sel: string, root: ParentNode = document) => $$(sel, root).map((e) => e.textContent);
+
+/**
+ * Where a composer fixture's new chats start: the saved default as set, else the fixture's newBasic / newHarness, and the
+ * last used instead while new chats follow it (store/chats.ts savedDefaultHarness and startingHarness).
+ */
+export function fixtureStarts(get: () => any) {
+  const saved = (s = get()) => s.prefs?.defaultHarness ?? (s.newBasic ? `acp:${s.newBasic}` : s.newHarness);
+  return {
+    savedDefaultHarness: saved,
+    startingHarness: (s = get()) => (s.prefs?.newChatStart !== 'default' && s.prefs?.lastHarness) || saved(s),
+  };
+}

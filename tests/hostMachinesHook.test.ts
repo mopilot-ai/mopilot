@@ -159,4 +159,13 @@ test('a row that says its link dropped carries the time, and a bad value is drop
   })!.machines;
   assert.equal(stopped[0].hostStopped, true);
   assert.equal('hostStopped' in stopped[1], false, 'only true counts');
+  const removed = parseMachineList({
+    machines: [
+      { ...ROW, peerRemoved: true },
+      { ...ROW, id: 'ssh:b', peerRemoved: 1 },
+    ],
+    resolved: true,
+  })!.machines;
+  assert.equal(removed[0].peerRemoved, true, 'a machine whose Host removed this Mac (#5747)');
+  assert.equal('peerRemoved' in removed[1], false);
 });

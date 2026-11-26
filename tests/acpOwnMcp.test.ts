@@ -275,6 +275,8 @@ test('a restart waiting on a session still opening goes when it opens, or when i
   // waiting on a start that failed (its chat gone): reading the status lets it go
   host.agents.set('fake', Promise.resolve({ kill: () => {} }));
   own.pending.add('fake');
+  assert.equal(own.status('fake', true).pending, true, 'a rail read leaves pending work to its owner');
+  assert.equal(host.agents.has('fake'), true);
   assert.equal(own.status('fake').pending, false);
   // an event of a harness with nothing waiting does nothing
   listener({ kind: 'turnEnd', key: 'acp:other:b' });

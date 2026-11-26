@@ -17,7 +17,7 @@ const MAX_NONCES = 64;
 const ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 export class PairingError extends Error {
-  /** @param {'wrong_code' | 'code_expired' | 'no_code' | 'bad_proof' | 'stale_challenge' | 'unknown_client'} code @param {string} message */
+  /** @param {'wrong_code' | 'code_expired' | 'no_code' | 'bad_proof' | 'stale_challenge' | 'unknown_client' | 'connections_off'} code @param {string} message */
   constructor(code, message) {
     super(message);
     this.name = 'PairingError';
@@ -57,6 +57,8 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
   let ownId = null;
   /** Told when a client is forgotten, whichever way it happened (the owner, the CLI, a signed revocation). @type {((fingerprint: string, kind: string, link: string | undefined) => void)[]} */
   const forgotten = [];
+  /** Told when a controller that paired by code again names a new relay link: the fingerprint and the link it had. @type {((fingerprint: string, old: string) => void)[]} */
+  const relinked = [];
   /** Told when a client is registered new, with the key it says it succeeds (a MoMo home key the owner's device registers as the old one's successor). @type {((fingerprint: string, kind: string, succeeds: string | undefined) => Promise<unknown> | undefined | void)[]} */
   const added = [];
   /** What the listeners of a client just added are still doing, by its fingerprint. @type {Map<string, Promise<unknown>>} */
@@ -69,6 +71,15 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
   /** The Macs paired by a code, from their own file (see trustState.readControllers). A key in both tables is the owner's client: the controller record is the one that gives way. */
   /** Whether a controller's record is one this Host believes (set when pairing by code is on: the record must carry the person's proof). @type {(record: import('./trustState.mjs').ClientRecord) => boolean} */
   let believed = () => true;
+  /** Whether a client may come in now (set when pairing by code is on: "Allow connections" off keeps every client but this Mac's own app out, and keeps its record). @type {(who: { fingerprint: string, kind: string }) => boolean} */
+  let admits = () => true;
+  /** Told when what `admits` says may have changed, so each live connection is judged again. @type {(() => void)[]} */
+  const admitWatchers = [];
+  /** A client kept out by "Allow connections": on the record as a refused request (#5744; `client.refused` keeps one line a minute per client and method, and counts the rest). @param {{ fingerprint: string, name: string, kind: string }} by @param {string} tool */
+  const shut = (by, tool) => {
+    refusals.note({ kind: 'client.refused', by, what: { tool } });
+    return new PairingError('connections_off', 'Connections are off on this Mac.');
+  };
   /** @param {Record<string, import('./trustState.mjs').ClientRecord>} all */
   const believedOf = (all) => Object.fromEntries(Object.entries(all).filter(([, record]) => believed(record)));
   const controllers = () => {
@@ -140,6 +151,13 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
       const { fingerprint } = keyOf(publicKey);
       const state = load();
       const mine = controllers();
+      // a Mac that pairs by code again brings a new relay link: its record names that one, so removing it later retires the link it uses (#5747)
+      if (kind === 'controller' && link && Object.hasOwn(mine, fingerprint) && mine[fingerprint].link !== link) {
+        const all = readControllers(configDir);
+        writeControllers(configDir, { ...all, [fingerprint]: { ...all[fingerprint], link } });
+        const old = mine[fingerprint].link;
+        if (old) for (const tell of relinked) tell(fingerprint, old);
+      }
       if (Object.hasOwn(state.clients, fingerprint) || Object.hasOwn(mine, fingerprint)) return fingerprint;
       const record = {
         key: /** @type {string} */ (publicKey),
@@ -164,18 +182,35 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
     },
     /** Every registered client, newest last. */
     list: () =>
-      Object.entries({ ...load().clients, ...controllers() }).map(([fingerprint, { key: _key, ...rest }]) => ({ fingerprint, ...rest })),
+      Object.entries({ ...load().clients, ...controllers() }).map(([fingerprint, { key: _key, ...rest }]) => ({
+        fingerprint,
+        ...rest,
+        // a controller this Mac labelled is shown by its label; its approved name stays in the record
+        name: rest.label || rest.name,
+      })),
     /** Who `fingerprint` is, or null when it is not registered. @param {string} fingerprint */
     principal(fingerprint) {
       const all = { ...load().clients, ...controllers() };
       const c = Object.hasOwn(all, fingerprint) ? all[fingerprint] : null;
       return c ? { fingerprint, name: c.name, kind: c.kind } : null;
     },
-    /** Give a registered client a new name; false when it is not registered. @param {string} fingerprint @param {unknown} name */
-    rename(fingerprint, name) {
+    /**
+     * Give a registered client a new name; false when it is not registered. A controller paired by code keeps the name the person approved (its proof signs it): renaming itself changes nothing, and this Mac's own rename (`owner`) sets a label shown in its place (an empty one clears it).
+     * @param {string} fingerprint @param {unknown} name @param {{ owner?: boolean }} [o]
+     */
+    rename(fingerprint, name, { owner = false } = {}) {
       const state = load();
       const mine = controllers();
       if (Object.hasOwn(mine, fingerprint) && !Object.hasOwn(state.clients, fingerprint)) {
+        // a controller paired by code keeps the name the person approved: its proof signs that name, so a new one would unbelieve it
+        // (and lock it out); a Mac that wants another name is paired again
+        if (mine[fingerprint].approval) {
+          if (!owner) return true;
+          const { label: _old, ...record } = mine[fingerprint];
+          const label = cleanName(name);
+          writeControllers(configDir, { ...mine, [fingerprint]: { ...record, ...(label ? { label } : {}) } });
+          return true;
+        }
         writeControllers(configDir, { ...mine, [fingerprint]: { ...mine[fingerprint], name: cleanName(name) } });
         return true;
       }
@@ -210,8 +245,33 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
       for (const tell of forgotten) tell(fingerprint, _gone.kind, undefined);
       return true;
     },
+    /**
+     * Removes every controller record, believed or not (a record the approval key no longer proves still blocks a new key until it goes): each is told as removed, so its relay link is forgotten and its live connections end. Answers how many went.
+     */
+    /** The relay links of every controller record, believed or not (forgotten before the records go). */
+    controllerLinks: () =>
+      Object.values(readControllers(configDir)).flatMap((record) => (typeof record.link === 'string' && record.link ? [record.link] : [])),
+    dropControllers() {
+      const all = readControllers(configDir);
+      // nothing to drop is nothing to write (a Host that never had a controller may have no config folder yet)
+      if (Object.keys(all).length === 0) return 0;
+      writeControllers(configDir, {});
+      for (const [fingerprint, gone] of Object.entries(all)) {
+        audit({ kind: 'client.removed', by: { fingerprint, name: gone.name, kind: gone.kind } });
+        for (const tell of forgotten) tell(fingerprint, gone.kind, gone.link);
+      }
+      return Object.keys(all).length;
+    },
     /** From now on a controller's record is believed only when this says so (the proof the person gave): a record written by hand is no controller. @param {(record: import('./trustState.mjs').ClientRecord) => boolean} fn */
     believeControllers: (fn) => void (believed = fn),
+    /** From now on a client this says no to is refused when it proves its key or pairs, and on each request (its record stays). @param {(who: { fingerprint: string, kind: string }) => boolean} fn */
+    admitClients: (fn) => void (admits = fn),
+    /** Hear when what is admitted may have changed. @param {() => void} fn */
+    onAdmitChange: (fn) => void admitWatchers.push(fn),
+    /** What is admitted may have changed: every live connection is judged again. */
+    admitChanged: () => {
+      for (const fn of admitWatchers) fn();
+    },
     /** How many controller records the file holds, believed or not (a key is not enrolled while any is there). */
     controllerRecords: () => Object.keys(readControllers(configDir)).length,
     /** Hear every client that is registered new from now on. @param {(fingerprint: string, kind: string, succeeds: string | undefined) => Promise<unknown> | undefined | void} fn */
@@ -224,6 +284,8 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
     },
     /** Hear every client that is forgotten from now on (a controller's relay link, when it had one, is the third thing told). @param {(fingerprint: string, kind: string, link: string | undefined) => void} fn */
     onForgotten: (fn) => void forgotten.push(fn),
+    /** Hear each controller that names a new relay link in place of the one it had (it paired by code again). @param {(fingerprint: string, old: string) => void} fn */
+    onRelinked: (fn) => void relinked.push(fn),
     /** How many clients are registered. */
     paired: () => Object.keys(load().clients).length,
     /** Whether `fingerprint` is a registered client. @param {string} fingerprint */
@@ -271,6 +333,8 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
             addedAt: now(),
             addedBy: 'code',
           };
+      // a key kept out now is not let in by a code either, a new one included (its record is not made)
+      if (!admits({ fingerprint, kind: record.kind })) throw shut({ fingerprint, name: record.name, kind: record.kind }, 'host.pair');
       save({
         codeHash: null,
         expires: 0,
@@ -293,6 +357,7 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
       const fingerprint = prove('auth', p);
       const who = pairing.principal(fingerprint);
       if (!who) throw new PairingError('unknown_client', 'This client is not paired with the Host.');
+      if (!admits(who)) throw shut(who, 'host.auth');
       // every session of a controller (a Mac paired by a code) is on the record before it starts: with `audit.required`, a line that cannot be written ends it here
       if (who.kind === 'controller') audit({ kind: 'controller.connected', by: who });
       onSeen(fingerprint);
@@ -311,11 +376,16 @@ export function createPairing({ configDir, now = Date.now, onSeen = () => undefi
     /** The fingerprint of every registered client: whose uploads a deleted chat may have left. */
     fingerprints: () => withTrustWrite(configDir, () => pairing.list().map((c) => c.fingerprint)),
     principal: (/** @type {string} */ id) => withTrustWrite(configDir, () => pairing.principal(id)),
-    rename: (/** @type {string} */ id, /** @type {unknown} */ name) => withTrustWrite(configDir, () => pairing.rename(id, name)),
+    rename: (/** @type {string} */ id, /** @type {unknown} */ name, /** @type {{ owner?: boolean }} */ o = {}) =>
+      withTrustWrite(configDir, () => pairing.rename(id, name, o)),
     /** Whether `fingerprint` is still registered, read without the write lock: every write replaces the file whole, so a read sees one state or the other. Used on each request of a live connection. @param {string} id */
     stillKnows: (id) => {
       try {
-        return Object.hasOwn(readPairing(configDir).clients, id) || Object.hasOwn(believedOf(readControllers(configDir)), id);
+        const clients = readPairing(configDir).clients;
+        const mine = believedOf(readControllers(configDir));
+        const record = Object.hasOwn(clients, id) ? clients[id] : Object.hasOwn(mine, id) ? mine[id] : null;
+        // a client kept out for now ("Allow connections" off) is cut off like one that was removed, its record kept
+        return !!record && admits({ fingerprint: id, kind: record.kind });
       } catch {
         return false;
       }

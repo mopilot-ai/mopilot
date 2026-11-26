@@ -7,13 +7,20 @@ import { Laptop, MonitorSmartphone, Server } from '../ui/icons';
 import { Toggle } from '../pages/settings/Controls';
 import { RemoteControlConfirm } from './RemoteControlConfirm';
 
-export function SummaryMachine({ machine, pending }: { machine: ChatMachine | null; pending: boolean }) {
-  if (pending) return null;
-  const where = machine?.name ?? 'This computer';
+export function SummaryMachine({
+  machine,
+  pending,
+  unavailable,
+}: {
+  machine: ChatMachine | null;
+  pending: boolean;
+  unavailable?: boolean;
+}) {
+  const where = unavailable ? 'Workspace unavailable' : pending ? 'Locating workspace…' : (machine?.name ?? 'This computer');
   const Icon = machine ? Server : Laptop;
   return (
     <span className="summary-machine" title={where}>
-      <Icon size={13} strokeWidth={1.8} aria-hidden="true" />
+      <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
       <span className="summary-label">{where}</span>
     </span>
   );

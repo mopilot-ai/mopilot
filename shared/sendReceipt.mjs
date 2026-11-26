@@ -15,6 +15,13 @@ export function isAcceptedReceipt(receipt) {
   return !!receipt && typeof receipt.id === 'string' && !!receipt.id && ACCEPTED.has(receipt.action);
 }
 
+/** Whether main used the message: accepted, not discarded, and not kept in the queue with a reason. */
+export function usedReceipt(receipt) {
+  return (
+    isAcceptedReceipt(receipt) && receipt.action !== 'discarded' && !(receipt.action === 'queued' && typeof receipt.error === 'string')
+  );
+}
+
 /** Validates main's acknowledgment; returns a queued failure for display without duplicating its retained input. */
 export function acceptSendReceipt(receipt) {
   if (!isAcceptedReceipt(receipt)) throw new Error(typeof receipt?.error === 'string' && receipt.error ? receipt.error : REFUSED);

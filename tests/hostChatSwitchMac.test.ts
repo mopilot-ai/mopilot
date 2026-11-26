@@ -84,9 +84,10 @@ test('B: the lane’s agent is written into the chat’s own config and every wi
   const lane = laneOf({ handle: () => undefined }, () => true, { live: { chats }, broadcastAll: (...a: any[]) => told.push(a) });
   lane.agent('c1', 'acp:kimi');
   assert.deepEqual(written, [['c1', { config: { model: 'm', hostSelection: { hostId: 'box' }, hostAgent: 'acp:kimi' } }]]);
-  assert.deepEqual(told, [['chats:changed', { id: 'c1', chat: { id: 'c1' } }]]);
+  // what the chat can do follows its agent (its steer capability): the windows ask for its capabilities again
+  assert.deepEqual(told, [['chats:changed', { id: 'c1', chat: { id: 'c1' } }], ['session:capsChanged']]);
   lane.agent('gone', 'codex');
-  assert.equal(told.length, 1);
+  assert.equal(told.length, 2);
   // sessions not up yet: nothing to keep it in
   const early = laneOf({ handle: () => undefined }, () => true, { live: {}, broadcastAll: () => undefined });
   assert.doesNotThrow(() => early.agent('c1', 'codex'));

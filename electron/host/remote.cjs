@@ -1,7 +1,7 @@
 // The remote Host: the interface of electron/host/interface.cjs as requests over a framed stream through an SSH tunnel; it never queues a call while the tunnel is down, it refuses it.
 const crypto = require('node:crypto');
 const net = require('node:net');
-const { HostError, assertHost } = require('./interface.cjs');
+const { HostError, HostUnreachableError, assertHost } = require('./interface.cjs');
 const { clock } = require('../platform/ports/clock.cjs');
 const frames = require('../../shared/host/frames.mjs');
 const { noteIgnored } = require('../ignored.cjs');
@@ -21,16 +21,6 @@ const { createCollecting, readSubscription, patchOf, replyOf, handOver } = requi
 
 /** Without a frame from the Host for this many heartbeats, the connection counts as dead. */
 const SILENT_BEATS = 2;
-
-/** A call that cannot be served now: the tunnel is down or reconnecting, or the connection broke under it. */
-class HostUnreachableError extends HostError {
-  /** @param {string} hostId @param {string} reason */
-  constructor(hostId, reason) {
-    super(/** @type {any} */ ('host_unreachable'), `The host is unreachable: ${reason}`);
-    this.hostId = hostId;
-    this.reason = reason;
-  }
-}
 
 /** @param {unknown} n */
 const isRev = (n) => Number.isInteger(n) && /** @type {number} */ (n) >= 0;
@@ -101,6 +91,8 @@ function createRemoteHost({
   const closedFns = new Set();
   /** @type {Set<(s: 'online' | 'connecting' | 'offline') => void>} */
   const stateFns = new Set();
+  /** Told after every proof of this app's key on a connection: the Host's refusal, or null once it was accepted (machines' rows, proofWatch.cjs). @type {Set<(e: Error | null) => void>} */
+  const refusedFns = new Set();
   /** @type {(() => void) | null} */
   let offTunnel = null;
   /** @type {Set<{ resolve: () => void, reject: (e: Error) => void }>} */
@@ -322,6 +314,7 @@ function createRemoteHost({
         if (/** @type {any} */ (e)?.code === 'host_unreachable') throw e;
         unpaired = e instanceof HostError ? e : new HostError(/** @type {any} */ ('key_unreadable'), userError(e));
       }
+      fanOut(refusedFns, unpaired, 'a proof answer');
     }
     try {
       const reply = await ask('host.hello', { ...schema.helloParams(), moved: movedOf() });
@@ -462,6 +455,8 @@ function createRemoteHost({
     },
     /** online once the Host answers, connecting while the tunnel comes up, offline when it is down or waiting to retry. */
     state,
+    refused: () => unpaired,
+    onRefused: (/** @type {(e: Error | null) => void} */ fn) => (refusedFns.add(fn), () => void refusedFns.delete(fn)),
     /** @param {(s: 'online' | 'connecting' | 'offline') => void} fn */
     onState(fn) {
       stateFns.add(fn);
@@ -506,6 +501,7 @@ function createRemoteHost({
       collecting.clear();
       generations.clear();
       stateFns.clear();
+      refusedFns.clear();
       subs.clear();
     },
   });

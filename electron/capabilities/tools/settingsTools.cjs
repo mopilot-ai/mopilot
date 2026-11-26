@@ -23,7 +23,7 @@ const SETTINGS = {
   defaultTerminal: { label: 'Terminal position', options: ['bottom', 'right'], valid: oneOf('bottom', 'right') },
   changesScope: { label: 'Changes pane scope', options: ['turn', 'uncommitted', 'branch'], valid: oneOf('turn', 'uncommitted', 'branch') },
   showChatHarness: { label: 'Show each chat’s harness in the sidebar', options: ['true', 'false'], valid: bool },
-  sidebarOrganize: { label: 'Sidebar layout', options: ['project', 'list'], valid: oneOf('project', 'list') },
+  sidebarOrganize: { label: 'Sidebar layout', options: ['project', 'list', 'machine'], valid: oneOf('project', 'list', 'machine') },
   projectSort: { label: 'Project order', options: ['custom', 'updated', 'name'], valid: oneOf('custom', 'updated', 'name') },
   chatSort: { label: 'Chat order', options: ['updated', 'manual'], valid: oneOf('updated', 'manual') },
 };

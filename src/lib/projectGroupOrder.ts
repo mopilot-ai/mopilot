@@ -22,6 +22,9 @@ interface OrderedProject extends ProjectActivity {
 export const groupKey = (g: Pick<OrderedProject, 'id' | 'path' | 'machine' | 'repositoryKey'>): string =>
   g.repositoryKey ?? g.id ?? machineFolderKey(g.machine?.id ?? '', g.path);
 
+/** Unranked discovered groups need a fallback unrelated to the order their chats arrived in. */
+export const compareProjectKeys = (a: string, b: string) => Number(a > b) - Number(a < b);
+
 /** The newest activity, including manually reordered chats; no variadic argument limit. */
 export function projectRecency(group: ProjectActivity): number {
   let last = 0;
@@ -61,6 +64,7 @@ export function sortProjectGroups<T extends OrderedProject>(groups: T[], order: 
     if (sort === 'updated') return last(b) - last(a);
     if (sort === 'name') return a.name.localeCompare(b.name);
     // Discovering older history must not promote its previously unseen project above the user's order.
-    return orderOf(a) - orderOf(b);
+    const placement = orderOf(a) - orderOf(b);
+    return placement || compareProjectKeys(a.repositoryKey ?? '', b.repositoryKey ?? '');
   });
 }

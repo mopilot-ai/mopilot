@@ -28,6 +28,8 @@ type SnapshotInput = {
   history?: Data[];
   liveTurn?: { id?: string; status?: string };
   historyStale?: boolean;
+  /** What the chat's saved history started as (the Mac's `historyEpoch`): it changes when the history was compacted or replaced. */
+  historyEpoch?: unknown;
   liveUnavailable?: boolean;
   feedSeq?: number;
 };
@@ -42,6 +44,8 @@ export type Thread = {
   liveTurnStatus: string | null;
   historyStale: boolean;
   liveUnavailable: boolean;
+  /** The Mac's name for what the history started as; absent from a Mac that sends none. */
+  epoch?: string;
 };
 /** A row of the transcript; a step also says what kind of step it was, how long it took and how far it got, where that is known. */
 export type Row = {
@@ -63,10 +67,11 @@ function picturesOf(count: number, id: unknown): { images?: number; messageId?: 
   const named = typeof id === 'string' && id && id.length <= 2048 ? id : undefined;
   return Number.isSafeInteger(count) && count > 0 && named ? { images: Math.min(count, 99), messageId: named } : {};
 }
+/** An answer that is not a chat snapshot (a computer whose MoPilot this phone cannot read). */
+export const UNREADABLE = 'The chat could not be read. Try again.';
 export function snapshot(value: unknown): Thread {
   const input = value as Partial<SnapshotInput> | null;
-  if (!input || !Array.isArray(input.items) || !input.session || typeof input.rev !== 'number')
-    throw new Error('The chat could not be read. Try again.');
+  if (!input || !Array.isArray(input.items) || !input.session || typeof input.rev !== 'number') throw new Error(UNREADABLE);
   return {
     rev: input.rev,
     session: { ...input.session, turnStatus: input.session.turn },
@@ -78,6 +83,7 @@ export function snapshot(value: unknown): Thread {
     historyStale: input.historyStale === true,
     liveUnavailable: input.liveUnavailable === true,
     feedSeq: typeof input.feedSeq === 'number' ? input.feedSeq : -1,
+    ...(typeof input.historyEpoch === 'string' && input.historyEpoch ? { epoch: input.historyEpoch } : {}),
   };
 }
 export function update(thread: Thread, input: Data): Thread {

@@ -1,5 +1,5 @@
 // The real Sources + journey on every harness: empty entry, draft-safe validation/cancel, repeated links and send.
-// e2e-covers: src/components/panels/SummaryPanel.tsx src/components/panels/SummaryContext.tsx src/components/panels/SummarySources.tsx src/styles/app/summary-panel.css
+// e2e-covers: src/components/panels/SummaryPanel.tsx src/components/panels/SummaryConnectors.tsx src/components/panels/SummaryContext.tsx src/components/panels/SummarySources.tsx src/styles/app/summary-panel.css
 import { test, expect } from './fixtures/app';
 
 // needs a Mac, so the PR check runs it on its macOS runner (scripts/e2e-select.mjs MAC_ONLY_SPEC)
@@ -37,7 +37,7 @@ for (const family of [
             const bounds = el.getBoundingClientRect();
             return {
               headerMinimum: getComputedStyle(header).minHeight,
-              cornerRadius: getComputedStyle(el.querySelector('.summary-header')!).borderRadius,
+              cornerRadius: getComputedStyle(el).borderRadius,
               compactType: Number.parseFloat(getComputedStyle(el).fontSize) < 21,
               cardsFit: [...el.children]
                 .filter((child) => child.getClientRects().length > 0)
@@ -49,7 +49,13 @@ for (const family of [
             };
           }),
         )
-        .toEqual({ headerMinimum: '32px', cornerRadius: '9px', compactType: true, cardsFit: true, horizontalOverflow: false });
+        .toEqual({ headerMinimum: '32px', cornerRadius: '10px', compactType: true, cardsFit: true, horizontalOverflow: false });
+      const connectors = rail.locator('.summary-connectors');
+      await connectors.locator('summary').focus();
+      await connectors.locator('summary').press('Enter');
+      await expect(connectors).toHaveAttribute('open');
+      await connectors.locator('summary').press('Enter');
+      await expect(connectors).not.toHaveAttribute('open');
       const context = rail.locator('.summary-context');
       await context.locator('summary').focus();
       await context.locator('summary').press('Enter');

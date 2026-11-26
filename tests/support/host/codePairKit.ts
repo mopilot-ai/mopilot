@@ -8,7 +8,7 @@ import { createCrypto } from '../../../shared/remote/crypto.mjs';
 import { createNodePrimitives } from '../../../shared/remote/nodePrimitives.mjs';
 
 const require = createRequire(import.meta.url);
-const { createSodiumPrimitives } = require('../../../electron/remote/sodiumPrimitives.cjs');
+const { createSodiumPrimitives } = require('../../../electron/platform/sodiumPrimitives.cjs');
 /** The two primitive sets the product runs this on: libsodium in the app (sodium-native), and Node's own crypto in the Host (shared/remote/nodePrimitives.mjs). The phone's react-native-libsodium is not run here. */
 export const SETS: Record<string, () => any> = { sodium: createSodiumPrimitives, node: createNodePrimitives };
 export const crypto = createCrypto(createSodiumPrimitives());

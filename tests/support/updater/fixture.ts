@@ -19,6 +19,7 @@ const app: any = {
   inApps: true,
   isInApplicationsFolder: () => app.inApps,
   moveToApplicationsFolder: () => calls.push(['move']),
+  quit: () => calls.push(['quit']),
 };
 let dialogResponse = 0;
 let lastDialog: any = null;

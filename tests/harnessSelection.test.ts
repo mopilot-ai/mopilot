@@ -90,7 +90,9 @@ registerHooks({
     }
   },
 });
-const { setSelection, selectionFor, useChatAccount } = await import(url);
+const { setSelection, selectionFor, useChatAccount, rememberChatSelection, composerSelect, draftPicked, clearDraftPick } = await import(
+  url
+);
 const { createElement, act } = await import('react');
 const { createRoot } = await import('react-dom/client');
 
@@ -301,4 +303,76 @@ test('a Claude Automatic choice stays automatic when effort or speed becomes the
   state.chatConfig.claude = { model: 'claude-opus-5-5', effort: 'low' };
   setSelection('claude', { fast: true }, 'claude');
   assert.deepEqual(state.prefs.claudeSelection, { model: 'opus', effort: 'low', fast: true });
+});
+
+test('a message sent in a Codex chat makes its own selection the new-chat default; one on the defaults changes nothing', () => {
+  reset();
+  rememberChatSelection('codex');
+  assert.deepEqual([state.prefs.model, state.prefs.effort, state.prefs.serviceTier], ['chat-model', 'high', 'priority']);
+  // already the default: no write
+  const prefs = state.prefs;
+  rememberChatSelection('codex');
+  assert.equal(state.prefs, prefs);
+  // a chat that never picked keeps the defaults
+  reset();
+  state.chatConfig.plain = {};
+  rememberChatSelection('plain');
+  assert.deepEqual([state.prefs.model, state.prefs.effort, state.prefs.serviceTier], ['default-model', 'medium', 'default']);
+});
+
+test("a message sent in a Claude chat makes its own model and effort Claude's new-chat default", () => {
+  reset();
+  rememberChatSelection('claude');
+  assert.deepEqual(state.prefs.claudeSelection, { model: 'opus', effort: 'high', fast: false });
+  // the same again: nothing written
+  const prefs = state.prefs;
+  rememberChatSelection('claude');
+  assert.equal(state.prefs, prefs);
+  // only the effort differs
+  state.runtime.claude.settings.effort = 'low';
+  rememberChatSelection('claude');
+  assert.deepEqual(state.prefs.claudeSelection, { model: 'opus', effort: 'low', fast: false });
+  // its own model with no effort keeps the default's effort
+  reset();
+  state.runtime.claude.settings = { model: 'opus', effort: null };
+  rememberChatSelection('claude');
+  assert.deepEqual(state.prefs.claudeSelection, { model: 'opus', effort: 'medium', fast: false });
+  // an effort it saved as none: the default's effort, as a pick there would keep
+  reset();
+  state.runtime.claude.settings = { model: 'opus', effort: null };
+  state.chatConfig.claude = { effort: null };
+  rememberChatSelection('claude');
+  assert.deepEqual(state.prefs.claudeSelection, { model: 'opus', effort: 'medium', fast: false });
+});
+
+test("a Claude chat with nothing of its own, on MoMo's brain, or about to switch leaves the defaults alone", () => {
+  reset();
+  state.runtime = {};
+  rememberChatSelection('claude');
+  assert.deepEqual(state.prefs.claudeSelection, { model: 'sonnet', effort: 'medium', fast: false });
+  reset();
+  state.momoModels = { claude: 'opus' };
+  rememberChatSelection('claude');
+  assert.deepEqual(state.prefs.claudeSelection, { model: 'sonnet', effort: 'medium', fast: false });
+  reset();
+  pendingSwitch = { harness: 'codex' };
+  rememberChatSelection('claude');
+  rememberChatSelection('codex');
+  assert.deepEqual(state.prefs.claudeSelection, { model: 'sonnet', effort: 'medium', fast: false });
+  assert.equal(state.prefs.model, 'default-model');
+});
+
+test("a pick in a new chat's composer is that draft's until a new draft starts; a chat's own pick is not", () => {
+  reset();
+  state.newChatHarnessRevision = 3;
+  composerSelect('codex', { effort: 'low' }, 'codex');
+  assert.equal(draftPicked(), null);
+  assert.equal(state.chatConfig.codex.effort, 'low');
+  composerSelect('codex', { effort: 'xhigh' }, null);
+  assert.equal(state.prefs.effort, 'xhigh');
+  // what the draft shows, kept to give back after a pick elsewhere writes the same defaults
+  assert.deepEqual(draftPicked(), { rev: 3, h: 'codex', sel: { model: 'chat-model', effort: 'xhigh', fast: true } });
+  assert.equal(draftPicked({ newChatHarnessRevision: 4 }), null, 'a new draft has no pick');
+  clearDraftPick();
+  assert.equal(draftPicked(), null);
 });

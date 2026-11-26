@@ -33,7 +33,7 @@ test('sidebar options switch organization, project order, chat order and harness
     await click(menu().querySelector('[data-close]')!);
     return out;
   };
-  assert.deepEqual(await checked(), ['By project', 'Recent activity', 'Last updated']);
+  assert.deepEqual(await checked(), ['By project', 'Custom', 'Last updated']);
   for (const item of [
     'In one list',
     'By project',

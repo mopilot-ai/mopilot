@@ -89,7 +89,7 @@ export interface CodexApi {
   externalConfigDetect(cwds: string[]): Promise<ExternalAgentConfigDetectResponse>;
   externalConfigImport(items: ExternalAgentConfigMigrationItem[]): Promise<ExternalAgentConfigImportResponse>;
   /** The MCP servers Codex has and how they are doing. */
-  mcpStatus(): Promise<ListMcpServerStatusResponse>;
+  mcpStatus(scope?: { chatId: string; nativeId: string; cursor: string | null }): Promise<ListMcpServerStatusResponse>;
   pluginList(): Promise<PluginListResponse>;
   skillList(cwd: string, forceReload?: boolean): Promise<SkillsListResponse>;
   /** The Remote Control link now (read from the app-server once per process, then kept by its notifications). */

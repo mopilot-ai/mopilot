@@ -7,6 +7,7 @@ import { useEffectOn } from '../../lib/effects';
 import { gitPoll } from '../../lib/gitPoll';
 import { ignoring } from '../../lib/ignored';
 import { native, type GitInfo } from '../../lib/native';
+import { checkoutPullRequest } from '../../lib/pullRequestSources';
 import { repositoryDiffFiles } from '../../lib/repositoryChanges';
 import { visiblePoll } from '../../lib/visiblePoll';
 import type { BranchPrLookup } from './PullRequestRow';
@@ -85,7 +86,11 @@ export function useLocalSummaryRepo(location: ReturnType<typeof useLocalFolder>,
       const prRead = prRequest.current;
       const current = () => prRead === prRequest.current && currentRepo.current === owner;
       try {
-        const r = await native.git.gh(cwd, ['pr', 'view', '--json', 'number,url,title,state']);
+        // the branch's PR where gh finds it, or where the branch is pushed when gh cannot (a deleted origin)
+        const r = await checkoutPullRequest(cwd, 'number,url,title,state', {
+          gh: (c, a) => native.git.gh(c, a),
+          git: (c, a) => native.git.run(c, a),
+        });
         if (current()) {
           if (r.ok) {
             const result = JSON.parse(r.stdout);

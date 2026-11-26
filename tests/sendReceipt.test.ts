@@ -1,7 +1,7 @@
 // Shared send receipt validation: queued failures stay main-owned, and malformed answers never claim acceptance.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sendReceipt, acceptSendReceipt } from '../shared/sendReceipt.mjs';
+import { sendReceipt, acceptSendReceipt, usedReceipt } from '../shared/sendReceipt.mjs';
 
 test('native acceptance, held input and discarded commands have explicit receipts', () => {
   assert.deepEqual(sendReceipt({ started: true }, 'x', false), { action: 'started', id: 'x' });
@@ -37,4 +37,12 @@ test('malformed receipts reject instead of silently clearing the composer', () =
   ])
     assert.throws(() => acceptSendReceipt(value), /The harness did not accept/);
   assert.throws(() => acceptSendReceipt({ id: 'x', action: 'failed', error: 'specific reason' }), /specific reason/);
+});
+
+test('a message main used: accepted, not discarded, and not kept in the queue with a reason', () => {
+  for (const action of ['started', 'steered', 'held', 'dispatched', 'queued']) assert.equal(usedReceipt({ action, id: 'x' }), true, action);
+  assert.equal(usedReceipt({ action: 'discarded', id: 'x' }), false);
+  assert.equal(usedReceipt({ action: 'queued', id: 'x', error: 'Codex is busy.' }), false);
+  assert.equal(usedReceipt({ action: 'failed', id: 'x', error: 'no' }), false);
+  assert.equal(usedReceipt(undefined), false);
 });

@@ -29,7 +29,7 @@ import { limitNoteText } from '../harness/limitNote';
 import { switchHarnessAtLimit } from '../../shared/limitPolicy.mjs';
 import { ALREADY_ENDED, ALREADY_SWITCHED } from './liveAction';
 import { runtime } from './runtime';
-import { replaceDraftHarness } from './draftHarness';
+import { defaultChoicePrefs, replaceDraftHarness, startingKind } from './draftHarness';
 
 /* ------------------------------------------------------------------ */
 /* chats that span several native sessions (design §05)                */
@@ -133,8 +133,10 @@ const resolveFor = (saved: HarnessKind, s: AppState): DefaultHarness =>
     why: { codex: FIRST_TIER.codex.why(s), claude: FIRST_TIER.claude.why(s) },
     basics: s.basicHarnesses,
   });
-/** The harness the next new chat starts on: this draft's pick in the model picker, else the saved default. */
-export const defaultHarness = (s: AppState = get()): DefaultHarness => resolveFor(s.newChatHarnessPick ?? savedDefaultHarness(s), s);
+/** Where a new chat starts before its draft picks: the last used harness or the saved default (draftHarness.ts startingKind). */
+export const startingHarness = (s: AppState = get()): HarnessKind => startingKind(s, savedDefaultHarness(s));
+/** The harness the next new chat starts on: this draft's pick in the model picker, else startingHarness. */
+export const defaultHarness = (s: AppState = get()): DefaultHarness => resolveFor(s.newChatHarnessPick ?? startingHarness(s), s);
 /** The saved default alone, resolved: what Settings and scheduled tasks use, whatever the open draft picked. */
 export const savedDefaultResolved = (s: AppState = get()): DefaultHarness => resolveFor(savedDefaultHarness(s), s);
 /** What a page showing the default says while it can't run and another harness stands in, or null (a selector can read it). */
@@ -142,13 +144,13 @@ export const defaultHarnessFallbackNote = (s: AppState = get()) => defaultHarnes
 /** Make `kind` the harness new chats start on. Existing chats keep their own harness. */
 export const setDefaultHarness = (kind: HarnessKind) => {
   set((s) => replaceDraftHarness(s, null));
-  setPrefs({ defaultHarness: kind });
+  setPrefs(defaultChoicePrefs(get().prefs, kind));
 };
 /**
  * The harness picked in a new chat's model picker: for this draft only, never the saved default (that changes only in
- * Settings → New chats use). Picking the saved default again clears the pick.
+ * Settings → New chats use). Picking the harness the draft starts on anyway clears the pick.
  */
-export const pickNewChatHarness = (kind: HarnessKind) => set((s) => replaceDraftHarness(s, kind === savedDefaultHarness(s) ? null : kind));
+export const pickNewChatHarness = (kind: HarnessKind) => set((s) => replaceDraftHarness(s, kind === startingHarness(s) ? null : kind));
 /**
  * The first-tier harness new chats use: the default when it is Codex or Claude Code (or the other one while it can't
  * run), and Codex's or Claude's side of things when the default is a basic harness.

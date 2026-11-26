@@ -38,6 +38,7 @@ import { useAttachments } from '../remote/useAttachments';
 import { randomId } from '../platform/randomId';
 import { lostInFlight, unconfirmedNotice } from '../remote/unconfirmed';
 import { startMemory } from '../remote/startMemory';
+import { useLastPicks } from '../remote/useLastPicks';
 import { useHardwareBack } from '../useHardwareBack';
 import { useKeyboardLift } from '../useKeyboardLift';
 import { typo } from '../typography';
@@ -126,6 +127,7 @@ export function NewChat({
     if (start && !where.harnesses.some((h) => h.id === harness && !h.unavailable))
       setHarness(where.harnesses.find((h) => !h.unavailable)?.id ?? '');
   }, [start, where.harnesses, harness]);
+  const memory = useLastPicks(mac.pairId, where, { start, harness, options }, { setHarness, setModel, setEffort });
   useEffect(
     () => () => {
       alive.current = false;
@@ -140,12 +142,12 @@ export function NewChat({
       .then((loaded) => {
         if (mine !== loads.current) return;
         setStart(loaded);
-        setHarness(loaded.harnesses[0]?.id ?? '');
+        setHarness(memory.harness(loaded.harnesses) ?? loaded.harnesses[0]?.id ?? '');
       })
       .catch((e) => {
         if (mine === loads.current) setError(explain(e));
       });
-  }, [request]);
+  }, [request, memory]);
   useEffect(() => {
     begin();
     return () => {
@@ -161,8 +163,7 @@ export function NewChat({
       .then((loaded) => {
         if (!active) return;
         setOptions(loaded);
-        setModel(loaded.model);
-        setEffort(loaded.effort);
+        memory.apply(harness, loaded);
         // a Mac whose current permission the phone may not set leaves none picked: the most careful one it may use stands in, never the Mac's own
         setPermission(loaded.permission ?? loaded.permissions.find((p) => !p.disabled)?.id ?? null);
         setAccount(null);
@@ -171,7 +172,7 @@ export function NewChat({
     return () => {
       active = false;
     };
-  }, [request, start, harness]);
+  }, [request, start, harness, memory]);
   async function submit() {
     // the Start button is off while busy, so a start in flight is never asked for again
     if (!startReady(text, files.items, where.remote)) return;
@@ -226,7 +227,7 @@ export function NewChat({
         startId,
       });
       startMemory.clear(runtime, startId);
-      if (where.remote && where.folder) where.remember(where.folder);
+      memory.remember({ harness, model, effort }, where.folder);
       if (!alive.current) return;
       // a warning is a line in the chat, never a reason to stay here
       open(chatId, { text, ...(pictures.length ? { id: startId, pictures, nativeId } : {}), ...(warning ? { warning } : {}) });

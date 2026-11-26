@@ -33,6 +33,7 @@ import { togglePanel } from '../store/shellPanels';
 import { set as setState, get as getState, toast } from '../store/core';
 import { createProject, currentCwdForNewChat, newChatHostPick, projectForThread } from '../store/projects';
 import { resetNewChatDefaults, clearNewChatProject, temporaryChatBlocked, chatOf } from '../store/chats';
+import { applyNewChatDefault } from './newChatStart';
 import { archiveThread, openSideChat } from '../store/actions';
 import { giveBackToComposer } from '../store/send';
 import { viewChats, inView } from '../lib/agentTabs';
@@ -305,6 +306,7 @@ export function useShortcuts(groups: { threads: { id: string }[] }[]) {
         }
         case 'new-chat-default':
           resetNewChatDefaults();
+          applyNewChatDefault();
           return handle('new-chat');
         case 'new-chat':
         case 'new-temp-chat': {

@@ -21,12 +21,12 @@
       "reason": "Registers computer tool handlers over the shared permission anchor and control services. Refusal handling stays at the tool boundary."
     },
     "tests/appShell.test.ts": {
-      "maxLines": 614,
-      "reason": "App-shell commands and render-scope cases share one mounted shell, store and native bridge. Keep the scenario matrix with that fixture."
+      "maxLines": 602,
+      "reason": "App-shell commands and render-scope cases share one mounted shell, store and native bridge. Keep the scenario matrix with that fixture. The tray's New Chat also starts its draft from Settings' fixed default (session/newChatStart.ts), checked on the same shortcut sequence. Review this change at exactly 602 lines."
     },
     "tests/quickChatUI.test.ts": {
-      "maxLines": 517,
-      "reason": "Quick Chat layout and MoMo-toggle scenarios share the window's store, native bridge and mounted shell. MoMo's own pane is tested separately."
+      "maxLines": 532,
+      "reason": "Quick Chat layout and MoMo-toggle scenarios share the window's store, native bridge and mounted shell. MoMo's own pane is tested separately. The bar's fresh drafts start from Settings' fixed default and its sent chat becomes the last used (session/newChatStart.ts), checked in the same send-and-new-chat sequence. Review this change at exactly 532 lines."
     },
     "tests/browserPermissions.test.ts": {
       "maxLines": 592,

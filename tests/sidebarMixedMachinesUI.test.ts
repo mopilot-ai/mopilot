@@ -130,7 +130,11 @@ test('a remote session and Codex Cloud task join a local project and use its sur
       threads: { ...snapshot.threads, [localId]: thread(localId, { cwd: local }) },
     });
     assert.equal(sessionMarks().length, 3, 'a local session restores the remote chats’ individual icons');
-    assert.deepEqual(marks(), ['SSH'], 'the configured Cloud destination has no Cloud session');
+    assert.deepEqual(marks(), [], 'a project with a local session does not read as an SSH project');
+    await update({ ...getState(), cloudTasks: [cloud] });
+    assert.deepEqual(marks(), [], 'nor as a Cloud project once a Cloud task joins it');
+    assert.ok(group().querySelector('[data-sidebar-cloud="task_cloud"] .host-mark .lucide-cloud'), 'the task keeps its own icon');
+    assert.equal(sessionMarks().length, 4);
     await update({ ...snapshot, accounts: { active: 'another' } });
     assert.equal(view.$$('.thread-row[data-sidebar-cloud="task_cloud"]').length, 0);
     await update({ ...snapshot, prefs: { ...snapshot.prefs, sidebarOrganize: 'list' } });

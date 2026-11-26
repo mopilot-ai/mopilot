@@ -146,7 +146,7 @@ export type ClaudeEvent =
   // login false: the process ran on a key, MoPilot credits or a cloud account, so its limits and auth errors are not the login's;
   // account: the login the process runs on
   /** serverAccount: the server account the login was when this process started, null while not known (#1582) */
-  | { key: string; kind: 'message'; msg: SDKMessage; login?: boolean; account?: string; serverAccount?: string | null }
+  | { key: string; kind: 'message'; msg: SDKMessage; login?: boolean; account?: string; serverAccount?: string | null; activityAt?: number }
   | {
       key: string;
       kind: 'permission';
@@ -175,8 +175,10 @@ export type ClaudeEvent =
       title: string | null;
     }
   | { key: string; kind: 'processStarted'; cwd?: string }
+  | { key: string; kind: 'processRetired' }
   | { key: string; kind: 'closed' }
   | { key: string; kind: 'transcript' }
+  | { key: string; kind: 'rewound' }
   | { key: string; kind: 'tasks'; tasks: unknown[] }
   | { key: string; kind: 'settings'; probe: string; ultracode: boolean; available: boolean }
   | ({ key: string; kind: 'remoteControl' } & RemoteControlView)

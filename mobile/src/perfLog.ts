@@ -11,6 +11,50 @@ const TICK = 16;
 const PRINT = 5_000;
 
 export type Frames = { total: number; over25: number; over50: number };
+/** One size a video was tried at: which (`720p`, `540p`, `480p`, `medium`), what the system estimated for it (bytes, 0 when it could not say), what was written (bytes), how long it took (seconds), and how it ended: `kept`, `skipped` (the estimate was far over), `cut` (the limit stopped it short), `big`, `cancelled`, `failed`. */
+export type RungNote = { size: string; estimate: number; bytes: number; seconds: number; outcome: string };
+/** One picked video, for measuring the sizes on a device: numbers and words only, never a name, a path or an id. `result`: `fit` (read as it is), `smaller` (a size was kept), `refused-large`, `refused-long`, `cancelled`, `background`, `disk`, `failed`, `unreadable`. */
+export type VideoNote = {
+  durationMs: number | null;
+  sourceBytes: number | null;
+  width: number | null;
+  height: number | null;
+  rungs: RungNote[];
+  kept: string | null;
+  result: string;
+  seconds: number;
+};
+/** One library pick: how long the picker took to hand the choice over (its own copy of each original, and the time the person spent in it), how many items and how many were videos, and how long they then took to be made ready. */
+export type PickNote = { seconds: number; count: number; videos: number; readSeconds: number };
+/** One part of an upload as it went (or, for `ok`, parts `index` to `to` that went one after another on one connection): which part, on which connection
+ * (`gen`), to which computer (`same` as the upload's, `other`, `none` named), and how it ended (`ok`, or a word of `partOutcome`, with the Mac's `code`
+ * when it gave one). */
+export type UploadPart = {
+  index: number;
+  to?: number;
+  gen: number | null;
+  computer: 'same' | 'other' | 'none';
+  outcome: string;
+  code?: string;
+};
+/**
+ * One attachment's upload, for finding why one ends at Retry: whether it carried on after the screen was rebuilt (`restarted`), whether its own request
+ * named a computer (`computer`), its parts in all, its parts as they went (a run that went on one connection as one range, so a note stays a few
+ * entries an attempt), the waits taken (ms), how it ended (`done`, `retry`,
+ * `cancelled`, `cut-off`: the screen went under it) with the outcome that ended it, and its seconds. Numbers and fixed words only.
+ */
+export type UploadNote = {
+  restarted: boolean;
+  computer: 'named' | 'none';
+  parts: number;
+  events: UploadPart[];
+  waits: number[];
+  result: string;
+  reason: string | null;
+  seconds: number;
+};
+/** How many notes of each kind a report keeps (the newest). */
+export const NOTES_KEPT = 30;
 export type PerfReport = {
   seconds: number;
   js: Frames;
@@ -35,9 +79,18 @@ export type PerfReport = {
   why: Record<string, Record<string, number>>;
   /** Counted events: `delta` (a live event reached the chat), `thread-update` (the chat screen was handed new rows). */
   events: Record<string, number>;
+  /** The last DECISIONS_KEPT notes, oldest first: `n` counts every note since launch, `t` is ms since the log began, `fields` what the note said. */
+  notes: { n: number; tag: string; t: number; fields: string }[];
+  /** The library picks and the videos in them, newest last. */
+  picks: PickNote[];
+  videos: VideoNote[];
+  /** The attachments' uploads, newest last. */
+  uploads: UploadNote[];
 };
 /** How many touches' waits the report keeps in order. */
 export const RECENT = 20;
+/** How many decision notes (`note`, the jump arrow's) the report keeps, the last ones, so About can show them on a device whose console cannot be read. */
+export const DECISIONS_KEPT = 40;
 /** How many causes per screen the report keeps, the commonest first. */
 export const WHY_KEPT = 12;
 /** A touch whose commit comes later than this caused none: the next commit is some other work's. */
@@ -81,6 +134,7 @@ export function createPerfLog(clock: Clock = realClock) {
   let floor: number | null = null;
   let stop: (() => void)[] = [];
   let data = fresh();
+  let noted = 0;
   const listeners = new Set<() => void>();
   function fresh() {
     return {
@@ -95,6 +149,10 @@ export function createPerfLog(clock: Clock = realClock) {
       renderTime: {} as Record<string, { n: number; sum: number; worst: number }>,
       events: {} as Record<string, number>,
       why: {} as Record<string, Record<string, number>>,
+      notes: [] as PerfReport['notes'],
+      picks: [] as PickNote[],
+      videos: [] as VideoNote[],
+      uploads: [] as UploadNote[],
     };
   }
   const tell = () => listeners.forEach((l) => l());
@@ -120,6 +178,10 @@ export function createPerfLog(clock: Clock = realClock) {
         Object.entries(data.renderTime).map(([name, t]) => [name, { mean: Math.round(t.sum / t.n), worst: Math.round(t.worst) }]),
       ),
       events: { ...data.events },
+      notes: [...data.notes],
+      picks: data.picks.slice(-NOTES_KEPT),
+      videos: data.videos.slice(-NOTES_KEPT),
+      uploads: data.uploads.slice(-NOTES_KEPT),
       why: Object.fromEntries(
         Object.entries(data.why).map(([name, causes]) => [
           name,
@@ -170,6 +232,14 @@ export function createPerfLog(clock: Clock = realClock) {
       tracing = false;
       for (const s of stop) s();
       stop = [];
+      tell();
+    },
+    /** Writes the numbers so far to the console as one phase of a run, then zeroes them and keeps recording: a run in phases (type, send, scroll, wait) is read line by line from a log capture. */
+    phase() {
+      if (!on) return;
+      clock.print(`[perf-phase] ${JSON.stringify(report())}`);
+      data = fresh();
+      began = last = clock.now();
       tell();
     },
     /** Zeroes the numbers and keeps recording. */
@@ -231,6 +301,35 @@ export function createPerfLog(clock: Clock = realClock) {
       if (!on || !tracing) return;
       const mine = (data.why[name] ??= {});
       for (const reason of reasons) mine[reason] = (mine[reason] ?? 0) + 1;
+    },
+    /** One decision to read frame by frame (the jump arrow's), printed at once with the ms since the log began; nothing while the log is off. */
+    note(tag: string, fields: Record<string, number | boolean | null>) {
+      if (!on) return;
+      const t = Math.round(clock.now() - began);
+      clock.print(`[perf-${tag}] ${JSON.stringify({ t, ...fields })}`);
+      data.notes.push({ n: ++noted, tag, t, fields: JSON.stringify(fields) });
+      if (data.notes.length > DECISIONS_KEPT) data.notes.shift();
+    },
+    /** One picked video (while recording): kept in the report and printed as a line of its own, for a log capture. */
+    video(note: VideoNote) {
+      if (!on) return;
+      data.videos.push(note);
+      if (data.videos.length > NOTES_KEPT) data.videos.shift();
+      clock.print(`[perf] video ${JSON.stringify(note)}`);
+    },
+    /** One library pick (while recording). */
+    pick(note: PickNote) {
+      if (!on) return;
+      data.picks.push(note);
+      if (data.picks.length > NOTES_KEPT) data.picks.shift();
+      clock.print(`[perf] pick ${JSON.stringify(note)}`);
+    },
+    /** One attachment's upload (while recording). */
+    upload(note: UploadNote) {
+      if (!on) return;
+      data.uploads.push(note);
+      if (data.uploads.length > NOTES_KEPT) data.uploads.shift();
+      clock.print(`[perf] upload ${JSON.stringify(note)}`);
     },
     /** Counts something that happened, by name. */
     event(name: string) {

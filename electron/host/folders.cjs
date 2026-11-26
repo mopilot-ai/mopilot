@@ -64,6 +64,8 @@ function readStatus(v) {
     branch: str(v.branch),
     head: str(v.head),
     remote: str(v.remote),
+    // where the branch is pushed: the PR reader looks there when origin's repository has no PR (an older Host sends none)
+    upstream: str(v.upstream?.remote) && str(v.upstream?.branch) ? { remote: v.upstream.remote, branch: v.upstream.branch } : null,
     files,
     truncated: v.truncated === true,
     unreadable: v.unreadable === true,

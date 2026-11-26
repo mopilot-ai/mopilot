@@ -7,7 +7,7 @@ import fsp from 'node:fs/promises';
 import { after } from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { createSodiumPrimitives } = require('../../electron/remote/sodiumPrimitives.cjs');
+const { createSodiumPrimitives } = require('../../electron/platform/sodiumPrimitives.cjs');
 
 export const prim = createSodiumPrimitives();
 

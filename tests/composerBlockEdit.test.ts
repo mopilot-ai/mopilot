@@ -7,21 +7,30 @@ import { insertHTML } from './support/composer-dom.ts';
 import { pasteComposerBlocks, replaceComposerBlocks } from '../src/lib/composerBlockEdit.ts';
 
 test('whole-draft structured paste replaces the old start and list type through an owned block boundary', async () => {
-  const m = await mount('9. Old\n10. Second');
-  const original = document.execCommand;
-  try {
-    m.el.focus();
-    m.el.setSelectionRange(3, m.el.value.length);
-    document.execCommand = (...args) => {
-      assert.ok(m.el.querySelector('[data-composer-boundary]'));
-      return insertHTML(args[0], args[1] ?? false, args[2] ?? '');
-    };
-    pasteComposerBlocks(m.el, '<ul><li>New</li><li>Second</li></ul>');
-    assert.equal(m.el.value, '- New\n- Second');
-    assert.equal(m.el.querySelector('ol, [data-composer-boundary]'), null);
-  } finally {
-    document.execCommand = original;
-    await m.close();
+  for (const text of ['9. Old\n10. Second', '9. Old\n10. ']) {
+    const m = await mount(text);
+    const original = document.execCommand;
+    try {
+      m.el.focus();
+      if (text.endsWith(' ')) {
+        const range = window.document.createRange();
+        const [first, last] = m.el.querySelectorAll('li');
+        range.setStart(first.firstChild, 0);
+        range.setEndBefore(last.querySelector('br'));
+        window.getSelection()!.removeAllRanges();
+        window.getSelection()!.addRange(range);
+      } else m.el.setSelectionRange(3, m.el.value.length);
+      document.execCommand = (...args) => {
+        assert.ok(m.el.querySelector('[data-composer-boundary]'));
+        return insertHTML(args[0], args[1] ?? false, args[2] ?? '');
+      };
+      pasteComposerBlocks(m.el, '<ul><li>New</li><li>Second</li></ul>');
+      assert.equal(m.el.value, '- New\n- Second');
+      assert.equal(m.el.querySelector('ol, [data-composer-boundary]'), null);
+    } finally {
+      document.execCommand = original;
+      await m.close();
+    }
   }
 });
 

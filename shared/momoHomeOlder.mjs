@@ -56,7 +56,10 @@ export function createOlder({ read, invalidate, confirm, memory, run, call, mach
   const keep = () => memory?.write([...kept]);
   const fix = async (/** @type {string} */ id) => {
     // `<verb>` and the machine ask; `<verb>!`, the token and the machine confirm (shared/momoFixId.mjs: a machine id has `:` and more in it)
-    const { kind, fields } = /** @type {{ kind: string, fields: string[] }} */ (parseFixId(id));
+    const parsed = parseFixId(id);
+    // an id whose field cannot be read names nothing the home offered
+    if (!parsed) throw new IntentError('That is not offered any more.');
+    const { kind, fields } = parsed;
     const confirming = kind.endsWith('!');
     const verb = confirming ? kind.slice(0, -1) : kind;
     const [token = '', rest = ''] = confirming ? fields : ['', fields[0] ?? ''];
@@ -113,6 +116,8 @@ export function createOlder({ read, invalidate, confirm, memory, run, call, mach
     await read(true);
   };
   return Object.assign(fix, {
+    /** What the owner chose to keep (`olderKey`): the view says it, so a client that cannot see this list is told it and never has to guess from a card that went away. */
+    kept: () => [...kept],
     /** A machine that keeps a retired copy of MoMo is not a place to move to (its Host refuses): said before the move begins. @param {import('./momoHomeLook.mjs').Read} r @param {string} toId */
     movable(r, toId) {
       const o = r.older.find((x) => x.machine.id === toId);

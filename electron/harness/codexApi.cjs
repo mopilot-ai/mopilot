@@ -270,9 +270,18 @@ class CodexApi extends CodexLeases {
   externalConfigImport(migrationItems) {
     return this.request('externalAgentConfig/import', { migrationItems });
   }
-  /** @this {CodexAdapter} */
-  mcpStatus() {
-    return this.request('mcpServerStatus/list', {});
+  /** @this {CodexAdapter} @param {{chatId: string, nativeId: string, cursor: string | null}} [scope] */
+  mcpStatus(scope) {
+    if (scope === undefined) return this.request('mcpServerStatus/list', {});
+    const check = () => {
+      if (!scope.nativeId || this.codexThread(scope.chatId) !== scope.nativeId) {
+        throw new Error('The Codex session changed before its connectors could be read.');
+      }
+    };
+    check();
+    const params = { threadId: scope.nativeId, cursor: scope.cursor, detail: 'toolsAndAuthOnly' };
+    guardSend(params, check);
+    return this.request('mcpServerStatus/list', params, { timeoutMs: 10_000 });
   }
   /** @this {CodexAdapter} */
   pluginList() {

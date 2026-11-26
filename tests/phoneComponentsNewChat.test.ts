@@ -1,9 +1,13 @@
 // New chat on the phone: the greeting, the Start path, attachments behind +, dictation behind the mic, and an honest start that survives leaving.
-import { test } from 'node:test';
+import { beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { act, flush, click, inputText } from './support/phone/component-kit';
 import { scripted, fakeMedia } from './support/phone/m3';
 import { PROMPT, mount, has, button, chip, tap, typeIn, attach, dictate, tile } from './support/phone/newchat-kit';
+
+// a chat started in one test is remembered for the next New chat (mobile/src/remote/lastPicks.ts): each test starts with none
+const { forgetPicks } = await import('../mobile/src/remote/lastPicks');
+beforeEach(() => forgetPicks());
 
 test('a new chat starts with the agent, project, model, effort and a capped permission picked in Claude-style sheets, then opens', async () => {
   const { runtime, calls } = scripted((m) => (m === 'chat.start' ? { chatId: 'claude:new' } : undefined));
