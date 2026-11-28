@@ -34,8 +34,8 @@ async function key(host: HTMLElement, name: string, isComposing = false) {
 
 test('a chat with no turns offers source entry without inserting or sending a placeholder', async () => {
   const { host, unmount } = await render(h(SummarySources, { threadId: 'origin' }));
-  assert.equal(host.textContent, 'Sources');
-  assert.equal(host.querySelector('.summary-row'), null);
+  assert.equal(host.textContent, 'SourcesAdd source');
+  assert.equal(host.querySelector('.summary-row:not(.summary-source-add)'), null);
   await open(host);
   assert.equal(document.activeElement, input(host));
   assert.equal(input(host).value, '');
@@ -157,7 +157,7 @@ test('Cancel and Escape restore the add button; composition and other keys leave
     assert.equal(document.activeElement, one(host, '[title="Add source"]'));
     await open(host);
     assert.equal(input(host).value, '');
-    await act(() => one(host, 'button[type="button"]').click());
+    await act(() => one(host, 'button', 'Cancel').click());
     assert.equal(host.querySelector('form'), null);
     assert.equal(document.activeElement, one(host, '[title="Add source"]'));
     assert.deepEqual(deliveries, []);
@@ -185,7 +185,7 @@ test('switching chats retires entry, errors and expansion before another chat ca
   await submit(view.host);
   assert.deepEqual(deliveries, [['other', 'https://example.org/other']]);
   await view.rerender(h(SummarySources, { threadId: 'origin' }));
-  assert.equal(one(view.host, '.summary-label').textContent, 'example.com');
+  assert.equal(one(view.host, '.summary-row:not(.summary-source-add) .summary-label').textContent, 'example.com');
   assert.equal(view.host.querySelector('form'), null);
   await view.unmount();
 });
@@ -217,7 +217,9 @@ test("links come from a user's text, replies and commands, without the brackets 
   });
   const view = await render(h(SummarySources, { threadId: 'origin' }));
   assert.deepEqual(
-    [...view.host.querySelectorAll('.summary-label')].map((e) => e.textContent).filter((t) => !t!.startsWith('Show all')),
+    [...view.host.querySelectorAll('.summary-row:not(.summary-source-add) .summary-label')]
+      .map((e) => e.textContent)
+      .filter((t) => !t!.startsWith('Show all')),
     ['a.test', 'b.test', 'c.test'],
   );
   await view.unmount();
@@ -237,7 +239,7 @@ test('the heading counts every link, and each host row leads with its letter til
     },
   });
   const view = await render(h(SummarySources, { threadId: 'origin' }));
-  assert.equal(one(view.host, '.summary-count').textContent, '3');
+  assert.equal(one(view.host, '.rail-section-summary').textContent, '3');
   assert.deepEqual(
     [...view.host.querySelectorAll('.summary-monogram')].map((m) => m.textContent),
     ['A', 'A', 'B'],

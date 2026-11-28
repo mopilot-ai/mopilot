@@ -1,4 +1,4 @@
-// Probe fixtures read published probe records without confusing the independent stall log for a launch sample.
+// Probe fixtures read published probe records without confusing the independent stall or renderer log for a launch sample.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -31,6 +31,17 @@ test('the stall logger’s rotated file is also outside the launch probe stream'
   fs.writeFileSync(path.join(p.perf, 'stalls.1.jsonl'), '{"kind":"stall","ms":701}\n');
   fs.writeFileSync(p.probe, '{"kind":"loop","coreLoaded":true}\n');
   assert.deepEqual(await launchSamples(p.dir), [{ kind: 'loop', coreLoaded: true }]);
+});
+
+test('the renderer record, live or rotated, is not a probe sample either (#5790)', async (t) => {
+  // written before the probe's first flush, its lines once stood in for the launch's samples and had no coreLoaded
+  const p = profile(t);
+  fs.writeFileSync(path.join(p.perf, 'renderer.jsonl'), '{"kind":"longtask","ms":80}\n{"kind":"slowInput","ms":120}\n');
+  fs.writeFileSync(path.join(p.perf, 'renderer.1.jsonl'), '{"kind":"longtask","ms":90}\n');
+  const pending = launchSamples(p.dir);
+  fs.writeFileSync(p.probe, '{"kind":"loop","coreLoaded":true}\n');
+  assert.deepEqual(await pending, [{ kind: 'loop', coreLoaded: true }]);
+  assert.deepEqual(probeFiles(p.dir), [path.basename(p.probe)]);
 });
 
 test('a stall alone does not end the wait for this launch to publish its first probe record', async (t) => {

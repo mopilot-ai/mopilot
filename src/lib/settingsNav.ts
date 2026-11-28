@@ -265,6 +265,7 @@ export const ROWS_ACCEPTED: readonly { pr: number; rows: number; why: string }[]
     why: "MoMo's Memory tab (#2139), outside Settings but in its row style: one row per fact, the empty state, and Memory is off",
   },
   { pr: 5390, rows: 1, why: 'Harnesses › All harnesses: choose the highest installed version for automatically selected executables' },
+  { pr: 5781, rows: 1, why: 'General › Chats: how much price counts when Auto (all harnesses) picks a harness and model' },
 ];
 /** The `<Row` total the Settings source may reach. */
 export const ROWS_BUDGET = ROWS_BEFORE + ROWS_MAX_GROWTH + ROWS_ACCEPTED.reduce((n, a) => n + a.rows, 0);

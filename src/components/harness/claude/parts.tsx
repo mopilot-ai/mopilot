@@ -171,17 +171,16 @@ export function ClaudeRows({ status: st }: { status: import('../../../harness/ty
   );
 }
 
-/** Its login lapsed: the open chat's own login, else the one new chats use, once it has been signed in before (D-43). */
+/** Its login lapsed: a Claude chat's own login, else outside a chat the one new chats use, once signed in before (D-43). */
 function SignedOutBanner() {
   const st = useStore((s) => s.claude.status);
   const pool = useStore((s) => s.claudeAccounts);
   const chats = useStore((s) => s.claudeChats);
-  const routeId = useStore(focusedChat);
-  const routed = useComposerFamily(routeId);
-  const family = routeId ? routed : null;
-  const chatId = family === 'claude' ? routeId : null;
-  // a basic harness's chat runs on no Claude login: neither its own nor the one new chats use covers it
-  const out = family === 'acp' ? null : claudeSignedOut(st, pool, chats, chatId);
+  const chatId = useStore(focusedChat);
+  // the chat's harness, or outside a chat the one new chats start on: a Codex or basic harness's chat runs on no
+  // Claude login, so Claude Code's lapsed one is not its banner (as Codex's is not a Claude chat's)
+  const family = useComposerFamily(chatId);
+  const out = family === 'claude' ? claudeSignedOut(st, pool, chats, chatId) : null;
   if (!out) return null;
   const recheck = () => {
     void refreshClaudeAccounts();

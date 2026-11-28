@@ -105,6 +105,10 @@ test("a scheduled run's model and effort go with its message, to be set on the s
   await t.turns.startTurn(KEY, ref, { text: 'run', attachments: [], opts: { effort: 'high' } }, null);
   assert.deepEqual(t.sent[0].payload.config, { model: 'opencode/glm-5.3-flash-free', effort: undefined });
   assert.deepEqual(t.sent[1].payload.config, { model: undefined, effort: 'high' });
+  // what an earlier Auto turn left goes with the next message, to be set back on the session (acp/initialConfig.cjs)
+  const restore = { model: { own: 'opencode/big-pickle', applied: 'opencode/glm-5.3-flash-free' } };
+  await t.turns.startTurn(KEY, ref, { text: 'run', attachments: [], opts: { autoRestore: restore } }, null);
+  assert.deepEqual(t.sent[2].payload.config, { model: undefined, effort: undefined, restore });
 });
 
 test("a handoff block goes in front of the text and the message is not the user's own", async () => {

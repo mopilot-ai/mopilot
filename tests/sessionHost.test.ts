@@ -400,6 +400,14 @@ test('registerSessionManagement puts the tools on the registry over a host with 
   assert.deepEqual(targets.projects, [{ name: 'Proj', folder: '/w/proj' }]);
   await call('cl', 'mark_chapter', { title: 'Phase' });
   assert.deepEqual(broadcasts, [['chats:changed', { id: 'cl', chat: { chat: 'cl' } }]]);
+  // Auto routes every chat's turns from here: a Global Auto turn's saved count tells every window
+  assert.equal(typeof mainLive.autoRoute.beforeDispatch, 'function');
+  s.records.get('cl').meta.config = { autoRoute: 'global' };
+  broadcasts.length = 0;
+  await mainLive.controller.beforeStart({ chatId: 'cl', item: { text: 'Fix the failing test', opts: {} } });
+  assert.deepEqual(broadcasts, [['chats:changed', { id: 'cl', chat: { chat: 'cl' } }]]);
+  broadcasts.length = 0;
+  await call('cl', 'mark_chapter', { title: 'Phase 2' });
   // Downloads is the user's, under their home folder
   const saved = process.env.HOME;
   process.env.HOME = home;

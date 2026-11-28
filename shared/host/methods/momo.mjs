@@ -2,6 +2,7 @@
 
 import { PROACTIVITY, parseClock } from '../../momoRoutine.mjs';
 import { parseKind } from '../../harnessKind.mjs';
+import { releaseOf } from '../momoHomeClient.mjs';
 
 /** The feature both ends declare; a method below needs it, so a Host without it is refused, never served half. */
 export const MOMO_FEATURE = 'momo';
@@ -259,6 +260,14 @@ export default ({ bad, matchOf }) => {
               }),
           // the owner takes back a retired home (its data kept) instead of starting an empty one
           ...(p.revive === true ? { revive: true } : {}),
+          // the oldest Host release the caller lets hold a home: a Host older than it refuses (`host_too_old`), whatever the caller made of its version
+          ...(p.minVersion === undefined
+            ? {}
+            : releaseOf(p.minVersion)
+              ? { minVersion: p.minVersion }
+              : (() => {
+                  throw bad('That is not a release version.');
+                })()),
         }),
       },
       // what this Host holds (a home, none, moved away, or unreadable) and whether its grant is live: answered with no grant, to the owner's devices only

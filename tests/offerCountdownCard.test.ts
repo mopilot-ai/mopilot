@@ -1,6 +1,6 @@
 // src/components/thread/SuggestionCard.tsx with OfferCountdown.tsx: a waiting offer's card draws main's countdown to
-// "Do it here" (the seconds under its title and that answer filling), holds it when the user takes the card in hand (its
-// start options, "Don't ask again"), and says when "Do it here" was chosen for a user who did not answer.
+// "New session" (the seconds under its title and that answer filling), holds it when the user takes the card in hand
+// (its start options, "Don't ask again"), and shows the start main made for a user who did not answer.
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import './support/dom.ts';
@@ -72,7 +72,7 @@ const text = (el: Element | null) => el?.textContent ?? '';
 const buttons = (host: Element) => [...host.querySelectorAll('.suggest-row-actions button')] as HTMLButtonElement[];
 const labels = (host: Element) => buttons(host).map((b) => b.textContent);
 
-test('a waiting offer shows main’s countdown to "Do it here", and taking the card in hand holds it', async () => {
+test('a waiting offer shows main’s countdown to "New session", and taking the card in hand holds it', async () => {
   calls.length = 0;
   const now = Date.now();
   const counting = (o: any = {}) =>
@@ -83,13 +83,17 @@ test('a waiting offer shows main’s countdown to "Do it here", and taking the c
   await show({ c1: counting() });
   const note = () => v.host.querySelector('.suggest-row-countdown');
   const here = () => buttons(v.host)[0];
-  // the seconds under the title, and "Do it here" filling from where main's countdown is
-  assert.match(text(note()), /^Doing it here in (50|49)s$/);
+  const fresh = () => buttons(v.host)[1];
+  // the seconds under the title, and "New session" filling from where main's countdown is
+  assert.match(text(note()), /^Starting a new session in (50|49)s$/);
   assert.equal(note()!.getAttribute('role'), 'timer');
-  assert.ok(here().classList.contains('offer-countdown-fill'));
-  assert.equal(here().style.getPropertyValue('--offer-countdown'), '60000ms');
-  assert.match(here().style.getPropertyValue('--offer-countdown-ran'), /^-1\d{4}ms$/);
-  assert.equal(here().getAttribute('aria-describedby'), note()!.id, 'the answer says what happens without one');
+  assert.ok(fresh().classList.contains('offer-countdown-fill'));
+  assert.ok(fresh().classList.contains('primary'), 'still the primary answer');
+  assert.equal(fresh().style.getPropertyValue('--offer-countdown'), '60000ms');
+  assert.match(fresh().style.getPropertyValue('--offer-countdown-ran'), /^-1\d{4}ms$/);
+  assert.equal(fresh().getAttribute('aria-describedby'), note()!.id, 'the answer says what happens without one');
+  assert.ok(!here().classList.contains('offer-countdown-fill'), '"Do it here" does not fill');
+  assert.equal(here().getAttribute('aria-describedby'), null);
   assert.deepEqual(labels(v.host), ['Do it here Esc', 'New session ⌘↵'], 'the answers read as before');
   // opening where it starts takes the card in hand: main holds the countdown; closing the options holds nothing more
   const options = v.host.querySelector('.suggest-row-place.link') as HTMLButtonElement;
@@ -101,9 +105,9 @@ test('a waiting offer shows main’s countdown to "Do it here", and taking the c
   // main's view, once it held it: no countdown is drawn
   await show({ c1: counting({ countdown: null }) });
   assert.equal(note(), null);
-  assert.ok(!here().classList.contains('offer-countdown-fill'));
-  assert.equal(here().getAttribute('style'), null);
-  assert.equal(here().getAttribute('aria-describedby'), null);
+  assert.ok(!fresh().classList.contains('offer-countdown-fill'));
+  assert.equal(fresh().getAttribute('style'), null);
+  assert.equal(fresh().getAttribute('aria-describedby'), null);
   // with nothing counting, the options hold nothing
   await click(options);
   await click(options);
@@ -114,7 +118,7 @@ test('a waiting offer shows main’s countdown to "Do it here", and taking the c
   await click(v.host.querySelector('.suggest-head-link'));
   await flush();
   assert.deepEqual(calls.splice(0), [['task', 'c1', 'hold']]);
-  assert.match(text(note()), /^Doing it here in \d+s$/);
+  assert.match(text(note()), /^Starting a new session in \d+s$/);
   assert.deepEqual(labels(v.host), ['Cancel', 'Always do it here', 'Always start a new session']);
   await show({ c1: counting({ countdown: null }) });
   assert.equal(note(), null);
@@ -126,13 +130,13 @@ test('a waiting offer shows main’s countdown to "Do it here", and taking the c
   await flush();
   refuse = null;
   assert.deepEqual(calls.splice(0), [['task', 'c1', 'hold']], 'no toast');
-  // nobody answered: main chose "Do it here" for the user (its first publish, while the call still waits), and the
+  // nobody answered: main started a new session for the user (its first publish, while the call still waits), and the
   // row says so until the call's answer replaces the card
-  await show({ c1: counting({ status: 'declined', autoHere: true }) });
-  assert.equal(text(v.host.querySelector('.suggest-row-status-label')), 'Sent to this session (no answer)');
+  await show({ c1: counting({ status: 'starting', countdown: null }) });
+  assert.equal(text(v.host.querySelector('.suggest-row-status-label')), 'Starting…');
   assert.equal(note(), null, 'an answered offer counts no more');
   // a screen reader hears what the row says
-  assert.equal(text(v.host.querySelector('[aria-live]')), 'Docs: Sent to this session (no answer)');
+  assert.equal(text(v.host.querySelector('[aria-live]')), 'Docs: Starting…');
   await v.unmount();
   // a "Don't ask again" with nothing counting holds nothing
   await show({ c2: proposal({ kind: 'offer', title: 'Plain', waiting: true, place: 'folder' }) });

@@ -54,6 +54,7 @@ import { buildDisclaim } from './build-disclaim.mjs';
 import { buildUpdateInstall } from './build-update-install.mjs';
 import { buildPasskeys } from './build-passkeys.mjs';
 import { fetchRipgrep } from './fetch-vendor.mjs';
+import { autoRoutePackaging } from './auto-route/packaging.mjs';
 import { stripChromiumLocales } from './chromium-locales.mjs';
 import { notarizeApp, sleepSync } from './notary.mjs';
 import { SHIPPED, checkRuntimeDependencies, missingFromBuild } from './runtime-deps.mjs';
@@ -123,6 +124,7 @@ const TOOLS = {
   recordHostCores,
   signHostCores,
   fetchRipgrep,
+  autoRoutePackaging,
   stripChromiumLocales,
   mainSigningInfo,
   webAuthnSigning,
@@ -181,6 +183,7 @@ export async function packageApp(
     recordHostCores: recordHosts,
     signHostCores: signHosts,
     fetchRipgrep,
+    autoRoutePackaging,
     stripChromiumLocales: stripLocales,
     mainSigningInfo,
     webAuthnSigning,
@@ -228,6 +231,8 @@ export async function packageApp(
   // where electron/platform/search.cjs looks first. The @vscode/ripgrep packages are not shipped.
   const rgDir = path.resolve('build', 'vendor', `${platform}-${arch}`, 'ripgrep');
   await fetchRipgrep({ platform, arch, out: rgDir });
+  // Auto routing's OpenSquilla weights (pinned, verified) and only this build's ONNX Runtime (scripts/auto-route/packaging.mjs)
+  const autoRoute = await autoRoutePackaging({ platform, arch });
   if (win && !existsSync(`node_modules/node-pty/prebuilds/win32-${arch}/conpty.node`))
     throw new Error(`node-pty has no win32-${arch} prebuild`);
   // The Rust core's addon (scripts/build-core.mjs), in resources/core where electron/platform/core.cjs looks first.
@@ -381,13 +386,13 @@ export async function packageApp(
     out: 'out',
     overwrite: true,
     // Settings > About opens this from Contents/Resources (electron/support/notices.cjs); npm run third-party writes it.
-    extraResource: ['build/THIRD_PARTY_NOTICES.md', rgDir, coreDir, ...(hostCores ? [hostCoreDir] : [])],
+    extraResource: ['build/THIRD_PARTY_NOTICES.md', rgDir, coreDir, autoRoute.resource, ...(hostCores ? [hostCoreDir] : [])],
     // Native code can't load from inside app.asar: node-pty's pty.node and spawn-helper are unpacked to
     // app.asar.unpacked (node-pty looks there), and osx-sign signs them like any other Mach-O (and the
     // ripgrep in Resources). Windows unpacks all of node-pty (conpty.dll,
     // OpenConsole.exe, winpty-agent.exe and the conout worker script; electron/platform/pty.cjs loads it from there).
     asar: {
-      unpack: mac ? '{**/*.node,**/node-pty/prebuilds/*/spawn-helper}' : '{**/*.node,**/node_modules/node-pty/**}',
+      unpack: `{**/*.node,${mac ? '**/node-pty/prebuilds/*/spawn-helper' : '**/node_modules/node-pty/**'},${autoRoute.unpack}}`,
     },
     prune: true,
     ignore: [
@@ -397,6 +402,7 @@ export async function packageApp(
       // The Rust addon ships separately in Resources/core.
       new RegExp(`^/(?!(?:${SHIPPED.map((e) => e.replaceAll('.', '\\.')).join('|')})(?:/|$))[^/]`),
       /\.map$/,
+      ...autoRoute.ignore,
       // type declarations and zod's TypeScript sources (its @zod/source export) are never loaded
       /\.d\.[cm]?ts$/,
       /^\/node_modules\/zod\/src(\/|$)/,

@@ -2,13 +2,12 @@
 import { useEffect } from 'react';
 import { useStore, toast, toastFailure } from '../../store/core';
 import { navigate } from '../../store/panes';
-import { switchAccount, addAccount, cancelAccountLogin } from '../../store/accounts';
+import { cancelAccountLogin } from '../../store/accounts';
 import { restartCodex } from '../../store/connection';
 import { native } from '../../lib/native';
 import { openLink } from '../../session/open';
 import { PARTS } from '../harness/parts';
 import { AlertTriangle, Spinner, X, Copy } from '../ui/icons';
-import { useAccountView } from '../../session/harness/useAccountView';
 import { codexCopyName } from '../../harness/codexQuit';
 import { CodexQuitActions } from '../harness/codex/QuitActions';
 import { imeComposing } from '../../lib/focus';
@@ -68,7 +67,6 @@ export function AccountExpiredBanner() {
   return (
     <div className="acct-banners">
       <CodexQuitBanner />
-      <CodexExpiredBanner />
       {Object.entries(PARTS).map(([id, p]) => (p.Banner ? <p.Banner key={id} /> : null))}
     </div>
   );
@@ -107,34 +105,6 @@ function CodexQuitBanner() {
         )}
         <button className="btn primary sm" onClick={restart}>
           Restart Codex
-        </button>
-      </span>
-    </div>
-  );
-}
-
-function CodexExpiredBanner() {
-  const view = useAccountView('codex');
-  const activeId = useStore((s) => s.accounts.active);
-  // the pooled login in use whose sign-in expired (the app-server's own login signs in on its own page)
-  const a = view.active?.account.id === activeId && view.active.account.status === 'expired' ? view.active.account : null;
-  // another login that is signed in and has usage left to move to
-  const other = view.accounts.find((r) => !r.active && r.state === 'signed-in' && r.account.left != null)?.account;
-  if (!a) return null;
-  return (
-    <div className="acct-banner" role="alert">
-      <AlertTriangle size={14} />
-      <span className="acct-banner-text">
-        Your sign-in for <b>{a.email ?? 'this account'}</b> has expired.
-      </span>
-      <span className="acct-banner-actions">
-        {other && (
-          <button className="btn-pill" onClick={() => switchAccount(other.id)}>
-            Use {other.email}
-          </button>
-        )}
-        <button className="btn primary sm" onClick={() => addAccount(a.id)}>
-          Sign in again
         </button>
       </span>
     </div>

@@ -16,6 +16,7 @@ The third-party components added with the multi-harness work and feature-owned n
 | `node-pty` | 1.1.0 | MIT (LICENSE in the package holds the notices for pty.js and node-pty: Christopher Jeffrey, Daniel Imms, Microsoft Corporation) | The terminal panel runs on a local pty. | The prebuild for the build's platform and architecture, unpacked from the asar. The Windows build also carries the winpty files (MIT, Ryan Prichard, deps/winpty/LICENSE) and the ConPTY files node-pty bundles (conpty.dll, OpenConsole.exe); node-pty ships no separate license file for the ConPTY files, and Windows Terminal, where they come from, is MIT. | https://github.com/microsoft/node-pty |
 | `zod` | 4.6.7 | MIT (LICENSE in the package) | Schemas for MoPilot's tools in Claude sessions, and a peer dependency of the Agent SDK. | In the app (JavaScript). | https://github.com/colinhacks/zod |
 | `@electron/fuses` | 2.1.3 | MIT (LICENSE in the package) | Turns Electron fuses off or on when the app is packaged (scripts/package.mjs, scripts/check-fuses.mjs). | Not shipped: a build-time dependency only. | https://github.com/electron/fuses |
+| `onnxruntime-node` | 1.24.3 | MIT, Copyright (c) Microsoft Corporation (the package declares MIT and ships no license file; the text is ONNX Runtime's, in docs/licenses/onnxruntime-LICENSE.txt) | Runs the Auto router's local BGE encoder and BERT intent head (electron/autoRoute/squilla). | The N-API binding and ONNX Runtime library for the build's platform and architecture only, unpacked from the asar; macOS x64 has no build, so Auto routing is unavailable there. | https://github.com/microsoft/onnxruntime |
 | `sucrase` | 3.35.1 | MIT | Parse standalone canvas TSX into JavaScript without executing it in MoPilot's renderer. | Lazy browser parser; authored JavaScript executes only in an opaque iframe. | https://github.com/alangpierce/sucrase |
 | `pdfjs-dist` | 6.4.299 | Apache-2.0 and resource notices below | Local PDF page and text rendering. | Renderer, worker, CMaps, standard fonts, ICC and image-decoder resources. | https://github.com/mozilla/pdf.js |
 | `docx-preview` | 0.4.1 | Apache-2.0 | Local paginated Word preview. | Browser renderer bundled into the app. | https://github.com/VolodymyrBaydalka/docxjs |
@@ -91,6 +92,7 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`@vscode/ripgrep-win32-x64`](https://www.npmjs.com/package/@vscode/ripgrep-win32-x64) | 1.18.0 | MIT |
 | [`accepts`](https://www.npmjs.com/package/accepts) | 2.0.0 | MIT |
 | [`adler-32`](https://www.npmjs.com/package/adler-32) | 1.3.1 | Apache-2.0 |
+| [`adm-zip`](https://www.npmjs.com/package/adm-zip) | 0.5.18 | MIT |
 | [`agent-base`](https://www.npmjs.com/package/agent-base) | 7.1.4 | MIT |
 | [`ajv`](https://www.npmjs.com/package/ajv) | 8.20.0 | MIT |
 | [`ajv-formats`](https://www.npmjs.com/package/ajv-formats) | 3.0.1 | MIT |
@@ -98,6 +100,7 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`base64-js`](https://www.npmjs.com/package/base64-js) | 1.5.1 | MIT |
 | [`bignumber.js`](https://www.npmjs.com/package/bignumber.js) | 9.3.1 | MIT |
 | [`body-parser`](https://www.npmjs.com/package/body-parser) | 2.4.0 | MIT |
+| [`boolean`](https://www.npmjs.com/package/boolean) | 3.2.0 | MIT |
 | [`buffer-crc32`](https://www.npmjs.com/package/buffer-crc32) | 0.2.13 | MIT |
 | [`buffer-equal-constant-time`](https://www.npmjs.com/package/buffer-equal-constant-time) | 1.0.1 | BSD-3-Clause |
 | [`bytes`](https://www.npmjs.com/package/bytes) | 3.1.2 | MIT |
@@ -117,7 +120,10 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`cross-spawn`](https://www.npmjs.com/package/cross-spawn) | 7.0.6 | MIT |
 | [`data-uri-to-buffer`](https://www.npmjs.com/package/data-uri-to-buffer) | 4.0.1 | MIT |
 | [`debug`](https://www.npmjs.com/package/debug) | 4.4.3 | MIT |
+| [`define-data-property`](https://www.npmjs.com/package/define-data-property) | 1.1.4 | MIT |
+| [`define-properties`](https://www.npmjs.com/package/define-properties) | 1.2.1 | MIT |
 | [`depd`](https://www.npmjs.com/package/depd) | 2.0.0 | MIT |
+| [`detect-node`](https://www.npmjs.com/package/detect-node) | 2.1.0 | MIT |
 | [`dunder-proto`](https://www.npmjs.com/package/dunder-proto) | 1.0.1 | MIT |
 | [`ecdsa-sig-formatter`](https://www.npmjs.com/package/ecdsa-sig-formatter) | 1.0.11 | Apache-2.0 |
 | [`ee-first`](https://www.npmjs.com/package/ee-first) | 1.1.1 | MIT |
@@ -125,7 +131,9 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`es-define-property`](https://www.npmjs.com/package/es-define-property) | 1.0.1 | MIT |
 | [`es-errors`](https://www.npmjs.com/package/es-errors) | 1.3.0 | MIT |
 | [`es-object-atoms`](https://www.npmjs.com/package/es-object-atoms) | 1.1.2 | MIT |
+| [`es6-error`](https://www.npmjs.com/package/es6-error) | 4.1.1 | MIT |
 | [`escape-html`](https://www.npmjs.com/package/escape-html) | 1.0.3 | MIT |
+| [`escape-string-regexp`](https://www.npmjs.com/package/escape-string-regexp) | 4.0.0 | MIT |
 | [`etag`](https://www.npmjs.com/package/etag) | 1.8.1 | MIT |
 | [`eventsource`](https://www.npmjs.com/package/eventsource) | 3.0.7 | MIT |
 | [`eventsource-parser`](https://www.npmjs.com/package/eventsource-parser) | 3.1.1 | MIT |
@@ -148,9 +156,12 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`gcp-metadata`](https://www.npmjs.com/package/gcp-metadata) | 9.2.3 | Apache-2.0 |
 | [`get-intrinsic`](https://www.npmjs.com/package/get-intrinsic) | 1.3.0 | MIT |
 | [`get-proto`](https://www.npmjs.com/package/get-proto) | 1.0.1 | MIT |
+| [`global-agent`](https://www.npmjs.com/package/global-agent) | 3.0.0 | BSD-3-Clause |
+| [`globalthis`](https://www.npmjs.com/package/globalthis) | 1.0.4 | MIT |
 | [`google-logging-utils`](https://www.npmjs.com/package/google-logging-utils) | 2.2.0 | Apache-2.0 |
 | [`googleapis-common`](https://www.npmjs.com/package/googleapis-common) | 9.3.1 | Apache-2.0 |
 | [`gopd`](https://www.npmjs.com/package/gopd) | 1.2.0 | MIT |
+| [`has-property-descriptors`](https://www.npmjs.com/package/has-property-descriptors) | 1.0.2 | MIT |
 | [`has-symbols`](https://www.npmjs.com/package/has-symbols) | 1.1.0 | MIT |
 | [`hasown`](https://www.npmjs.com/package/hasown) | 2.0.4 | MIT |
 | [`hono`](https://www.npmjs.com/package/hono) | 4.13.20 | MIT |
@@ -169,10 +180,12 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`json-schema-to-ts`](https://www.npmjs.com/package/json-schema-to-ts) | 3.1.1 | MIT |
 | [`json-schema-traverse`](https://www.npmjs.com/package/json-schema-traverse) | 1.0.0 | MIT |
 | [`json-schema-typed`](https://www.npmjs.com/package/json-schema-typed) | 8.0.2 | BSD-2-Clause |
+| [`json-stringify-safe`](https://www.npmjs.com/package/json-stringify-safe) | 5.0.1 | ISC |
 | [`jwa`](https://www.npmjs.com/package/jwa) | 2.0.1 | MIT |
 | [`jws`](https://www.npmjs.com/package/jws) | 4.0.1 | MIT |
 | [`lie`](https://www.npmjs.com/package/lie) | 3.3.0 | MIT |
 | [`lines-and-columns`](https://www.npmjs.com/package/lines-and-columns) | 1.2.4 | MIT |
+| [`matcher`](https://www.npmjs.com/package/matcher) | 3.0.0 | MIT |
 | [`math-intrinsics`](https://www.npmjs.com/package/math-intrinsics) | 1.1.0 | MIT |
 | [`media-typer`](https://www.npmjs.com/package/media-typer) | 1.1.1 | MIT |
 | [`merge-descriptors`](https://www.npmjs.com/package/merge-descriptors) | 2.0.0 | MIT |
@@ -186,8 +199,10 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`node-fetch`](https://www.npmjs.com/package/node-fetch) | 3.3.2 | MIT |
 | [`object-assign`](https://www.npmjs.com/package/object-assign) | 4.1.1 | MIT |
 | [`object-inspect`](https://www.npmjs.com/package/object-inspect) | 1.13.4 | MIT |
+| [`object-keys`](https://www.npmjs.com/package/object-keys) | 1.1.1 | MIT |
 | [`on-finished`](https://www.npmjs.com/package/on-finished) | 2.4.1 | MIT |
 | [`once`](https://www.npmjs.com/package/once) | 1.4.0 | ISC |
+| [`onnxruntime-common`](https://www.npmjs.com/package/onnxruntime-common) | 1.24.3 | MIT |
 | [`pako`](https://www.npmjs.com/package/pako) | 1.0.11 | (MIT AND Zlib) |
 | [`parseurl`](https://www.npmjs.com/package/parseurl) | 1.3.3 | MIT |
 | [`path-key`](https://www.npmjs.com/package/path-key) | 3.1.1 | MIT |
@@ -203,11 +218,15 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`raw-body`](https://www.npmjs.com/package/raw-body) | 3.0.2 | MIT |
 | [`readable-stream`](https://www.npmjs.com/package/readable-stream) | 2.3.8 | MIT |
 | [`require-from-string`](https://www.npmjs.com/package/require-from-string) | 2.0.2 | MIT |
+| [`roarr`](https://www.npmjs.com/package/roarr) | 2.15.4 | BSD-3-Clause |
 | [`router`](https://www.npmjs.com/package/router) | 2.2.0 | MIT |
 | [`safe-buffer`](https://www.npmjs.com/package/safe-buffer) | 5.1.2 | MIT |
 | [`safer-buffer`](https://www.npmjs.com/package/safer-buffer) | 2.1.2 | MIT |
 | [`saxes`](https://www.npmjs.com/package/saxes) | 5.0.1 | ISC |
+| [`semver`](https://www.npmjs.com/package/semver) | 7.8.5 | ISC |
+| [`semver-compare`](https://www.npmjs.com/package/semver-compare) | 1.0.0 | MIT |
 | [`send`](https://www.npmjs.com/package/send) | 1.2.1 | MIT |
+| [`serialize-error`](https://www.npmjs.com/package/serialize-error) | 7.0.1 | MIT |
 | [`serve-static`](https://www.npmjs.com/package/serve-static) | 2.2.1 | MIT |
 | [`setimmediate`](https://www.npmjs.com/package/setimmediate) | 1.0.5 | MIT |
 | [`setprototypeof`](https://www.npmjs.com/package/setprototypeof) | 1.2.0 | ISC |
@@ -217,6 +236,7 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`side-channel-list`](https://www.npmjs.com/package/side-channel-list) | 1.0.1 | MIT |
 | [`side-channel-map`](https://www.npmjs.com/package/side-channel-map) | 1.0.1 | MIT |
 | [`side-channel-weakmap`](https://www.npmjs.com/package/side-channel-weakmap) | 1.0.2 | MIT |
+| [`sprintf-js`](https://www.npmjs.com/package/sprintf-js) | 1.1.3 | BSD-3-Clause |
 | [`standardwebhooks`](https://www.npmjs.com/package/standardwebhooks) | 1.1.1 | MIT |
 | [`statuses`](https://www.npmjs.com/package/statuses) | 2.0.2 | MIT |
 | [`string_decoder`](https://www.npmjs.com/package/string_decoder) | 1.1.1 | MIT |
@@ -227,6 +247,7 @@ Runtime dependencies of the core components and the feature-owned roots, from th
 | [`toidentifier`](https://www.npmjs.com/package/toidentifier) | 1.0.1 | MIT |
 | [`ts-algebra`](https://www.npmjs.com/package/ts-algebra) | 2.0.0 | MIT |
 | [`ts-interface-checker`](https://www.npmjs.com/package/ts-interface-checker) | 0.1.13 | Apache-2.0 |
+| [`type-fest`](https://www.npmjs.com/package/type-fest) | 0.13.1 | (MIT OR CC0-1.0) |
 | [`type-is`](https://www.npmjs.com/package/type-is) | 2.1.0 | MIT |
 | [`unpipe`](https://www.npmjs.com/package/unpipe) | 1.0.0 | MIT |
 | [`url-template`](https://www.npmjs.com/package/url-template) | 2.0.8 | BSD |

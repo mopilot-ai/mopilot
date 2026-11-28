@@ -64,7 +64,7 @@ for (const family of [
       git(repo, 'push', '-q', 'origin', 'main');
       git(repo, 'switch', '-q', 'edit');
       git(repo, 'fetch', '-q', 'origin');
-      await page.locator('.summary-header').getByTitle('More', { exact: true }).click();
+      await page.getByRole('button', { name: 'Session actions', exact: true }).click();
       await page.getByRole('menuitem', { name: 'Refresh', exact: true }).click();
       await expect(branch).toContainText('No changes');
       await expect(changes.getByText(/Latest edits|Current turn|hello\.txt/)).toHaveCount(0);
@@ -92,7 +92,7 @@ for (const family of [
       git(repo, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
       git(repo, 'switch', '-q', 'edit');
       fs.appendFileSync(path.join(repo, 'hello.txt'), 'pending\n');
-      await page.locator('.summary-header').getByTitle('More', { exact: true }).click();
+      await page.getByRole('button', { name: 'Session actions', exact: true }).click();
       await page.getByRole('menuitem', { name: 'Refresh', exact: true }).click();
       await expect(branch).toContainText('1 file');
       await expect(branch).toContainText('+1 -0');

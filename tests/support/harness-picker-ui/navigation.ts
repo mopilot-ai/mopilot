@@ -123,12 +123,12 @@ export function registerNavigation() {
     await openHarnesses();
     assert.match(row('Codex').className, /open/);
     const list = () => $$('.hp-models .menu-item').map((x) => x.textContent);
-    assert.deepEqual(list(), ['Automatic', 'Old', 'New', 'More versions']);
+    assert.deepEqual(list(), ['Auto', 'Default (recommended)', 'Old', 'New', 'More versions']);
     assert.ok(item('Old').querySelector('svg'));
     await click(item('More versions'));
-    assert.deepEqual(list(), ['Automatic', 'Old', 'New', 'More versions', 'V1']);
+    assert.deepEqual(list(), ['Auto', 'Default (recommended)', 'Old', 'New', 'More versions', 'V1']);
     await click(item('More versions'));
-    assert.deepEqual(list(), ['Automatic', 'Old', 'New', 'More versions']);
+    assert.deepEqual(list(), ['Auto', 'Default (recommended)', 'Old', 'New', 'More versions']);
     await mouse(item('New').parentElement!, 'mouseover');
     await flush(260, 1);
     assert.equal($('.tooltip').textContent, 'The newest');
@@ -174,6 +174,8 @@ export function registerKeyboard() {
     await press('ArrowDown');
     assert.equal(active(), '‹ Harness');
     await press('ArrowDown');
+    assert.match(active()!, /^Auto \(all harnesses\)/);
+    await press('ArrowDown');
     assert.match(active()!, /^Codex/);
     // Claude can't be used yet: the keyboard skips its row and reaches its sign-in action
     await press('ArrowDown');
@@ -193,7 +195,9 @@ export function registerKeyboard() {
     assert.equal(document.activeElement, models, 'opened from the keyboard: the models take focus');
     await press('ArrowDown');
     await press('ArrowDown');
-    assert.equal(active(), 'Automatic');
+    assert.equal(active(), 'Auto');
+    await press('ArrowDown');
+    assert.equal(active(), 'Default (recommended)');
     await press('ArrowDown');
     assert.equal(active(), 'Old');
     await press('ArrowLeft');
@@ -203,6 +207,7 @@ export function registerKeyboard() {
     assert.match(active()!, /^Codex/, 'its row stays active through the re-render that closed the models');
     await press('ArrowRight');
     await flush();
+    await press('ArrowDown');
     await press('ArrowDown');
     await press('ArrowDown');
     await press('ArrowDown');

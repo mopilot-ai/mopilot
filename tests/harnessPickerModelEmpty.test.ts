@@ -35,7 +35,7 @@ test('a MoMo composer offers explicit brain models and cannot clear its brain pi
   store.set({ harnessOf: { c: 'claude' }, momoModels: { c: 'old' } });
   const m = await mount(createElement(ModelPicker, { threadId: 'c' }));
   await openHarnesses();
-  assert.ok(!$('.hp-models')!.textContent?.includes('Automatic'));
+  assert.ok(!$('.hp-models')!.textContent?.includes('Default (recommended)'));
   assert.ok(item('Old'));
   await click(item('New'));
   assert.equal(last('selection')?.[2].model, 'new');
@@ -48,13 +48,13 @@ for (const h of ['codex', 'claude'] as const)
     fx.sel = { ...fx.sel, automatic: true };
     const m = await mount(createElement(ModelPicker, { threadId: 'c' }));
     await openHarnesses();
-    assert.equal(item('Automatic').getAttribute('aria-checked'), 'true');
+    assert.equal(item('Default (recommended)').getAttribute('aria-checked'), 'true');
     assert.equal(item('Old').getAttribute('aria-checked'), 'false');
     await click(item('New'));
     assert.equal(last('selection')?.[2].model, 'new');
     fx.sel = { ...fx.sel, automatic: false };
     await openHarnesses();
-    await click(item('Automatic'));
+    await click(item('Default (recommended)'));
     assert.deepEqual(last('selection')?.slice(0, 3), ['selection', h, { model: null, effort: 'high', fast: false }]);
     await m.unmount();
   });

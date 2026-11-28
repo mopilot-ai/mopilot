@@ -6,8 +6,10 @@ import {
   applyComposerSlashItem,
   slashCommandPresentation,
   slashPickRest,
+  withSkillReference,
   type ComposerSlashItem,
 } from '../src/lib/composerSkills.ts';
+import type { Attachment } from '../src/store/types.ts';
 
 test('slash commands are available at the start, while inline slash references show only skills', () => {
   assert.deepEqual(composerPopup('/', 1), { kind: 'slash', query: '', start: 0, skillsOnly: false });
@@ -91,24 +93,31 @@ function pick(text: string, caret: number, item: ComposerSlashItem) {
     close: () => events.push('close'),
     focus: () => events.push('focus'),
     restoreCaret: (position) => events.push(['caret', position]),
+    insertSkill: (skill, start, end) => events.push(['skill', skill, start, end]),
   });
   return events;
 }
 
-test('selecting a Codex skill attaches it once and preserves the prefix, suffix, and caret', () => {
-  let attached = 0;
-  const item = {
-    skill: true,
-    run: () => {
-      attached++;
-    },
-  };
-  assert.deepEqual(pick('Use $pdf then summarize', 8, item), [['text', 'Use  then summarize'], ['caret', 4], 'close']);
-  assert.equal(attached, 1);
-  assert.deepEqual(pick('Use\n/pdf', 8, item), [['text', 'Use\n'], ['caret', 4], 'close']);
-  assert.equal(attached, 2);
-  assert.deepEqual(pick('/pdf keep this', 4, item), [['text', ' keep this'], ['caret', 0], 'close']);
-  assert.equal(attached, 3);
+test('selecting an attachment skill hands off exactly the active query range', () => {
+  const skillAttachment = { name: 'pdf', path: '/pdf/SKILL.md' };
+  const item = { skill: true, skillAttachment };
+  assert.deepEqual(pick('Use $pdf then summarize', 8, item), [['skill', skillAttachment, 4, 8], 'close']);
+  assert.deepEqual(pick('Use\n/pdf', 8, item), [['skill', skillAttachment, 4, 8], 'close']);
+  assert.deepEqual(pick('/pdf keep this', 4, item), [['skill', skillAttachment, 0, 4], 'close']);
+});
+
+test('deleting a query preserves other chips on both sides, even when they collapse to one offset', () => {
+  const skill = (name: string, textOffset?: number): Attachment => ({ kind: 'skill', path: name, name, textOffset });
+  const legacy = { kind: 'skill', path: 'legacy', name: 'legacy' } as const;
+  const before = skill('before', 4);
+  const picked = skill('picked', 4);
+  const file = { kind: 'file', path: '/doc', name: 'doc' } as const;
+  const original: Attachment[] = [legacy, before, skill('inside', 6), skill('after', 8), file, skill('later', 11)];
+  const next = withSkillReference(original, picked, 4, 8);
+  assert.deepEqual(next, [legacy, before, picked, skill('inside', 4), skill('after', 4), file, skill('later', 7)]);
+  assert.equal(original[3].textOffset, 8, 'the prior snapshot is unchanged');
+  const second = skill('at end', 7);
+  assert.deepEqual(withSkillReference(next, second, 7, 7), [...next, second]);
 });
 
 test('native skill selection retains the trigger and leaves the rest of the draft intact', () => {
@@ -164,13 +173,13 @@ test('a command alone leaves an empty box before dispatch, then focuses and clos
       close: () => events.push('close'),
       focus: () => events.push('focus'),
       restoreCaret: () => assert.fail('commands do not restore a skill caret'),
+      insertSkill: () => assert.fail('commands do not insert skills'),
     },
   );
   assert.deepEqual(events, [['text', ''], 'run', 'focus', 'close']);
 });
 
 test('entries without an action still close safely and restore the appropriate focus', () => {
-  assert.deepEqual(pick('$pdf', 4, { skill: true }), [['text', ''], ['caret', 0], 'close']);
   assert.deepEqual(pick('/model', 6, {}), [['text', ''], 'focus', 'close']);
 });
 

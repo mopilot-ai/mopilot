@@ -77,11 +77,11 @@ async function send(page: Page, text: string) {
   await page.getByRole('button', { name: 'Send', exact: true }).click();
 }
 
-/** The new chat's agent on This Mac: the family's row in the harness list, its first model. */
+/** The new chat's agent on This Mac: the family's row in the harness list, its recommended model. */
 async function pickLocal(page: Page, name: string) {
   await openHarnessList(page);
   await page.locator('.hp-harnesses .hp-row', { hasText: name }).click();
-  await page.locator('.hp-models .menu-item').first().click();
+  await page.locator('.hp-models .menu-item', { hasText: 'Default (recommended)' }).click();
 }
 
 /** The Run on chip's machine and its folder, then the family's agent the machine reports. */

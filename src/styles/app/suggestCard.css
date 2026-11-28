@@ -176,7 +176,7 @@
   font-size: var(--fs-small);
   color: var(--text-3);
 }
-/* a waiting offer counting down to "Do it here" (OfferCountdown.tsx): what happens if nobody answers, under its title */
+/* a waiting offer counting down to "New session" (OfferCountdown.tsx): what happens if nobody answers, under its title */
 .suggest-row-countdown {
   font-size: var(--fs-small);
   color: var(--text-3);
@@ -202,6 +202,10 @@
   to {
     transform: scaleX(1);
   }
+}
+/* "New session" is the primary answer: its fill is a tint of its own text, which reads on its solid background */
+.suggest-row-actions .btn-pill.primary.offer-countdown-fill::before {
+  background: color-mix(in srgb, currentColor 24%, transparent);
 }
 /* with reduced motion the seconds alone say it */
 @media (prefers-reduced-motion: reduce) {

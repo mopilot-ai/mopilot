@@ -25,6 +25,8 @@ test('a git repo with a remote shows change totals and the pull request row', as
   assert.deepEqual(store.calls, [['openChanges', { scope: 'branch' }]]);
   // its states and actions: tests/summaryPullRequestUI.test.ts
   assert.ok(one(host, '.summary-row', 'Existing pull request'));
+  // the branch's own pull request counts in the Changes summary, though no list tracks it
+  assert.equal(one(host, '[data-rail-section="changes"] .rail-section-summary').textContent, '1 pull request');
   assert.deepEqual(calls.slice(0, 3), [
     ['info', '/work/app'],
     ['status', '/work/app'],
@@ -161,7 +163,7 @@ test('without spawns or plans those sections stay hidden and Sources offers the 
   reset({ t1: { cwd: '/repo' } }, { t1: { turns: [turn([{ type: 'agentMessage', text: 'no links' }])] } });
   const { host, unmount } = await mount();
   assert.equal(host.querySelector('.summary-activity'), null);
-  assert.equal(one(host, '.summary-section').textContent, 'Sources');
+  assert.equal(one(host, '.summary-section').textContent, 'SourcesAdd source');
   assert.ok(host.querySelector('[title="Add source"]'));
   await unmount();
 });
@@ -199,7 +201,8 @@ test('sources collect links from searches, messages and commands, grouped by hos
     },
   );
   const { host, unmount } = await mount();
-  const labels = () => [...host.querySelectorAll('.summary-section .summary-label')].map((l) => l.textContent);
+  const labels = () =>
+    [...host.querySelectorAll('.summary-section .summary-row:not(.summary-source-add) .summary-label')].map((l) => l.textContent);
   assert.deepEqual(labels(), ['a.com', 'b.org', 'c.dev', 'Show all 5 links']);
   await act(() => one(host, '.summary-section .summary-row', 'b.org').click());
   assert.deepEqual(calls.slice(-1), [['external', 'https://b.org/x']]);
@@ -220,7 +223,8 @@ test('sources collect links from searches, messages and commands, grouped by hos
 test('a single link can be expanded to its full address and collapsed back', async () => {
   reset({ t1: { cwd: '/repo' } }, { t1: { turns: [turn([{ type: 'agentMessage', text: 'https://one.dev/a' }])] } });
   const { host, unmount } = await mount();
-  const labels = () => [...host.querySelectorAll('.summary-section .summary-label')].map((l) => l.textContent);
+  const labels = () =>
+    [...host.querySelectorAll('.summary-section .summary-row:not(.summary-source-add) .summary-label')].map((l) => l.textContent);
   assert.deepEqual(labels(), ['one.dev', 'Show full link']);
   await act(() => one(host, '.summary-row.muted').click());
   assert.deepEqual(labels(), ['one.dev/a', 'Show less']);

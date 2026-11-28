@@ -15,6 +15,14 @@ const MAX_DELETE = 25;
 const NEEDS_USER = 'ask the user to change it from the model menu';
 const INVISIBLE = /[\p{Cc}\p{Cf}]/u;
 const quote = (s) => JSON.stringify(String(s));
+/**
+ * Whether the user's words ask for Auto model routing: "auto" as a word of its own ("auto-fix", "auto merge", the "auto"
+ * permission mode are other things) beside a model, harness or routing word ("put it on auto model", "auto harness").
+ * @param {string} text
+ */
+const asksForAuto = (text) =>
+  /(?<![\w-])auto(?![\w-])(?!\s+(?:merge|fix|review|approve|accept|archive|mode|permission)\b)/i.test(text) &&
+  /\b(?:models?|harness(?:es)?|rout(?:e|es|ing|er)|picks?)\b/i.test(text);
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.trim().toLowerCase() === b.trim().toLowerCase();
 
 /**
@@ -46,6 +54,19 @@ function registerSessionControlTools(registry, { orchestrator = {}, owner, host 
     const [mine, theirs] = await Promise.all([host.settingsOf(caller), host.settingsOf(id)]);
     if (!theirs) throw new ToolError('That session is no longer available.', 'not_found');
     return { mine: mine ?? {}, theirs, sameFamily: !!mine && mine.family === theirs.family };
+  };
+
+  /** Auto on for a session, only when the user's words this turn ask for it: it can move the session to costlier models. */
+  const autoOn = async (caller, id, mode) => {
+    if (!asksForAuto(orchestrator.o.said?.(caller) ?? ''))
+      throw new ToolError(
+        `Auto was not turned on for session ${label(id)}: the user did not ask for Auto. Ask the user to choose it.`,
+        'needs_user',
+      );
+    if (!(await host.settingsOf(id))) throw new ToolError('That session is no longer available.', 'not_found');
+    host.setAutoMode(id, mode);
+    const what = mode === 'global' ? 'the harness, model and effort' : 'the model and effort';
+    return `Session ${label(id)} is on Auto: it picks ${what} for each turn from its next one on${when(id)}.`;
   };
 
   const disposers = [
@@ -180,7 +201,7 @@ function registerSessionControlTools(registry, { orchestrator = {}, owner, host 
     ),
     add(
       'set_session_model',
-      'Switch the model a session this chat started uses, from its next turn on (a turn already in flight finishes on the current model). `model` must be one the session’s harness offers; when it is not, the result lists them; set_session_harness moves a session to another harness. Works on any harness that offers a model setting. A model that is not the caller’s own or known to cost less is refused: a session must not silently re-price work - ask the user. Refused for this session: if this session should run on a different model, ask the user to pick it in the model menu.',
+      'Switch the model a session this chat started uses, from its next turn on (a turn already in flight finishes on the current model). `model` must be one the session’s harness offers; when it is not, the result lists them; "auto" turns on Auto, which picks the model and effort for each turn, only when the user’s words this turn ask for Auto. set_session_harness moves a session to another harness. Works on any harness that offers a model setting. A model that is not the caller’s own or known to cost less is refused: a session must not silently re-price work - ask the user. Refused for this session: if this session should run on a different model, ask the user to pick it in the model menu.',
       {
         session_id: SESSION(' (a session this chat started)'),
         model: string('Model id as the session’s model picker lists it (a get_session `model` value).'),
@@ -197,6 +218,7 @@ function registerSessionControlTools(registry, { orchestrator = {}, owner, host 
         if (!model) throw new ToolError('model is required.', 'invalid_model');
         noArchived(id, 'set_session_model');
         host.refuseWhileSwitching(id);
+        if (model.toLowerCase() === 'auto') return autoOn(caller, id, 'harness');
         const { mine, theirs, sameFamily } = await settings(caller, id);
         if (!same(theirs.model, model) && !(sameFamily && (same(mine.model, model) || cheaperModel(model, mine.model))))
           throw new ToolError(
@@ -204,12 +226,14 @@ function registerSessionControlTools(registry, { orchestrator = {}, owner, host 
             'needs_user',
           );
         const applied = await host.setModel(id, model);
+        // a model picked by name ends Auto
+        if (host.autoModeOf(id)) host.setAutoMode(id, null);
         return `Session ${label(id)} will use ${quote(applied.model)} from its next turn on${when(id)}.`;
       },
     ),
     add(
       'set_session_harness',
-      'Move a session this chat started to another harness (codex, claude or acp:<id>), optionally with a model and effort there. The switch is recorded now and happens with the session’s next message, which carries the conversation across; a turn in flight finishes where it is. Only to this chat’s own harness, or one the user’s words this turn name (the harness or a model on it); never to get around a usage limit. A model or effort not known to cost at most this chat’s own is refused unless the user named it. On this chat’s own harness, an omitted model or effort is this chat’s (an effort the model does not offer is left to its default); elsewhere it is that harness’s default, or the effort the session last had there. The session’s current harness cancels a waiting switch. Refused for this session: ask the user to pick it in the model menu.',
+      'Move a session this chat started to another harness (codex, claude or acp:<id>), optionally with a model and effort there; "auto" turns on Auto (all harnesses), which picks the harness, model and effort for each turn, only when the user’s words this turn ask for Auto. The switch is recorded now and happens with the session’s next message, which carries the conversation across; a turn in flight finishes where it is. Only to this chat’s own harness, or one the user’s words this turn name (the harness or a model on it); never to get around a usage limit. A model or effort not known to cost at most this chat’s own is refused unless the user named it. On this chat’s own harness, an omitted model or effort is this chat’s (an effort the model does not offer is left to its default); elsewhere it is that harness’s default, or the effort the session last had there. The session’s current harness cancels a waiting switch. Refused for this session: ask the user to pick it in the model menu.',
       {
         session_id: SESSION(' (a session this chat started)'),
         harness: string('The harness to move to: codex, claude or acp:<id> (list_start_targets lists them).'),
@@ -230,6 +254,10 @@ function registerSessionControlTools(registry, { orchestrator = {}, owner, host 
         const effort = typeof a.effort === 'string' ? a.effort.trim() : null;
         if (effort && !EFFORTS.includes(effort)) throw new ToolError(`effort must be one of ${EFFORTS.join(', ')}.`, 'invalid_effort');
         noArchived(id, 'set_session_harness');
+        if (harness.toLowerCase() === 'auto') {
+          if (model || effort) throw new ToolError('Auto picks the model and effort itself: leave them out.', 'invalid_harness');
+          return autoOn(caller, id, 'global');
+        }
         const { mine, theirs } = await settings(caller, id);
         if (harness === theirs.kind) {
           if (model || effort)
@@ -274,6 +302,8 @@ function registerSessionControlTools(registry, { orchestrator = {}, owner, host 
           effort,
           inheritedEffort: !effort && comparable ? (mine.effort ?? null) : null,
         });
+        // a harness picked by name ends Global Auto
+        if (host.autoModeOf(id) === 'global') host.setAutoMode(id, null);
         const on = applied.model ? ` on ${quote(applied.model)}` : '';
         const at = applied.effort ? ` at ${applied.effort} effort` : '';
         return `Session ${label(id)} moves to ${applied.harness}${on}${at} with its next message, which carries the conversation across${when(id)}.`;

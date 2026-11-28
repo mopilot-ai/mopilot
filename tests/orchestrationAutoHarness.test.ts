@@ -41,17 +41,14 @@ test('quotaOf: a harness is out only when every signed-in plan login it could ru
   assert.equal(quotaOf(null, 'codex'), null);
   assert.equal(quotaOf([plan('a')], 'not-a-harness'), null);
   assert.equal(quotaOf([plan('a', false, 'expired')], 'codex'), null, 'no signed-in login: whether it runs is usable()’s question');
-  assert.deepEqual(quotaOf([plan('a', true), plan('b', true)], 'codex'), { limited: true });
-  assert.deepEqual(quotaOf([plan('a', true), plan('b')], 'claude'), { limited: false });
-  assert.deepEqual(quotaOf([plan('a', true), key(true)], 'claude'), { limited: false }, 'a key it runs on is never out');
-  assert.deepEqual(quotaOf([plan('a', true), key(false)], 'claude'), { limited: true }, 'a key it isn’t set to carries no new session');
+  const out = (q: any) => q?.limited;
+  assert.equal(out(quotaOf([plan('a', true), plan('b', true)], 'codex')), true);
+  assert.equal(out(quotaOf([plan('a', true), plan('b')], 'claude')), false);
+  assert.equal(out(quotaOf([plan('a', true), key(true)], 'claude')), false, 'a key it runs on is never out');
+  assert.equal(out(quotaOf([plan('a', true), key(false)], 'claude')), true, 'a key it isn’t set to carries no new session');
   assert.equal(quotaOf([key(false)], 'claude'), null);
   const acp = (account: string) => ({ account, status: 'ok', limited: false, billing: 'harness', active: false });
-  assert.deepEqual(
-    quotaOf([acp('kimi'), { ...acp('gemini'), limited: true }], 'acp:gemini'),
-    { limited: true },
-    'an ACP harness is its own',
-  );
+  assert.equal(out(quotaOf([acp('kimi'), { ...acp('gemini'), limited: true }], 'acp:gemini')), true, 'an ACP harness is its own');
   assert.equal(quotaOf([acp('kimi')], 'acp:gemini'), null);
 });
 
@@ -456,7 +453,7 @@ test('createOrchestration gives auto the first tier then admitted ACP harnesses,
     isFlagEnabled: () => true,
   });
   assert.deepEqual(orch.o.kinds(), ['codex', 'claude', 'acp:kimi']);
-  assert.deepEqual(orch.o.quota('codex'), { limited: true });
+  assert.deepEqual(orch.o.quota('codex'), { limited: true, payPerUse: null, fraction: 0, units: 0 });
   assert.equal(orch.o.quota('claude'), null);
   assert.equal(typeof orch.o.lacks('codex', 'computer_use'), 'boolean');
   // before the identity registry or the ACP admission exist

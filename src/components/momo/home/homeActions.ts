@@ -52,6 +52,7 @@ export type MomoHomeAction =
   | { type: 'rule.undo'; id: string }
   | { type: 'rule.turnOff'; id: string }
   | { type: 'rule.accept'; id: string }
+  | { type: 'rule.turnOn'; id: string }
   | { type: 'signal.make'; id: string }
   | { type: 'signal.ignore'; id: string }
   // settings

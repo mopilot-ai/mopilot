@@ -20,6 +20,8 @@ export function useLocalSummaryRepo(location: ReturnType<typeof useLocalFolder>,
   const [checkout, setCheckout] = useState<{ version: number; git: GitInfo; unavailable?: true } | null>(null);
   const [totals, setTotals] = useState<BranchTotals | null>(null);
   const [failed, setFailed] = useState(false);
+  // whether git has answered for this folder at all (a checkout, none, or a failure): before it, what is in the repository is unknown
+  const [read, setRead] = useState(false);
   const [pr, setPr] = useState<BranchPrLookup>();
   const refreshRequest = useRef(0);
   const prRequest = useRef(0);
@@ -28,6 +30,7 @@ export function useLocalSummaryRepo(location: ReturnType<typeof useLocalFolder>,
   const [shownCwd, setShownCwd] = useState(cwd);
   if (shownCwd !== cwd) {
     setShownCwd(cwd);
+    setRead(false);
     setCheckout(null);
     setTotals(null);
     setFailed(false);
@@ -49,6 +52,7 @@ export function useLocalSummaryRepo(location: ReturnType<typeof useLocalFolder>,
         ignoring('read the checkout')(error);
       }
       if (request !== refreshRequest.current) return;
+      setRead(true);
       if (!g) {
         // An unreadable checkout can return null. Keep any open draft and pause its repository actions.
         prRequest.current++;
@@ -135,5 +139,5 @@ export function useLocalSummaryRepo(location: ReturnType<typeof useLocalFolder>,
     };
   });
   const git = checkout?.unavailable ? null : (checkout?.git ?? null);
-  return { git, checkoutVersion: checkout?.version ?? null, totals, failed, pr, refresh };
+  return { git, read, checkoutVersion: checkout?.version ?? null, totals, failed, pr, refresh };
 }

@@ -415,6 +415,12 @@ export interface ChatConfig {
   hostAgent?: string | null;
   model?: string | null;
   effort?: string | null;
+  /** Auto: the router picks each turn's model and effort ('harness') or also the harness ('global'); absent or null: by hand */
+  autoRoute?: 'harness' | 'global' | null;
+  /** Global Auto's count of the chat's turns and the turn it last moved the chat to another harness on */
+  autoRouteState?: { turns: number; switchedAt: number | null } | null;
+  /** By ACP agent (harness kind): the chat's own model and effort an Auto turn changed (electron/autoRoute/acpRestore.cjs) */
+  autoRouteRestore?: Record<string, import('../autoRoute.mjs').AutoRestore> | null;
   serviceTier?: string | null;
   permission?: string | null;
   planBasePermission?: string | null;

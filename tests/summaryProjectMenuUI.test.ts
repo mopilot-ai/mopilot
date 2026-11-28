@@ -4,7 +4,7 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import './support/dom.ts';
 import { fakeStore, popoverStub, render, one, settle } from './support/shell-panels-kit.ts';
-import { createElement as h, act, useState } from 'react';
+import { createElement as h, act, useEffect, useState } from 'react';
 import { installNativeStub } from './support/ports/native.ts';
 import { stubStore } from './support/stubs.ts';
 
@@ -12,6 +12,8 @@ const store = fakeStore({ threads: { chat: { cwd: '/repo' } }, runtime: { chat: 
 const calls: unknown[][] = [];
 stubStore(store.exports);
 installNativeStub({
+  // the Servers section's dev servers: none
+  previews: { list: async () => [], onChanged: () => () => {} },
   codex: { onItem: () => () => {}, onStatus: () => () => {}, api: async () => ({ data: [] }) },
   claude: { onEvent: () => () => {}, control: async () => null },
   // main's context snapshots (src/session/useContextSnapshot.ts): none known
@@ -30,7 +32,18 @@ let diffFiles: { added: number; removed: number }[] = [];
 mock.module('../src/lib/repositoryChanges.ts', { namedExports: { repositoryDiffFiles: async () => diffFiles } });
 mock.module('../src/components/ui/Popover.tsx', { namedExports: popoverStub });
 // the summary's Pull requests card reads its chat's PRs and has its own tests (tests/prInboxAllUI.test.ts)
-mock.module('../src/components/panels/SummaryPullRequests.tsx', { namedExports: { SummaryPullRequests: () => null } });
+let prCount = 0;
+mock.module('../src/components/panels/SummaryPullRequests.tsx', {
+  namedExports: {
+    // it reports how many pull requests it lists, for the Changes section's summary
+    SummaryPullRequests: ({ onCount }: { onCount?: (n: number) => void }) => {
+      useEffect(() => {
+        onCount?.(prCount);
+      }, [onCount]);
+      return null;
+    },
+  },
+});
 mock.module('../src/components/panels/PullRequestRow.tsx', { namedExports: { PullRequestRow: () => null } });
 // the Remote Control row's own state (a pending confirm) belongs to the chat it first drew for: the probe shows that chat
 mock.module('../src/components/panels/SummaryEnvironment.tsx', {
@@ -131,10 +144,62 @@ test('a managed worktree uses the original project’s name and opens its own ch
   assert.equal(one(r.host, '.summary-branch .summary-hint').textContent, 'Worktree');
   assert.deepEqual(
     [...one(r.host, '.summary-panel').children].slice(0, 4).map((section) => section.querySelector('h2, summary > span')?.textContent),
-    ['Environment', 'Context', 'Connectors', 'Changes'],
+    // a session with no connectors has no Connectors section, as Claude Desktop's
+    ['Environment', 'Context', 'Changes', 'Sources'],
   );
   await act(() => one(r.host, '[aria-label="Session actions"]').click());
   await act(() => one(r.host, '[role="menuitem"]', 'Open in Finder').click());
   assert.deepEqual(calls, [['openPath', cwd]]);
   await r.unmount();
+});
+
+test('the session actions stay reachable with Environment folded; Track pull request opens Changes, and is gone while Changes is hidden', async () => {
+  store.set({ threads: { chat: { cwd: '/repo' } }, worktreeOf: {}, prefs: { openDestination: 'finder' } });
+  const r = await render(h(SummaryPanel, { threadId: 'chat' }));
+  await act(() => (r.host.querySelector('[data-rail-section="environment"] > summary') as HTMLElement).click());
+  assert.equal((r.host.querySelector('[data-rail-section="environment"]') as HTMLDetailsElement).open, false);
+  await act(() => (r.host.querySelector('[data-rail-section="changes"] > summary') as HTMLElement)?.click());
+  await act(() => one(r.host, '[aria-label="Session actions"]').click());
+  await act(() => one(r.host, '[role="menuitem"]', 'Track pull request…').click());
+  assert.deepEqual(store.get().prefs.railFolds.chat.expanded, ['changes'], 'the form is in Changes, opened for this chat');
+  await act(() => store.set((s: any) => ({ prefs: { ...s.prefs, railSections: { hidden: ['changes'] } } })));
+  await act(() => one(r.host, '[aria-label="Session actions"]').click());
+  assert.ok(![...r.host.querySelectorAll('[role="menuitem"]')].some((i) => i.textContent === 'Track pull request…'));
+  await r.unmount();
+});
+
+test('the panel draws its sections in the order the user left them', async () => {
+  store.set({
+    threads: { chat: { cwd: '/repo' } },
+    worktreeOf: {},
+    prefs: {
+      openDestination: 'finder',
+      railSections: {
+        order: ['sources', 'changes', 'environment', 'goal', 'context', 'connectors', 'outputs', 'servers', 'backgroundTasks', 'activity'],
+      },
+    },
+  });
+  const r = await render(h(SummaryPanel, { threadId: 'chat' }));
+  assert.deepEqual(
+    [...one(r.host, '.summary-panel').children].slice(0, 3).map((section) => section.querySelector('summary > span')?.textContent),
+    ['Sources', 'Changes', 'Environment'],
+  );
+  await r.unmount();
+});
+
+test('collapsed Changes says how many pull requests it holds, as Claude Desktop’s', async () => {
+  const summaryOf = (host: HTMLElement) => host.querySelector('[data-rail-section="changes"] .rail-section-summary')?.textContent ?? null;
+  store.set({ threads: { chat: { cwd: '/repo' } }, worktreeOf: {}, prefs: { openDestination: 'finder' } });
+  for (const [count, said] of [
+    [0, null],
+    [1, '1 pull request'],
+    [3, '3 pull requests'],
+  ] as [number, string | null][]) {
+    prCount = count;
+    const r = await render(h(SummaryPanel, { threadId: 'chat' }));
+    await settle(act);
+    assert.equal(summaryOf(r.host), said);
+    await r.unmount();
+  }
+  prCount = 0;
 });

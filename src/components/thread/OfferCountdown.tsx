@@ -1,4 +1,4 @@
-// An offer card's countdown to "Do it here" as a window draws it: the seconds left and the fill of that answer.
+// An offer card's countdown to "New session" as a window draws it: the seconds left and the fill of that answer.
 // Main owns the time (proposals.cjs waitForAnswer): a window only draws the deadline main published, so every window,
 // and one that opens or reloads while it runs, shows the same moment, and none counts down what main no longer does.
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
@@ -46,11 +46,11 @@ export function useFillTiming(countdown: Countdown | null): CSSProperties | unde
   return useMemo(() => (from === undefined || at === undefined ? undefined : fillTiming({ from, at }, Date.now())), [from, at]);
 }
 
-/** What happens when nobody answers, under the offer's title: "Doing it here in 42s". */
+/** What happens when nobody answers, under the offer's title: "Starting a new session in 42s". */
 export function OfferCountdownNote({ id, at }: { id: string; at: number }) {
   const left = useSecondsLeft(at);
   // one message with its hole, so a translation can put the seconds where its language does
-  const words = left > 0 ? `Doing it here in ${left}s` : 'Doing it here…';
+  const words = left > 0 ? `Starting a new session in ${left}s` : 'Starting a new session…';
   return (
     <span id={id} className="suggest-row-countdown" role="timer">
       {words}

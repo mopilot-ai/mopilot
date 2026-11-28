@@ -110,6 +110,8 @@ test('Codex: an isolated thread starts with its own shell, exec, image and sub-a
     // no user hooks and no skill search: they bring the coding side's instructions in (#2308)
     hooks: false,
     skill_search: false,
+    // no ChatGPT apps: their tools would run outside MoPilot's trust gate (#5824)
+    apps: false,
   });
   // no skill list (~/.agents/skills included) and no AGENTS.md from the thread's folder (#2308)
   assert.equal(off.project_doc_max_bytes, 0);

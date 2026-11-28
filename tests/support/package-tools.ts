@@ -28,6 +28,7 @@ export function tools(over: Record<string, unknown> = {}) {
     recordHostCores: recorder(() => ({ 'linux-x64-gnu': 'def456' })),
     signHostCores: recorder(),
     fetchRipgrep: recorder(async () => '/rg'),
+    autoRoutePackaging: recorder(async () => ({ resource: '/auto-route', ignore: [/^\/auto-route-ignored$/], unpack: '**/onnx/**' })),
     stripChromiumLocales: recorder(() => ({ kept: 60, removed: 160 })),
     mainSigningInfo: recorder(() => ({ designatedRequirement: 'designated', teamId: 'AB12CD34EF' })),
     webAuthnSigning: recorder(({ release }: { release: boolean }) => ({

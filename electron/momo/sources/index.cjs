@@ -75,4 +75,23 @@ function createMomoSources({ dir, safeStorage, allowed, decide, audit, helper, h
   };
 }
 
-module.exports = { createMomoSources, createConnectAsk };
+/** A connector tool that reads the user's mail (not one that only sends a draft the user pressed Send on). */
+const READS_MAIL = /mail|inbox|gmail|message/i;
+
+/**
+ * What MoMo can reach now (#5803), for its turn's context: the local sources it may read and the accounts signed in, by
+ * name, and whether any of them reads mail. A source macOS refuses, or one whose list can't be read, is left out.
+ * @param {{ hub: { list(): { id: string, label: string, connected: boolean, needsGrant?: boolean }[] },
+ *   connectorHub: { list(): { label: string, connected: boolean, needsReconnect?: boolean, tools: { name: string, kind: string }[] }[] } }} sources
+ * @returns {{ sources: string[], readsMail: boolean }}
+ */
+function reachableNow({ hub, connectorHub }) {
+  const local = hub.list().filter((s) => s.connected && !s.needsGrant);
+  const accounts = connectorHub.list().filter((c) => c.connected && !c.needsReconnect);
+  return {
+    sources: [...local.map((s) => s.label), ...accounts.map((c) => c.label)],
+    readsMail: accounts.some((c) => c.tools.some((t) => t.kind === 'read' && READS_MAIL.test(t.name))),
+  };
+}
+
+module.exports = { createMomoSources, createConnectAsk, reachableNow };

@@ -12,6 +12,7 @@ import { acpHarnessOf, type HarnessId } from '../../harness/types';
 import type { McpServerStatus } from '../../protocol/v2/McpServerStatus';
 import { currentNativeId } from '../../harness/ownership';
 import { chatAccount } from './chatAccount';
+import type { ConnectorAction } from './connectorActions';
 
 /**
  * The MCP servers of the harness the chat is on now: a switched chat lists the new segment's. Rejects when the
@@ -23,7 +24,13 @@ export async function loadMcpRows(harness: HarnessId, chatId: string | null): Pr
   return claudeMcpRows(((await native.claude.control(nativeOf(chatId), 'mcpStatus')) as ClaudeMcpServer[]) ?? []);
 }
 
-type Connector = { name: string; status: string; reconnect?: boolean };
+/**
+ * One connector row, the same shape on every harness. `status` is the harness's full wording. `state` places the row:
+ * `attention` needs the user and has the `action` clicking it takes ('connect': sign in, or 'reconnect'); `configured`
+ * is a harness that reports settings, not live connections.
+ */
+export type ConnectorState = 'connected' | 'attention' | 'pending' | 'off' | 'unavailable' | 'configured';
+export type Connector = { name: string; status: string; state: ConnectorState; action?: ConnectorAction };
 export type ConnectorInventory = { scope: 'session' | 'configuration'; rows: Connector[] } | { scope: 'unavailable' };
 
 /** Read identity and management destination from the chat's current harness rather than the new-chat default. */
@@ -62,6 +69,7 @@ export function watchSessionConnectors(family: HarnessFamily, nativeId: string, 
       if (!('key' in event) || event.key !== nativeId) return;
       if (event.kind === 'closed' || event.kind === 'error' || event.kind === 'processRetired') change(true);
       if (event.kind === 'processStarted') change(false);
+      if (event.kind === 'mcpChanged') change(false);
       if (event.kind === 'message' && event.msg.type === 'system' && event.msg.subtype === 'init') change(false);
     });
   }
@@ -73,6 +81,8 @@ export function watchSessionConnectors(family: HarnessFamily, nativeId: string, 
       const source = event?.sourceThreadId ?? event?.threadId;
       if (item.method === 'thread/closed' && source === nativeId) change(true);
       if (item.method === 'thread/started' && event?.thread?.id === nativeId) change(false);
+      // a sign-in the rail started for this thread finished (or one from settings, which names no thread)
+      if (item.method === 'mcpServer/oauthLogin/completed' && (source === nativeId || source == null)) change(false);
       if (
         item.method === 'mcpServer/startupStatus/updated' &&
         source === nativeId &&
@@ -95,25 +105,34 @@ export function watchSessionConnectors(family: HarnessFamily, nativeId: string, 
 const validName = (name: unknown): name is string => typeof name === 'string' && !!name.trim();
 
 function codexConnector(row: McpServerStatus): Connector {
+  const name = row.name;
   switch (row.runtimeStatus) {
     case 'connected':
-      return { name: row.name, status: 'Connected' };
+      return { name, status: 'Connected', state: 'connected' };
     case 'authenticationRequired':
-      return { name: row.name, status: 'Sign-in required', reconnect: true };
+      return { name, status: 'Sign-in required', state: 'attention', action: 'connect' };
     case 'failed':
-      return { name: row.name, status: 'Connection failed' };
+      return { name, status: 'Connection failed', state: 'attention', action: 'reconnect' };
     case 'starting':
-      return { name: row.name, status: 'Connecting…' };
+      return { name, status: 'Connecting…', state: 'pending' };
     case 'disabled':
-      return { name: row.name, status: 'Disabled' };
+      return { name, status: 'Disabled', state: 'off' };
     case 'cancelled':
-      return { name: row.name, status: 'Connection cancelled' };
+      return { name, status: 'Connection cancelled', state: 'attention', action: 'reconnect' };
     default:
       return row.authStatus === 'notLoggedIn'
-        ? { name: row.name, status: 'Sign-in required', reconnect: true }
-        : { name: row.name, status: 'Status unavailable' };
+        ? { name, status: 'Sign-in required', state: 'attention', action: 'connect' }
+        : { name, status: 'Status unavailable', state: 'unavailable' };
   }
 }
+
+const CLAUDE_STATE: Record<string, Pick<Connector, 'state' | 'action'>> = {
+  connected: { state: 'connected' },
+  'needs-auth': { state: 'attention', action: 'connect' },
+  failed: { state: 'attention', action: 'reconnect' },
+  pending: { state: 'pending' },
+  disabled: { state: 'off' },
+};
 
 /** A cancelled read may finish its current IPC request, but cannot fetch another page. */
 export async function loadSessionConnectors(
@@ -152,7 +171,7 @@ export async function loadSessionConnectors(
       rows: servers.map(({ name, status }) => ({
         name,
         status: mcpConnectionStatus(status).label,
-        reconnect: status === 'needs-auth',
+        ...(CLAUDE_STATE[status] ?? { state: 'unavailable' }),
       })),
     };
   }
@@ -170,9 +189,11 @@ export async function loadSessionConnectors(
   }
   return {
     scope: 'configuration',
-    rows: config.servers.map(({ name, enabled, off, managed }) => ({
-      name,
-      status: managed === true ? 'Managed by gateway' : config.load && enabled && !off ? 'Configured' : 'Disabled in settings',
-    })),
+    rows: config.servers.map(({ name, enabled, off, managed }): Connector => {
+      if (managed === true) return { name, status: 'Managed by gateway', state: 'configured' };
+      return config.load && enabled && !off
+        ? { name, status: 'Configured', state: 'configured' }
+        : { name, status: 'Disabled in settings', state: 'off' };
+    }),
   };
 }

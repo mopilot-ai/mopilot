@@ -66,6 +66,8 @@ test('general toggles and selects write their prefs', async () => {
     false,
   );
   await expectPrefs(() => pick(row(host, 'When you ask for an unrelated task'), 'Always start a new session'), { newTaskPrompt: 'new' });
+  assert.equal(row(host, 'Auto (all harnesses) picks for').querySelector('.select-label')!.textContent, 'Balance');
+  await expectPrefs(() => pick(row(host, 'Auto (all harnesses) picks for'), 'Lower cost'), { autoRouteCost: 'low' });
   await expectPrefs(() => pick(row(host, 'Confirm before quitting'), 'Always'), { confirmClose: 'always' });
   await click(row(host, 'Send with').querySelector('.select-btn')!);
   assert.deepEqual(options(row(host, 'Send with')), ['Enter', '⌘ Enter']);

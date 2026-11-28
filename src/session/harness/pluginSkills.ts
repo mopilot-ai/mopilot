@@ -37,16 +37,13 @@ export function usePluginSkills(family: HarnessFamily | null): PluginSkill[] {
 }
 
 /** Plugin slash entries share the same attachment action and refresh ownership. */
-export function usePluginSlashItems(
-  family: HarnessFamily | null,
-  setAttachments: import('react').Dispatch<import('react').SetStateAction<import('../../store/types').Attachment[]>>,
-) {
+export function usePluginSlashItems(family: HarnessFamily | null) {
   return usePluginSkills(family).map((k) => ({
     id: `plugin-skill:${k.name}`,
     title: `/${k.name}`,
     desc: k.description,
     scope: 'Plugin',
     skill: true,
-    run: () => setAttachments((a) => [...a, { kind: 'skill', name: k.name, path: k.file }]),
+    skillAttachment: { name: k.name, path: k.file },
   }));
 }

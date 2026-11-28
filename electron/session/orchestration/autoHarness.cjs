@@ -3,6 +3,7 @@
 // session whose harness ran out of usage mid-run is offered as a restart on another one, carrying its conversation.
 const crypto = require('node:crypto');
 const { parseKind } = require('../../../shared/harnessKind.mjs');
+const { remainingCapacity, LOW_CAPACITY } = require('../../../shared/remainingCapacity.mjs');
 const { addNote } = require('./journal.cjs');
 const { liveSelfOrAbove } = require('./family.cjs');
 const { noteIgnored } = require('../../ignored.cjs');
@@ -23,22 +24,14 @@ function fail(code, message = code) {
 }
 
 /**
- * Whether harness `kind` is at its usage limit, from the identity registry's instances (identity/contract/registry.cjs) of its
- * family: every signed-in plan login it could run on is out until a reset. Pay per use it runs on now (a key, credits)
- * is never out; one it isn't set to doesn't carry a new session. Null when nothing is known: no signed-in login
+ * What harness `kind` has left, from the identity registry's instances (identity/contract/registry.cjs) of its family
+ * (shared/remainingCapacity.mjs): out (`limited`) only when every signed-in plan login it could run on is out until a
+ * reset; pay per use it runs on now (a key, credits) is never out. Null when nothing is known: no signed-in login
  * (whether it can run at all is `usable`'s question), or a kind of no family.
- * @param {{ account: string, status: string, limited: boolean, active?: boolean, billing?: string }[] | null | undefined} instances
+ * @param {Parameters<typeof remainingCapacity>[0]} instances
  * @param {string} kind
- * @returns {{ limited: boolean } | null}
  */
-function quotaOf(instances, kind) {
-  const parsed = parseKind(kind);
-  if (!parsed || !Array.isArray(instances)) return null;
-  const ok = instances.filter((i) => i?.status === 'ok' && (!parsed.basic || i.account === parsed.basic));
-  if (ok.some((i) => i.active && i.billing !== 'subscription' && i.billing !== 'harness')) return { limited: false };
-  const plans = ok.filter((i) => i.billing === 'subscription' || i.billing === 'harness');
-  return plans.length ? { limited: plans.every((i) => i.limited === true) } : null;
-}
+const quotaOf = (instances, kind) => remainingCapacity(instances, kind);
 
 /**
  * When harness `kind`'s usage is back, as the registry's instances name it: the earliest reset of the plan logins it
@@ -71,9 +64,29 @@ async function unfit(o, kind, needs) {
   return null;
 }
 
+/** @typedef {import('../../../shared/remainingCapacity.d.mts').Capacity} Capacity */
+
+/** What pay per use a harness runs on, as its reason names it. */
+const BILLED = { apiKey: 'an API key', credits: 'MoPilot credits' };
+/** @param {Capacity} cap a capacity whose fraction is known */
+const percentLeft = (cap) => `${Math.round(/** @type {number} */ (cap.fraction) * 100)}% left`;
+/** Whether a harness that can take the piece has so little left that one with more goes first (LOW_CAPACITY). */
+const nearlyOut = (/** @type {Capacity | null} */ cap) => cap?.fraction != null && cap.fraction < LOW_CAPACITY;
+/** What the reason says of a harness's usage: billed per use, or what is left when that is known. */
+function standing(/** @type {Capacity | null} */ cap) {
+  if (cap?.payPerUse)
+    return `runs on ${Object.hasOwn(BILLED, cap.payPerUse) ? BILLED[cap.payPerUse] : 'pay-per-use billing'} (billed per use)`;
+  return cap?.fraction != null ? `has usage left (${percentLeft(cap)})` : 'has usage left';
+}
+/** Most left first: what each holds in plan units, one whose capacity is not known (or pay per use) after every known one. */
+const byCapacity = (/** @type {{ cap: Capacity | null }} */ x, /** @type {{ cap: Capacity | null }} */ y) =>
+  (y.cap?.units ?? -1) - (x.cap?.units ?? -1);
+
 /**
- * The harness a linked session of `parentId` runs on: the parent's when it can do the piece and has usage left, else
- * the first of the others (o.kinds: Codex, Claude Code, then admitted ACP harnesses) that can. Refused when none can.
+ * The harness a linked session of `parentId` runs on: the parent's when it can do the piece and has usage left that is
+ * not nearly spent (LOW_CAPACITY), else of the others that can (o.kinds: Codex, Claude Code, then admitted ACP
+ * harnesses), the one with the most left (shared/remainingCapacity.mjs), that order among equals and for one whose
+ * usage is not known. A nearly spent one takes it only when no other can. Refused when none can.
  * @param {{ o: any }} orch
  * @param {string} parentId
  * @param {{ needs?: string[], exclude?: string[] }} [want] exclude: harnesses not to consider (a restart's own)
@@ -83,27 +96,59 @@ async function chooseHarness(orch, parentId, { needs = [], exclude = [] } = {}) 
   const { o } = orch;
   const own = o.controller.ref(parentId).kind;
   const kinds = [...new Set([own, ...(o.kinds?.() ?? [])])].filter((k) => parseKind(k) && !exclude.includes(k));
-  /** @type {{ harness: string, why?: string }[]} */
-  const considered = [];
+  const named = (/** @type {string} */ k) => (k === own ? `this chat's harness, ${own}` : k);
+  /** why each harness passed over could not take it, or was not the pick */
+  /** @type {Map<string, string>} */
+  const whys = new Map();
+  /** @type {{ harness: string, cap: Capacity | null }[]} the harnesses that can take it, in order, with what each has left */
+  const fit = [];
   for (const kind of kinds) {
     const why = await unfit(o, kind, needs);
     if (why) {
-      considered.push({ harness: kind, why });
+      whys.set(kind, why);
       continue;
     }
-    considered.push({ harness: kind });
-    const passed = considered.filter((c) => c.why).map((c) => `${c.harness === own ? `this chat's harness, ${own}` : c.harness}: ${c.why}`);
-    const reason =
-      kind === own
-        ? `this chat's harness, ${own}, can do it and has usage left`
-        : [...passed, `${kind} can do it and has usage left`].join('; ');
-    return { harness: kind, reason, considered };
+    /** @type {Capacity | null} */
+    const cap = o.quota?.(kind) ?? null;
+    // the parent's own goes first while it has usage left: the only one that can fork its conversation
+    if (kind === own && !nearlyOut(cap))
+      return { harness: kind, reason: `${named(own)}, can do it and ${standing(cap)}`, considered: [{ harness: kind }] };
+    fit.push({ harness: kind, cap });
   }
-  const why = considered.map((c) => `${c.harness}: ${c.why}`).join('; ') || 'none is set up';
-  throw Object.assign(
-    new Error(`No harness can take this session now (${why}). Tell the user; it can start once one is available or its usage resets.`),
-    { code: 'no_harness', why },
-  );
+  const ample = fit.filter((f) => !nearlyOut(f.cap)).sort(byCapacity);
+  const low = fit.filter((f) => nearlyOut(f.cap)).sort(byCapacity);
+  const pick = ample[0] ?? low[0];
+  if (!pick) {
+    const why = [...whys].map(([k, w]) => `${k}: ${w}`).join('; ') || 'none is set up';
+    throw Object.assign(
+      new Error(`No harness can take this session now (${why}). Tell the user; it can start once one is available or its usage resets.`),
+      { code: 'no_harness', why },
+    );
+  }
+  // each one passed over for what it has left; one after the pick only by order (as much left, or neither known) was
+  // never weighed against it, as before every harness was checked
+  for (const f of fit) {
+    if (f === pick || (!nearlyOut(f.cap) && byCapacity(pick, f) === 0)) continue;
+    const why = nearlyOut(f.cap)
+      ? `nearly at its usage limit (${percentLeft(/** @type {Capacity} */ (f.cap))})`
+      : f.cap?.fraction != null
+        ? `can do it, but has less usage left (${percentLeft(f.cap)})`
+        : f.cap?.payPerUse
+          ? `can do it, but ${standing(f.cap)}`
+          : 'can do it, but how much usage it has left is not known';
+    whys.set(f.harness, why);
+  }
+  // in the order they were checked, then the pick
+  const passed = kinds.filter((k) => whys.has(k)).map((k) => ({ harness: k, why: /** @type {string} */ (whys.get(k)) }));
+  const who = pick.harness === own ? `${named(own)},` : pick.harness;
+  const chosen = nearlyOut(pick.cap)
+    ? `${who} can do it but is nearly at its usage limit (${percentLeft(/** @type {Capacity} */ (pick.cap))}), and no other harness can`
+    : `${who} can do it and ${standing(pick.cap)}`;
+  return {
+    harness: pick.harness,
+    reason: [...passed.map((c) => `${named(c.harness)}: ${c.why}`), chosen].join('; '),
+    considered: [...passed, { harness: pick.harness }],
+  };
 }
 
 /**

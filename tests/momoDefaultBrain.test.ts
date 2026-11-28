@@ -22,14 +22,14 @@ test('absolute remaining capacity: plan size times percent left, so Max 20× at 
     cand('claude', [acct('max20', 83, claude('Claude Max 20×'))]),
   ]);
   assert.deepEqual(brain, { harness: 'claude', account: 'max20', model: 'claude-m', modelLabel: 'claude model' });
-  assert.equal(remaining(acct('x', 83, 20)), 1660);
-  assert.equal(remaining(acct('x', 87, 5)), 435);
+  assert.equal(remaining(acct('x', 83, 20)), 16.6);
+  assert.equal(remaining(acct('x', 87, 5)), 4.35);
   // the other way round when the bigger plan is nearly spent
   assert.equal(defaultBrain([cand('codex', [acct('lite', 87, 5)]), cand('claude', [acct('max20', 10, 20)])])!.harness, 'codex');
 });
 
 test('an unknown plan size compares by percent left alone; usage not known comes after every known one', () => {
-  assert.equal(remaining({ left: 62, units: null }), 62);
+  assert.equal(remaining({ left: 62, units: null }), 0.62);
   assert.equal(remaining({ left: null, units: 5 }), null);
   const brain = defaultBrain([
     cand('codex', [acct('a', 40, null), acct('b', 70, null), acct('unknown', null, null)]),

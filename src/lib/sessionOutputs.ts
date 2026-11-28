@@ -5,6 +5,7 @@ import { pathSpelling } from './pathSpelling';
 import { parseUnifiedDiff } from './diff';
 import { artifactCall, type ArtifactRef } from './designToolCall';
 import type { TurnState } from '../../shared/model/store';
+import { memoByObject } from './memoByObject';
 
 export type OutputFile = { path: string; turnId: string };
 export type OutputWrite = { path: string; deleted: boolean };
@@ -36,18 +37,24 @@ export function writtenFiles(item: unknown): OutputWrite[] {
 export const visualOutput = (path: string) => ['image', 'video', 'pdf', 'html'].includes(filePreviewKind(path));
 
 /** Latest surviving file per path, newest first. Loaded history rebuilds the inventory without opening a pane. */
+/** A turn's writes, read once per turn object: a streamed update replaces only the running turn (the rail reads on each). */
+const turnWrites = memoByObject((turn: TurnState): { path: string; deleted: boolean }[] =>
+  turn.diff !== undefined
+    ? parseUnifiedDiff(turn.diff).flatMap((f) => [
+        ...(f.oldPath && f.oldPath !== f.path && !f.isCopy ? [{ path: f.oldPath, deleted: true }] : []),
+        { path: f.path, deleted: !!f.isDeleted },
+      ])
+    : turn.items.flatMap(writtenFiles),
+);
+
+/** A turn's published pages, read once per turn object. */
+const turnPages = memoByObject((turn: TurnState): ArtifactRef[] => turn.items.flatMap((item) => artifactCall(item) ?? []));
+
 export function sessionOutputs(turns: readonly TurnState[], cwd: string): OutputFile[] {
   const files = new Map<string, OutputFile>();
   for (const turn of turns) {
     if (turn.undone) continue;
-    const writes =
-      turn.diff !== undefined
-        ? parseUnifiedDiff(turn.diff).flatMap((f) => [
-            ...(f.oldPath && f.oldPath !== f.path && !f.isCopy ? [{ path: f.oldPath, deleted: true }] : []),
-            { path: f.path, deleted: !!f.isDeleted },
-          ])
-        : turn.items.flatMap(writtenFiles);
-    for (const write of writes) {
+    for (const write of turnWrites(turn)) {
       const path = pathSpelling(write.path, cwd);
       const key = pathKey(path);
       files.delete(key);
@@ -61,9 +68,7 @@ export function sessionOutputs(turns: readonly TurnState[], cwd: string): Output
 export function sessionOutputPages(turns: readonly TurnState[]): ArtifactRef[] {
   const pages = new Map<string, ArtifactRef>();
   for (const turn of turns)
-    for (const item of turn.items) {
-      const page = artifactCall(item);
-      if (!page) continue;
+    for (const page of turnPages(turn)) {
       const previous = pages.get(page.canonical);
       pages.delete(page.canonical);
       pages.set(page.canonical, { ...page, title: page.title ?? previous?.title ?? null });

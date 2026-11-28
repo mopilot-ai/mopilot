@@ -7,16 +7,17 @@
 const { instance, providerFor, PROVIDERS } = require('../contract/registry.cjs');
 const { loginBilling, claudeBilling } = require('../contract/claudeBilling.cjs');
 const { foldMarks } = require('../contract/sameAccount.cjs');
+const { planUnits } = require('../../../shared/remainingCapacity.mjs');
 
 const DEFAULT_ID = 'default';
 
 /**
  * Instances from the account view and the harness's key state.
- * @param {{ active: string, same?: Record<string, string>, accounts: { id: string, email: string|null, loggedIn: boolean, authMethod?: string|null }[] }} view
+ * @param {{ active: string, same?: Record<string, string>, accounts: { id: string, email: string|null, loggedIn: boolean, authMethod?: string|null, subscriptionType?: string|null, organizationType?: string|null, rateLimitTier?: string|null }[] }} view
  *   same: logins left out as the same account as a listed one (identity/contract/sameAccount.cjs)
  * @param {{ set: boolean, mode: 'subscription'|'apiKey'|'mopilot'|'routed', baseUrl: string|null, routed?: { name: string | null } }} key
  * @param {boolean} gatewaySet
- * @param {{ get: (id: string) => { expired?: boolean, limitedUntil?: number } | undefined, snapshot?: () => Map<string, any> } | null} [marks] what main has seen of
+ * @param {{ get: (id: string) => { expired?: boolean, limitedUntil?: number, left?: number } | undefined, snapshot?: () => Map<string, any> } | null} [marks] what main has seen of
  *   each login (identity/contract/loginMarks.cjs): a lapsed sign-in the CLI still reports as logged in, a limit until its reset
  * @param {number} [now] ms
  */
@@ -25,6 +26,12 @@ function claudeInstances(view, key, gatewaySet, marks = null, now = Date.now()) 
   // a limit seen on a login left out as the same account holds the listed one: it is one quota (#1312)
   const held = marks?.snapshot ? foldMarks(marks.snapshot(), view?.same ?? {}) : marks;
   const statusOf = (a) => (!a.loggedIn ? 'signedOut' : held?.get(a.id)?.expired ? 'expired' : 'ok');
+  // what a turn's rate-limit event or the login's /usage last said is left (loginMarks.cjs); once a limit it marked has
+  // lifted, what is left since is not known until the next reading
+  const leftOf = (id) => {
+    const m = held?.get(id);
+    return m?.limitedUntil && m.limitedUntil <= now ? null : (m?.left ?? null);
+  };
   const out = (view?.accounts ?? []).map((a) =>
     instance({
       harness: 'claude',
@@ -36,6 +43,9 @@ function claudeInstances(view, key, gatewaySet, marks = null, now = Date.now()) 
       status: statusOf(a),
       limited: (held?.get(a.id)?.limitedUntil ?? 0) > now,
       limitedUntil: held?.get(a.id)?.limitedUntil,
+      left: leftOf(a.id),
+      // the plan as the CLI names it ("max") and its rate-limit tier ("default_claude_max_20x"), as claudePlanLabel reads them
+      units: planUnits('claude', [a.subscriptionType || a.organizationType, a.rateLimitTier].filter(Boolean).join(' ')),
       active: mode === 'subscription' && a.id === view.active,
     }),
   );

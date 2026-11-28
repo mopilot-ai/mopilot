@@ -39,6 +39,9 @@ mock.module('../src/components/pages/settings/BillingRow.tsx', {
     endpointLabel: (u: string | undefined, own: string) => u ?? own,
   },
 });
+// the lapsed-sign-in banner has its own tests (codexExpiredBanner.test.ts): here it only has to be Codex's Banner
+const CodexExpiredBanner = () => null;
+mock.module('../src/components/harness/codex/ExpiredBanner.tsx', { namedExports: { CodexExpiredBanner } });
 mockSource('src/components/ui/icons.tsx', iconStubs(undefined, { CodexMark: ({ size }: any) => h('svg', { id: 'mark', width: size }) }));
 const { codexParts } = await import('../src/components/harness/codex/parts.tsx');
 const { native } = await import('../src/lib/native.ts');
@@ -151,6 +154,8 @@ test('billing reads the mode from the account in use and acts on its key', async
 test('static parts, sign in, usage refresh and auto switch', async () => {
   assert.equal(P.signInLabel, 'Sign in');
   assert.equal(P.fastTip, null);
+  // the app's banner stack draws Codex's lapsed sign-in through its parts, as it draws Claude Code's
+  assert.equal(P.Banner, CodexExpiredBanner);
   calls.length = 0;
   P.signIn();
   await P.refreshUsage();

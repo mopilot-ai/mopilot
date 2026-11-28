@@ -214,7 +214,7 @@ export class PanelMenus {
       const recommended = models.find((m) => m.id === now?.recommendedModel);
       rows.push(
         head('Models'),
-        ...(recommended ? [modelRow({ ...recommended, id: '', label: 'Automatic', description: null })] : []),
+        ...(recommended ? [modelRow({ ...recommended, id: '', label: 'Default (recommended)', description: null })] : []),
         ...main.map(modelRow),
       );
       if (more.length) {

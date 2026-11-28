@@ -319,10 +319,10 @@ test.describe('CD linked-session transcript at the narrowest window', () => {
     await composer(page).fill(`CUSTEPS\nCUCALL start_session ${JSON.stringify({ initiation: 'offer', title: 'Follow-up options' })}`);
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     const suggestion = transcript(page).getByRole('group', { name: '1 suggested task', exact: true });
-    // an offer nobody answered yet counts down to "Do it here": the seconds under its title, and that answer filling
+    // an offer nobody answered yet counts down to "New session": the seconds under its title, and that answer filling
     const countdown = suggestion.locator('.suggest-row-countdown');
-    await expect(countdown).toHaveText(/^Doing it here in \d+s$/);
-    await expect(suggestion.getByRole('button', { name: /^Do it here/ })).toHaveClass(/offer-countdown-fill/);
+    await expect(countdown).toHaveText(/^Starting a new session in \d+s$/);
+    await expect(suggestion.getByRole('button', { name: /^New session/ })).toHaveClass(/offer-countdown-fill/);
     await suggestion.screenshot({ path: testInfo.outputPath('offer-countdown-1024-font24.png') });
     // where the row runs opens its start options (#3675 folded the Options pill into it); its words follow the place, its title does not
     await suggestion.getByTitle('Start options', { exact: true }).click();

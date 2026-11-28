@@ -130,7 +130,12 @@ test('the wiring: off by default, the environment moves it, and required without
   assert.equal(entitlementGateFor(HOST, { MOPILOT_MOMO_ENTITLEMENT: 'required' }).mode, 'required');
   assert.equal(entitlementGateFor(HOST, { MOPILOT_MOMO_ENTITLEMENT: 'warn' }).mode, 'warn');
   const said: string[] = [];
-  const gate = entitlementGateFor(HOST, { MOPILOT_MOMO_ENTITLEMENT: 'required' }, (m: string) => said.push(m));
+  // a Host built before any key was pinned
+  const gate = entitlementGateFor(HOST, { MOPILOT_MOMO_ENTITLEMENT: 'required' }, (m: string) => said.push(m), []);
+  // this build pins the account service's key: required says nothing
+  const pinned: string[] = [];
+  entitlementGateFor(HOST, { MOPILOT_MOMO_ENTITLEMENT: 'required' }, (m: string) => pinned.push(m));
+  assert.deepEqual(pinned, []);
   assert.equal(gate.mode, 'required');
   assert.match(said.join(), /trusts no key: MoMo stays off/);
   const w = world(t);

@@ -19,14 +19,23 @@ const { CodexEvents } = createRequire(import.meta.url)('../electron/harness/code
 const ONE = { chatId: 'chat', cwd: '/project', location: 'local' as const };
 const segment = (harness: string, nativeId: string, chatId = 'chat') => ({ [chatId]: [{ harness, nativeId }] });
 const hint = (host: HTMLElement) => one(host, '.summary-connector-hint').textContent;
+/** No card: a session with no connectors has none, as Claude Desktop's. */
+const noCard = (host: HTMLElement) => host.querySelector('.summary-connectors') === null;
+/** Each shown row: its name and what it says at its end (null: nothing, a healthy row). */
+const rowsOf = (host: HTMLElement) =>
+  [...host.querySelectorAll('.summary-connector')].map((row) => [
+    row.querySelector('.summary-label')?.textContent,
+    row.querySelector('.summary-hint')?.textContent ?? null,
+  ]);
+const more = (host: HTMLElement) => act(() => (one(host, '.summary-connector-more') as HTMLElement).click());
 const page = (data: unknown[], nextCursor: unknown = null) => ({ data, nextCursor });
 const acpConfig = (harness: string, servers: unknown[] = []) => ({ harness, load: true, supported: true, servers });
 
 async function open(host: HTMLElement) {
   await act(() => {
     const details = one(host, 'details') as HTMLDetailsElement;
-    details.open = true;
-    details.dispatchEvent(new window.Event('toggle'));
+    // the fold follows the saved layout: open it as a click on its header does
+    if (!details.open) (details.querySelector('summary') as HTMLElement).click();
   });
 }
 
@@ -63,25 +72,30 @@ test('Codex paginates the same session and shows live status with a reconnect co
   });
   installNative(port);
   const r = await render(h(SummaryConnectors, ONE));
-  assert.equal(hint(r.host), '2 to reconnect');
-  assert.equal(r.host.querySelectorAll('.summary-connector').length, 0);
+  // sign-in and failed connections both need the user
+  assert.equal(hint(r.host), '4 to reconnect');
   await open(r.host);
-  assert.deepEqual(
-    [...r.host.querySelectorAll('.summary-connector')].map((row) => [
-      row.querySelector('.summary-label')?.textContent,
-      row.querySelector('.summary-hint')?.textContent,
-    ]),
-    [
-      ['server:docs', 'Connected'],
-      ['server:auth', 'Sign-in required'],
-      ['off', 'Disabled'],
-      ['waiting', 'Connecting…'],
-      ['cancelled', 'Connection cancelled'],
-      ['refused', 'Connection failed'],
-      ['pending', 'Sign-in required'],
-      ['old-cli', 'Status unavailable'],
-    ],
-  );
+  // failing first, then healthy, then off and unavailable; three before Show more
+  assert.deepEqual(rowsOf(r.host), [
+    ['server:auth', 'Connect'],
+    ['cancelled', 'Reconnect'],
+    ['refused', 'Reconnect'],
+  ]);
+  await more(r.host);
+  assert.deepEqual(rowsOf(r.host), [
+    ['server:auth', 'Connect'],
+    ['cancelled', 'Reconnect'],
+    ['refused', 'Reconnect'],
+    ['pending', 'Connect'],
+    ['server:docs', null],
+    ['waiting', 'Connecting…'],
+    ['off', 'Off'],
+    ['old-cli', 'Unavailable'],
+  ]);
+  assert.equal(one(r.host, '.summary-connector', 'server:auth').querySelector('.warn')?.textContent, 'Connect');
+  assert.equal(one(r.host, '.summary-connector', 'server:auth').getAttribute('title'), 'Sign-in required');
+  await more(r.host);
+  assert.equal(rowsOf(r.host).length, 3);
   assert.deepEqual(
     port.callsTo('codex.api'),
     [null, 'opaque:cursor'].map((cursor) => ['mcpStatus', [{ chatId: 'chat', nativeId: 'codex:native', cursor }]]),
@@ -108,24 +122,35 @@ test('Claude Code reports the current session through a turn, with no false empt
   ];
   await act(() => store.set({ runtime: { chat: { turns: [{ status: 'inProgress' }] } } }));
   assert.equal(hint(r.host), '1 to reconnect');
-  assert.match(r.host.textContent!, /calendarSign-in required/);
-  assert.match(r.host.textContent!, /localConnected/);
+  assert.deepEqual(rowsOf(r.host), [
+    ['calendar', 'Connect'],
+    ['local', null],
+  ]);
   servers = [{ name: 'other-account', status: 'disabled' }];
   await act(() => store.set({ claudeChats: { chat: { id: 'first', serving: 'second' } } }));
-  assert.match(r.host.textContent!, /other-accountDisabled/);
+  assert.deepEqual(rowsOf(r.host), [['other-account', 'Off']]);
+  assert.equal(hint(r.host), '0 connected');
   servers = [{ name: 'default-account', status: 'connected' }];
   await act(() => store.set({ claudeChats: {}, claudeAccounts: { active: 'default' } }));
-  assert.match(r.host.textContent!, /default-accountConnected/);
+  assert.deepEqual(rowsOf(r.host), [['default-account', null]]);
+  assert.equal(hint(r.host), '1 connected');
+  await act(() => one(r.host, 'button', 'Manage connectors').click());
+  // a healthy row opens the same management page
+  await act(() => (one(r.host, '.summary-connector', 'default-account') as HTMLElement).click());
+  const manage = { name: 'settings', section: 'claude', tab: 'extensions:mcps', connectorChatId: 'chat' };
+  assert.deepEqual(routes, [manage, manage]);
   servers = [];
   await act(() => store.set({ runtime: { chat: { turns: [{ status: 'completed' }] } } }));
-  assert.equal(hint(r.host), 'None');
-  assert.match(r.host.textContent!, /No MCP connectors in this session/);
-  assert.deepEqual(
-    port.callsTo('claude.control'),
-    Array.from({ length: 5 }, () => ['claude:native', 'mcpStatus']),
-  );
-  await act(() => one(r.host, 'button', 'Manage connectors').click());
-  assert.deepEqual(routes, [{ name: 'settings', section: 'claude', tab: 'extensions:mcps', connectorChatId: 'chat' }]);
+  assert.ok(noCard(r.host));
+  // the waiting reconnects are asked only while a row needs the user
+  assert.deepEqual(port.callsTo('claude.control'), [
+    ['claude:native', 'mcpStatus'],
+    ['claude:native', 'mcpStatus'],
+    ['claude:native', 'mcpQueued'],
+    ['claude:native', 'mcpStatus'],
+    ['claude:native', 'mcpStatus'],
+    ['claude:native', 'mcpStatus'],
+  ]);
   await r.unmount();
 });
 
@@ -151,21 +176,29 @@ test('ACP distinguishes configuration from live status and opens settings for th
   installNative(port);
   const r = await render(h(SummaryConnectors, ONE));
   await open(r.host);
-  assert.equal(hint(r.host), 'Configuration only');
+  assert.equal(hint(r.host), '2 configured');
   assert.match(r.host.textContent!, /Showing global settings/);
-  assert.match(r.host.textContent!, /activeConfigured/);
-  assert.match(r.host.textContent!, /offDisabled in settings/);
-  assert.match(r.host.textContent!, /gatewayManaged by gateway/);
+  assert.deepEqual(rowsOf(r.host), [
+    ['active', null],
+    ['gateway', 'Managed by gateway'],
+    ['off', 'Off'],
+  ]);
   managed = false;
   await act(() => port.emit('gateway.onChanged'));
-  assert.match(r.host.textContent!, /gatewayConfigured/);
+  assert.deepEqual(rowsOf(r.host)[1], ['gateway', null]);
   assert.deepEqual(port.callsTo('acp.ownMcp'), [
     ['opencode', true],
     ['opencode', true],
   ]);
   load = false;
-  await act(() => store.set({ prefs: { acpMcp: { opencode: { load } } } }));
-  assert.match(r.host.textContent!, /activeDisabled in settings/);
+  // the harness choice changes; the rail's saved layout (its open Connectors) stays
+  await act(() => store.set((s: any) => ({ prefs: { ...s.prefs, acpMcp: { opencode: { load } } } })));
+  assert.deepEqual(rowsOf(r.host), [
+    ['active', 'Off'],
+    ['off', 'Off'],
+    ['gateway', 'Off'],
+  ]);
+  assert.equal(hint(r.host), '0 configured');
   await act(() => store.set({ segments: segment('acp:kimi', 'acp:kimi:two') }));
   assert.equal(hint(r.host), 'Unavailable');
   assert.equal(r.host.querySelector('.summary-connector'), null);
@@ -204,7 +237,7 @@ test('Claude process exit retires cached and pending reads; a replacement gets i
   await open(r.host);
   const event = async (event: unknown) => act(() => port.emit('claude.onEvent', event));
   await act(() => read.requests[0].resolve([{ name: 'old', status: 'connected' }]));
-  assert.match(r.host.textContent!, /oldConnected/);
+  assert.deepEqual(rowsOf(r.host), [['old', null]]);
   for (const ignored of [
     { kind: 'toast' },
     { key: 'other', kind: 'closed' },
@@ -212,22 +245,25 @@ test('Claude process exit retires cached and pending reads; a replacement gets i
     { key: 'native', kind: 'message', msg: { type: 'system', subtype: 'other' } },
   ])
     await event(ignored);
-  assert.match(r.host.textContent!, /oldConnected/);
+  assert.deepEqual(rowsOf(r.host), [['old', null]]);
   await event({ key: 'native', kind: 'closed' });
   assert.equal(hint(r.host), 'Unavailable');
-  assert.doesNotMatch(r.host.textContent!, /oldConnected/);
+  assert.deepEqual(rowsOf(r.host), []);
   await event({ key: 'native', kind: 'processStarted' });
   assert.equal(hint(r.host), 'Reading…');
   await event({ key: 'native', kind: 'message', msg: { type: 'system', subtype: 'init' } });
   await act(() => read.requests[1].resolve([{ name: 'old', status: 'connected' }]));
   assert.equal(hint(r.host), 'Reading…');
   await act(() => read.requests[2].resolve([{ name: 'current', status: 'needs-auth' }]));
+  assert.equal(hint(r.host), 'Reading…', 'it also asks which reconnects wait for the turn');
+  await act(() => read.requests[3].resolve({ waiting: ['current'] }));
   assert.equal(hint(r.host), '1 to reconnect');
+  assert.deepEqual(rowsOf(r.host), [['current', 'Reconnects when this turn finishes']]);
   await event({ key: 'native', kind: 'processRetired' });
   assert.equal(hint(r.host), 'Unavailable');
   await event({ key: 'native', kind: 'processStarted' });
   await event({ key: 'native', kind: 'error' });
-  await act(() => read.requests[3].resolve([{ name: 'late', status: 'connected' }]));
+  await act(() => read.requests[4].resolve([{ name: 'late', status: 'connected' }]));
   assert.equal(hint(r.host), 'Unavailable');
   await r.unmount();
 });
@@ -247,9 +283,9 @@ test('a Codex close invalidates only that thread and a later start refreshes its
   assert.equal(read.requests.length, 1);
   await notice('thread/started', { thread: { id: 'chat' } });
   await act(() => read.requests[1].resolve(page([])));
-  assert.equal(hint(r.host), 'None');
+  assert.ok(noCard(r.host));
   await act(() => port.emit('codex.onStatus', { kind: 'restarting' }));
-  assert.equal(hint(r.host), 'None');
+  assert.ok(noCard(r.host));
   await act(() => port.emit('codex.onStatus', { kind: 'exit', restarting: true }));
   assert.equal(hint(r.host), 'Unavailable');
   assert.equal(read.requests.length, 2);
@@ -289,7 +325,7 @@ test('Codex switched chats use the native identity from the mapping and lease pr
   assert.equal(read.requests.length, 1);
   await lease(nativeId, true);
   await act(() => read.requests[1].resolve(page([{ name: 'current', runtimeStatus: 'connected' }])));
-  assert.equal(hint(r.host), '');
+  assert.equal(hint(r.host), '1 connected');
   const startup = 'mcpServer/startupStatus/updated';
   const update = (id: string, status: string) =>
     act(() =>
@@ -303,15 +339,15 @@ test('Codex switched chats use the native identity from the mapping and lease pr
   await update(nativeId, 'starting');
   assert.equal(read.requests.length, 2);
   for (const [status, expected] of [
-    ['ready', 'Connected'],
-    ['failed', 'Connection failed'],
-    ['cancelled', 'Connection cancelled'],
-  ]) {
+    ['ready', null],
+    ['failed', 'Reconnect'],
+    ['cancelled', 'Reconnect'],
+  ] as [string, string | null][]) {
     await update(nativeId, status);
     assert.equal(hint(r.host), 'Reading…');
     await act(() => read.requests.at(-1)!.resolve(page([{ name: 'current', runtimeStatus: status === 'ready' ? 'connected' : status }])));
     await open(r.host);
-    assert.equal(one(r.host, '.summary-connector .summary-hint').textContent, expected);
+    assert.deepEqual(rowsOf(r.host), [['current', expected]]);
   }
   await lease(nativeId, false);
   assert.equal(hint(r.host), 'Unavailable');
@@ -343,7 +379,7 @@ test('retired successes and failures cannot publish or fetch a page across refre
   await r.rerender(h(SummaryConnectors, { ...ONE, chatId: 'other' }));
   await act(() => codex.requests[5].resolve(page([])));
   await act(() => claude.requests[0].reject(Error('other chat')));
-  assert.equal(hint(r.host), 'None');
+  assert.ok(noCard(r.host));
   await r.unmount();
 });
 
@@ -362,9 +398,14 @@ test('a silent read expires, permits a retry, and a late completion cannot repla
   await act(() => read.requests[1].reject(Error('offline')));
   assert.equal(hint(r.host), 'Unavailable');
   await act(() => one(r.host, 'button', 'Retry').click());
-  await act(() => read.requests[2].resolve(page([])));
-  assert.equal(hint(r.host), 'None');
-  await act(() => one(r.host, 'button', 'Refresh').click());
+  await act(() => read.requests[2].resolve(page([{ name: 'docs', runtimeStatus: 'connected' }])));
+  assert.equal(hint(r.host), '1 connected');
+  assert.deepEqual(
+    [...r.host.querySelectorAll('.summary-connector-actions button')].map((b) => b.textContent),
+    ['Manage connectors'],
+    'only a failed read offers Retry',
+  );
+  await act(() => window.dispatchEvent(new Event('focus')));
   await r.unmount();
   read.requests[3].resolve(page([], 'another-page'));
   await tick();
@@ -401,6 +442,6 @@ test('malformed inventories and cursors reject, while valid empty responses and 
   assert.deepEqual(await loadSessionConnectors('acp', 'chat', 'acp:other:native', signal), { scope: 'unavailable' });
   assert.deepEqual(await loadSessionConnectors('acp', 'chat', 'acp:opencode:native', signal), {
     scope: 'configuration',
-    rows: [{ name: 'off', status: 'Disabled in settings' }],
+    rows: [{ name: 'off', status: 'Disabled in settings', state: 'off' }],
   });
 });

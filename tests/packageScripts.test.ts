@@ -53,8 +53,12 @@ test('package: a macOS dev build is ad-hoc signed with nested helpers, fuses fli
     'build/THIRD_PARTY_NOTICES.md',
     path.resolve('build/vendor/darwin-arm64/ripgrep'),
     path.resolve('build/vendor/darwin-arm64/core'),
+    '/auto-route',
     path.resolve('build/vendor/host-core'),
   ]);
+  // Auto routing's weights and ONNX Runtime files (scripts/auto-route/packaging.mjs) for this platform and arch
+  assert.deepEqual(t.autoRoutePackaging.calls[0], [{ platform: 'darwin', arch: 'arm64' }]);
+  assert.ok(o.ignore.some((r: RegExp) => r.test('/auto-route-ignored')));
   assert.equal(o.osxSign.identity, '-');
   assert.equal(o.osxSign.identityValidation, false);
   // dev builds skip the timestamp server per file (osx-sign ignores a global timestamp for nested code)
@@ -117,7 +121,7 @@ test('package: a macOS dev build is ad-hoc signed with nested helpers, fuses fli
         r.test('/electron/plugins/builtin/mopilot/skills/pdf-reading/SKILL.md'),
     ),
   );
-  assert.equal(o.asar.unpack, '{**/*.node,**/node-pty/prebuilds/*/spawn-helper}');
+  assert.equal(o.asar.unpack, '{**/*.node,**/node-pty/prebuilds/*/spawn-helper,**/onnx/**}');
   // sodium-native keeps only this platform and arch's prebuild
   assert.ok(o.ignore.some((r: RegExp) => r.test('/node_modules/sodium-native/prebuilds/darwin-x64/sodium-native.node')));
   assert.ok(o.ignore.some((r: RegExp) => r.test('/node_modules/sodium-native/prebuilds/ios-arm64/sodium-native.node')));
@@ -371,7 +375,7 @@ test('package: Windows needs the conpty prebuild, skips native builds and flips 
   assert.ok(!o.ignore.some((r: RegExp) => r.test('/node_modules/node-pty/prebuilds/win32-x64/conpty.node')));
   assert.ok(!o.ignore.some((r: RegExp) => r.test('/node_modules/sodium-native/prebuilds/win32-x64/sodium-native.node')));
   assert.ok(o.ignore.some((r: RegExp) => r.test('/node_modules/sodium-native/prebuilds/darwin-arm64/sodium-native.node')));
-  assert.equal(o.asar.unpack, '{**/*.node,**/node_modules/node-pty/**}');
+  assert.equal(o.asar.unpack, '{**/*.node,**/node_modules/node-pty/**,**/onnx/**}');
   assert.ok(o.extraResource.includes(coreDir));
   assert.deepEqual(t.flipFuses.calls, [[`/out/w/${windowsExe}`, FUSES]]);
   // none built and signed: no package, since the app does not start without it
