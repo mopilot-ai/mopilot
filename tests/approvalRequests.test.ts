@@ -29,6 +29,24 @@ test('a Claude Bash approval becomes the command card, carrying what its answer 
   assert.deepEqual([r.params.command, r.params.cwd, r.params.itemId, r.params.reason], ['npm test', '/work', 'tu1', 'Run tests']);
   assert.deepEqual(r.params._claude, { toolName: 'Bash', input: { command: 'npm test' }, suggestions: [{ type: 'addRules' }] });
   assert.deepEqual([r.threadId, r.receivedAt], ['c1', 5]);
+  assert.equal(r.params.why, null);
+});
+
+test("Claude Code's reason for asking stays on the card when its title is the command's description", () => {
+  const why = "Claude Code can't be sure it read this command the way the shell will";
+  const m = (extra: any): Card =>
+    toRequest(
+      'c1',
+      { id: 'cperm-3', method: 'claude/permission', params: { toolName: 'Bash', input: { command: 'x' }, ...extra } },
+      null,
+      0,
+    )!;
+  const both = m({ description: 'Run it', decisionReason: why }).params;
+  assert.deepEqual([both.reason, both.why], ['Run it', why]);
+  // with no description the reason is the title itself
+  const only = m({ decisionReason: why }).params;
+  assert.deepEqual([only.reason, only.why], [why, why]);
+  assert.equal(m({ toolName: 'WebFetch', title: 'Fetch it', decisionReason: why }).params.why, why);
 });
 
 test('file edits, questions and other Claude tools map to their cards', () => {

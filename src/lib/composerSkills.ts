@@ -31,14 +31,34 @@ export function composerPopup(value: string, caret: number, applied: readonly st
 
 /** Editable invocation text, without the separating space. Only local native skills preserve the typed trigger. */
 type SlashCompletion = { text: string; hint?: string; keepTrigger?: boolean };
+export type SkillReference = { name: string; path: string; displayName?: string };
 
 export interface ComposerSlashItem {
   /** Skills can be selected within prose as well as at the beginning. */
   skill?: boolean;
+  skillAttachment?: SkillReference;
   completion?: SlashCompletion;
   aliases?: string[];
   disabled?: string;
   run?: () => unknown;
+}
+
+/** Put a new chip at the query and keep any later chips anchored to the surviving text. */
+export function withSkillReference<T extends { kind: string; textOffset?: number }>(
+  attachments: T[],
+  skill: T,
+  start: number,
+  end: number,
+): T[] {
+  if (start === end) return [...attachments, skill];
+  const next = attachments.map((a) => {
+    const offset = a.textOffset ?? 0;
+    return a.kind === 'skill' && offset > start ? { ...a, textOffset: Math.max(start, offset - (end - start)) } : a;
+  });
+  // Chips before the trigger stay before the pick even if deleting the query makes the offsets equal.
+  const later = attachments.findIndex((a) => a.kind === 'skill' && (a.textOffset ?? 0) > start);
+  next.splice(later < 0 ? next.length : later, 0, skill);
+  return next;
 }
 
 const commandTokens = (text: string) => text.matchAll(/(?<!\S)[/$]\S+/gu);
@@ -101,6 +121,7 @@ export function applyComposerSlashItem(
     close: () => void;
     focus: () => void;
     restoreCaret: (position: number) => void;
+    insertSkill: (skill: SkillReference, start: number, end: number) => void;
   },
 ): void {
   const before = text.slice(0, popup.start);
@@ -111,11 +132,8 @@ export function applyComposerSlashItem(
     const rest = item.skill || before ? after.replace(/^ /, '') : afterCommandSeparator(after);
     ui.setText(before + token + rest);
     ui.restoreCaret(before.length + token.length);
-  } else if (item.skill) {
-    // A Codex skill is carried as an attachment beside the text.
-    ui.setText(before + after);
-    item.run?.();
-    ui.restoreCaret(popup.start);
+  } else if (item.skillAttachment) {
+    ui.insertSkill(item.skillAttachment, popup.start, popup.start + popup.query.length + 1);
   } else {
     ui.setText(slashPickRest(text, popup));
     item.run?.();

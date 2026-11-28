@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-ignore: plain ESM without declarations
 import { moveHome } from '../shared/momoMove.mjs';
+import { HOME_MIN_HOST_VERSION } from '../shared/host/momoHomeClient.mjs';
 import { A, B, world } from './support/momoHomeRealWorld.ts';
 import { waitFor } from './support/waitFor.ts';
 
@@ -278,7 +279,11 @@ test('when MoMo’s home is lost the way out is in the view, asked first and the
   const made = await w.intent({ kind: 'choose-home', machineId: 'mini' });
   assert.equal(made.ok, true, JSON.stringify(made));
   // the new home is asked to start above every lease this account has seen, so the old one cannot win when it comes back
-  assert.deepEqual(w.calls.filter((c) => c.method === 'host.momoHomeStart').at(-1)?.params, { name: 'Mac mini', floor: 1 });
+  assert.deepEqual(w.calls.filter((c) => c.method === 'host.momoHomeStart').at(-1)?.params, {
+    name: 'Mac mini',
+    floor: 1,
+    minVersion: HOME_MIN_HOST_VERSION,
+  });
   assert.equal(w.b!.home.status().home.state, 'running');
   // the Host that honors the floor starts at the next lease (the Host's half of this contract)
   const real = await w.asHost('mini', 'host.momoStatus', {});

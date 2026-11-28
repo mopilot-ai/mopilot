@@ -45,12 +45,8 @@ const SETTLED: Record<string, string> = {
   expired: 'Expired',
 };
 
-/** A settled "Do it here" its countdown chose for the user, who did not answer. */
-const DECLINED_UNANSWERED = 'Sent to this session (no answer)';
-
-/** What a settled row says, on screen and to a screen reader: its status, or "Do it here" chosen for no answer. */
-const settledWords = (status: string, autoHere?: boolean) =>
-  status === 'declined' && autoHere ? DECLINED_UNANSWERED : (SETTLED[status] ?? status);
+/** What a settled row says, on screen and to a screen reader. */
+const settledWords = (status: string) => SETTLED[status] ?? status;
 
 /** Claude Desktop's words for a "Do it here" that goes as the user's reply (the call that asked has ended). */
 export const herePrompt = (title: string) => `Do this task here: “${title}”`;
@@ -98,7 +94,7 @@ export function taskOf(call: Proposed, threadId: string, proposals: Orchestratio
   return found?.[0] ?? null;
 }
 
-/** The user took an offer's card in hand: main stops its countdown to "Do it here", and the card waits for them. */
+/** The user took an offer's card in hand: main stops its countdown to "New session", and the card waits for them. */
 function holdCountdown(taskId: string) {
   void native.orchestration.task(taskId, 'hold').catch(ignoring('hold an offer’s countdown'));
 }
@@ -178,7 +174,7 @@ function SuggestionRow({
   };
   // an offer whose call waits takes the keyboard as Claude Desktop's does
   useOfferKeys(row, keys && call.offer && open && !readOnly && proposal?.waiting === true, (a) => void act(a));
-  // a waiting offer counts down to "Do it here" while main does (OfferCountdown.tsx), wherever it can be answered; it
+  // a waiting offer counts down to "New session" while main does (OfferCountdown.tsx), wherever it can be answered; it
   // follows main's view alone, so "Don't ask again" hides it only once main took the hold
   const countdown = call.offer && open && !readOnly && proposal?.waiting === true ? (proposal.countdown ?? null) : null;
   const fill = useFillTiming(countdown);
@@ -248,16 +244,16 @@ function SuggestionRow({
       {failed && <span className="suggest-row-failed">Couldn’t start</span>}
       {call.offer ? (
         <>
+          <button className="btn-pill soft" disabled={!open} onClick={() => act('here')}>
+            Do it here {proposal?.waiting && <kbd>Esc</kbd>}
+          </button>
           <button
-            className={countdown ? 'btn-pill soft offer-countdown-fill' : 'btn-pill soft'}
+            className={countdown ? 'btn-pill primary offer-countdown-fill' : 'btn-pill primary'}
             style={fill}
             aria-describedby={countdown ? countdownId : undefined}
             disabled={!open}
-            onClick={() => act('here')}
+            onClick={() => act('start')}
           >
-            Do it here {proposal?.waiting && <kbd>Esc</kbd>}
-          </button>
-          <button className="btn-pill primary" disabled={!open} onClick={() => act('start')}>
             New session {proposal?.waiting && <kbd>⌘↵</kbd>}
           </button>
         </>
@@ -321,7 +317,7 @@ function SuggestionRow({
       )}
       {status !== 'open' ? (
         <div className="suggest-row-status">
-          <span className="suggest-row-status-label">{settledWords(status, proposal?.autoHere)}</span>
+          <span className="suggest-row-status-label">{settledWords(status)}</span>
           {status === 'briefing' && taskId && !readOnly && (failed || !parentWorking) && (
             <button type="button" className="btn-pill soft" disabled={busy} onClick={() => void askForBrief()}>
               Request the brief
@@ -378,14 +374,13 @@ export function TurnSuggestions({
   // a screen reader hears each row's change, as Claude Desktop announces "{title}: {status}"
   const [heard, setHeard] = useState('');
   const seen = useRef(new Map<string, string>());
-  const statuses = rows.map((r) => `${r.call.title}\n${r.proposal?.status ?? 'open'}\n${r.proposal?.autoHere ? 1 : 0}`).join('\n\n');
+  const statuses = rows.map((r) => `${r.call.title}\n${r.proposal?.status ?? 'open'}`).join('\n\n');
   useEffect(() => {
     for (const entry of statuses.split('\n\n')) {
-      const [title, status, auto] = entry.split('\n');
+      const [title, status] = entry.split('\n');
       const before = seen.current.get(title);
-      seen.current.set(title, status + auto);
-      if (before && before !== status + auto)
-        setHeard(`${title}: ${status === 'started' ? 'Started' : settledWords(status, auto === '1')}`);
+      seen.current.set(title, status);
+      if (before && before !== status) setHeard(`${title}: ${status === 'started' ? 'Started' : settledWords(status)}`);
     }
   }, [statuses]);
   // whether the chat's folder can hold a worktree, read only while a row could start in one: where it can't, a row

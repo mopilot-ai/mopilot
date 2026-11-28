@@ -10,6 +10,7 @@ import { proseLinks, trimLink } from '../../../shared/proseLinks.mjs';
 import { openLink } from '../../session/open';
 import { cancelOnEscape, imeComposing } from '../../lib/focus';
 import { ChevronDown, Plus } from '../ui/icons';
+import { RailSection } from './RailSection';
 
 /** The links a turn mentions, in order, as [href, host]: computed once per turn. */
 const turnSources = memoByObject((t: TurnState) => {
@@ -87,16 +88,18 @@ function SourcesFor({ threadId }: { threadId: string }) {
     }
   };
   return (
-    <section className="summary-group summary-section">
-      <div className="summary-section-head">
-        <span>
-          Sources
-          {urls.length > 0 && <span className="summary-count">{urls.length}</span>}
-        </span>
-        <button ref={addButton} className="icon-btn xs" title="Add source" aria-expanded={entering} onClick={() => setEntering(true)}>
-          <Plus size={16} />
-        </button>
-      </div>
+    <RailSection chatId={threadId} id="sources" className="summary-section" summary={urls.length || undefined}>
+      <button
+        ref={addButton}
+        type="button"
+        className="summary-row summary-source-add"
+        title="Add source"
+        aria-expanded={entering}
+        onClick={() => setEntering(true)}
+      >
+        <Plus size={15} aria-hidden="true" />
+        <span className="summary-label">Add source</span>
+      </button>
       {entering && (
         <form
           className="summary-track"
@@ -159,6 +162,6 @@ function SourcesFor({ threadId }: { threadId: string }) {
           <ChevronDown size={12} strokeWidth={2.2} className={all ? 'flipped' : undefined} />
         </button>
       )}
-    </section>
+    </RailSection>
   );
 }

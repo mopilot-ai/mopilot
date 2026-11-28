@@ -113,7 +113,13 @@ function Detail({ r, onEdit }: { r: MomoRuleView; onEdit: () => void }) {
             Edit
           </button>
           {r.state === 'suggested' || r.state === 'off' || r.state === 'undone' ? (
-            <button type="button" className={styles.primary} disabled={busy} onClick={() => void act({ type: 'rule.accept', id: r.id })}>
+            <button
+              type="button"
+              className={styles.primary}
+              disabled={busy}
+              // a suggestion is accepted; a rule turned off or undone is turned back on (the home's accept takes only a suggestion)
+              onClick={() => void act({ type: r.state === 'suggested' ? 'rule.accept' : 'rule.turnOn', id: r.id })}
+            >
               Turn on
             </button>
           ) : (

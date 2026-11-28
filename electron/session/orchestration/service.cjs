@@ -60,7 +60,7 @@ class Orchestrator {
    * @param [o.defer] (fn) => void: runs fn once the current controller call has returned
    * @param [o.said] (chatId) => string: what the user wrote in the chat's current turn (../userWords.cjs)
    * @param [o.kinds] () => string[]: the harnesses harness "auto" may pick, in order (autoHarness.cjs)
-   * @param [o.quota] (kind) => {limited} | null: whether a harness is at its usage limit (autoHarness.cjs quotaOf)
+   * @param [o.quota] (kind) => {limited, payPerUse, fraction, units} | null: what a harness has left, and whether it is at its usage limit (autoHarness.cjs quotaOf)
    * @param [o.lacks] (kind, need) => boolean: a harness can't do what a brief needs now (computer use)
    * @param [o.childOptions] (parentId, kind, args) => inherited native settings
    * @param [o.prepareNotes] (rootId) => private shared-notes directory and grants

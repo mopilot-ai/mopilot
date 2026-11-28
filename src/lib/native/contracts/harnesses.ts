@@ -176,6 +176,8 @@ export type ClaudeEvent =
     }
   | { key: string; kind: 'processStarted'; cwd?: string }
   | { key: string; kind: 'processRetired' }
+  /** A connector reconnect the rail asked for during a turn finished after it: read the connectors again. */
+  | { key: string; kind: 'mcpChanged' }
   | { key: string; kind: 'closed' }
   | { key: string; kind: 'transcript' }
   | { key: string; kind: 'rewound' }

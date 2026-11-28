@@ -42,14 +42,14 @@ export function useComposerAttachments(o: {
     },
     [read, why],
   );
-  const setIncoming: typeof setAttachments = useCallback(
-    (value) => {
+  const setIncoming = useCallback(
+    (value: SetStateAction<Attachment[]>) => {
       const before = currentAttachments.current;
       const next = typeof value === 'function' ? value(before) : value;
-      if (next.filter((a) => !before.includes(a)).every((a) => allowed(undefined, a.kind))) {
-        currentAttachments.current = next;
-        setAttachments(next);
-      }
+      if (!next.filter((a) => !before.includes(a)).every((a) => allowed(undefined, a.kind))) return false;
+      currentAttachments.current = next;
+      setAttachments(next);
+      return true;
     },
     [allowed, setAttachments],
   );

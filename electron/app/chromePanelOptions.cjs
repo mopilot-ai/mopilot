@@ -347,7 +347,8 @@ function createPanelOptions({ live, claude, prefs, kindOf, labelOf, usable, onMa
         await family.choose({ ...p, chatId: kind.chatId }, kind.basic ?? '');
         if (!kind.pending || family.ownModel || !p.chatId) return;
         const options = await family.models(undefined, kind.basic ?? '');
-        const label = options.models.find((m) => m.id === (p.model ?? options.recommendedModel))?.label ?? p.model ?? 'Automatic';
+        const label =
+          options.models.find((m) => m.id === (p.model ?? options.recommendedModel))?.label ?? p.model ?? 'Default (recommended)';
         // The latest pick owns only the exact switch it was made for, including a same-harness replacement.
         const now = pendingOf(p.chatId);
         if (now === kind.pending && pendingPicks.get(p.chatId) === attempt)

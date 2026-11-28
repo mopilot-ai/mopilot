@@ -49,6 +49,13 @@ class DevPreviews {
       (() => {
         /* no exit listener */
       });
+    /**
+     * a server was added (starting, or attached) or stopped: the session rail reads its list (electron/app/ipc/previews.cjs)
+     * @type {(server: any) => void}
+     */
+    this.onChange = () => {
+      /* no change listener */
+    };
     /** server id -> server */
     this.servers = new Map();
     /** servers stopped (SIGTERM sent) whose process hasn't exited yet */
@@ -123,6 +130,7 @@ class DevPreviews {
       ...init,
     };
     this.servers.set(s.id, s);
+    this.#changed(s);
     return s;
   }
 
@@ -272,7 +280,17 @@ class DevPreviews {
     this.saved?.forget((r) => r.id === id && r.chatId === chatId);
     this.#kill(s);
     this.servers.delete(s.id);
+    this.#changed(s);
     return s;
+  }
+
+  #changed(s) {
+    try {
+      this.onChange(s);
+    } catch (error) {
+      // a listener error must not undo the change
+      noteIgnored("tell the listener a chat's dev servers changed", error);
+    }
   }
 
   #kill(s) {

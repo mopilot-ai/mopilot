@@ -31,6 +31,8 @@ export function approvalRequest(a, threadId, cwd) {
         turnId: null,
         itemId: p.toolUseID ?? null,
         reason: p.description ?? p.decisionReason ?? null,
+        // why Claude Code asks at all (a safety check can ask in full access); the card shows it unless it is the card's title
+        why: p.decisionReason ?? null,
         _claude: meta,
       };
       switch (p.toolName) {

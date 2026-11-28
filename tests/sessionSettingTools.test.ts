@@ -388,3 +388,64 @@ test('a waiting switch answers set_session_model and set_session_effort before t
   assert.match(textOf(await s.call('top', 'set_session_effort', { session_id: 'alpha', effort: 'max' })), /switch_pending/);
   assert.deepEqual(s.log, []);
 });
+
+test('Auto turns on for a started session only when the user asks for it, and a model or harness picked by name ends it', async () => {
+  const s = setup('claude', 'claude');
+  assert.match(
+    textOf(await s.call('top', 'set_session_model', { session_id: 'alpha', model: 'auto' })),
+    /needs_user: Auto was not turned on for session alpha \("Alpha task"\): the user did not ask for Auto/,
+  );
+  // other "auto" things are not a request for Auto
+  for (const words of ['auto-fix the model', 'turn on auto merge for that harness', 'switch to auto mode for the model', 'auto']) {
+    s.orchestrator.o.said = () => words;
+    assert.match(textOf(await s.call('top', 'set_session_model', { session_id: 'alpha', model: 'auto' })), /needs_user/, words);
+  }
+  s.orchestrator.o.said = () => 'put it on the auto model';
+  assert.equal(
+    textOf(await s.call('top', 'set_session_model', { session_id: 'alpha', model: 'Auto' })),
+    'Session alpha ("Alpha task") is on Auto: it picks the model and effort for each turn from its next one on.',
+  );
+  assert.deepEqual(s.log.pop(), ['auto', 'alpha', 'harness']);
+  assert.match(
+    textOf(await s.call('top', 'set_session_harness', { session_id: 'alpha', harness: 'auto' })),
+    /is on Auto: it picks the harness, model and effort for each turn/,
+  );
+  assert.deepEqual(s.log.pop(), ['auto', 'alpha', 'global']);
+  assert.match(
+    textOf(await s.call('top', 'set_session_harness', { session_id: 'alpha', harness: 'auto', model: 'x' })),
+    /invalid_harness: Auto picks the model and effort itself/,
+  );
+  // a harness picked by name ends Global Auto once the move is recorded
+  s.orchestrator.o.said = () => 'switch to codex';
+  await s.call('top', 'set_session_harness', { session_id: 'alpha', harness: 'codex' });
+  assert.deepEqual(s.log.slice(-2), [
+    ['harness', 'alpha', { harness: 'codex', model: null, effort: null, inheritedEffort: null }],
+    ['auto', 'alpha', null],
+  ]);
+  // a model picked by name ends Auto; a session not on Auto is left as it is
+  s.facts.alpha.auto = 'harness';
+  await s.call('top', 'set_session_model', { session_id: 'alpha', model: 'haiku' });
+  assert.deepEqual(s.log.slice(-2), [
+    ['model', 'alpha', 'haiku'],
+    ['auto', 'alpha', null],
+  ]);
+  await s.call('top', 'set_session_model', { session_id: 'alpha', model: 'haiku' });
+  assert.deepEqual(s.log.pop(), ['model', 'alpha', 'haiku']);
+  const gone = setup('claude', 'claude', { facts: { alpha: { settings: null } } });
+  gone.orchestrator.o.said = () => 'auto harness';
+  assert.match(textOf(await gone.call('top', 'set_session_model', { session_id: 'alpha', model: 'auto' })), /not_found/);
+  const quiet = setup('claude', 'claude');
+  quiet.orchestrator.o.said = undefined;
+  assert.match(textOf(await quiet.call('top', 'set_session_harness', { session_id: 'alpha', harness: 'auto' })), /needs_user/);
+});
+
+test('Auto inside the harness turns on for an ACP session too: its own values come back after each turn', async () => {
+  const s = setup('claude', 'acp:kimi');
+  s.orchestrator.o.said = () => 'use the auto model';
+  assert.match(
+    textOf(await s.call('top', 'set_session_model', { session_id: 'alpha', model: 'auto' })),
+    /is on Auto: it picks the model and effort/,
+  );
+  assert.deepEqual(s.log.pop(), ['auto', 'alpha', 'harness']);
+  assert.match(textOf(await s.call('top', 'set_session_harness', { session_id: 'alpha', harness: 'auto' })), /is on Auto/);
+});

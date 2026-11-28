@@ -38,7 +38,7 @@ const { sentinelFileStorage } = require('../momo/sentinelStore.cjs');
 const { createTrustGate } = require('../momo/trustGate.cjs');
 const { createMomoActionAsk } = require('../momo/actionAsk.cjs');
 const { registerMomoDebugAction } = require('../momo/debugAction.cjs');
-const { createMomoSources, createConnectAsk } = require('../momo/sources/index.cjs');
+const { createMomoSources, createConnectAsk, reachableNow } = require('../momo/sources/index.cjs');
 const { registerSourcesIpc } = require('../momo/sources/ipc.cjs');
 const { registerSourceTools } = require('../momo/sources/tools.cjs');
 const { createWriter } = require('../momo/sources/write.cjs');
@@ -216,6 +216,8 @@ function openMomo({
       // the reminders MoMo showed in this chat lately: the user may be answering one
       nudges: (chatId) => recentNudges(live.chats?.record(chatId)?.meta?.notes, Date.now()),
       channel: channelContext(channelStore.channels, () => channelsOn(readState)),
+      // what MoMo can reach now, so it offers only that (#5803); the sources are made below, before any turn can start
+      abilities: () => reachableNow(sources),
     }),
   );
   const memoryFiles = memoryFilesReset(dir, { idle: () => memory.idle() });

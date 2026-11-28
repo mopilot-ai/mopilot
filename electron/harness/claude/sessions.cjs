@@ -15,6 +15,7 @@ const { createRemoteControl } = require('./remoteControl.cjs');
 const { createElicitation } = require('./elicitation.cjs');
 const { ChromeTabs } = require('./chromeTabs.cjs');
 const chromeLink = require('./chromeLink.cjs');
+const mcpVerbs = require('./mcpVerbs.cjs');
 const { autoAllow } = require('../../capabilities/mcp/sdkMcp.cjs');
 const { prepareSessionTools } = require('./sessionTools.cjs');
 const { noteIgnored, ignoring } = require('../../ignored.cjs');
@@ -219,6 +220,7 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
             clock.clearTimeout(s.tipTimer);
             if (s.sessionId) s.tipTimer = clock.setTimeout(settleTip, 250, s);
           }
+          mcpVerbs.onMessage(s, msg, { ignored: noteIgnored, changed: () => state.emit({ key, kind: 'mcpChanged' }) });
           state.emit({ key, kind: 'message', msg, login: s.billing === 'subscription', account: s.account });
         }
         // a process replaced by send() is followed by its successor; its end isn't the chat's
@@ -391,15 +393,9 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
       // the running foreground command or agent (or the one tool call `arg` names) keeps running as a background task
       case 'backgroundTasks':
         return s.q.backgroundTasks(arg ? String(arg) : undefined);
-      // the context panel's breakdown (arg.detail 'full': every category counted by the API), and the MCP views
+      // the context panel's breakdown (arg.detail 'full': every category counted by the API)
       case 'contextUsage':
         return s.q.getContextUsage({ detail: arg?.detail === 'full' ? 'full' : 'summary' });
-      case 'mcpStatus':
-        return s.q.mcpServerStatus().then(current);
-      case 'toggleMcp':
-        return s.q.toggleMcpServer(String(arg?.name), !!arg?.enabled);
-      case 'reconnectMcp':
-        return s.q.reconnectMcpServer(String(arg?.name));
       // the CLI's own session title (a side query on its small model, beside the turn); MoPilot saves it itself, so
       // a name the user gave meanwhile wins. A CLI too old for the request rejects it, and the caller falls back.
       case 'generateTitle':
@@ -420,8 +416,9 @@ function createSessions(state, { auth, cli, catalog, chrome, handedOff }) {
         }
         state.sessions.delete(key);
         return true;
+      // the MCP views and the rail's connector sign-in and reconnect; it refuses any other method
       default:
-        throw new Error(`Unknown control ${method}`);
+        return mcpVerbs.control(s, method, arg, current);
     }
   }
 

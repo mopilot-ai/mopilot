@@ -76,7 +76,6 @@ export function useSlashItems(
   planMode: boolean,
   setPlanMode: (v: boolean) => void,
   selectGoal: () => void,
-  addSkill: (name: string, path: string, displayName?: string) => void,
   {
     goalOffWhy,
     planOffWhy = null,
@@ -164,7 +163,7 @@ export function useSlashItems(
       icon: <Box size={16} strokeWidth={1.7} />,
       skill: true,
       scope: k.scope === 'user' ? 'Personal' : k.scope === 'repo' ? 'Project' : k.scope === 'system' ? 'System' : k.scope,
-      run: () => addSkill(k.name, k.path, k.interface?.displayName ?? skillTitle(k.name)),
+      skillAttachment: { name: k.name, path: k.path, displayName: k.interface?.displayName ?? skillTitle(k.name) },
     }))
     .sort((x, y) => x.title.localeCompare(y.title));
   if (attachmentOff)

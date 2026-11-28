@@ -48,7 +48,7 @@ test('Codex automatically uses the recommendation over an old config pin and pre
   await choose(page, 'Codex', 'Fake Model Two');
   await send(page, 'manual version', 'fake-codex');
   expect(started('manual version').model).toBe('fake-model-2');
-  await choose(page, 'Codex', 'Automatic');
+  await choose(page, 'Codex', 'Default (recommended)');
   await send(page, 'automatic again', 'fake-codex');
   expect(started('automatic again').model).toBe('fake-model-1');
   await expect(page.getByRole('complementary').getByText('Fake chat title', { exact: true }).first()).toBeVisible();
@@ -56,7 +56,7 @@ test('Codex automatically uses the recommendation over an old config pin and pre
   await page.getByRole('complementary').getByText('Fake chat title', { exact: true }).first().click();
   await expect(modelButton(page)).toContainText('Fake Model One');
   await openModels(page, 'Codex');
-  await expect(page.locator('.hp-models').getByRole('menuitemradio', { name: 'Automatic', exact: true })).toHaveAttribute(
+  await expect(page.locator('.hp-models').getByRole('menuitemradio', { name: 'Default (recommended)', exact: true })).toHaveAttribute(
     'aria-checked',
     'true',
   );
@@ -67,18 +67,18 @@ test('Codex automatically uses the recommendation over an old config pin and pre
 });
 
 test('Claude Automatic stays automatic after native model receipts and manual selection', async ({ page, harness }) => {
-  await choose(page, 'Claude Code', 'Automatic');
+  await choose(page, 'Claude Code', 'Default (recommended)');
   await send(page, 'automatic claude first', 'fake-claude');
   const used = (text: string) => harness.claudeLog().find((e) => e.kind === 'turn' && e.text === text)?.model;
   expect(used('automatic claude first')).toBe('claude-fake-opus');
   await choose(page, 'Claude Code', 'Fake Sonnet');
   await send(page, 'manual claude', 'fake-claude');
   expect(used('manual claude')).toBe('claude-fake-sonnet');
-  await choose(page, 'Claude Code', 'Automatic');
+  await choose(page, 'Claude Code', 'Default (recommended)');
   await send(page, 'automatic claude again', 'fake-claude');
   expect(used('automatic claude again')).toBe('claude-fake-opus');
   await openModels(page, 'Claude Code');
-  await expect(page.locator('.hp-models').getByRole('menuitemradio', { name: 'Automatic', exact: true })).toHaveAttribute(
+  await expect(page.locator('.hp-models').getByRole('menuitemradio', { name: 'Default (recommended)', exact: true })).toHaveAttribute(
     'aria-checked',
     'true',
   );

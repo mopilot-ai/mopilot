@@ -7,6 +7,7 @@ import { createDeleteSession } from '../electron/harness/claude/delete.cjs';
 import { addDirectories } from '../electron/harness/claude/directoryGrants.cjs';
 import { replyPermission, planPermissionReply } from '../electron/harness/claude/permissionReplies.cjs';
 import { StderrTail } from '../electron/harness/stderrTail.cjs';
+import * as mcpVerbs from '../electron/harness/claude/mcpVerbs.cjs';
 import { setNativePermission, applyNativeFlags, observeNativeRestoreMode } from '../electron/harness/claude/nativeSettings.cjs';
 import { deferred } from './support/async-scenarios.ts';
 import { inertClockPort } from './support/ports/clock.ts';
@@ -177,6 +178,7 @@ test('real archive retirement and repeated retire do not let deletion skip the e
   deps['./nativeSettings.cjs'] = { setNativePermission, applyNativeFlags, observeNativeRestoreMode };
   deps['./permissionReplies.cjs'] = { replyPermission, planPermissionReply };
   deps['../stderrTail.cjs'] = { StderrTail };
+  deps['./mcpVerbs.cjs'] = mcpVerbs;
   deps['../../platform/ports/clock.cjs'] = inertClockPort;
   const lifetime = { exports: {} };
   runInNewContext(readFileSync(new URL('../electron/harness/claude/sessionLifetime.cjs', import.meta.url), 'utf8'), {

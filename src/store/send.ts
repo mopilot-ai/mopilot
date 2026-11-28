@@ -56,6 +56,8 @@ export interface SendOptions {
   /** per-turn overrides (scheduled tasks) */
   model?: string;
   effort?: string;
+  /** a new chat's first message: the Auto mode it starts in (prefs.autoRouteNewChats), for main before the saved config arrives */
+  autoMode?: 'harness' | 'global';
   /** hidden <sage-handoff> block sent before the text (mid-chat switch) */
   prefix?: string;
   /** status note heading the turn (switch divider) */
@@ -143,6 +145,12 @@ export async function sendMessage(
     unname = nameAtSend(id, text);
     // cannot reject: a write main didn't confirm reads main's copy again and resolves false
     if (opts.plan) void setSession(id, { plan: true });
+    // a new chat starts in the Auto mode new chats use; main reads it from this first message until the config arrives
+    const auto = s.prefs.autoRouteNewChats;
+    if (auto === 'harness' || auto === 'global') {
+      setChatConfig(id, { autoRoute: auto });
+      opts = { ...opts, autoMode: auto };
+    }
   }
   // a chat started "with summary" sends the handoff block with its first message
   const carry = get().handoffCarry[id];

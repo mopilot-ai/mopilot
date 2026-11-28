@@ -23,7 +23,7 @@ test('one surface contains the rail sections with hairline dividers and a compac
   assert.match(panel.background, /var\(--card-bg\)/);
   assert.equal(card.border, undefined);
   assert.equal(declarations('.summary-panel > * + *')['border-top'], '1px solid var(--hairline)');
-  assert.equal(declarations('.summary-changes:has(.summary-change-items:empty)').display, 'none');
+  assert.equal(declarations('.summary-changes:has(.summary-change-items:empty):not(:has(.summary-pr-list))').display, 'none');
   assert.equal(declarations('.summary-context meter').flex, 'none');
   assert.ok(Number.parseFloat(toggle['min-height']) <= 36, 'collapsed sections do not become large empty blocks');
   assert.equal(declarations('.summary-subhead')['font-size'], 'var(--fs-micro)');

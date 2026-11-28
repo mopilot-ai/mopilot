@@ -173,11 +173,16 @@ export const Markdown = memo(function Markdown({
     [cwd, linkCwd, remote, completedAt],
   );
   const transformUrl = useCallback(
-    (url: string, key: string) =>
-      (key === 'src' && /^(file:|data:image\/|[A-Za-z]:(?:[\\/]|%2f|%5c))/i.test(url)) ||
-      (key === 'href' && (/^file:/i.test(url) || (!remote && skillPath(url, cwd, true)) || !!chatIdFromHref(url)))
+    (url: string, key: string) => {
+      // Desktop artifact links name an absolute path, not a browser protocol or a remote authority.
+      // Run the path through the same click, path menu and machine routing as any other Markdown file link.
+      const artifact = /^sandbox:(\/[^/\\?#].*)$/i.exec(url);
+      if (artifact) return artifact[1];
+      return (key === 'src' && /^(file:|data:image\/|[A-Za-z]:(?:[\\/]|%2f|%5c))/i.test(url)) ||
+        (key === 'href' && (/^file:/i.test(url) || (!remote && skillPath(url, cwd, true)) || !!chatIdFromHref(url)))
         ? url
-        : urlTransform(url),
+        : urlTransform(url);
+    },
     [cwd, remote],
   );
   return (

@@ -26,6 +26,7 @@ import { useAccountMenuUsageRefresh } from '../../harness/accountMenuUsage';
 import { HarnessIcon, signInHarness } from './badges';
 import { AccountChoiceRow, HarnessRowView, ModelRowsView } from './pickerViews';
 import { automaticModel } from '../../harness/automaticModel';
+import { AUTO_MODEL_ID, autoModelRow } from '../../session/harness/autoRoute';
 
 export function HarnessRow({
   h,
@@ -259,6 +260,8 @@ export function ModelList({
   currentModel,
   automatic = false,
   allowAutomatic = true,
+  offerAuto = false,
+  autoOn = false,
   onPick,
 }: {
   h: HarnessId;
@@ -267,13 +270,18 @@ export function ModelList({
   currentModel: string | null;
   automatic?: boolean;
   allowAutomatic?: boolean;
+  /** lead with Auto (src/harness/autoRoute.ts): main picks each message's model and effort */
+  offerAuto?: boolean;
+  /** Auto is on, so its row is the checked one */
+  autoOn?: boolean;
   onPick: (m: HarnessModel) => void;
 }) {
   // a model released since the list was read shows up when the list opens: the harness is asked again
   useEffect(() => void refreshHarnessModels(h), [h]);
   const models = useHarnessModels(h);
   const auto = allowAutomatic ? automaticModel(models) : undefined;
-  const choices = auto ? [auto, ...models] : models;
+  const routed = offerAuto && models.length ? [autoModelRow()] : [];
+  const choices = [...routed, ...(auto ? [auto] : []), ...models];
   const loading = useLoadingFor(useModelsLoading(h));
   const signedOut = useAccountView(h).phase === 'signed-out';
   // nothing listed: signed out, signing in lists them; signed in, the harness's page says why it lists none
@@ -285,7 +293,7 @@ export function ModelList({
   return (
     <ModelRowsView
       models={choices.map((m) => ({ id: m.id, label: m.label, description: m.description, more: m.more }))}
-      current={automatic ? '' : currentModel}
+      current={autoOn && routed.length ? AUTO_MODEL_ID : automatic ? '' : currentModel}
       loading={loading}
       empty={empty}
       onPick={(m) => onPick(choices.find((x) => x.id === m.id)!)}

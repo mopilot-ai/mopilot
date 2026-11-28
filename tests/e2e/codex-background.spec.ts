@@ -1,18 +1,15 @@
 // Codex background terminals and sub-agents in the real app (WP5-7, A5) against fake-codex.mjs: a
 // command left running is listed and stopped by its processId (its osPid is unknown); a spawned
 // sub-agent's thread opens beside the chat, read-only.
-// e2e-covers: src/components/panels/SummaryActivity.tsx src/components/panels/SummaryAgentTranscripts.tsx src/components/tasks/TaskList.tsx
+// e2e-covers: src/components/panels/SummaryBackgroundTasks.tsx src/components/panels/SummaryAgentTranscripts.tsx src/components/tasks/TaskList.tsx
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures/app';
 
 const home = (page: Page) => page.getByRole('heading', { name: 'What should we build?' });
 const composer = (page: Page) => page.getByRole('textbox', { name: 'Message', exact: true });
 const transcript = (page: Page) => page.getByRole('main');
-const exposeTasks = (page: Page) =>
-  page
-    .locator('.summary-activity')
-    .getByRole('button', { name: /^Background tasks/ })
-    .click();
+// the rail's Background tasks section: a running task's row opens the tasks pane
+const exposeTasks = (page: Page) => page.locator('.summary-background-tasks .summary-task .summary-row').first().click();
 
 async function send(page: Page, text: string) {
   await composer(page).fill(text);
@@ -42,7 +39,7 @@ test("codex-subagent: a spawned agent's thread opens beside the chat, read-only"
   // A finished agent folds into "Worked", in its agent group.
   const group = transcript(page).locator('.agent-group-head');
   await expect(group).toBeVisible();
-  await expect(page.locator('.summary-activity')).toBeVisible();
+  // a finished agent leaves the rail's Background tasks, as Claude Desktop's; its transcript opens from the conversation
   // The conversation can also open the read-only agent transcript.
   if ((await group.getAttribute('aria-expanded')) !== 'true') await group.click();
   await transcript(page).locator('.agent-row', { hasText: 'look at the tests' }).click();

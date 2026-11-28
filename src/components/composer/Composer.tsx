@@ -227,11 +227,12 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
   const commandNamed = (typed: string[], names = momoNames(momo, typed)): SlashCommand | undefined =>
     names.includes('plan') ? { name: 'plan', run: () => setPlanMode(!planMode) } : SLASH_COMMANDS.find((c) => names.includes(c.name));
 
-  const { runPopupCommand, pick } = useSlashPick({
+  const { runPopupCommand, pick, insertSkill } = useSlashPick({
     draftKey,
     text,
     attachments,
     setText,
+    setIncoming,
     closePopup: () => setPopup(null),
     input: taRef,
     currentKey: currentDraftKey,
@@ -445,8 +446,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
       if (attachmentOff) return toast(attachmentOff);
       const no = codexAttachBlocked(harness);
       if (no) return toast(no);
-      setIncoming((a) => [...a, { kind: 'skill', name: d.name, path: d.path, displayName: d.displayName }]);
-      taRef.current?.focus();
+      insertSkill({ name: d.name, path: d.path, displayName: d.displayName });
     };
     // "Try now" on a plugin page attaches the plugin mention.
     const m = (e: Event) => {
@@ -463,17 +463,14 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
       window.removeEventListener('insert-skill', h);
       window.removeEventListener('insert-mention', m);
     };
-  }, [threadId, harness, setIncoming, attachmentOff]);
-  const slashItems = useSlashItems(
-    threadId,
-    planMode,
-    setPlanMode,
-    selectGoal,
-    (name, path, displayName) => {
-      setIncoming((a) => [...a, { kind: 'skill', name, path, displayName }]);
-    },
-    { goalOffWhy, planOffWhy, attachmentOff, remoteOffWhy: remoteOffWhy(chatCaps), cloudCap },
-  );
+  }, [threadId, harness, setIncoming, attachmentOff, insertSkill]);
+  const slashItems = useSlashItems(threadId, planMode, setPlanMode, selectGoal, {
+    goalOffWhy,
+    planOffWhy,
+    attachmentOff,
+    remoteOffWhy: remoteOffWhy(chatCaps),
+    cloudCap,
+  });
   // a basic harness's / menu: Sage's UI commands, then the commands the harness listed
   const basicSlashItems: SlashItem[] = basic
     ? acpRegistry(basic, acpCommands).menu.map((c) => {
@@ -490,7 +487,7 @@ export function Composer({ threadId, variant, inPane = false }: { threadId: stri
         };
       })
     : [];
-  basicSlashItems.push(...usePluginSlashItems(!attachmentOff && basic ? 'acp' : null, setIncoming));
+  basicSlashItems.push(...usePluginSlashItems(!attachmentOff && basic ? 'acp' : null));
   const wantsCommands = popup?.kind === 'slash' || (!momo && !goalMode && hasSlashCommandToken(text) && 'draft');
   const menu = useMachineMenu(threadId, wantsCommands, basic ? basicSlashItems : slashItems, !!basic, attachmentOff);
   const commandPresentation = goalMode || momo ? undefined : slashCommandPresentation(text, menu);

@@ -20,6 +20,7 @@ import { createLatestLoader } from '../../../lib/latestLoader';
 import { availableOpenApps, type OpenApp } from '../../../lib/openApps';
 import { AppIcon, useInstalledApps } from '../../titleBar/OpenInApps';
 import { PUSH_OPT_IN_KINDS, pushesToPhone } from '../../../../shared/remote/pushSettings.mjs';
+import { costTierOf } from '../../../../shared/autoRoute.mjs';
 
 /** One switch per notification kind (electron/platform/notify.cjs KINDS), inside the Notifications row. */
 const NOTIFY_KINDS: { kind: 'turn' | 'approval' | 'scheduled' | 'goal' | 'auth' | 'computer'; label: string }[] = [
@@ -192,6 +193,17 @@ export function General() {
               { value: 'new', label: 'Always start a new session' },
             ]}
             onChange={(v) => setPrefs({ newTaskPrompt: v })}
+          />
+        </Row>
+        <Row title="Auto (all harnesses) picks for" desc="How much price counts when Auto chooses a chat’s harness and model.">
+          <Select
+            value={costTierOf(prefs)}
+            options={[
+              { value: 'low', label: 'Lower cost' },
+              { value: 'medium', label: 'Balance' },
+              { value: 'high', label: 'Best results' },
+            ]}
+            onChange={(v) => setPrefs({ autoRouteCost: v })}
           />
         </Row>
         <AutoArchiveRow />

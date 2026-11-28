@@ -1,7 +1,6 @@
-// Project sidebar projection that joins verified remote locations without changing session ownership.
+// Project sidebar projection that joins verified Codex Cloud tasks to their repository; machine folders keep their own groups.
 import { environmentRepository } from '../../../shared/sidebarRepository.mjs';
 import type { CloudTask, CloudEnv } from '../../lib/native';
-import { machineFolderKey } from '../../lib/machineFolder';
 import { groupKey } from '../../lib/projectGroupOrder';
 import type { ProjectGroupData } from './projectGroups';
 
@@ -24,11 +23,9 @@ export function groupRepositories(
   }));
   const candidates = new Map<string, ProjectGroupData[]>();
   const remote = new Map<string, ProjectGroupData>();
-  const attached = new Set<ProjectGroupData>();
   const visible = new Set(listed);
   const pins = new Set(pinned);
   const cloud: CloudTask[] = [];
-  let home = homeKey;
   for (const group of groups) {
     const repo = repositoryOf(group);
     if (!repo || group.machine || hidden.includes(group.path)) continue;
@@ -59,23 +56,8 @@ export function groupRepositories(
     }
     return group;
   }
-  for (const group of groups) {
-    if (!group.machine) continue;
-    const repo = repositoryOf(group);
-    if (!repo || (!listed.has(groupKey(group)) && !pins.has(`repo:${repo}`))) continue;
-    const target = destination(repo);
-    attached.add(group);
-    if (!target) continue;
-    (target.machineGroups ??= []).push(groupKey(group));
-    for (const path of group.machineFolders ?? [])
-      if (path !== group.path) (target.machineFolderAliases ??= []).push(machineFolderKey(group.machine.id, path));
-    for (const thread of group.threads) target.threads.push(thread);
-    for (const entry of group.starting ?? []) (target.starting ??= []).push(entry);
-    (target.locations ??= []).push({ kind: 'machine', ...group.machine, path: group.path });
-    if (group.pinnedKeys?.length) (target.pinnedKeys ??= []).push(...group.pinnedKeys);
-    if (home === groupKey(group)) home = groupKey(target);
-    visible.add(groupKey(target));
-  }
+  // As in Claude Code, a session on a machine stays in the group of the folder it runs in on that machine: a local project of
+  // the same repository is a different folder, so its row never takes the machine's sessions.
   const byEnvironment = new Map<string, { env: CloudEnv; repo: string }>();
   const addEnvironment = (group: ProjectGroupData, env: CloudEnv) => {
     if (!group.locations?.some((location) => location.kind === 'cloud' && location.id === env.id))
@@ -103,7 +85,7 @@ export function groupRepositories(
     const target = matches.length === 1 ? destination(repo) : (remote.get(repo) ?? (pins.has(key) ? destination(repo) : null));
     if (target) addEnvironment(target, env);
   }
-  const projected = [...groups.filter((group) => !attached.has(group)), ...remote.values()];
+  const projected = [...groups, ...remote.values()];
   for (const group of projected) {
     if (!group.repository || !group.locations?.length) continue;
     const key = `repo:${group.repository}`;
@@ -112,5 +94,5 @@ export function groupRepositories(
       visible.add(groupKey(group));
     }
   }
-  return { groups: projected, listed: projected.filter((group) => visible.has(groupKey(group))), cloud, homeKey: home };
+  return { groups: projected, listed: projected.filter((group) => visible.has(groupKey(group))), cloud, homeKey };
 }

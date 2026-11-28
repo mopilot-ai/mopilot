@@ -38,9 +38,14 @@ for (const family of [
         ['broken.png', 'Broken'],
         ['notes.md', 'Notes'],
       ];
-      await page
-        .getByRole('textbox', { name: 'Message', exact: true })
-        .fill(links.map(([file, label]) => `[${label}](${pathToFileURL(path.join(folder, file)).href})`).join('\n\n'));
+      await page.getByRole('textbox', { name: 'Message', exact: true }).fill(
+        links
+          .map(([file, label]) => {
+            const url = pathToFileURL(path.join(folder, file)).href;
+            return `[${label}](${file === coverName ? url.replace(/^file:\/\//, 'sandbox:') : url})`;
+          })
+          .join('\n\n'),
+      );
       await page.getByRole('button', { name: 'Send', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0);
       const reply = page.locator('.assistant-message');

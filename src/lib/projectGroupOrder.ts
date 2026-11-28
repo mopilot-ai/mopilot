@@ -11,7 +11,6 @@ interface OrderedProject extends ProjectActivity {
   id: string | null;
   repositoryKey?: string;
   repository?: string;
-  machineGroups?: readonly string[];
   path: string;
   name: string;
   /** the machine a folder group's folder is on; none for a folder on this Mac */
@@ -54,9 +53,7 @@ export function sortProjectGroups<T extends OrderedProject>(groups: T[], order: 
     return value;
   };
   const orderOf = (group: T) => {
-    const own = rank.get(groupKey(group)) ?? (group.repository ? rank.get(`repo:${group.repository}`) : undefined);
-    if (own !== undefined) return own;
-    return (group.machineGroups ?? []).reduce((first, key) => Math.min(first, rank.get(key) ?? order.length), order.length);
+    return rank.get(groupKey(group)) ?? (group.repository ? rank.get(`repo:${group.repository}`) : undefined) ?? order.length;
   };
   return groups.sort((a, b) => {
     const pinned = Number(pins.has(groupKey(b))) - Number(pins.has(groupKey(a)));

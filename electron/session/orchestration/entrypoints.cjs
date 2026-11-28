@@ -1,6 +1,15 @@
 // Linked-session start/offer/card entrypoints: serialized intent, title-first proposals and user-owned settings.
 const { startArgs, startChild } = require('./spawn.cjs');
-const { propose, startProposal, closeProposal, reopenProposal, waitForAnswer, holdOffer, HERE_NEXT } = require('./proposals.cjs');
+const {
+  propose,
+  startProposal,
+  startAnswered,
+  closeProposal,
+  reopenProposal,
+  waitForAnswer,
+  holdOffer,
+  HERE_NEXT,
+} = require('./proposals.cjs');
 const { ownHarness, noted } = require('./ownHarness.cjs');
 const { authorizeStart, startRequest, startAuthority } = require('./startPolicy.cjs');
 const { isUserTurn } = require('../userTurn.cjs');
@@ -82,25 +91,8 @@ function handOff(parentId, { title, remaining_plan: plan, use_worktree: useWorkt
 }
 
 function act(id, action, options = null) {
-  if (action === 'start') {
-    const p = this.journal.proposal(id);
-    if (!p) fail('not_found', `No proposal ${id}`);
-    // the user answered: an offer stops counting down, so a start that fails leaves its card waiting for them
-    holdOffer(this, id);
-    const request = startRequest(this, p.parentId);
-    // the user's clicks start side by side (Start all): each proposal is its own, and a click needs no start budget
-    const run = () => startProposal(this, id, { by: 'click', options, request });
-    return this.serialized(p.parentId, null, run, { queue: false }).then((started) => {
-      const answer = this.answers.get(id);
-      answer?.({
-        ...started,
-        answer: 'new_session',
-        next:
-          started.next ?? 'The user chose "New session": it runs on its own and its notes reach you. Say so, link it and end your turn.',
-      });
-      return { ...started, answered: !!answer };
-    });
-  }
+  // the user answered: an offer stops counting down, so a start that fails leaves its card waiting for them
+  if (action === 'start') return startAnswered(this, id, { options });
   if (action === 'dismiss' || action === 'here')
     return Promise.resolve().then(() => {
       const closed = closeProposal(this, id, { status: action === 'here' ? 'declined' : 'dismissed' });

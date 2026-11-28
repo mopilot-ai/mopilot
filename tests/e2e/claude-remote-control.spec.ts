@@ -12,7 +12,7 @@ const entry = (page: Page) => page.locator('.slash-panel .add-panel-item', { has
 const chip = (page: Page) => page.locator('.plan-chip', { hasText: 'Remote Control' });
 const open = (page: Page) => card(page).getByRole('button', { name: 'Open', exact: true });
 // the summary panel's Remote Control row keeps the link's state in view, where a toast is gone in seconds
-const card = (page: Page) => page.locator('.summary-header');
+const card = (page: Page) => page.locator('.summary-environment');
 const cardSwitch = (page: Page) => card(page).getByRole('switch', { name: 'Remote Control' });
 
 async function send(page: Page, text: string) {

@@ -72,6 +72,12 @@ export function fakeHost(facts: Record<string, any>, log: any[] = []) {
       if (facts[id]?.removeFails) throw new Error('the harness refused');
     },
     setModel: async (id: string, m: string) => (log.push(['model', id, m]), { model: m }),
+    autoModeOf: (id: string) => facts[id]?.auto ?? null,
+    setAutoMode: (id: string, mode: string | null) => {
+      log.push(['auto', id, mode]);
+      if (facts[id]) facts[id].auto = mode;
+      return { auto: mode };
+    },
     refuseWhileSwitching: (id: string) => {
       if (facts[id]?.switching) throw Object.assign(new Error('Call set_session_harness again.'), { code: 'switch_pending' });
     },

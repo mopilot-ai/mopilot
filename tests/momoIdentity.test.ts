@@ -76,3 +76,15 @@ test('replay: a prompt that carries the identity-only block (memory empty, name 
     assert.ok(!scrub(`x ${block.slice(0, 50)}`).includes(MOMO_PREAMBLE.slice(0, 20)), name);
   }
 });
+
+test('a named block tells MoMo to look for its momo_ tools before it says it can’t do something, on any harness (#5805)', () => {
+  const block = momoBlock({ name: 'MoMo' }) as string;
+  // Codex reaches MoPilot's tools only through code mode's ALL_TOOLS, Claude Code through ToolSearch: a model that does not
+  // look answers "I can't save that" with momo_memory_save one search away
+  assert.match(block, /before you say you can't do something/i);
+  assert.match(block, /momo_/);
+  assert.match(block, /ALL_TOOLS/);
+  assert.match(block, /ToolSearch/);
+  // only with who MoMo is: a block without a name (a background pass's) carries no such note
+  assert.doesNotMatch(momoBlock({ facts: ['Likes tea'] }) as string, /ALL_TOOLS/);
+});

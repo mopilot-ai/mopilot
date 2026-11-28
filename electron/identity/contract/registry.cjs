@@ -67,6 +67,10 @@ function instance(o) {
     limited: !!o.limited,
     // when that limit lifts (ms), when main knows it
     ...(o.limited && typeof o.limitedUntil === 'number' ? { limitedUntil: o.limitedUntil } : {}),
+    // percent left of its plan's tightest usage window, as main last read it; null: not known (pay per use has none)
+    left: typeof o.left === 'number' && Number.isFinite(o.left) ? Math.max(0, Math.min(100, o.left)) : null,
+    // its plan's size in plan units (shared/remainingCapacity.mjs planUnits); null: not known
+    units: typeof o.units === 'number' && o.units > 0 ? o.units : null,
     active: !!o.active,
   };
 }

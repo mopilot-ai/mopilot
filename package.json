@@ -42,6 +42,7 @@
     "pretypecheck": "node scripts/harness-catalog.mjs",
     "pretest:coverage": "node scripts/harness-catalog.mjs",
     "preharness-matrix": "node scripts/harness-catalog.mjs",
+    "auto-route:parity": "node scripts/auto-route/parity.mjs",
     "prepare": "node scripts/harness-catalog.mjs && (git config core.hooksPath .githooks && node scripts/hook-check.mjs || true) && (node scripts/module-map.mjs || true)"
   },
   "devDependencies": {
@@ -107,6 +108,7 @@
     "micromark-extension-gfm-autolink-literal": "2.1.0",
     "micromark-extension-gfm-table": "2.1.2",
     "node-pty": "1.1.0",
+    "onnxruntime-node": "1.24.3",
     "qrcode": "^1.5.4",
     "remark-breaks": "^4.0.0",
     "remark-cjk-friendly": "^2.3.2",

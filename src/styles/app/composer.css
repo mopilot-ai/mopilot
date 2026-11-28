@@ -194,7 +194,7 @@
 }
 .composer-skill {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 5px;
   color: var(--accent);
   cursor: pointer;

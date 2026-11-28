@@ -6,7 +6,7 @@ import { test, expect } from './fixtures/app';
 
 const composer = (page: Page) => page.getByRole('textbox', { name: 'Message', exact: true });
 const transcript = (page: Page) => page.getByRole('main');
-const card = (page: Page) => page.locator('.summary-header');
+const card = (page: Page) => page.locator('.summary-environment');
 const cardSwitch = (page: Page) => card(page).getByRole('switch', { name: 'Remote Control' });
 const dialog = (page: Page) => page.getByRole('alertdialog', { name: 'Allow devices to control this computer?' });
 

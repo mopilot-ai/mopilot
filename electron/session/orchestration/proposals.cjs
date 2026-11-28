@@ -9,27 +9,31 @@ const { startChild } = require('./spawn.cjs');
 const { parseKind } = require('../../../shared/harnessKind.mjs');
 const { predecessorsOf } = require('./dependants.cjs');
 const { isUserTurn } = require('../userTurn.cjs');
-const { authorizeStart } = require('./startPolicy.cjs');
+const { authorizeStart, startRequest } = require('./startPolicy.cjs');
 const { startArgs } = require('./spawn.cjs');
 const { suggestionLimit } = require('./planAcceptance.cjs');
+const { noteIgnored } = require('../../ignored.cjs');
 
 /** How long a proposal can be started. */
 const PROPOSAL_DAYS = 7;
 /** How long an offer's call waits for the user's answer: under Codex's 15-minute limit on MoPilot's tools. */
 const OFFER_WAIT_MS = 13 * 60_000;
-/** How long an offer's card counts down before it goes ahead as "Do it here" for a user who has not answered. */
+/** How long an offer's card counts down before it goes ahead as "New session" for a user who has not answered. */
 const OFFER_COUNTDOWN_MS = 60_000;
 /** What the agent is told when the user chose "Do it here" (and the line that call reads as, "Kept in this session"). */
 const HERE_NEXT = 'The user chose "Do it here": do the task now, in this chat, in this turn. Start no session for it.';
-/** What the agent is told when nobody answered the card before its countdown ran out. */
-const AUTO_HERE_NEXT = `Nobody answered the card within ${OFFER_COUNTDOWN_MS / 1000} seconds, so it went ahead here: do the task now, in this chat, in this turn. Start no session for it.`;
+/** How the agent is told who chose "New session": the user, or the countdown for a user who did not answer. */
+const NEW_SESSION_BY = {
+  click: 'The user chose "New session"',
+  auto: `Nobody answered the card within ${OFFER_COUNTDOWN_MS / 1000} seconds, so it went ahead as "New session"`,
+};
 /** What the agent is told when its offer's call ends with the card still open (the cap, a Stop, its turn's end). */
 const OPEN_NEXT =
   'The user did not answer the card: end your turn now. It stays open; if they choose "New session" later, the session starts and its notes reach you, and "Do it here" comes back as their reply.';
 /** What the agent is told when the user's new message waits behind its turn: it ends the turn, so that message runs next. */
 const QUEUED_NEXT =
   'The user sent a new message instead of answering the card; it waits until this turn ends. The offer is closed and nothing started: do not start the task. Say in one line that you will read their message first, and end your turn.';
-/** By Orchestrator: its offers counting down to "Do it here", each by task id with what stops it. */
+/** By Orchestrator: its offers counting down to "New session", each by task id with what stops it. */
 const COUNTDOWNS = new WeakMap();
 /** A proposal the user has not finished with: open, or taken by a click and starting or waiting for its brief. */
 const LIVE = new Set(['open', 'starting', 'briefing']);
@@ -48,11 +52,6 @@ function fail(code, message = code) {
 /** A proposal's status now: one still open past its time has expired. */
 function proposalStatus(p, now) {
   return p.status === 'open' && now > p.expiresAt ? 'expired' : p.status;
-}
-
-/** Why a proposal can no longer be answered: its status, or that "Do it here" was chosen when nobody answered in time. */
-function notOpen(p, status) {
-  return p.autoHere ? 'Nobody answered in time, so it already went ahead here.' : `That proposal is ${status}`;
 }
 
 /** @param {any} orch @returns {Map<string, () => void>} the orchestrator's offers counting down, by task id */
@@ -136,18 +135,17 @@ function propose(orch, parentId, args, turn) {
 
 /**
  * Start an open proposal, once: a second click or call while it starts is refused. `by` says whose word started it,
- * the user's click or the parent's turn the user began; a click leaves the parent a note that it started.
+ * the user's click, the parent's turn the user began, or (`auto`) an offer's countdown for a user who did not answer,
+ * which starts on that turn's authority; a click leaves the parent a note that it started.
  * @param {any} orch
  * @param {string} id
- * @param {{ by: 'click' | 'turn', parentId?: string, options?: unknown, brief?: any, signal?: AbortSignal | null, request?: any }} how parentId: the owning chat; options: the user's card picks
+ * @param {{ by: 'click' | 'turn' | 'auto', parentId?: string, options?: unknown, brief?: any, signal?: AbortSignal | null, request?: any }} how parentId: the owning chat; options: the user's card picks
  */
 async function startProposal(orch, id, { by, parentId, options = null, brief = null, signal = null, request = null }) {
   const { o, journal } = orch;
   const p = journal.proposal(id);
   if (!p || (parentId && p.parentId !== parentId)) fail('not_found', `No proposal ${id} from this chat`);
   const status = proposalStatus(p, o.now());
-  // one its countdown answered is told as that, not by its status: a click that came a moment late
-  if (p.autoHere) fail('not_open', notOpen(p, status));
   if (status !== 'open' && !(status === 'briefing' && by === 'turn' && brief)) fail('not_open', `That proposal is ${status}`);
   // one proposed before #2084 may carry a harness the agent chose on its own: it starts on the parent's, unless the
   // user picks one on the card (options)
@@ -182,11 +180,22 @@ async function startProposal(orch, id, { by, parentId, options = null, brief = n
         chatId: result.chat_id,
         ...(brief ? { args: filled } : {}),
       });
-      // a click on an offer whose call still waits answers that call; only a later click needs a note
-      if (by !== 'click' || orch.answers?.has(id)) return;
+      // a start on an offer whose call still waits answers that call, and the agent's own start is its call's
+      // result; only a click or countdown start whose call has ended (a cap, a Stop meanwhile) needs a note
+      if (by === 'turn' || orch.answers?.has(id)) return;
+      const who =
+        by === 'auto'
+          ? `Nobody answered the card for your offered task ${id} ("${p.args.title}"), so it started`
+          : `The user started your proposed task ${id} ("${p.args.title}")`;
+      // a reserved session from a countdown waits for its brief, which only the agent can write (a late click's
+      // window asks for it itself)
+      const then =
+        by === 'auto' && !args.prompt
+          ? `It waits for its brief: call start_session with exactly proposal_id "${id}", prompt and background, and do not do the task here.`
+          : 'It runs on its own; you get a note when it ends a turn.';
       addNote(d, p.parentId, {
         childId: result.chat_id,
-        body: `The user started your proposed task ${id} ("${p.args.title}") as a separate session (${nameOf(journal, result.chat_id)}, ${result.chat_id}). It runs on its own; you get a note when it ends a turn.`,
+        body: `${who} as a separate session (${nameOf(journal, result.chat_id)}, ${result.chat_id}). ${then}`,
         at: o.now(),
         wakes: false,
       });
@@ -196,7 +205,7 @@ async function startProposal(orch, id, { by, parentId, options = null, brief = n
       task_id: id,
       ...(!args.prompt
         ? {
-            next: `The user chose "New session" for "${p.args.title}" (task_id: ${id}). Write its brief now: call start_session with exactly proposal_id "${id}", prompt and background. No other arguments; the settings were chosen on the card. Do not do the task here. When it returns, say it is running, link it and end your turn.`,
+            next: `${NEW_SESSION_BY[by === 'auto' ? 'auto' : 'click']} for "${p.args.title}" (task_id: ${id}). Write its brief now: call start_session with exactly proposal_id "${id}", prompt and background. No other arguments; the settings were chosen on the card. Do not do the task here. When it returns, say it is running, link it and end your turn.`,
           }
         : {}),
     };
@@ -242,21 +251,18 @@ function startOptions(options) {
 
 /**
  * Set an open proposal aside: the agent withdrawing its own (dismiss_task, `parentId` set), the user dismissing a
- * card, or "Do it here" on an offer (declined): the user's choice, or (`auto`) its countdown's for a user who did not answer.
+ * card, or "Do it here" on an offer (declined).
  * @param {any} orch
  * @param {string} id
- * @param {{ status: 'dismissed' | 'declined', parentId?: string, auto?: boolean }} how
+ * @param {{ status: 'dismissed' | 'declined', parentId?: string }} how
  */
-function closeProposal(orch, id, { status, parentId, auto = false }) {
+function closeProposal(orch, id, { status, parentId }) {
   const p = orch.journal.proposal(id);
   if (!p || (parentId && p.parentId !== parentId)) fail('not_found', `No proposal ${id} from this chat`);
   const now = proposalStatus(p, orch.o.now());
-  if (now !== 'open') fail('not_open', notOpen(p, now));
+  if (now !== 'open') fail('not_open', `That proposal is ${now}`);
   if (status === 'declined' && p.kind !== 'offer') fail('not_offer', 'Only an offer can be done here');
-  orch.journal.change((d) => {
-    d.proposals[id].status = status;
-    if (auto) d.proposals[id].autoHere = true;
-  });
+  orch.journal.change((d) => (d.proposals[id].status = status));
   return { task_id: id, status };
 }
 
@@ -327,7 +333,7 @@ function releaseOffers(orch, chatId) {
  * Hold an offer's call until the user answers its card: "New session" (the start's result), "Do it here", or neither
  * before the call's own cancel (a Stop) or OFFER_WAIT_MS, when the agent is told to end its turn and the card stays.
  * Meanwhile the card counts down OFFER_COUNTDOWN_MS (its `countdown`, which windows draw) and then goes ahead as
- * "Do it here" for the user, unless they took the card in hand first (holdOffer). The answer is settled once, by
+ * "New session" for the user, unless they took the card in hand first (holdOffer). The answer is settled once, by
  * whichever comes first; the proposal stops waiting and counting either way.
  * @param {any} orch the Orchestrator (its `answers`: task id -> settle; its countdowns, countdownsOf: task id -> stop)
  * @param {any} proposed propose()'s result
@@ -367,29 +373,64 @@ function waitForAnswer(orch, proposed, signal) {
     // a countdown the card can't show never runs: the user would not know it was about to answer for them
     if (!orch.safely('count down an offer', () => orch.journal.change((d) => (d.proposals[id].countdown = { from, at: from + ms }))))
       return;
-    countdown = clock.setTimeout(() => goAheadHere(orch, id, proposed.title), ms);
+    countdown = clock.setTimeout(() => goAheadNew(orch, id), ms);
     countdownsOf(orch).set(id, () => clock.clearTimeout(countdown));
   });
 }
 
 /**
- * An offer's countdown ran out: "Do it here" for the user who did not answer, as their own click would, unless the
- * card was answered or taken in hand meanwhile. A choice the journal can't record leaves the card waiting for them.
+ * Start a proposal answered "New session": the user's click, or (`auto`) an offer's countdown for a user who did not
+ * answer. Either stops the countdown first, so a start that fails leaves the card waiting for the user. An offer whose
+ * call still waits gets the start's result as its answer, saying who chose it.
  * @param {any} orch
  * @param {string} id
- * @param {string} title
+ * @param {{ options?: unknown, auto?: boolean }} [how] options: the user's card picks
  */
-function goAheadHere(orch, id, title) {
-  const settle = orch.answers.get(id);
+function startAnswered(orch, id, { options = null, auto = false } = {}) {
+  const p = orch.journal.proposal(id);
+  if (!p) fail('not_found', `No proposal ${id}`);
+  holdOffer(orch, id);
+  const request = startRequest(orch, p.parentId);
+  // the user's clicks start side by side (Start all): each proposal is its own, and a click needs no start budget
+  const run = () => startProposal(orch, id, { by: auto ? 'auto' : 'click', options, request });
+  return orch.serialized(p.parentId, null, run, { queue: false }).then((started) => {
+    const answer = orch.answers.get(id);
+    answer?.({
+      ...started,
+      answer: 'new_session',
+      ...(auto ? { auto: true } : {}),
+      next:
+        started.next ??
+        `${NEW_SESSION_BY[auto ? 'auto' : 'click']}: it runs on its own and its notes reach you. Do not do the task here. Say so, link it and end your turn.`,
+    });
+    return { ...started, answered: !!answer };
+  });
+}
+
+/**
+ * An offer's countdown ran out: "New session" for the user who did not answer, as their own click would, unless the
+ * card was answered or taken in hand meanwhile. A start that fails leaves the card open, waiting for them.
+ * @param {any} orch
+ * @param {string} id
+ */
+function goAheadNew(orch, id) {
   const p = orch.journal.proposal(id);
   countdownsOf(orch).delete(id);
-  if (!settle || !p?.countdown) return;
-  const close = () => closeProposal(orch, id, { status: 'declined', auto: true });
-  if (proposalStatus(p, orch.o.now()) === 'open' && orch.safely('go ahead here for an unanswered offer', close)) {
-    settle({ status: 'declined', task_id: id, kind: 'offer', title, answer: 'here', auto: true, next: AUTO_HERE_NEXT });
-    return;
-  }
-  // a card being started meanwhile, or one the journal could not close, waits for the user and shows no countdown
+  if (!orch.answers.has(id) || !p?.countdown) return;
+  // a card being started meanwhile waits for the user and shows no countdown
+  if (proposalStatus(p, orch.o.now()) !== 'open') return hideCountdown(orch, id);
+  // its hold and start run inside the promise, so a journal write that fails there is caught too; any failure leaves
+  // the card open for the user with no countdown on show, as nothing answers for them now
+  Promise.resolve()
+    .then(() => startAnswered(orch, id, { auto: true }))
+    .catch((error) => {
+      noteIgnored('go ahead as a new session for an unanswered offer', error);
+      hideCountdown(orch, id);
+    });
+}
+
+/** Take an offer's countdown off the record windows draw, as far as the journal can write. */
+function hideCountdown(orch, id) {
   orch.safely('stop showing an offer’s countdown', () => orch.journal.change((d) => delete d.proposals[id].countdown));
 }
 
@@ -417,6 +458,7 @@ module.exports = {
   reopenProposal,
   proposalStatus,
   waitForAnswer,
+  startAnswered,
   holdOffer,
   countdownsOf,
   queuedOverOffers,
@@ -426,7 +468,7 @@ module.exports = {
   OFFER_WAIT_MS,
   OFFER_COUNTDOWN_MS,
   HERE_NEXT,
-  AUTO_HERE_NEXT,
+  NEW_SESSION_BY,
   OPEN_NEXT,
   QUEUED_NEXT,
   supersedeOffers,

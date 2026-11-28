@@ -68,15 +68,17 @@ function forgetMomoSent(chatId, session = null) {
  *           allowed: () => boolean, isMomoChat: (chatId: string) => boolean, budgetTokens?: number, name?: () => string,
  *           history?: (chatId: string, query: string) => string[], nudges?: (chatId: string) => string[],
  *           channel?: (chatId: string) => { name: string, instructions: string } | null,
- *           ownerRules?: (chatId: string) => { text: string, kind?: string }[] }} o
+ *           ownerRules?: (chatId: string) => { text: string, kind?: string }[],
+ *           abilities?: () => { sources: string[], readsMail: boolean } }} o
  *   name: the name the user gave MoMo (prefs.momo.persona.name), read at every turn so a rename reaches the next one
  *   history: snippets of MoMo's other chats that bear on the turn (the index of past chats), within their own small budget
  *   channel: the channel a chat is the journal of, with its instructions (A2: one chat's own, never another's; the memory is the same for every chat)
  *   ownerRules: the owner's standing rules (a Host's learning service), set apart from the quoted data; a Mac app gives none
  *   nudges: the reminders MoMo showed in this chat lately (its nudge notes), so the turn knows what the user may be answering
+ *   abilities: what MoMo can reach now (connected sources and accounts, whether one reads mail), so it offers only that (#5803)
  * @returns {MomoContextProvider}
  */
-function memoryContextProvider({ store, allowed, isMomoChat, budgetTokens, name, history, nudges, channel, ownerRules }) {
+function memoryContextProvider({ store, allowed, isMomoChat, budgetTokens, name, history, nudges, channel, ownerRules, abilities }) {
   return (chatId, { query }) => {
     if (allowed() !== true || isMomoChat(chatId) !== true || !store.available()) return null;
     const summary = store.summary({ budgetTokens, query });
@@ -111,6 +113,16 @@ function memoryContextProvider({ store, allowed, isMomoChat, budgetTokens, name,
     } catch (error) {
       noteIgnored("read the owner's standing rules for a turn", error);
     }
+    /** @type {{ sources: string[], readsMail: boolean } | null} */
+    let reach = null;
+    if (abilities)
+      try {
+        reach = abilities();
+      } catch (error) {
+        // not knowing what is connected reads as nothing connected: MoMo then offers no more than its own tools
+        noteIgnored('read what MoMo can reach for a turn', error);
+        reach = { sources: [], readsMail: false };
+      }
     return momoBlock({
       ...summary,
       name: name?.(),
@@ -119,6 +131,7 @@ function memoryContextProvider({ store, allowed, isMomoChat, budgetTokens, name,
       nudges: shown,
       channel: own,
       ownerRules: rules,
+      abilities: reach,
     });
   };
 }

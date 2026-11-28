@@ -4,6 +4,7 @@
 import { currentNativeId, firstTierKind, ownerOf } from './ownership';
 import { acpHarnessOf, HARNESS_IDS, isAcpThread, type HarnessId, type Segment } from './types';
 import type { HarnessKind } from './adapter';
+import { PLAN_SIZES, planUnitsOf } from '../../shared/remainingCapacity.mjs';
 
 /** Codex, Claude Code, or any basic harness over ACP. */
 export type HarnessFamily = HarnessId | 'acp';
@@ -82,16 +83,8 @@ export interface HarnessTraits {
 /** A model as the everyday-tier trait reads it. */
 export type ModelChoice = { id: string; label: string; isDefault?: boolean };
 const defaultModel = <M extends ModelChoice>(models: M[]) => models.find((m) => m.isDefault) ?? models[0] ?? null;
-/** The multiplier a plan names ("Max 20×", "20x"), else the first of `sizes` whose word the plan holds, else null. */
-const unitsOf = (sizes: Record<string, number>) => (plan: string | null) => {
-  if (!plan) return null;
-  const mult = /(\d+)\s*[×x]/i.exec(plan)?.[1];
-  if (mult) return Number(mult);
-  const key = Object.keys(sizes)
-    .sort((a, b) => b.length - a.length)
-    .find((k) => plan.toLowerCase().includes(k));
-  return key ? sizes[key] : null;
-};
+/** A family's plan sizes (shared/remainingCapacity.mjs, which main's account drivers read too, so both size a plan alike). */
+const unitsOf = (sizes: Readonly<Record<string, number>>) => (plan: string | null) => planUnitsOf(sizes, plan);
 
 export const HARNESS_TRAITS: Record<HarnessFamily, HarnessTraits> = {
   codex: {
@@ -111,7 +104,7 @@ export const HARNESS_TRAITS: Record<HarnessFamily, HarnessTraits> = {
     momoKeyRefused: 'MoMo needs a ChatGPT sign-in on Codex',
     // Codex ships its everyday model as the list's default; the strongest is a separate pick
     everydayModel: defaultModel,
-    planUnits: unitsOf({ plus: 1, team: 1, business: 1, 'pro lite': 5, pro: 20 }),
+    planUnits: unitsOf(PLAN_SIZES.codex),
   },
   claude: {
     activity: 'dots',
@@ -130,7 +123,7 @@ export const HARNESS_TRAITS: Record<HarnessFamily, HarnessTraits> = {
     momoKeyRefused: null,
     // Sonnet: capable and far lighter on a plan than Opus; any other list falls back to its default
     everydayModel: (models) => models.find((m) => /sonnet/i.test(m.id) || /sonnet/i.test(m.label)) ?? defaultModel(models),
-    planUnits: unitsOf({ pro: 1, team: 1, max: 5 }),
+    planUnits: unitsOf(PLAN_SIZES.claude),
   },
   // a basic harness: its goals, reviews and compaction are commands it lists (main's caps), its skills too
   acp: {

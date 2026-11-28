@@ -10,6 +10,8 @@ const store = fakeStore({ threads: { chat: { cwd: '/repo' } }, runtime: { chat: 
 const fixture = { files: [{ added: 12, removed: 3 }], scope: [] as string[], fail: false };
 stubStore(store.exports);
 installNativeStub({
+  // the Servers section's dev servers: none
+  previews: { list: async () => [], onChanged: () => () => {} },
   codex: { onItem: () => () => {}, onStatus: () => () => {}, api: async () => ({ data: [] }) },
   // main's context snapshots (src/session/useContextSnapshot.ts): none known
   context: { get: async () => null, refresh: async () => null, onSnapshot: () => () => {} },
@@ -41,7 +43,8 @@ test('summary labels branch totals, refreshes on focus, and opens that exact sco
   const r = await render(h(SummaryPanel, { threadId: 'chat' }));
   const branch = () => one(r.host, '.summary-row', 'Branch changes');
   assert.match(branch().textContent!, /Branch changes1 file\+12 -3/);
-  assert.equal(r.host.querySelector('.summary-changes summary'), null, 'open the branch diff directly from the only Changes row');
+  // Changes folds like every rail section (Claude Desktop's); its row opens the branch diff directly
+  assert.equal(one(r.host, '.summary-changes > summary').textContent, 'Changes');
   assert.equal(fixture.scope[0], 'branch');
   await act(() => branch().click());
   assert.deepEqual(store.calls.at(-1), ['openChanges', { scope: 'branch' }]);

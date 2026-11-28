@@ -71,6 +71,9 @@ export function Card({
   req: PendingRequest;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  // Claude Code's reason for asking (shared/approvalRequest.mjs): a Bash card's title is the command's description
+  const why = (req.params as { why?: unknown } | undefined)?.why;
+  const shown = typeof why === 'string' && why.trim() !== '' && why !== message ? why : null;
   // Claude Code reads why a tool was denied, so the note goes back with the denial. The other
   // harnesses have no such field: their note is sent as the next message instead.
   const carries = String(req.id).startsWith('cperm-');
@@ -106,6 +109,7 @@ export function Card({
         <div className="approval-message">{message}</div>
         <CardClock threadId={req.threadId} />
       </div>
+      {shown && <p className="approval-why">{shown}</p>}
       {children && <div className="approval-detail">{children}</div>}
       <input
         className="text-input approval-note"

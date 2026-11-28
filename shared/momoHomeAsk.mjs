@@ -1,6 +1,6 @@
 // How the app asks a Host about MoMo's home and runs the steps of the shared rules (shared/momoHomeReal.mjs): `host.momoHomeLook` answers to an owner device without a live grant, so a lapsed grant is "send the grant and look again", never a veil that reads as "no home"; the lease and stand-down steps `decide` returns run once each, in order.
 
-import { execute } from './host/momoHomeClient.mjs';
+import { execute, HOME_MIN_HOST_VERSION } from './host/momoHomeClient.mjs';
 
 /** A refusal that only means the Host does not know the request or lacks the feature it needs (an older Host, or a lapsed grant). @param {unknown} error */
 export const unknownRequest = (error) =>
@@ -75,7 +75,12 @@ export function createSteps({ call, told, report, now = Date.now, alive = () => 
       started = true;
       const { climbTo, own, ...params } = /** @type {any} */ (step.params);
       try {
-        const r = await call(step.host, step.call, params);
+        // every start names the oldest Host that may hold a home: the Host checks its own version (an older Host ignores it, and the machine row's Update covers it)
+        const r = await call(
+          step.host,
+          step.call,
+          step.call === 'host.momoHomeStart' ? { ...params, minVersion: HOME_MIN_HOST_VERSION } : params,
+        );
         // a start answers with the home it holds now: the lease it ACTUALLY got
         return step.call === 'host.momoHomeStart'
           ? { ok: true, leaseEpoch: r?.home?.leaseEpoch, homeId: r?.home?.homeId }

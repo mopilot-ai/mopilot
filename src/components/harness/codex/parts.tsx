@@ -24,6 +24,7 @@ import type { HarnessParts } from '../parts';
 import type { HarnessStatus } from '../../../harness/types';
 import type { HarnessBinary } from '../../../lib/cliSource';
 import { useCodexBinaries } from '../../../harness/codexBinaries';
+import { CodexExpiredBanner } from './ExpiredBanner';
 
 // The ChatGPT mark, read at runtime from the user's own ChatGPT.app (nothing copied into this repo).
 // It's a macOS template image, so it is drawn as a mask in the current text color.
@@ -124,6 +125,7 @@ export const codexParts: HarnessParts = {
   useBilling,
   useAutoSwitch: () => [useStore((s) => s.accounts.autoSwitch), setAutomatic],
   useBinary: useCodexBinary,
+  Banner: CodexExpiredBanner,
 };
 
 /** What CodexBinaryRow gives its Version row; the binary the status names while the installs can't be read. */

@@ -19,6 +19,8 @@ export type ClaudeRequestBase = {
   turnId: null;
   itemId: string | null;
   reason: string | null;
+  /** Claude Code's own reason for asking (its decisionReason), shown under the card's title when it differs from it. */
+  why: string | null;
   _claude: ClaudeMeta;
 };
 

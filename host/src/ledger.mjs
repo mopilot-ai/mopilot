@@ -9,6 +9,8 @@ export const INDETERMINATE = Object.freeze({ state: 'indeterminate' });
 /** Refusals the Host makes before it does anything (a harness not installed or signed in, a credential or login it cannot use, an organization identity busy, a limit or a rule, a folder that is not there, a request it cannot serve): the same key may be sent again once the cause is gone. */
 export const NOT_DONE = new Set([
   'harness_not_configured',
+  // a Host older than the release a MoMo home needs refuses the start before doing anything (#5626)
+  'host_too_old',
   'credential_unavailable',
   'login_unavailable',
   'login_signed_out',

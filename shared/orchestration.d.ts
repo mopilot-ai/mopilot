@@ -100,12 +100,10 @@ export type SideSessionProposal = {
   /** an offer whose call waits for the user's answer on its card */
   waiting: boolean;
   /**
-   * a waiting offer counting down (ms epoch): from when, and when it goes ahead as "Do it here" for a user who has not
+   * a waiting offer counting down (ms epoch): from when, and when it goes ahead as "New session" for a user who has not
    * answered; absent once answered or taken in hand (its start options, "Don't ask again", a click)
    */
   countdown?: { from: number; at: number };
-  /** "Do it here" was chosen for the user: nobody answered before its countdown ran out */
-  autoHere?: true;
   /** where it would run: a fork of the chat, its own worktree, or the chat's folder */
   place: 'fork' | 'worktree' | 'folder';
 };

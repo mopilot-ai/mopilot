@@ -1,0 +1,8 @@
+{
+  "exceptions": {
+    "scripts/package.mjs": {
+      "maxLines": 506,
+      "reason": "Owns the packager options for every platform. Auto routing adds one injected tool, its call and its three option entries; fetching the weights and choosing ONNX Runtime's files stay in scripts/auto-route/packaging.mjs."
+    }
+  }
+}

@@ -127,10 +127,10 @@ for (const harness of ['codex', 'claude'])
     assert.equal(w.record.meta.config.effort, 'high');
     w.panel.view = 'list';
     w.panel.render();
-    assert.equal((await w.click('Automatic')).attrs['aria-checked'], 'true');
+    assert.equal((await w.click('Default (recommended)')).attrs['aria-checked'], 'true');
     await w.click('Old');
     assert.equal(w.record.meta.config.model, 'old');
-    await w.click('Automatic');
+    await w.click('Default (recommended)');
     assert.equal(w.record.meta.config.model, null);
     await w.panel.load({ harness });
     assert.deepEqual(w.panel.pick, { model: null, effort: 'high' }, 'a new message carries intent rather than a snapshot pin');
@@ -150,7 +150,7 @@ test('a pending Automatic pick retains a readable label if discovery loses its c
   const w = world('codex', { harness: 'codex', model: 'old' });
   w.live.codex.modelList = async () => ({ data: [] });
   await w.menus.choose({ chatId: 'chat', model: null, effort: null });
-  assert.equal(w.pending().modelLabel, 'Automatic');
+  assert.equal(w.pending().modelLabel, 'Default (recommended)');
   assert.equal(w.pending().model, null);
 });
 

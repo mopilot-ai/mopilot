@@ -20,6 +20,7 @@ import {
   setSelection,
   useEffectiveSelection,
   useHarnessAccounts,
+  useHarnessModels,
   useHarnessStatus,
 } from '../../session/harness/select';
 import { fastBillingNote, type Account } from '../../harness/accounts';
@@ -36,6 +37,7 @@ import { applySwitch, switchModel } from './applySwitch';
 import { AccountRow } from './AccountRow';
 import { RouteMark } from './RouteMark';
 import { headerProvider, useHarnessRoute } from '../../harness/routes';
+import { AUTO_MODEL_ID, autoButtonLabel, setAutoMode, useAutoDecision, useAutoMode } from '../../session/harness/autoRoute';
 
 /** The account a pending switch to `target` will use: null is Automatic, undefined none chosen. */
 function pendingAccountOf(pending: PendingSwitch | null | undefined, target: HarnessId) {
@@ -59,6 +61,12 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
   // a new chat's draft keeps what is picked here over Settings' fixed default (session/newChatStart.ts)
   const select = (patch: Parameters<typeof composerSelect>[1]) => composerSelect(h, patch, threadId);
   const allowAutomatic = useStore((s) => !threadId || !s.momoModels?.[threadId]);
+  // Auto (src/harness/autoRoute.ts): main picks each message's model and effort, or also its harness ('global')
+  const autoMode = useAutoMode(threadId);
+  const autoDecision = useAutoDecision(threadId);
+  const harnessModels = useHarnessModels(h);
+  // a harness picked by hand ends Auto (all harnesses); a model picked by hand ends either Auto (choose)
+  const endGlobal = () => autoMode === 'global' && setAutoMode(threadId, null);
   const hStatus = useHarnessStatus(h);
   const a = useAnchor();
   const l1 = useAnchor<HTMLButtonElement>();
@@ -92,12 +100,21 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
     // Fast (or a tier) stays only where the new model offers it
     const keepTier = target === h && tier ? !!m.tiers?.some((t) => t.id === tier) : m.fast;
     const patch = { model: m.id || null, effort: eff, ...(keepTier ? {} : { fast: false }) };
+    // a model picked by hand ends Auto
+    if (autoMode) setAutoMode(threadId, null);
     // a switch confirmed in an existing chat is no new chat's pick, even when it names no chat
     if (!threadId) composerSelect(target, patch, null);
     else setSelection(target, patch, target === onHarness ? threadId : null);
   };
   const pick = (target: HarnessId, m: HarnessModel) => {
     l1.close();
+    if (m.id === AUTO_MODEL_ID) {
+      a.close();
+      if (threadId && pending) clearPendingSwitch(threadId);
+      if (!threadId && target !== defaultHarness().kind) pickNewChatHarness(target);
+      setAutoMode(threadId, 'harness');
+      return;
+    }
     if (threadId && target !== onHarness) {
       // another harness in an existing chat: confirm the handoff first (design §05)
       a.close();
@@ -125,7 +142,10 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
   const fastNote = fastBillingNote(h, useHarnessAccounts(h).active);
   const fastTip =
     fastUnavailable ?? [PARTS[h].fastTip ?? (fast ? 'Disable fast mode' : 'Enable fast mode'), fastNote].filter(Boolean).join(' · ');
-  const label = (model?.id === modelId ? model?.label : null) ?? modelId ?? 'Model';
+  const label = autoMode
+    ? autoButtonLabel(autoDecision, harnessModels)
+    : ((model?.id === modelId ? model?.label : null) ?? modelId ?? 'Model');
+  const shownEffort = autoMode ? (autoDecision?.fallback ? null : (autoDecision?.effort ?? null)) : effort;
   const caps = useChatCaps(threadId && h === onHarness ? threadId : null, { kind: h, model: modelId ?? undefined });
   // a provider MoPilot chose for the chat is its route; otherwise the harness's own config may set one
   const route = useHarnessRoute(h);
@@ -137,7 +157,7 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
         <HarnessIcon h={h} size={14} />
         {fast && <Zap size={13} className="fast-icon" fill="currentColor" />}
         <span className="model-name">{label}</span>
-        {effort && <span className="model-effort">{effortLabel(effort)}</span>}
+        {shownEffort && <span className="model-effort">{effortLabel(shownEffort)}</span>}
         <RouteMark harness={h} label={HARNESS_LABEL[h]} hidden={!!caps.provider && !caps.provider.firstParty} />
         <ChevronDown size={13} strokeWidth={2} className="model-chevron" />
       </button>
@@ -155,9 +175,9 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
       >
         <EffortPanel
           open={a.open && !l1.open}
-          efforts={efforts}
-          effort={effort}
-          noEffort={model ? 'This model has no effort levels' : ''}
+          efforts={autoMode ? [] : efforts}
+          effort={autoMode ? null : effort}
+          noEffort={autoMode ? 'Auto picks the effort for each message' : model ? 'This model has no effort levels' : ''}
           onEffort={(e) => select({ effort: e })}
           // only the effort, to the model's own default: the model and speed stay as chosen
           onReset={() => select({ effort: model?.defaultEffort ?? null })}
@@ -216,6 +236,24 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
           <MenuRow bare className="hp-head hp-back" onClick={l1.close}>
             ‹ Harness
           </MenuRow>
+          {allowAutomatic && (
+            <MenuRow
+              className="has-desc"
+              role="menuitemradio"
+              aria-checked={autoMode === 'global'}
+              onClick={() => {
+                a.close();
+                if (threadId && pending) clearPendingSwitch(threadId);
+                setAutoMode(threadId, 'global');
+              }}
+            >
+              <span className="menu-label">
+                <span className="menu-title">Auto (all harnesses)</span>
+                <span className="menu-desc">Picks the harness, model and effort for each message</span>
+              </span>
+              <span className="menu-check">{autoMode === 'global' ? <Check size={15} strokeWidth={2} /> : null}</span>
+            </MenuRow>
+          )}
           {enabledHarnesses.map((id) => (
             <HarnessRow
               key={id}
@@ -233,7 +271,7 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
               a.close();
               if (threadId && chatBasicHarness(threadId) === b) clearPendingSwitch(threadId);
               else if (threadId) setBasicSheet(b);
-              else pickNewChatHarness(`acp:${b}`);
+              else endGlobal(), pickNewChatHarness(`acp:${b}`);
             }}
           />
           <div className="menu-sep" role="separator" />
@@ -272,8 +310,10 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
               h={hover.h}
               chatId={threadId}
               currentModel={hover.h === h ? modelId : null}
-              automatic={hover.h === h && automatic}
+              automatic={hover.h === h && automatic && !autoMode}
               allowAutomatic={allowAutomatic}
+              offerAuto={allowAutomatic && (!threadId || hover.h === onHarness)}
+              autoOn={hover.h === h && autoMode === 'harness'}
               onPick={(m) => pick(hover.h, m)}
             />
           </MenuList>
@@ -288,7 +328,7 @@ export function FirstTierPicker({ threadId, h }: { threadId: string | null; h: H
             onConfirm={(choices) => {
               const target = `acp:${basicSheet}` as const;
               setBasicSheet(null);
-              void applySwitch(threadId, { target, model: switchModel(target)! }, choices, () => undefined);
+              void applySwitch(threadId, { target, model: switchModel(target)! }, choices, endGlobal);
             }}
           />
         </Popover>

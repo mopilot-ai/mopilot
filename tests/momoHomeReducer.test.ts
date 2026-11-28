@@ -192,6 +192,7 @@ test('rules: add, edit marks it yours, turn off and on, signals become rules or 
   const off = run({ type: 'rule.turnOff', id: 'r-clients' });
   assert.equal(off.rules.find((r) => r.id === 'r-clients')?.state, 'off');
   assert.equal(run({ type: 'rule.accept', id: 'r-clients' }, off).rules.find((r) => r.id === 'r-clients')?.state, 'on');
+  assert.equal(run({ type: 'rule.turnOn', id: 'r-clients' }, off).rules.find((r) => r.id === 'r-clients')?.state, 'on');
   const made = run({ type: 'signal.make', id: 'sig-1' });
   assert.equal(made.signals.length, 0);
   assert.equal(made.rules.length, 5);

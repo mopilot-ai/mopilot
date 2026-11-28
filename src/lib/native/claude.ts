@@ -100,6 +100,8 @@ declare module '../native' {
           | 'mcpStatus'
           | 'toggleMcp'
           | 'reconnectMcp'
+          | 'authenticateMcp'
+          | 'mcpQueued'
           | 'remoteControl'
           | 'close',
         arg?: unknown,

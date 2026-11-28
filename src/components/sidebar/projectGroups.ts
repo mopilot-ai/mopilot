@@ -37,9 +37,6 @@ const EMPTY_CLOUD: CloudTask[] = [];
 export interface ProjectGroupData {
   repositoryKey?: string;
   repository?: string;
-  machineGroups?: string[];
-  /** Original folders of merged Host checkouts, retained by Remove from sidebar. */
-  machineFolderAliases?: string[];
   cloudTasks?: CloudTask[];
   locations?: RepositoryDestination[];
   locationKinds?: HostLocationKind[];
@@ -394,10 +391,11 @@ export function useProjectGroups(withRepositories = false) {
   }, [result.groups, ready, resolve, machineKeyOf]);
   // Keep every group as a revalidation candidate, with its identity/order and chats intact, even while unavailable.
   const availability = useFolderAvailability(result.groups.filter((g) => !g.machine && localFolder(g.path)).map((g) => g.path));
+  // Only Codex Cloud tasks join a repository's local project, so machine folders need no repository lookup.
   const facts = useSidebarRepositories(
-    result.groups.filter((g) => g.machine || localFolder(g.path)),
+    result.groups.filter((g) => !g.machine && localFolder(g.path)),
     machines,
-    withRepositories && (result.groups.some((group) => group.machine) || !!cloudState?.environments.length),
+    withRepositories && !!cloudState?.environments.length,
   );
   return useMemo(() => {
     const listedKeys = new Set(result.listed.map(groupKey));
@@ -415,14 +413,10 @@ export function useProjectGroups(withRepositories = false) {
         )
       : { ...result, groups: result.groups.map((group) => ({ ...group })), cloud: EMPTY_CLOUD };
     const { groups } = projection;
-    const ranks = new Map(result.recents.map((thread, index) => [thread.id, index]));
     for (const group of groups) {
       if (!group.machine && group.path) group.localAvailable = availability[group.path] !== false;
       if (group.repositoryKey) group.name = folderNames[group.repositoryKey] ?? group.name;
       if (group.locations?.length && group.pinnedKeys?.length) group.pinnedKeys = [...new Set(group.pinnedKeys)];
-      if (!group.locations?.some((location) => location.kind === 'machine')) continue;
-      if (chatSort === 'manual') group.threads = sortManual([...group.threads], chatOrder[groupKey(group)] ?? [], (thread) => thread.id);
-      else group.threads = [...group.threads].sort((a, b) => (ranks.get(a.id) ?? 0) - (ranks.get(b.id) ?? 0));
     }
     const pins = groups.filter((group) => group.pinnedKeys?.length).map(groupKey);
     sortProjectGroups(groups, [...new Set(projectOrder.map(machineKeyOf))], pins, projectSort);
@@ -449,8 +443,6 @@ export function useProjectGroups(withRepositories = false) {
     cloudState,
     hiddenFolders,
     pinnedP,
-    chatSort,
-    chatOrder,
     projectOrder,
     projectSort,
     draftRepository,

@@ -83,7 +83,7 @@ test('start approvals carry the real parent harness and abort signal; no broker 
   assert.deepEqual(f.calls.at(-1), [
     'approval',
     'top',
-    { title: 'New session for “A task”, or do it here?', body: 'With no answer in a minute, it’s done here.' },
+    { title: 'New session for “A task”, or do it here?', body: 'With no answer in a minute, it starts as a new session.' },
   ]);
   f.live.notifier = null;
   assert.equal(f.orch.o.notifyOffer('top', 'A task'), undefined);

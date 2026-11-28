@@ -11,6 +11,7 @@ export declare const OWNER_RULES_NOTE: string;
 export declare const OWNER_RULES_MAX: number;
 export declare const OWNER_RULE_CHARS: number;
 export declare const OWNER_RULE_KINDS: string[];
+export declare function abilitiesNote(a: { sources?: unknown; readsMail?: unknown } | null | undefined): string;
 export declare function CHANNEL_NOTE(name: string): string;
 export declare function momoBlock(
   summary:
@@ -22,6 +23,7 @@ export declare function momoBlock(
         history?: unknown;
         nudges?: unknown;
         ownerRules?: unknown;
+        abilities?: { sources?: unknown; readsMail?: unknown } | null;
         channel?: { name?: unknown; instructions?: unknown } | null;
       }
     | null

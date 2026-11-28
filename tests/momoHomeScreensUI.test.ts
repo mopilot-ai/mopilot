@@ -302,7 +302,8 @@ test('Rules when empty say so; a rule that is only suggested or undone can be tu
   v.rules[0].evidence = [{ at: NOW, reaction: 'Not needed', item: 'One' }];
   v.rules[0].origin = 'learned';
   v.rules[3].useCount = 0;
-  setMomoHomeSeam(createFixtureSeam(v, () => NOW));
+  const [fixture, sent] = [createFixtureSeam(v, () => NOW), [] as [string, string][]]; // records each Turn on
+  setMomoHomeSeam({ ...fixture, act: (a) => (sent.push([a.type, (a as { id: string }).id]), fixture.act(a)) });
   resetMomoHomeStore();
   const host = window.document.createElement('div');
   window.document.body.appendChild(host as any);
@@ -317,6 +318,10 @@ test('Rules when empty say so; a rule that is only suggested or undone can be tu
   await act(async () => [...body.querySelectorAll('button')].find((b: any) => b.textContent === 'Turn on').click());
   await flush();
   assert.ok(body.textContent.includes('Tell now'));
+  const press = (text: string) => [...body.querySelectorAll('button')].find((b: any) => b.textContent.startsWith(text))?.click();
+  for (const r of v.rules.slice(0, 3)) await act(async () => (press(r.text), await flush(), press('Turn on')));
+  const want = (id: string) => (v.rules.find((r) => r.id === id)?.state === 'suggested' ? 'rule.accept' : 'rule.turnOn');
+  assert.ok(sent.length >= 3 && sent.every(([type, id]) => type === want(id)) && new Set(sent.map(([t]) => t)).size === 2);
   await act(async () => root.unmount());
   host.remove();
 });

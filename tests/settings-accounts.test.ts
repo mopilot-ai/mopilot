@@ -1,5 +1,5 @@
-// Accounts UI: Settings → Accounts for Codex and Claude Code, the browser sign-in dialog and the expired / quit
-// banners. The profile menu's harness rows are in settings-accounts-menu.test.ts.
+// Accounts UI: Settings → Accounts for Codex and Claude Code, the browser sign-in dialog and the quit banners (Codex's
+// expired one is in codexExpiredBanner.test.ts). The profile menu's harness rows are in settings-accounts-menu.test.ts.
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -442,34 +442,6 @@ test('banners: codex restarting, gave up and restart, and harness banners', asyn
   await click(button(r.host, 'Restart Codex'));
   await flush();
   assert.deepEqual(calls, [['setState', { codexRestart: null }], ['codex.restart'], ['connect']]);
-  assert.equal(r.host.querySelector('.acct-banner'), null);
-  await r.unmount();
-});
-
-test('expired banner offers another healthy ChatGPT account when there is one', async () => {
-  accounts({ active: 'a', accounts: [codex({ id: 'a', email: null, status: 'expired' })] });
-  let r = await render(h(AccountExpiredBanner));
-  assert.match(text(r.host), /Your sign-in for this account has expired\./);
-  assert.equal(r.host.querySelectorAll('button').length, 1);
-  await click(button(r.host, 'Sign in again'));
-  assert.deepEqual(calls.at(-1), ['addAccount', 'a']);
-  await r.unmount();
-  accounts({
-    accounts: [
-      codex({ id: 'a', email: 'a@x.com', status: 'expired' }),
-      codex({ id: 'k', kind: 'apiKey', email: 'k@x.com' }),
-      codex({ id: 'x2', email: 'x2@x.com', status: 'expired' }),
-      codex({ id: 'l', email: 'l@x.com', limits: { reached: true } }),
-      codex({ id: 'b', email: 'b@x.com', limits: { used: 10 } }),
-    ],
-  });
-  r = await render(h(AccountExpiredBanner));
-  assert.match(text(r.host), /a@x\.com/);
-  await click(button(r.host, 'Use b@x.com'));
-  assert.deepEqual(calls.at(-1), ['switchAccount', 'b']);
-  await r.unmount(); // with no account in use, the first login having expired is not the one to warn about
-  accounts({ active: null });
-  r = await render(h(AccountExpiredBanner));
   assert.equal(r.host.querySelector('.acct-banner'), null);
   await r.unmount();
 });

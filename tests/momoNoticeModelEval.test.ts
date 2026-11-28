@@ -1,16 +1,26 @@
-// The model-in-the-loop eval runner (scripts/momo-notice-model-eval.mjs): over a fake Messages API it reads all 67 labelled mails, counts silenced-important and over-alert mails against the gate, writes every verdict, and fails closed without a key or on an API error.
+// The model-in-the-loop eval runner (scripts/momo-notice-model-eval.mjs): over a fake Messages API it reads all 91 labelled mails, counts silenced-important and over-alert mails against the gate, writes every verdict, and fails closed without a key or on an API error.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DEFAULT_MODEL, main, messagesModel, runModelEval } from '../scripts/momo-notice-model-eval.mjs';
+import {
+  DEFAULT_MODEL,
+  HARNESS_MODEL,
+  harnessModel,
+  main,
+  messagesModel,
+  runCommand,
+  runModelEval,
+} from '../scripts/momo-notice-model-eval.mjs';
+import { writeFileSync } from 'node:fs';
 import { loadTriageSet } from '../shared/momoNotice/eval/triageEval.ts';
 
 const cases = [
   ...loadTriageSet(readFileSync(new URL('../shared/momoNotice/eval/triage-62.jsonl', import.meta.url), 'utf8'), 62),
   ...loadTriageSet(readFileSync(new URL('../shared/momoNotice/eval/triage-own.jsonl', import.meta.url), 'utf8'), 5),
+  ...loadTriageSet(readFileSync(new URL('../shared/momoNotice/eval/triage-synth.jsonl', import.meta.url), 'utf8'), 24),
 ];
 
 /** The answer the fake model gives for a prompt: the expected verdict of the case whose subject is in it, or the override. */
@@ -53,12 +63,23 @@ test('a model that reads every mail as labelled opens the gate; every verdict an
   const summary = JSON.parse(disk.files.get('summary.json') as string);
   assert.deepEqual(
     [summary.model, summary.cases, summary.silencedImportant, summary.overAlerts, summary.unsorted],
-    [DEFAULT_MODEL, 67, [], [], []],
+    [DEFAULT_MODEL, 91, [], [], []],
   );
   // mails the pre-checks silence never reach the model
-  assert.ok(summary.usage.calls < 67 && summary.usage.calls > 40);
+  assert.ok(summary.usage.calls < 91 && summary.usage.calls > 60);
   assert.deepEqual([summary.usage.inputTokens, summary.usage.outputTokens], [summary.usage.calls * 100, summary.usage.calls * 10]);
-  assert.equal(disk.files.get('verdicts.jsonl')?.trim().split('\n').length, 67);
+  assert.equal(disk.files.get('verdicts.jsonl')?.trim().split('\n').length, 91);
+  // every verdict is scored, and a model that answers as labelled is right on each
+  for (const verdict of ['tell_now', 'track', 'quiet'])
+    assert.deepEqual([summary.scores[verdict].precision, summary.scores[verdict].recall], [1, 1], verdict);
+  assert.deepEqual(
+    [summary.scores.tell_now.expected, summary.scores.track.expected, summary.scores.quiet.expected],
+    [
+      cases.filter((c) => c.expected === 'tell_now').length,
+      cases.filter((c) => c.expected === 'track').length,
+      cases.filter((c) => c.expected === 'quiet').length,
+    ],
+  );
   // no tools are offered, the key goes in its own header
   assert.ok(seen.every((r) => r.body.tools === undefined && r.headers['x-api-key'] === 'k' && r.url.endsWith('/v1/messages')));
 });
@@ -77,7 +98,9 @@ test('silenced-important and over-alert mails are counted and block the gate', a
 });
 
 test('no key asks no model; an API error leaves the mail unsorted, never a default', async () => {
-  assert.deepEqual(await runModelEval('out', { env: {} }), ['MOMO_EVAL_API_KEY is not set, so no model was asked.']);
+  assert.deepEqual(await runModelEval('out', { env: {} }), [
+    'Neither MOMO_EVAL_HARNESS nor MOMO_EVAL_API_KEY is set, so no model was asked.',
+  ]);
   const disk = memory();
   const broken = (async () => ({ ok: false, status: 529 })) as unknown as typeof fetch;
   const failures = await runModelEval('out', { fetch: broken, env: { MOMO_EVAL_API_KEY: 'k' }, ...disk.io });
@@ -97,6 +120,16 @@ test('the model adapter passes an abort signal on and tolerates a body without u
   assert.equal(await model.complete('p', controller.signal), '');
   assert.equal(signalSeen, controller.signal);
   assert.deepEqual(usage, { calls: 1, inputTokens: 0, outputTokens: 0 });
+  // an answer with no result text is an empty reading, which the reading turn then refuses as no verdict
+  assert.equal(
+    await harnessModel({
+      harness: 'claude',
+      model: 'm',
+      usage: { calls: 0, inputTokens: 0, outputTokens: 0 },
+      run: async () => '{}',
+    }).complete('x'),
+    '',
+  );
 });
 
 test('the command line needs --out and returns the exit code', async () => {
@@ -131,5 +164,64 @@ test('the command line runs as a script and fails closed without a key', () => {
     output = `${failed.stderr}${failed.stdout}`;
     assert.equal(failed.status, 1);
   }
-  assert.match(output, /MOMO_EVAL_API_KEY is not set/);
+  assert.match(output, /Neither MOMO_EVAL_HARNESS nor MOMO_EVAL_API_KEY is set/);
+});
+
+test('a signed-in harness reads the mail with no key: claude -p with every tool off, codex exec read-only; an error is unsorted, a wrong harness is told', async () => {
+  const calls: { cmd: string; args: string[] }[] = [];
+  const run = async (cmd: string, args: string[], input: string) => {
+    calls.push({ cmd, args });
+    const answer = verdictFor(input);
+    if (cmd === 'claude') return JSON.stringify({ result: answer, usage: { input_tokens: 50, output_tokens: 5 } });
+    writeFileSync(args[args.indexOf('--output-last-message') + 1], answer);
+    return '';
+  };
+  for (const harness of ['claude', 'codex'] as const) {
+    calls.length = 0;
+    const disk = memory();
+    assert.deepEqual(await runModelEval('out', { env: { MOMO_EVAL_HARNESS: harness }, run, ...disk.io }), []);
+    const summary = JSON.parse(disk.files.get('summary.json') as string);
+    assert.equal(summary.model, `${harness}:${HARNESS_MODEL[harness]}`);
+    assert.ok(calls.length > 60 && calls.every((c) => c.cmd === harness && c.args.includes(HARNESS_MODEL[harness])));
+  }
+  const claudeArgs = await (async () => {
+    calls.length = 0;
+    await harnessModel({ harness: 'claude', model: 'm', usage: { calls: 0, inputTokens: 0, outputTokens: 0 }, run }).complete('x');
+    return calls[0].args;
+  })();
+  assert.deepEqual(claudeArgs.slice(claudeArgs.indexOf('--tools'), claudeArgs.indexOf('--tools') + 2), ['--tools', '']);
+  assert.ok(claudeArgs.includes('--strict-mcp-config') && claudeArgs.includes('--no-session-persistence'));
+  const usage = { calls: 0, inputTokens: 0, outputTokens: 0 };
+  await harnessModel({ harness: 'claude', model: 'm', usage, run: async () => JSON.stringify({ result: 'r' }) }).complete('x');
+  assert.deepEqual(usage, { calls: 1, inputTokens: 0, outputTokens: 0 });
+  const failing = harnessModel({
+    harness: 'claude',
+    model: 'm',
+    usage,
+    run: async () => JSON.stringify({ is_error: true, result: 'limit' }),
+  });
+  await assert.rejects(failing.complete('x'), /claude answered an error: limit/);
+  const disk = memory();
+  const broken = await runModelEval('out', {
+    env: { MOMO_EVAL_HARNESS: 'claude', MOMO_EVAL_MODEL: 'x' },
+    run: async () => {
+      throw new Error('no');
+    },
+    ...disk.io,
+  });
+  assert.ok(broken.some((f) => f.startsWith('Could not be sorted')));
+  assert.deepEqual(await runModelEval('out', { env: { MOMO_EVAL_HARNESS: 'gemini' } }), [
+    'MOMO_EVAL_HARNESS is gemini: use claude or codex.',
+  ]);
+});
+
+test('the command runner returns stdout, passes stdin, and rejects on a non-zero exit with stderr', async () => {
+  assert.equal(await runCommand(process.execPath, ['-e', 'process.stdin.pipe(process.stdout)'], 'hello'), 'hello');
+  await assert.rejects(runCommand(process.execPath, ['-e', 'console.error("bad"); process.exit(3)'], ''), /exited 3: bad/);
+  await assert.rejects(runCommand('/nonexistent/momo-eval-cmd', [], ''), /ENOENT/);
+  // a signal ends the command: an aborted run rejects instead of waiting for it
+  const stop = new AbortController();
+  const running = runCommand(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], '', stop.signal);
+  stop.abort();
+  await assert.rejects(running, /abort/i);
 });

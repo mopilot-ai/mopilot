@@ -31,6 +31,8 @@ export type ComposerInputElement = HTMLDivElement & {
    * focused editor redrawn with new text otherwise keeps its old caret offset.
    */
   setCaretAfter: (text: string, position: number) => void;
+  /** Skill chips have zero prompt characters, so their identity is needed to tell their two caret edges apart. */
+  setCaretAfterSkill: (attachment: Attachment) => void;
 };
 
 type Reference =
@@ -118,6 +120,7 @@ export function ComposerInput({
   const commandRanges = previousRanges.current;
   // a caret position setCaretAfter asked for, placed by the render that draws its text
   const pendingCaret = useRef<{ text: string; position: number } | null>(null);
+  const pendingSkillCaret = useRef<Attachment | null>(null);
   const [iconHosts, setIconHosts] = useState<HTMLElement[]>([]);
   const [sessionMenu, setSessionMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const archive = useRef(new Map<string, Attachment>());
@@ -191,6 +194,7 @@ export function ComposerInput({
     const focused = document.activeElement === el;
     const caret = focused ? caretOffset(el) : value.length;
     const hosts: HTMLElement[] = [];
+    let picked: HTMLElement | undefined;
     el.replaceChildren();
     let at = 0;
     for (const { a, offset } of [...skills].sort((a, b) => a.offset - b.offset)) {
@@ -207,6 +211,7 @@ export function ComposerInput({
       label.textContent = a.displayName ?? a.name;
       mention.append(icon, label);
       el.append(mention);
+      if (a === pendingSkillCaret.current) picked = mention;
       at = offset;
     }
     el.append(referenceFragment(value.slice(at)));
@@ -215,7 +220,15 @@ export function ComposerInput({
     setIconHosts(hosts);
     const asked = pendingCaret.current?.text === value ? pendingCaret.current.position : null;
     pendingCaret.current = null;
-    if (asked !== null) placeCaret(el, Math.min(asked, value.length));
+    pendingSkillCaret.current = null;
+    if (picked) {
+      const range = document.createRange();
+      range.setStartAfter(picked);
+      range.collapse(true);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    } else if (asked !== null) placeCaret(el, Math.min(asked, value.length));
     else if (focused) placeCaret(el, Math.min(caret, value.length));
   });
 
@@ -255,6 +268,12 @@ export function ComposerInput({
                     pendingCaret.current = null;
                     placeCaret(el, Math.min(position, text.length));
                   } else pendingCaret.current = { text, position };
+                },
+              },
+              setCaretAfterSkill: {
+                configurable: true,
+                value: (attachment: Attachment) => {
+                  pendingSkillCaret.current = attachment;
                 },
               },
               replaceRange: {

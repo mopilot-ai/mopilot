@@ -21,6 +21,7 @@ import { setSelection } from '../../session/harness/select';
 import { applySwitch, switchModel } from './applySwitch';
 import { clearPendingSwitch } from './SwitchChip';
 import { AcpSwitchSheet } from './AcpSwitchSheet';
+import { AUTO_MODEL_ID, autoButtonLabel, setAutoMode, useAutoDecision, useAutoMode } from '../../session/harness/autoRoute';
 
 /** What a basic harness's row says when it can't run MoMo (#2278). */
 export const UNCONFINED = "Can't run MoMo: its own tools can't be turned off";
@@ -76,21 +77,42 @@ export function BasicRows({ current, onPick, momo = false }: { current: string |
 const LONG_LIST = 8;
 
 /** One select option's values as radio rows; a long list scrolls, with the current value in view when it opens. */
-function OptionValues({ o, onPick }: { o: AcpConfigOption; onPick: (value: unknown) => void }) {
+function OptionValues({
+  o,
+  onPick,
+  auto,
+}: {
+  o: AcpConfigOption;
+  onPick: (value: unknown) => void;
+  /** the model option's Auto row (src/session/harness/autoRoute.ts): whether it is on, and turning it on */
+  auto?: { on: boolean; pick: () => void };
+}) {
   const values = optionValues(o);
   const list = useRef<HTMLDivElement>(null);
   // a block body: scrollIntoView may return a promise, which React would take for a cleanup
   useEffect(() => {
     list.current?.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest' });
   }, []);
+  // in Auto the agent's current value is the last turn's pick, not the chat's choice
+  const checked = (v: { value: unknown }) => !auto?.on && v.value === o.currentValue;
   const rows = values.map((v) => (
-    <MenuRow key={String(v.value)} role="menuitemradio" aria-checked={v.value === o.currentValue} onClick={() => onPick(v.value)}>
+    <MenuRow key={String(v.value)} role="menuitemradio" aria-checked={checked(v)} onClick={() => onPick(v.value)}>
       <span className="menu-label">
         <span className="menu-title">{v.name}</span>
       </span>
-      <span className="menu-check">{v.value === o.currentValue ? <Check size={15} strokeWidth={2} /> : null}</span>
+      <span className="menu-check">{checked(v) ? <Check size={15} strokeWidth={2} /> : null}</span>
     </MenuRow>
   ));
+  if (auto)
+    rows.unshift(
+      <MenuRow key={AUTO_MODEL_ID} className="has-desc" role="menuitemradio" aria-checked={auto.on} onClick={auto.pick}>
+        <span className="menu-label">
+          <span className="menu-title">Auto</span>
+          <span className="menu-desc">Picks the model and effort for each message</span>
+        </span>
+        <span className="menu-check">{auto.on ? <Check size={15} strokeWidth={2} /> : null}</span>
+      </MenuRow>,
+    );
   return values.length > LONG_LIST ? (
     <div ref={list} className="menu-scroll acp-values">
       {rows}
@@ -101,11 +123,27 @@ function OptionValues({ o, onPick }: { o: AcpConfigOption; onPick: (value: unkno
 }
 
 /** The first-tier harnesses, then the admitted basic ones: `onPick` gets the one chosen. */
-function HarnessList({ current, onPick }: { current: string; onPick: (t: NewChatTarget) => void }) {
+function HarnessList({
+  current,
+  onPick,
+  globalAuto,
+}: {
+  current: string;
+  onPick: (t: NewChatTarget) => void;
+  /** the Auto (all harnesses) row: whether it is on, and turning it on */
+  globalAuto: { on: boolean; pick: () => void };
+}) {
   const enabledHarnesses = useEnabledHarnesses();
   return (
     <>
       <div className="hp-head">Harness</div>
+      <MenuRow className="has-desc" role="menuitemradio" aria-checked={globalAuto.on} onClick={globalAuto.pick}>
+        <span className="menu-label">
+          <span className="menu-title">Auto (all harnesses)</span>
+          <span className="menu-desc">Picks the harness, model and effort for each message</span>
+        </span>
+        <span className="menu-check">{globalAuto.on ? <Check size={15} strokeWidth={2} /> : null}</span>
+      </MenuRow>
       {enabledHarnesses.map((h) => (
         <MenuRow key={h} className="hp-row" onClick={() => onPick({ family: h })}>
           <span className="menu-icon hp-icon">
@@ -136,15 +174,29 @@ export function BasicPicker({ threadId, id }: { threadId: string | null; id: str
   // the harness's own config options (model, thought level, …), each as it named them
   const sel = useBasicSelection(threadId, id);
   const config = pending ? [] : sel.options;
-  const modelName = acpModelName(config);
+  const autoMode = useAutoMode(threadId);
+  const autoDecision = useAutoDecision(threadId);
+  const modelName = autoMode ? autoButtonLabel(autoDecision) : acpModelName(config);
   // Provider-qualified display names stay in the menu and tooltip; opaque model values are never rewritten.
   const compactName = modelName?.split('/').pop()?.trim() || modelName || label;
   const fullName = modelName ? `${label} · ${modelName}` : label;
   // cannot reject: a value the harness refuses is said in a toast and the old one stays
-  const choose = (configId: string, value: unknown) => void chooseBasicConfig(threadId, id, sel, configId, value);
+  const choose = (configId: string, value: unknown) => {
+    // a model picked by hand ends Auto
+    if (autoMode && config.find((o) => o.id === configId)?.category === 'model') setAutoMode(threadId, null);
+    void chooseBasicConfig(threadId, id, sel, configId, value);
+  };
+  // Auto on the agent's model (its own values come back after each turn), or Auto (all harnesses)
+  const autoPick = (mode: 'harness' | 'global') => () => {
+    a.close();
+    if (threadId && pending) clearPendingSwitch(threadId);
+    setAutoMode(threadId, mode);
+  };
+  // a harness picked by hand ends Auto (all harnesses)
+  const endGlobal = () => autoMode === 'global' && setAutoMode(threadId, null);
   const pick = (t: NewChatTarget) => {
     a.close();
-    if (!threadId) return pickNewChatHarness('basic' in t ? `acp:${t.basic}` : t.family);
+    if (!threadId) return endGlobal(), pickNewChatHarness('basic' in t ? `acp:${t.basic}` : t.family);
     // the harness the chat is on already
     const target = 'basic' in t ? (`acp:${t.basic}` as const) : t.family;
     if (target === chatKind(threadId)) return clearPendingSwitch(threadId);
@@ -192,7 +244,11 @@ export function BasicPicker({ threadId, id }: { threadId: string | null; id: str
                       <span className="menu-check">{o.currentValue ? <Check size={15} strokeWidth={2} /> : null}</span>
                     </MenuRow>
                   ) : (
-                    <OptionValues o={o} onPick={(v) => choose(o.id, v)} />
+                    <OptionValues
+                      o={o}
+                      onPick={(v) => choose(o.id, v)}
+                      auto={o.category === 'model' ? { on: autoMode === 'harness', pick: autoPick('harness') } : undefined}
+                    />
                   )}
                 </div>
               ))}
@@ -200,7 +256,7 @@ export function BasicPicker({ threadId, id }: { threadId: string | null; id: str
               <div className="menu-sep" role="separator" />
             </>
           ) : null}
-          <HarnessList current={id} onPick={pick} />
+          <HarnessList current={id} onPick={pick} globalAuto={{ on: autoMode === 'global', pick: autoPick('global') }} />
         </MenuList>
       </Popover>
       {threadId && sheet && (
@@ -216,6 +272,7 @@ export function BasicPicker({ threadId, id }: { threadId: string | null; id: str
               if (!model) return toast(`${HARNESS_LABEL[target as HarnessId]} is still loading its models`);
               setSheet(null);
               void applySwitch(threadId, { target, model }, choices, (effort) => {
+                endGlobal();
                 if (isFirstTier(target)) setSelection(target, { model: model.id || null, effort });
               });
             }}

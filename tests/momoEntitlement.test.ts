@@ -1,7 +1,7 @@
 // MoMo's server-signed entitlement (#5474): the token, the Host's decision (forged, expired, wrong audience, wrong key id, replayed, revoked, downgraded), the client's refresh and the view's access fixes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateKeyPairSync } from 'node:crypto';
+import { createPublicKey, generateKeyPairSync } from 'node:crypto';
 import {
   ENTITLEMENT_GRACE_MS,
   ENTITLEMENT_REQUIRED_GRACE_MS,
@@ -38,8 +38,14 @@ const keys = [{ id: A.id, pem: A.pem }];
 const grant = (entitlement?: unknown, account = 'u1') => ({ account, features: ['momo'], entitlement });
 const gateAt = (at: number, o: object = {}) => createEntitlementGate({ hostId: HOST, keys, mode: 'required', now: () => at, ...o });
 
-test('no key is trusted until one is provisioned', () => {
-  assert.deepEqual(ENTITLEMENT_KEYS, []);
+test('the pinned keys are Ed25519 public keys named by the hash of their public half, and none is revoked', () => {
+  assert.equal(ENTITLEMENT_KEYS.length, 1, 'the account service key of #5622');
+  for (const k of ENTITLEMENT_KEYS) {
+    const pub = createPublicKey(k.pem);
+    assert.equal(pub.asymmetricKeyType, 'ed25519');
+    assert.equal(pub.type, 'public', 'never a private key');
+    assert.equal(entitlementKeyId(pub.export({ type: 'spki', format: 'pem' }).toString()), k.id);
+  }
   assert.deepEqual(REVOKED_ENTITLEMENT_KEY_IDS, []);
 });
 

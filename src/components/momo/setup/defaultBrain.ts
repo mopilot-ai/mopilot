@@ -1,5 +1,6 @@
 // The brain setup starts MoMo on (#2527), from the user's signed-in harnesses and accounts. Pure: the setup screen shows it and applies it on Start.
 import type { MomoRoleBrain } from '../../../../shared/momoPrefs.mjs';
+import { accountRemaining } from '../../../../shared/remainingCapacity.mjs';
 
 /** One signed-in harness as setup offers it; its accounts are only those MoMo can run on now (not at their limit, not an API key MoMo can't use). */
 export interface BrainCandidate {
@@ -23,10 +24,11 @@ export interface BrainCandidate {
 type Pick = { c: BrainCandidate; a: BrainCandidate['accounts'][number] };
 
 /**
- * What an account has left in absolute terms: its plan's size times the percent left of its tightest window (a Max 20×
- * at 83% holds more than a Pro Lite at 87%); the percent alone where the plan's size is not known. Null: not known.
+ * What an account has left in absolute terms, in plan units: its plan's size times the fraction left of its tightest
+ * window (a Max 20× at 83% holds more than a Pro Lite at 87%); the fraction alone where the plan's size is not known.
+ * Null: not known. The same measure harness "auto" ranks harnesses by (shared/remainingCapacity.mjs).
  */
-export const remaining = (a: { left: number | null; units: number | null }) => (a.left == null ? null : a.left * (a.units ?? 1));
+export const remaining = (a: { left: number | null; units: number | null }) => accountRemaining(a);
 
 /** Most remaining first; an account whose usage is not known after every known one. */
 const byRemaining = (x: Pick, y: Pick) => (remaining(y.a) ?? -1) - (remaining(x.a) ?? -1);

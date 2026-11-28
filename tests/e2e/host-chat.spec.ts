@@ -465,32 +465,32 @@ test.describe('a project across execution locations', () => {
     },
   });
 
-  test('local, machine and Codex Cloud rows open from one project and its composer can pick the machine checkout', async ({ page }) => {
+  test('local and Codex Cloud rows share one project; a machine chat keeps its folder group, whose New chat starts there', async ({
+    page,
+  }) => {
     await pickTarget(page);
     await send(page, 'Machine sidebar chat');
     await expect(main(page).getByText('fake-host: Machine sidebar chat', { exact: true })).toBeVisible({ timeout: 45_000 });
+    // a machine's session keeps its folder's group (docs/project-sidebar.md): the local project takes only the Cloud task
     const group = page.locator('.project-group').filter({ has: page.locator('.project-row[aria-label="Shared project"]') });
-    await expect(group.locator('.thread-row')).toHaveCount(3, { timeout: 45_000 });
-    const projectRow = group.locator('.project-row');
-    // a local chat shares the project, so the heading names no location and each remote row names its own
-    await expect(projectRow.locator('.host-mark')).toHaveCount(0);
-    await expect(
-      group.locator('.thread-row', { hasText: 'Machine sidebar chat' }).locator('.host-mark .lucide-square-terminal'),
-    ).toBeVisible();
+    await expect(group.locator('.thread-row')).toHaveCount(2, { timeout: 45_000 });
+    await expect(group.locator('.thread-row', { hasText: 'Machine sidebar chat' })).toHaveCount(0);
+    await expect(group.locator('.project-row .host-mark')).toHaveCount(0);
     await expect(group.locator('[data-sidebar-cloud="task_sidebar"] .host-mark .lucide-cloud')).toBeVisible();
     await group.locator('[data-sidebar-cloud="task_sidebar"]').click();
     await expect(page.locator('.cloud-title')).toHaveText('Cloud sidebar task');
     await group.locator('.thread-row', { hasText: 'Local sidebar chat' }).click();
     await expect(main(page)).toContainText('local');
-    await group.locator('.thread-row', { hasText: 'Machine sidebar chat' }).click();
+    // the machine folder's group names its SSH location once, and its New chat starts there, in that folder
+    const machine = page.locator('.project-group').filter({ has: page.locator('.thread-row', { hasText: 'Machine sidebar chat' }) });
+    await expect(machine.locator('.project-row .lucide-square-terminal')).toBeVisible();
+    await expect(machine.locator('.thread-row .host-mark')).toHaveCount(0);
+    await machine.locator('.thread-row', { hasText: 'Machine sidebar chat' }).click();
     await expect(main(page)).toContainText('fake-host: Machine sidebar chat');
 
-    await group.locator('.project-row').hover();
-    await group.getByRole('button', { name: 'New chat in Shared project' }).click();
-    const location = page.getByRole('button', { name: 'Work in', exact: true });
-    await expect(location).toContainText('This computer');
-    await location.click();
-    await page.locator('.menu-item', { hasText: 'box' }).click();
+    await machine.locator('.project-row').hover();
+    await machine.getByRole('button', { name: /^New chat in / }).click();
+    await expect(page.locator('button.host-ctx')).toHaveAttribute('aria-label', /^Run on: box, /);
     await send(page, 'Second machine sidebar chat');
     await expect(main(page)).toContainText('fake-host: Second machine sidebar chat', { timeout: 45_000 });
     expect(calls().find((call) => call.method === 'chat.start' && call.params.text === 'Second machine sidebar chat')?.params.cwd).toBe(

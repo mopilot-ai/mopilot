@@ -104,3 +104,39 @@ test('sendPrompt sets the message config before the prompt goes, and sends nothi
   await assert.rejects(sendPrompt(host, 'k', { blocks: [], config: { model: 'nope' } }), /doesn't offer model nope/);
   assert.deepEqual(sent, []);
 });
+
+test('what an earlier Auto turn left goes back to the chat’s own, only where this message sets nothing and Auto’s value still runs', async () => {
+  const f = fixture();
+  // the session runs Auto's pick (model and effort) after a crash replayed it
+  await applyInitialConfig(f.host, f.chat, {
+    restore: {
+      model: { own: 'opencode/glm-5.3-flash-free', applied: 'opencode/big-pickle' },
+      effort: { own: 'high', applied: 'low' },
+    },
+  });
+  assert.deepEqual(f.changed, [
+    ['k', 'model', 'opencode/glm-5.3-flash-free'],
+    ['k', 'think', 'high'],
+  ]);
+  const g = fixture();
+  await applyInitialConfig(g.host, g.chat, {
+    // a value this message sets wins; one someone changed since stays; an own value no longer offered is not set
+    model: 'opencode/glm-5.3-flash-free',
+    restore: {
+      model: { own: 'opencode/big-pickle', applied: 'x' },
+      effort: { own: 'medium', applied: 'low' },
+    },
+  });
+  assert.deepEqual(g.changed, [['k', 'model', 'opencode/glm-5.3-flash-free']]);
+  const h = fixture();
+  await applyInitialConfig(h.host, h.chat, { restore: { effort: { own: 'high', applied: 'medium' } } });
+  assert.deepEqual(h.changed, []);
+  // an agent without the option keeps what it runs
+  const none = fixture([]);
+  await applyInitialConfig(none.host, none.chat, { restore: { model: { own: 'a', applied: 'b' } } });
+  assert.deepEqual(none.changed, []);
+  // a session that reported no state yet keeps what it runs too
+  const bare = fixture();
+  await applyInitialConfig(bare.host, { key: 'k', harness: 'opencode' }, { restore: { model: { own: 'a', applied: 'b' } } });
+  assert.deepEqual(bare.changed, []);
+});

@@ -126,6 +126,14 @@
   color: var(--text-4);
   margin: 6px 4px 0;
 }
+.approval-why {
+  /* under the title, at its inset (.approval-top pads 16px) */
+  margin: -4px 16px 10px;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-3);
+  user-select: text;
+}
 .approval-diffs {
   display: flex;
   flex-direction: column;
