@@ -10,11 +10,14 @@ test.use({
   env: { MOPILOT_FLAGS: 'shared.perf.probe=1' },
   seed: {
     files: ({ userData }) => {
-      // A busy startup may publish this independent log before the probe's first flush (#3853).
+      // A busy startup may publish these independent logs before the probe's first flush (#3853, #5790).
       const dir = path.join(userData, 'perf');
       fs.mkdirSync(dir, { recursive: true });
       for (const file of ['stalls.jsonl', 'stalls.1.jsonl']) {
         fs.writeFileSync(path.join(dir, file), `${JSON.stringify({ kind: 'stall', ms: 701 })}\n`);
+      }
+      for (const file of ['renderer.jsonl', 'renderer.1.jsonl']) {
+        fs.writeFileSync(path.join(dir, file), `${JSON.stringify({ kind: 'longtask', ms: 80 })}\n`);
       }
     },
   },

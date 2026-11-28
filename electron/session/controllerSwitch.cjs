@@ -1,8 +1,10 @@
 // The pending harness switch a ChatController settles before it starts a message's turn: the message is the first one on the
-// new harness, carrying the handoff record, and a switch that cannot settle keeps its choice for the message's retry.
+// new harness, carrying the handoff record, and a switch that cannot settle keeps its choice for the message's retry. Global
+// Auto (the controller's beforeStart) may record that switch first.
 const { queueItem } = require('./queueItem.cjs');
 const { carryInputGuard, inputIsGuarded, assertInputCurrent } = require('./contract/inputGuard.cjs');
 const { matchesSource } = require('./contract/route.cjs');
+const { noteIgnored } = require('../ignored.cjs');
 
 /** @typedef {InstanceType<typeof import('./controller.cjs').ChatController>} ChatController */
 
@@ -75,4 +77,18 @@ function turnSource(c, chatId, source) {
   return !from || !matchesSource(from, source);
 }
 
-module.exports = { settleSwitch, turnSource };
+/**
+ * The controller's beforeStart (Global Auto) for a message about to start (never a maintenance one, which the controller
+ * leaves out): it may record a pending switch, and its failure leaves the chat where it is.
+ * @param {any} ctrl the ChatController
+ * @param {string} chatId
+ * @param {any} item
+ * @param {() => boolean} stale the start was stopped (a Stop counted since it began) or replaced meanwhile
+ */
+async function beforeStart(ctrl, chatId, item, stale) {
+  await (async () => ctrl.beforeStart({ chatId, item, stale }))().catch((error) =>
+    noteIgnored('choose the harness for an Auto turn', error),
+  );
+}
+
+module.exports = { settleSwitch, turnSource, beforeStart };

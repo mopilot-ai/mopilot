@@ -284,6 +284,7 @@ export function reduceHome(v: MomoView, a: MomoHomeAction, now: number): MomoVie
     case 'rule.turnOff':
       return withRule(v, a.id, (r) => ({ ...r, state: 'off' }));
     case 'rule.accept':
+    case 'rule.turnOn':
       return withRule(v, a.id, (r) => ({ ...r, state: 'on' }));
     case 'signal.make': {
       const sig = v.signals.find((s) => s.id === a.id);

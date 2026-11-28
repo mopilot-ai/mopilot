@@ -213,7 +213,7 @@ test('All chats keeps merges to today, folded, and says so when nothing is open 
   await v.unmount();
 });
 
-test('the summary lists open PRs and merges alike; the first five merges show, the rest behind Show N more', async () => {
+test('the summary lists open PRs and merges alike; as Claude Desktop’s Changes, five show and the rest are behind Show N more', async () => {
   store.setState({ threads: { passive: { id: 'passive', updatedAt: 1, name: 'p' } } });
   Object.assign(rows, { pending: 'working' });
   prs[url(20)] = open(20, pending);
@@ -222,16 +222,19 @@ test('the summary lists open PRs and merges alike; the first five merges show, t
   listed.passive.push({ ...open(107), state: 'merged', title: 'No date' });
   const children = { pending: child('passive', 20) };
   await show(children);
-  const v = await render(h(SummaryPullRequests, { threadId: 'passive' }));
+  const counts: number[] = [];
+  const v = await render(h(SummaryPullRequests, { threadId: 'passive', onCount: (n: number) => counts.push(n) }));
   try {
     await show(children);
     const card = v.host.querySelector('section[aria-label="Pull requests"]')!;
     const shown = () => [...card.querySelectorAll('button.summary-row')].map((b) => b.textContent);
-    assert.equal(shown().length, 7);
+    // the whole list's count goes to the Changes section's summary
+    assert.equal(counts.at(-1), 8);
+    assert.equal(shown().length, 6);
     assert.equal(shown()[0], 'PR 20Checks');
     assert.match(shown()[1], /^PR 101Jan 14|^PR 101Jan 15/);
-    assert.equal(shown()[6], 'Show 2 more');
-    await click(button(card, 'Show 2 more')!);
+    assert.equal(shown()[5], 'Show 3 more');
+    await click(button(card, 'Show 3 more')!);
     assert.equal(shown().length, 8);
     // no date to say: its word instead
     assert.equal(shown()[7], 'No dateMerged');

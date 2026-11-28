@@ -17,6 +17,8 @@ const GATED_BY_ENTRY: Record<string, string> = {
   'FileDocumentPreview.tsx': 'SidePane',
   // reads this Mac's own temp folder
   'BrowserAnnotate.tsx': 'SidePane',
+  // the Changes branch row: SummaryPanel mounts it only with this Mac's git checkout of a local chat (useLocalFolder)
+  'SummaryBranchSync.tsx': 'SummaryPanel',
 };
 const ENTRIES = ['SidePane.tsx', 'SummaryPanel.tsx'];
 

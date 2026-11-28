@@ -6,7 +6,7 @@
     },
     "electron/session/controller.cjs": {
       "maxLines": 607,
-      "reason": "Owns turn admission and lifecycle across adapters. Queue, snapshot, remote-stop and continuation services share its state; their implementations remain separate. Adds the neutral observation import and one terminal outcome call at the shared controller end boundary. This owner already decides cancellation and completion across harnesses; it contains no analytics collector or transport."
+      "reason": "Owns turn admission and lifecycle across adapters. Queue, snapshot, remote-stop and continuation services share its state; their implementations remain separate. Adds the neutral observation import and one terminal outcome call at the shared controller end boundary. This owner already decides cancellation and completion across harnesses; it contains no analytics collector or transport. Its start also awaits Global Auto's beforeStart hook (the field and one guarded call) before a pending switch settles; the hook's work stays in controllerSwitch.cjs and electron/autoRoute."
     },
     "tests/claudeHarnessCoverage.test.ts": {
       "maxLines": 915,

@@ -279,9 +279,20 @@ test('the banner stays hidden until the login lapsed, then offers the other acco
     [['pin', 't1', 'o1'], ['refreshAccounts'], ['recheck'], ['relogin', 'L1']],
   );
 
+  // a Codex chat runs on no Claude login: Claude Code's lapsed one is not its banner (and a Claude chat showed Codex's)
   composer = 'codex';
   signedOut = { login: 'L2', others: [{ id: 'o1', email: 'one@x' }, { id: 'o2' }] };
   store.set({ route: { name: 'thread', id: 't2' } });
+  await flush(1);
+  assert.equal(r.host.querySelector('[role=alert]')?.textContent ?? null, null);
+  // nor is it a page's outside a chat while new chats start on Codex
+  store.set({ route: { name: 'home' } });
+  await flush(1);
+  assert.equal(r.host.querySelector('[role=alert]')?.textContent ?? null, null);
+  // outside a chat with new chats on Claude Code, the login new chats use is switched, not pinned
+  // (still no chat in focus: a new chats record re-renders it with the new family)
+  composer = 'claude';
+  store.set({ route: { name: 'settings', section: 'general' }, claudeChats: { ...store.get().claudeChats } });
   await flush(1);
   assert.equal(r.host.querySelector('[role=alert]')?.textContent?.includes('Claude Code sign-in has expired'), true);
   assert.equal(byText(r.host, 'button', 'Use one@x')?.title, 'one@x');

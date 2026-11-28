@@ -18,7 +18,8 @@ const usage = (used: number, window: number) => ({ last: { totalTokens: used }, 
 function reset(runtime: any = {}, segments: any = {}) {
   for (const [id, rt] of Object.entries(runtime) as [string, any][])
     if (rt.tokenUsage && !rt.tokenUsageOwner) rt.tokenUsageOwner = contextUsageKey(segments[id], id);
-  store.set({ runtime, segments });
+  // each case starts from the default layout, Context collapsed
+  store.set({ runtime, segments, prefs: {} });
   resetContextSnapshots();
   ctx.asks.length = 0;
   ctx.ignored.length = 0;
@@ -62,8 +63,8 @@ test("every harness shows this window's report until main's snapshot arrives, an
     // the panel loads and reads only once the card is open
     assert.equal(r.host.querySelector('.ctx-panel'), null);
     await act(() => {
-      details.open = true;
-      details.dispatchEvent(new window.Event('toggle'));
+      // the fold follows the saved layout: open it as a click on its header does
+      if (!details.open) (details.querySelector('summary') as HTMLElement).click();
     });
     await settle(act, 20);
     assert.equal(one(r.host, '.ctx-of').textContent, '35k / 100k');
@@ -81,8 +82,8 @@ test('missing readings stay explicitly unavailable; over-capacity ones keep thei
   const r = await render(h(SummaryContext, { threadId: 'new-chat' }));
   await act(() => {
     const details = one(r.host, 'details') as HTMLDetailsElement;
-    details.open = true;
-    details.dispatchEvent(new window.Event('toggle'));
+    // the fold follows the saved layout: open it as a click on its header does
+    if (!details.open) (details.querySelector('summary') as HTMLElement).click();
   });
   await settle(act, 20);
   assert.equal(one(r.host, '.summary-context-value').textContent, '—');

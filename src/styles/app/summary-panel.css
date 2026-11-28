@@ -32,28 +32,35 @@
 .summary-panel > * + * {
   border-top: 1px solid var(--hairline);
 }
-.summary-panel > .summary-group {
-  padding: 8px 12px;
-}
-.summary-changes:has(.summary-change-items:empty) {
+/* Changes has nothing to show without a branch, a pull request or a tracked one */
+.summary-changes:has(.summary-change-items:empty):not(:has(.summary-pr-list)) {
   display: none;
+}
+.summary-pr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .summary-changes {
   container: session-rail / inline-size;
 }
 
-.summary-header {
-  display: flex;
-  flex-direction: column;
+.summary-environment > .summary-group {
   gap: 2px;
-  padding: 8px 12px;
 }
-.summary-heading {
-  margin: 0;
-  padding: 4px 0;
-  font-size: inherit;
-  font-weight: 600;
-  color: var(--text);
+/* controls beside a section's header (Environment's session actions), outside its fold so they stay reachable */
+.rail-section-frame {
+  position: relative;
+}
+.rail-section-frame > .rail-section > .summary-card-toggle {
+  padding-inline-end: 44px;
+}
+.rail-section-trailing {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+  display: flex;
+  align-items: center;
 }
 .summary-environment-row,
 .summary-machine,
@@ -97,7 +104,7 @@
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
 }
-.summary-header .icon-btn.xs {
+.rail-section-trailing > .icon-btn.xs {
   margin-inline-start: auto;
   width: 28px;
   height: 28px;
@@ -105,7 +112,7 @@
   border-radius: 7px;
   color: var(--text-3);
 }
-.summary-header .icon-btn.xs:hover {
+.rail-section-trailing > .icon-btn.xs:hover {
   background: var(--row-hover);
   color: var(--text);
 }
@@ -149,8 +156,8 @@
 }
 
 /* Context and connector status are readable while their details are collapsed. */
-.summary-context > .summary-card-toggle,
-.summary-connectors > .summary-card-toggle {
+/* A rail section's header (store/railSections.ts); its summary is readable while the section is collapsed */
+.rail-section > .summary-card-toggle {
   padding-inline: 12px;
   font-weight: 600;
   color: var(--text);
@@ -184,6 +191,23 @@
   max-width: 55%;
   text-align: end;
   white-space: normal;
+}
+/* As Claude Desktop's: a row that needs the user says Connect or Reconnect in the warning color; the row is the button */
+.summary-connector > .summary-hint.warn {
+  color: var(--orange);
+}
+.summary-connector-list {
+  display: flex;
+  flex-direction: column;
+}
+/* A card's summary stands in for its body: it shows only while the card is collapsed */
+.rail-section-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.summary-card[open] > .summary-card-toggle > .summary-connector-hint {
+  visibility: hidden;
 }
 .summary-connector-actions {
   display: flex;
@@ -244,22 +268,6 @@
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
-}
-.summary-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  min-height: 16px;
-  box-sizing: border-box;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: var(--row-hover);
-  font-size: var(--fs-micro);
-  line-height: 1;
-  font-weight: 500;
-  letter-spacing: normal;
-  color: var(--text-2);
 }
 .summary-group .icon-btn.xs {
   width: 24px;
@@ -413,4 +421,67 @@
   margin: 0;
   font-size: var(--fs-small);
   color: var(--red-text);
+}
+
+/* A running task or server: its row opens it, the Stop button beside it ends it */
+.summary-task {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.summary-task > .summary-row {
+  flex: 1;
+  min-width: 0;
+}
+.summary-task-stop {
+  flex: none;
+  color: var(--text-3);
+}
+.summary-hint.danger {
+  color: var(--red);
+}
+/* The goal's objective, two lines before it is cut, and where it stands */
+.summary-goal-objective {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text);
+}
+.summary-goal-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+}
+.summary-goal-status > .summary-hint {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The branch row's Push: a small button beside the row, as Create and Attach read as the row's action */
+.summary-action-btn {
+  flex: none;
+  padding: 1px 9px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-ui);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.summary-action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Where a dragged section would land: a line above or below the section it is over */
+.rail-section[data-drop='before'] {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.rail-section[data-drop='after'] {
+  box-shadow: inset 0 -2px 0 var(--accent);
 }

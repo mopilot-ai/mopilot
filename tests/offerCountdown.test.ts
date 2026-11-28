@@ -1,5 +1,5 @@
-// electron/session/orchestration/proposals.cjs: an offer's card counts down a minute, then goes ahead as "Do it here" for
-// a user who did not answer. An answer, a dismissal, a new message, a Stop, the card taken in hand (hold) or a restart
+// electron/session/orchestration/proposals.cjs: an offer's card counts down a minute, then goes ahead as "New session"
+// for a user who did not answer. An answer, a dismissal, a new message, a Stop, the card taken in hand (hold) or a restart
 // ends the countdown, and it never answers after any of them; windows read its deadline from main (orchestrationView).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,13 +9,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { orchestration, SESSION_BACKGROUND as BACKGROUND } from './support/orchestration-harness.ts';
 import { useFakeClock } from './support/ports/clock.ts';
+import { waitFor } from './support/waitFor.ts';
 
 const require = createRequire(import.meta.url);
 const {
   OFFER_COUNTDOWN_MS,
   OFFER_WAIT_MS,
   HERE_NEXT,
-  AUTO_HERE_NEXT,
+  NEW_SESSION_BY,
   OPEN_NEXT,
   QUEUED_NEXT,
   PROPOSAL_DAYS,
@@ -47,10 +48,10 @@ const human = (h: any) =>
     item: { id: 'turn2', text: 'Actually, wait', opts: { human: true } },
   });
 
-test('an offer nobody answers goes ahead as "Do it here" when its countdown runs out, and the agent is told so', async (t) => {
+test('an offer nobody answers goes ahead as "New session" when its countdown runs out, and the agent is told so', async (t) => {
   assert.equal(OFFER_COUNTDOWN_MS, 60_000);
   assert.ok(OFFER_COUNTDOWN_MS < OFFER_WAIT_MS, 'the countdown answers before the call gives up');
-  assert.match(AUTO_HERE_NEXT, /^Nobody answered the card within 60 seconds, so it went ahead here: .*Start no session for it\.$/);
+  assert.equal(NEW_SESSION_BY.auto, 'Nobody answered the card within 60 seconds, so it went ahead as "New session"');
   const clock = useFakeClock(t);
   const h = orchestration();
   h.userTurn();
@@ -62,28 +63,98 @@ test('an offer nobody answers goes ahead as "Do it here" when its countdown runs
   assert.equal(await settled(call), 'pending', 'not a moment early');
   assert.equal(h.journal.proposal(id).status, 'open');
   clock.advance(1);
-  assert.deepEqual(await call, {
-    status: 'declined',
-    task_id: id,
-    kind: 'offer',
-    title: 'Fix login',
-    answer: 'here',
-    auto: true,
-    next: AUTO_HERE_NEXT,
-  });
+  const r = await call;
+  assert.deepEqual(pick(r, 'status', 'task_id', 'answer', 'auto'), { status: 'started', task_id: id, answer: 'new_session', auto: true });
+  assert.ok(r.chat_id, 'a session started');
+  assert.equal(
+    r.next,
+    'Nobody answered the card within 60 seconds, so it went ahead as "New session": it runs on its own and its notes reach you. Do not do the task here. Say so, link it and end your turn.',
+  );
   const p = h.journal.proposal(id);
-  assert.deepEqual([p.status, p.autoHere, p.waiting, p.countdown], ['declined', true, undefined, undefined]);
+  assert.deepEqual([p.status, p.chatId, p.waiting, p.countdown], ['started', r.chat_id, undefined, undefined]);
   assert.deepEqual([h.orch.answers.size, countdownsOf(h.orch).size], [0, 0]);
-  assert.equal(h.journal.parent('top')?.notes.length ?? 0, 0, 'the call told the agent: no note');
-  // the card answered for the user: a click that comes after is refused, saying why, and nothing else changes
-  const late = (e: any) => e.code === 'not_open' && e.message === 'Nobody answered in time, so it already went ahead here.';
+  assert.equal(h.journal.parent('top')?.notes?.length ?? 0, 0, 'the call told the agent: no note');
+  // the card answered for the user: a click that comes after is refused, and nothing else changes
+  const late = (e: any) => e.code === 'not_open' && e.message === 'That proposal is started';
   await assert.rejects(h.orch.act(id, 'here'), late);
   await assert.rejects(h.orch.act(id, 'start'), late);
-  // a later offer counts down on its own, from its own start
-  const next = h.orch.start('top', offer('Docs'));
-  assert.deepEqual(h.journal.proposal(idOf(h, 'Docs')).countdown, { from: 1000, at: 1000 + OFFER_COUNTDOWN_MS });
+  // a title-only offer reserves its session, and the agent is asked for the brief, not to do the task here
+  const next = h.orch.start('top', { initiation: 'offer', title: 'Docs' });
+  const docs = idOf(h, 'Docs');
+  assert.deepEqual(h.journal.proposal(docs).countdown, { from: 1000, at: 1000 + OFFER_COUNTDOWN_MS }, 'counting from its own start');
   clock.advance(OFFER_COUNTDOWN_MS);
-  assert.equal((await next).auto, true);
+  const brief = await next;
+  assert.deepEqual(pick(brief, 'status', 'answer', 'auto'), { status: 'briefing', answer: 'new_session', auto: true });
+  assert.equal(
+    brief.next,
+    `Nobody answered the card within 60 seconds, so it went ahead as "New session" for "Docs" (task_id: ${docs}). Write its brief now: call start_session with exactly proposal_id "${docs}", prompt and background. No other arguments; the settings were chosen on the card. Do not do the task here. When it returns, say it is running, link it and end your turn.`,
+  );
+  assert.equal(h.journal.proposal(docs).status, 'briefing');
+});
+
+test('the countdown starts on the turn’s own authority, not a click’s: past ten starts the user is asked first', async (t) => {
+  const clock = useFakeClock(t);
+  const asked: any[] = [];
+  let allow = true;
+  const h = orchestration({ approveStart: async (_id: string, q: any) => (asked.push(q.count), allow) });
+  h.userTurn();
+  h.journal.change((d: any) => (d.parents.top = { wakes: 0, held: false, cutShort: false, notes: [], starts: 10 }));
+  const call = h.orch.start('top', offer());
+  clock.advance(OFFER_COUNTDOWN_MS);
+  assert.equal((await call).answer, 'new_session');
+  assert.deepEqual(asked, [10]);
+  // declined: nothing starts, and the card waits for the user's own answer with no countdown
+  allow = false;
+  const held = h.orch.start('top', offer('Docs'));
+  clock.advance(OFFER_COUNTDOWN_MS);
+  assert.equal(await settled(held), 'pending');
+  assert.deepEqual(asked, [10, 11]);
+  const p = h.journal.proposal(idOf(h, 'Docs'));
+  assert.deepEqual([p.status, p.waiting, p.countdown], ['open', true, undefined]);
+  await h.orch.act(idOf(h, 'Docs'), 'here');
+  assert.equal((await held).next, HERE_NEXT);
+});
+
+test('a countdown start that outlives its call (the cap while approval is asked) leaves the agent a note', async (t) => {
+  const clock = useFakeClock(t);
+  let approve: (ok: boolean) => void = () => {};
+  const h = orchestration({ approveStart: () => new Promise<boolean>((r) => (approve = r)) });
+  h.userTurn();
+  h.journal.change((d: any) => (d.parents.top = { wakes: 0, held: false, cutShort: false, notes: [], starts: 10 }));
+  const call = h.orch.start('top', offer());
+  const id = idOf(h);
+  clock.advance(OFFER_COUNTDOWN_MS);
+  assert.equal(await settled(call), 'pending');
+  assert.equal(h.journal.proposal(id).status, 'starting', 'waiting for the approval');
+  clock.advance(OFFER_WAIT_MS);
+  assert.equal((await call).still_open, true);
+  approve(true);
+  await waitFor(() => h.journal.proposal(id).status === 'started', 'the approved start');
+  const p = h.journal.proposal(id);
+  assert.equal(p.status, 'started');
+  const notes = h.journal.parent('top').notes;
+  assert.equal(notes.length, 1);
+  assert.equal(notes[0].childId, p.chatId);
+  assert.match(
+    notes[0].body,
+    new RegExp(`^Nobody answered the card for your offered task ${id} \\("Fix login"\\), so it started as a separate session \\(`),
+  );
+  assert.match(notes[0].body, /\. It runs on its own; you get a note when it ends a turn\.$/);
+  // a title-only offer's reserved session waits for its brief, and the note asks the agent for it
+  const reserved = h.orch.start('top', { initiation: 'offer', title: 'Docs' });
+  const docs = idOf(h, 'Docs');
+  clock.advance(OFFER_COUNTDOWN_MS);
+  clock.advance(OFFER_WAIT_MS);
+  assert.equal((await reserved).still_open, true);
+  approve(true);
+  await waitFor(() => h.journal.proposal(docs).status === 'briefing', 'the approved reservation');
+  assert.equal(h.journal.proposal(docs).status, 'briefing');
+  assert.match(
+    h.journal.parent('top').notes.at(-1).body,
+    new RegExp(
+      `It waits for its brief: call start_session with exactly proposal_id "${docs}", prompt and background, and do not do the task here\\.$`,
+    ),
+  );
 });
 
 test('an answer, a dismissal or a new message before the countdown ends it, and the countdown never answers after', async (t) => {
@@ -98,7 +169,7 @@ test('an answer, a dismissal or a new message before the countdown ends it, and 
   assert.deepEqual(await h.orch.act(idOf(h, 'A'), 'here'), { task_id: idOf(h, 'A'), status: 'declined', answered: true });
   assert.deepEqual(await here, { status: 'declined', task_id: idOf(h, 'A'), kind: 'offer', title: 'A', answer: 'here', next: HERE_NEXT });
   clock.advance(OFFER_WAIT_MS);
-  assert.equal(h.journal.proposal(idOf(h, 'A')).autoHere, undefined);
+  assert.equal(h.journal.proposal(idOf(h, 'A')).status, 'declined', 'no start after the user kept it here');
   // a dismissal
   const dismissed = h.orch.start('top', offer('B'));
   await h.orch.act(idOf(h, 'B'), 'dismiss');
@@ -111,13 +182,19 @@ test('an answer, a dismissal or a new message before the countdown ends it, and 
   assert.equal((await started).answer, 'new_session');
   clock.advance(OFFER_WAIT_MS);
   assert.equal(h.journal.proposal(idOf(h, 'C')).status, 'started');
+  // New session on a title-only offer: the user's own choice, and the brief is asked for
+  const reserved = h.orch.start('top', { initiation: 'offer', title: 'C2' });
+  await h.orch.act(idOf(h, 'C2'), 'start');
+  const asked = await reserved;
+  assert.deepEqual([asked.status, asked.answer, asked.auto], ['briefing', 'new_session', undefined]);
+  assert.match(asked.next, /^The user chose "New session" for "C2" \(task_id: task_\w+\)\. Write its brief now: /);
   // the user's new message takes precedence over the card
   const superseded = h.orch.start('top', offer('D'));
   human(h);
   assert.equal((await superseded).answer, 'superseded');
   clock.advance(OFFER_WAIT_MS);
   const d = h.journal.proposal(idOf(h, 'D'));
-  assert.deepEqual([d.status, d.autoHere, d.countdown], ['dismissed', undefined, undefined]);
+  assert.deepEqual([d.status, d.chatId, d.countdown], ['dismissed', null, undefined]);
   assert.deepEqual([h.orch.answers.size, countdownsOf(h.orch).size], [0, 0]);
   // one the user answered themselves is refused with its status, as before
   await assert.rejects(h.orch.act(idOf(h, 'A'), 'here'), (e: any) => e.message === 'That proposal is declined');
@@ -186,7 +263,7 @@ test('a Stop while it counts settles the call once, and the card stays open with
   assert.equal((await call).still_open, true);
   clock.advance(OFFER_COUNTDOWN_MS);
   const p = h.journal.proposal(id);
-  assert.deepEqual([p.status, p.waiting, p.countdown, p.autoHere], ['open', undefined, undefined, undefined]);
+  assert.deepEqual([p.status, p.waiting, p.countdown, p.chatId], ['open', undefined, undefined, null]);
   // a proposal gone from the record while its call waited is let go without a write
   const stop = new AbortController();
   const gone = h.orch.start('top', offer('Gone'), { signal: stop.signal });
@@ -216,12 +293,12 @@ test('a countdown the journal can’t record never runs, and one it can’t clos
   assert.equal(await settled(unrecorded), 'pending');
   await h.orch.act(id, 'here');
   assert.equal((await unrecorded).next, HERE_NEXT);
-  // the countdown runs out but "Do it here" can't be written: the card keeps waiting for the user
+  // the countdown runs out but its start can't be written: the card keeps waiting for the user
   const unclosed = h.orch.start('top', offer('Unclosed'));
-  failing = (p) => p.args.title === 'Unclosed' && p.status === 'declined';
+  failing = (p) => p.args.title === 'Unclosed' && p.status === 'starting';
   clock.advance(OFFER_COUNTDOWN_MS);
-  failing = null;
   assert.equal(await settled(unclosed), 'pending');
+  failing = null;
   assert.deepEqual(pick(h.journal.proposal(idOf(h, 'Unclosed')), 'status', 'countdown'), { status: 'open' }, 'no countdown left on show');
   await h.orch.act(idOf(h, 'Unclosed'), 'here');
   assert.equal((await unclosed).auto, undefined);
@@ -233,6 +310,18 @@ test('a countdown the journal can’t record never runs, and one it can’t clos
   assert.ok(h.journal.proposal(idOf(h, 'Unheld')).countdown);
   clock.advance(OFFER_COUNTDOWN_MS);
   assert.equal((await unheld).auto, true);
+  // the countdown runs out but its hold can't be written: nothing escapes the timer, and the card waits for the user
+  // with no countdown on show once the journal writes again
+  const unstarted = h.orch.start('top', offer('Unstarted'));
+  let refused = 0;
+  failing = (p) => p.args.title === 'Unstarted' && p.status === 'open' && !p.countdown && refused++ === 0;
+  clock.advance(OFFER_COUNTDOWN_MS);
+  assert.equal(await settled(unstarted), 'pending');
+  failing = null;
+  assert.equal(refused, 2, 'the hold was refused, and the write after it went through');
+  assert.deepEqual(pick(h.journal.proposal(idOf(h, 'Unstarted')), 'status', 'waiting', 'countdown'), { status: 'open', waiting: true });
+  await h.orch.act(idOf(h, 'Unstarted'), 'here');
+  assert.equal((await unstarted).next, HERE_NEXT);
 });
 
 test('a countdown that runs out after its offer was answered, gone or past its time does nothing', async (t) => {
@@ -269,7 +358,7 @@ test('a countdown that runs out after its offer was answered, gone or past its t
   const e = h.orch.start('top', offer('E'));
   now += PROPOSAL_DAYS * 86_400_000 + 1;
   clock.advance(OFFER_COUNTDOWN_MS);
-  assert.deepEqual(pick(h.journal.proposal(idOf(h, 'E')), 'autoHere', 'countdown'), {});
+  assert.deepEqual(pick(h.journal.proposal(idOf(h, 'E')), 'chatId', 'countdown'), { chatId: null });
   h.orch.answers.get(idOf(h, 'E'))({ status: 'dismissed' });
   await e;
   now = 1000;
@@ -301,7 +390,7 @@ test('the user’s message queued behind the turn closes its offer and ends the 
   assert.deepEqual([r.status, r.answer, r.next], ['dismissed', 'superseded', QUEUED_NEXT]);
   assert.match(QUEUED_NEXT, /do not start the task.*end your turn\.$/);
   clock.advance(OFFER_COUNTDOWN_MS);
-  assert.equal(h.journal.proposal(idOf(h, 'Queued')).autoHere, undefined, 'the countdown answers nothing after it');
+  assert.equal(h.journal.proposal(idOf(h, 'Queued')).status, 'dismissed', 'the countdown answers nothing after it');
   // a turn that ended some way its harness did not cancel the call by: let go, the card stays open, counting no more
   const suggestion = await h.orch.start('top', { ...offer('Idea'), initiation: 'own_initiative' });
   const ended = h.orch.start('top', offer('Ended'));
@@ -350,7 +439,7 @@ test('no countdown survives a restart: the journal reads every offer as neither 
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('windows read the countdown from main only while its offer waits, and whether it chose "Do it here"', () => {
+test('windows read the countdown from main only while its offer waits', () => {
   const base = { parentId: 'top', kind: 'offer', args: { title: 'T' }, status: 'open', createdAt: 1, expiresAt: 9e15 };
   const view = (p: any) => orchestrationView({ children: {}, deliveries: {}, proposals: { t: { ...base, ...p } } }, 2).proposals.t;
   assert.deepEqual(pickView(view({ waiting: true, countdown: { from: 1, at: 60_001, extra: 1 } })), { countdown: { from: 1, at: 60_001 } });
@@ -359,8 +448,8 @@ test('windows read the countdown from main only while its offer waits, and wheth
   assert.deepEqual(pickView(view({ waiting: true })), {});
   assert.deepEqual(pickView(view({ waiting: true, countdown: { from: 'x', at: 60_001 } })), {});
   assert.deepEqual(pickView(view({ waiting: true, countdown: { from: 1, at: null } })), {});
-  assert.deepEqual(pickView(view({ status: 'declined', autoHere: true })), { autoHere: true });
-  assert.deepEqual(pickView(view({ status: 'declined', autoHere: 'yes' })), {}, 'only main’s own true');
+  // a record from before the countdown chose "New session" shows as its status alone
+  assert.deepEqual(pickView(view({ status: 'declined', autoHere: true })), {});
 });
 /** The view's countdown fields, as present. */
 const pickView = (p: any) => pick(p, 'countdown', 'autoHere');

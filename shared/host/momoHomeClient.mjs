@@ -3,6 +3,8 @@ import { climbFloor, EPOCH_MAX, leaseWins } from './momoHomeSafety.mjs';
 
 /** The first Host app version that could hold a home at all (the one the home record first shipped in): an older version holds none, so a Host that old and with no look is a definite "no home". A build id has no order, so only a release version is read (the registry's `hostAppVersion`). */
 export const FIRST_HOME_VERSION = '0.4.60';
+/** The oldest Host release a client lets hold a home: every start says it (`minVersion`) and a Host older than it refuses with `host_too_old` (#5626), whatever the client made of its version. The first release with the signed-entitlement gate a home's grant goes through (#5506); raise it when a home needs more of its Host. */
+export const HOME_MIN_HOST_VERSION = '0.4.67';
 /** How old a Host's reported version may be and still decide "holds none": longer ago, and it may have been updated and given a home since. */
 export const VERSION_FRESH_MS = 10 * 60_000;
 

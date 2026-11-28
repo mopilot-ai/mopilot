@@ -12,6 +12,7 @@
     "panes.ts",
     "projects.ts",
     "localProjectDraft.ts",
+    "railSections.ts",
     "repositoryDraft.ts",
     "reviews.ts",
     "send.ts",

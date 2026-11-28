@@ -120,8 +120,11 @@ class AcpTurns {
           blocks,
           display: buildInput(text, attachments),
           ...(permission ? { initialPermission: permission } : {}),
-          // a message sent with a model or effort (a scheduled task's run) runs on them (acp/initialConfig.cjs)
-          ...(opts.model || opts.effort ? { config: { model: opts.model, effort: opts.effort } } : {}),
+          // a message sent with a model or effort (a scheduled task's run, Auto's pick) runs on them, and what an earlier
+          // Auto turn left on the session goes back to the chat's own (acp/initialConfig.cjs)
+          ...(opts.model || opts.effort || opts.autoRestore
+            ? { config: { model: opts.model, effort: opts.effort, ...(opts.autoRestore ? { restore: opts.autoRestore } : {}) } }
+            : {}),
         },
         carryInputGuard(item, { human: !!opts.human && !opts.prefix, uuid: clientId, ...(opts.compact ? { compact: opts.compact } : {}) }),
       );

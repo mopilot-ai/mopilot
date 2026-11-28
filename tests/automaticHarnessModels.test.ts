@@ -30,7 +30,7 @@ test('automatic intent remains distinct from a concrete model, an unread receipt
 test('the Automatic menu choice uses current capabilities and never stores its current recommended version', () => {
   const model = { id: 'recommended', label: 'Recommended', efforts: ['high'], defaultEffort: 'high', fast: true, isDefault: true };
   assert.equal(automaticModel([]), undefined);
-  assert.deepEqual(automaticModel([model]), { ...model, id: '', label: 'Automatic', description: undefined, more: false });
+  assert.deepEqual(automaticModel([model]), { ...model, id: '', label: 'Default (recommended)', description: undefined, more: false });
   assert.equal(automaticModel([{ ...model, isDefault: false }])?.id, '');
 });
 

@@ -66,7 +66,7 @@ test.describe('Codex: an expired login', () => {
     // the app-server's token refresh fails: the turn ends, and the account in use says it needs a sign-in
     await send(page, 'AUTHEXPIRED hello');
     const banner = page.locator('.acct-banner', { hasText: 'has expired' });
-    await expect(banner).toContainText('Your sign-in for first@example.test has expired.');
+    await expect(banner).toContainText('Your Codex sign-in for first@example.test has expired.');
     await banner.getByRole('button', { name: 'Sign in again' }).click();
     await expect.poll(opened).toContain('https://auth.example.test/codex');
     await expect(page.getByText('Signed in again as first@example.test')).toBeVisible();

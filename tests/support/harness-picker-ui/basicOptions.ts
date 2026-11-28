@@ -91,7 +91,9 @@ export function registerBasicOptions() {
     );
     // a long list scrolls on its own; a short one doesn't
     assert.equal($$('.acp-values').length, 1);
-    assert.equal($$('.acp-values .menu-item').length, 12);
+    // the model's values, after Auto
+    assert.equal($$('.acp-values .menu-item').length, 13);
+    assert.match($$('.acp-values .menu-item')[0].textContent!, /^Auto/);
     assert.ok(item('Low').querySelector('svg'));
     assert.match(document.body.textContent!, /New Opencode chats start with these/);
     await click(item('High'));

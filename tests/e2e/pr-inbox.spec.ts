@@ -152,7 +152,7 @@ test('a question counts on its asking session while the parent keeps the family 
   await page.screenshot({ path: testInfo.outputPath('all-chats.png') });
   await tray.getByRole('button', { name: 'This chat', exact: true }).click();
   // the summary panel's card lists the same PRs, so they stay reachable with the PR rail scrolled away
-  const card = page.locator('section.summary-group[aria-label="Pull requests"]');
+  const card = page.locator('section.summary-pr-list[aria-label="Pull requests"]');
   await expect(card).toBeVisible();
   await expect(card.locator('button.summary-row')).toHaveCount(2);
 

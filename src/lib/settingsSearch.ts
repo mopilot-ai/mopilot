@@ -42,6 +42,7 @@ export const KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     'Run scheduled tasks',
     'Send with',
     'When you ask for an unrelated task',
+    'Auto (all harnesses) picks for',
     'Automatically archive inactive chats',
     'Apply code review fixes automatically',
     'Resume after quota resets',

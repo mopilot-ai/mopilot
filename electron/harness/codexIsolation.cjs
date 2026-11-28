@@ -31,7 +31,7 @@ const ISOLATED_THREAD = Symbol('isolated thread');
 const DATA_ONLY_THREAD = Symbol('data-only thread');
 /**
  * Codex's own tools that read files or run anything, its memory (reading and writing memories, and importing another
- * agent's), its hooks and its skill search: off for an isolated thread (the tools checked on codex-cli 0.163, the rest
+ * agent's), its hooks, its skill search and ChatGPT apps: off for an isolated thread (the tools checked on codex-cli 0.163, the rest
  * on 0.162.1).
  */
 const FEATURES_OFF = Object.freeze({
@@ -44,6 +44,9 @@ const FEATURES_OFF = Object.freeze({
   external_agent_memory_import: false,
   hooks: false,
   skill_search: false,
+  // ChatGPT apps (the codex_apps MCP server, stable and on by default on 0.162.1): their tools reach code mode's ALL_TOOLS and
+  // would run outside MoPilot's trust gate (#5824)
+  apps: false,
 });
 /**
  * FEATURES_OFF as MoMo's Codex home carries it (codexMomoHome.cjs): every thread on that app-server has no shell, whatever

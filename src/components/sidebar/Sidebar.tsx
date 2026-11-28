@@ -186,9 +186,7 @@ export function Sidebar({ leaving = false, width }: { leaving?: boolean; width: 
                           collapsed={
                             collapsed[groupKey(g)] ??
                             (g.repository ? collapsed[`repo:${g.repository}`] : undefined) ??
-                            (g.machine
-                              ? machineProjectCollapsed(collapsed, groupKey(g), machineKeyOf)
-                              : !!g.machineGroups?.some((key) => machineProjectCollapsed(collapsed, key, machineKeyOf)))
+                            (!!g.machine && machineProjectCollapsed(collapsed, groupKey(g), machineKeyOf))
                           }
                           revealed={revealed[groupKey(g)] ?? 0}
                           activeThread={activeThread}

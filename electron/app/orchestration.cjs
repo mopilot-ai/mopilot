@@ -64,11 +64,10 @@ function orchestrationView(data, now = Date.now(), defaultWorktree = (_parentId)
       chatId: p.chatId ?? null,
       expiresAt: p.expiresAt,
       waiting: p.waiting === true,
-      // an offer whose call waits, counting down to "Do it here" (proposals.cjs waitForAnswer), and whether it got there
+      // an offer whose call waits, counting down to "New session" (proposals.cjs waitForAnswer)
       ...(p.waiting === true && Number.isFinite(p.countdown?.from) && Number.isFinite(p.countdown?.at)
         ? { countdown: { from: p.countdown.from, at: p.countdown.at } }
         : {}),
-      ...(p.autoHere === true ? { autoHere: true } : {}),
       // where it would run, as its card says: a fork of the chat, its own worktree, or this folder (the journal keeps
       // the checked start arguments, spawn.cjs startArgs)
       place: p.args.context === 'fork' ? 'fork' : (p.args.useWorktree ?? defaultWorktree(p.parentId)) ? 'worktree' : 'folder',
@@ -172,7 +171,7 @@ function createOrchestration({
     // set once the chats' IPC is up (ipc/chats.cjs); a call before that archives nothing
     archive: (chatId) => live.archiveChat?.(chatId) === true,
     // harness "auto" (autoHarness.cjs): the first tier, then each admitted ACP harness; their usage as the identity
-    // registry last saw it (identity/contract/registry.cjs); what each can't do now
+    // registry last saw it (identity/contract/registry.cjs, measured by shared/remainingCapacity.mjs); what each can't do now
     kinds: () => ['codex', 'claude', ...(live.acpAdmission?.list() ?? []).filter((h) => h.state === 'admitted').map((h) => `acp:${h.id}`)],
     quota: (kind) => quotaOf(live.identity?.instances(parseKind(kind)?.family), kind),
     lacks: harnessLacks(isFlagEnabled),
@@ -198,7 +197,7 @@ function createOrchestration({
     notifyOffer: (chatId, title) =>
       live.notifier?.notify('approval', chatId, {
         title: `New session for “${title}”, or do it here?`,
-        body: 'With no answer in a minute, it’s done here.',
+        body: 'With no answer in a minute, it starts as a new session.',
       }),
   });
   // beside the hooks already there (the peer service's, the turn-end ledger's); the orchestrator's own failures are

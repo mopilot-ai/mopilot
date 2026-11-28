@@ -346,8 +346,6 @@ export function ProjectGroup({
             const hidden = new Set([...(getState().prefs.hiddenFolders ?? []), folderEntryOf(group)]);
             if (group.machine && group.machineFolders)
               for (const path of group.machineFolders) hidden.add(machineFolderKey(group.machine.id, path));
-            for (const key of group.machineGroups ?? []) hidden.add(key);
-            for (const alias of group.machineFolderAliases ?? []) hidden.add(alias);
             if (group.repository && group.locations?.length) hidden.add(`repo:${group.repository}`);
             setPrefs({ hiddenFolders: [...hidden] });
             if (group.id) deleteProjectGroup(group.id, group.projectIds).catch(toastFailure("Couldn't remove the project"));

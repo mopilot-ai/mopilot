@@ -2,9 +2,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import { createRequire } from 'node:module';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { computerNameOf } from '../../shared/host/computerName.mjs';
+import { hostAppVersion, recorded } from './hostRelease.mjs';
 
 const require = createRequire(import.meta.url);
 const { peerCheckReady } = require('../../electron/capabilities/mcp/sageMcpReady.cjs');
@@ -14,16 +13,8 @@ export { coreProblem };
 
 const { version } = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 /** The build this Host runs, as the archive it came in recorded it ('' for a Host that was not unpacked from one); the app compares it with its own to see an older Host. */
-const recorded = (/** @type {string} */ file) => {
-  try {
-    return fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', file), 'utf8').trim();
-  } catch {
-    return '';
-  }
-};
 const build = recorded('BUILD_ID');
-/** The version of the app that built this Host's archive ('' for one that was not unpacked from one, or from before archives recorded it): a build id has no order, a version does. */
-const appVersion = recorded('APP_VERSION');
+const appVersion = hostAppVersion;
 
 /**
  * Whether this Host's Rust core answers: its build, as the version records it, how many routes the addon lists, and why it has none. A Host with a `problem` does not serve (cli.mjs), and the app's install says so.

@@ -16,7 +16,13 @@ export const GUARDS = ['electron/'];
 const require = createRequire(import.meta.url);
 const { createCodexServer } = require('../electron/app/codexServer.cjs');
 const { IsolatedServer } = require('../electron/harness/codexIsolatedServer.cjs');
-const { isolateConfig, ISOLATED_THREAD, FEATURES_OFF, INSTRUCTIONS_OFF } = require('../electron/harness/codexIsolation.cjs');
+const {
+  isolateConfig,
+  ISOLATED_THREAD,
+  FEATURES_OFF,
+  HOME_FEATURES_OFF,
+  INSTRUCTIONS_OFF,
+} = require('../electron/harness/codexIsolation.cjs');
 
 test('the app’s Codex server runs MoMo’s threads on an app-server whose CODEX_HOME is MoMo’s, holding no instructions', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'momo-confined-'));
@@ -150,4 +156,12 @@ test('an isolated Codex thread’s config turns off what Codex reads outside its
   assert.equal(off.skills.include_instructions, false);
   for (const [k, v] of Object.entries(INSTRUCTIONS_OFF)) assert.equal(off[k], v, k);
   for (const k of ['hooks', 'skill_search', 'memories', 'external_agent_memory_import']) assert.equal(FEATURES_OFF[k], false, k);
+});
+
+test('an isolated Codex thread has no ChatGPT apps: codex_apps tools would run outside MoMo’s trust gate (#5824)', () => {
+  // Codex's `apps` feature (stable, on by default on 0.162.1) adds the codex_apps MCP server, whose tools a MoMo thread's code mode
+  // listed in ALL_TOOLS; MoPilot's gate never sees those calls, so the thread and MoMo's home turn the feature off
+  assert.equal(isolateConfig({ [ISOLATED_THREAD]: true }, { features: { apps: true } }).features.apps, false);
+  assert.equal(FEATURES_OFF.apps, false);
+  assert.equal(HOME_FEATURES_OFF.apps, false);
 });

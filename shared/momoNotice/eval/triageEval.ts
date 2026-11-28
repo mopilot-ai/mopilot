@@ -150,6 +150,19 @@ export function summarize(lines: VerdictLine[]): Summary {
   };
 }
 
+export type VerdictScore = { expected: number; answered: number; right: number; precision: number | null; recall: number | null };
+
+/** Precision and recall of each verdict: of the mails answered X, how many were X; of the mails that were X, how many were answered X. Null when none was answered (precision) or expected (recall). */
+export function verdictScores(lines: VerdictLine[]): Record<Verdict, VerdictScore> {
+  const score = (verdict: Verdict): VerdictScore => {
+    const expected = lines.filter((l) => l.expected === verdict).length;
+    const answered = lines.filter((l) => l.got === verdict).length;
+    const right = lines.filter((l) => l.expected === verdict && l.got === verdict).length;
+    return { expected, answered, right, precision: answered ? right / answered : null, recall: expected ? right / expected : null };
+  };
+  return { tell_now: score('tell_now'), track: score('track'), quiet: score('quiet') };
+}
+
 export type GateLimits = { accuracyMin: number; missedMax: number; overAlertsMax: number; unsortedMax: number };
 
 /** Proposed limits for a model run (not yet measured on a real model): nothing that matters may be silenced. */

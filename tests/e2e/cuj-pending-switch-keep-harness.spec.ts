@@ -9,7 +9,7 @@ test('Automatic on the chat’s own harness cancels the pending switch away from
   const composer = page.getByRole('textbox', { name: 'Message', exact: true });
   await openHarnessList(page);
   await page.locator('.hp-harnesses .hp-row', { hasText: 'Codex' }).click();
-  await page.locator('.hp-models .menu-item').first().click();
+  await page.locator('.hp-models .menu-item', { hasText: 'Default (recommended)' }).click();
   await composer.fill('hello codex');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByRole('main').getByText(/fake-codex: hello codex/)).toBeVisible();

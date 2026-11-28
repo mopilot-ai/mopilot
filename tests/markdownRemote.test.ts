@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { createElement as h } from 'react';
-import { mockStore, autoMock, stubComponent, render, settle, resetStore, callsTo, impl } from './support/thread-kit.ts';
+import { mockStore, autoMock, stubComponent, render, settle, resetStore, callsTo, impl, moduleCalls } from './support/thread-kit.ts';
 import { useFakeNative } from './support/ports/native.ts';
 import { RemoteFolderContext, parseRemoteCwd, remoteCwd } from '../src/lib/remoteFolder.ts';
 import { createHostFs } from '../host/src/hostFs.mjs';
@@ -24,6 +24,29 @@ const { RemoteFilePreview } = await import('../src/components/panels/files/Remot
 const AT = remoteCwd('m', '/srv/app');
 const text =
   '[a](src/a.ts) ![pic](/srv/app/pic.png) ![web](https://example.com/p.png) `/srv/app/SKILL.md` [skill](/srv/app/SKILL.md) `src/a.ts` :codex-file-citation{path="docs/c.md" page_number="2"} :codex-file-citation{path="~/n.md"} \uE200visualize\uE202{"path":"out/c.html"}\uE201';
+
+test('sandbox artifact destinations become clickable file paths and image sources, without admitting other schemes', async () => {
+  moduleCalls.length = 0;
+  const v = await render(
+    h(Markdown, {
+      cwd: '/repo',
+      text:
+        '[Screenshot](sandbox:/repo/shot%20%231.png) ![Inline](sandbox:/repo/shot%20%231.png) ' +
+        '[Remote authority](sandbox://host/shot.png) [Relative](sandbox:shot.png) [Script](javascript:alert%281%29)',
+    }),
+  );
+  const [file, authority, relative, script] = v.$$('a');
+  assert.equal(file.getAttribute('href'), '/repo/shot%20%231.png');
+  await settle(() => file.click());
+  assert.deepEqual(callsTo('open:openMessageLink')[0].slice(0, 2), ['/repo/shot%20%231.png', '/repo']);
+  assert.equal(v.$('[data-stub="ZoomableImage"]')?.dataset.src, 'codex-asset:///repo/shot%20%231.png');
+  for (const link of [authority, relative, script]) {
+    assert.ok(!link.getAttribute('href'));
+    await settle(() => link.click());
+  }
+  assert.equal(callsTo('open:openMessageLink').length, 1);
+  await v.unmount();
+});
 
 test('links in a chat on a machine open on the machine, and a local image, skill and visualization are not drawn from this Mac', async () => {
   resetStore({});
@@ -101,12 +124,13 @@ test('a Markdown result link reads and previews the cited file on the Host', asy
       RemoteFolderContext.Provider,
       { value: { machineId: 'ssh:box', folder } },
       h(Markdown, {
-        text: `[Remote result](${file}:2)`,
+        text: `[Remote result](sandbox:${file}:2) ![Do not load locally](sandbox:${folder}/shot.png)`,
         cwd: folder,
       }),
     ),
   );
   await settle(() => chat.$('a')!.click());
+  assert.equal(chat.$('[data-stub="ZoomableImage"]'), null);
   const [kind, target] = callsTo('store:openPaneTab').at(-1)!;
   assert.equal(kind, 'file');
   const machine = parseRemoteCwd(target.cwd)!;

@@ -6,12 +6,27 @@
 // and the window sends "Continue".
 const { instance, providerFor, PROVIDERS } = require('../contract/registry.cjs');
 const { noteIgnored } = require('../../ignored.cjs');
+const { planUnits } = require('../../../shared/remainingCapacity.mjs');
 
 const DEFAULT_ID = 'default';
 const LIMITS_STALE_MS = 5 * 60_000;
 
+/**
+ * Percent left of a ChatGPT login's tightest window in its last reading (identity/accounts/records.cjs limitInfo), as the
+ * account view reads it (src/harness/accounts.ts): a window past its reset started over, so its figure is not known; a
+ * reading without windows says only how much is used. Null when nothing is known now.
+ * @param {{ primary?: { usedPercent?: number, resetsAt?: number | null } | null, secondary?: any, used?: number | null } | null | undefined} limits
+ * @param {number} now ms
+ */
+function leftOf(limits, now) {
+  const windows = [limits?.primary, limits?.secondary].filter(Boolean);
+  const known = windows.filter((w) => !w.resetsAt || w.resetsAt * 1000 > now).map((w) => w.usedPercent ?? 0);
+  const used = windows.length ? (known.length ? Math.max(...known) : null) : (limits?.used ?? null);
+  return used == null ? null : Math.max(0, 100 - Math.round(used));
+}
+
 /** One accounts.cjs record as an instance; `limited`: the pool counts it out of usage (Accounts.limited). */
-function codexInstance(a, activeId, limited = false) {
+function codexInstance(a, activeId, limited = false, now = Date.now()) {
   const kind = a.kind || 'chatgpt';
   const base = {
     harness: 'codex',
@@ -30,7 +45,14 @@ function codexInstance(a, activeId, limited = false) {
       kind: a.id === DEFAULT_ID ? 'cliLogin' : 'sageKey',
       billing: 'apiKey',
     });
-  return instance({ ...base, provider: PROVIDERS.openai, kind: a.id === DEFAULT_ID ? 'cliLogin' : 'harnessAuth', billing: 'subscription' });
+  return instance({
+    ...base,
+    provider: PROVIDERS.openai,
+    kind: a.id === DEFAULT_ID ? 'cliLogin' : 'harnessAuth',
+    billing: 'subscription',
+    left: leftOf(a.limits, now),
+    units: planUnits('codex', a.planType),
+  });
 }
 
 class CodexDriver {

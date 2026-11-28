@@ -50,12 +50,7 @@ for (const family of [
           }),
         )
         .toEqual({ headerMinimum: '32px', cornerRadius: '10px', compactType: true, cardsFit: true, horizontalOverflow: false });
-      const connectors = rail.locator('.summary-connectors');
-      await connectors.locator('summary').focus();
-      await connectors.locator('summary').press('Enter');
-      await expect(connectors).toHaveAttribute('open');
-      await connectors.locator('summary').press('Enter');
-      await expect(connectors).not.toHaveAttribute('open');
+      // the Connectors card is absent for a session with no connectors (as Claude Desktop's); Context folds the same way
       const context = rail.locator('.summary-context');
       await context.locator('summary').focus();
       await context.locator('summary').press('Enter');
@@ -67,7 +62,8 @@ for (const family of [
       const addSource = sources.getByRole('button', { name: 'Add source', exact: true });
       const url = sources.getByRole('textbox', { name: 'Source URL', exact: true });
       const add = sources.getByRole('button', { name: 'Add to message', exact: true });
-      await expect(sources.locator('.summary-row')).toHaveCount(0);
+      // the Add source row is the section's own; shared sources are the other rows
+      await expect(sources.locator('.summary-row:not(.summary-source-add)')).toHaveCount(0);
       await composer.fill('Compare these sources');
       await addSource.click();
       await expect(url).toBeFocused();
@@ -107,7 +103,7 @@ for (const family of [
       await sources.getByRole('button', { name: 'Show all 3 links', exact: true }).click();
       for (const link of links) await expect(sources.getByTitle(link, { exact: true })).toBeVisible();
       await sources.getByRole('button', { name: 'Show less', exact: true }).click();
-      await expect(sources.locator('.summary-row[title]')).toHaveCount(2);
+      await expect(sources.locator('.summary-row[title]:not(.summary-source-add)')).toHaveCount(2);
     });
   });
 }

@@ -1,5 +1,6 @@
 import type { Look } from './momoHomeSafety.d.mts';
 export const FIRST_HOME_VERSION: string;
+export const HOME_MIN_HOST_VERSION: string;
 export const VERSION_FRESH_MS: number;
 export const CLIMB_MAX: number;
 export function releaseOf(v: unknown): number[] | null;

@@ -1,0 +1,50 @@
+{
+  "description": "OpenSquilla's lightgbm_model router weights (BGE encoder, BERT-60M INT8 intent head, LightGBM tier head), pinned to one upstream commit. scripts/fetch-auto-route-assets.mjs downloads and verifies them; electron/autoRoute/squilla/assets.cjs verifies sizes before loading.",
+  "repository": "TokenRhythm/opensquilla",
+  "commit": "96ad3e4017253f3791f343b508b886942e877e8d",
+  "license": "Apache-2.0",
+  "modelSetId": "router-bert60-int8-intent-lightgbm-tier-v1",
+  "files": [
+    {
+      "name": "bge/model.onnx",
+      "path": "src/opensquilla/squilla_router/models/v4.2_phase3_inference/bge_onnx/model.onnx",
+      "lfs": true,
+      "size": 23902398,
+      "sha256": "87847793fac866d65b19cee2e73a6b2a2446a1262ab0911b1dbf9b3e9399ef9d"
+    },
+    {
+      "name": "bge/tokenizer.json",
+      "path": "src/opensquilla/squilla_router/models/v4.2_phase3_inference/bge_onnx/tokenizer.json",
+      "lfs": false,
+      "size": 439125,
+      "sha256": "48cea5d44424912a6fd1ea647bf4fe50b55ab8b1e5879c3275f80e339e8fae26"
+    },
+    {
+      "name": "intent/model.int8.onnx",
+      "path": "src/opensquilla/squilla_router/lightgbm_model/assets/intent/model.int8.onnx",
+      "lfs": false,
+      "size": 59844613,
+      "sha256": "4bb16d564a672f892502a909522bb0ad5ad1ecee87bba72094a9f0203258fd35"
+    },
+    {
+      "name": "tier/model.txt.gz",
+      "path": "src/opensquilla/squilla_router/lightgbm_model/assets/tier/model.txt.gz",
+      "lfs": true,
+      "size": 12238618,
+      "sha256": "60858e46ec2ddd090a5fa7a19cbb8011e71f944740f4b4033845c67764526b15",
+      "gunzippedSize": 28019262,
+      "gunzippedSha256": "0a49539b8f26ca40945cfad01f32f84d40cfd3fedeceffd2480a0779db5dc8d1"
+    },
+    {
+      "name": "LICENSE",
+      "path": "LICENSE",
+      "lfs": false,
+      "size": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    }
+  ],
+  "calibration": {
+    "tierTemperature": 1.090874386298676,
+    "intentTemperature": 1.349285881307928
+  }
+}

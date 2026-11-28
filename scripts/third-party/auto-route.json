@@ -1,0 +1,20 @@
+{
+  "direct": [
+    {
+      "name": "onnxruntime-node",
+      "use": "Runs the Auto router's local BGE encoder and BERT intent head (electron/autoRoute/squilla).",
+      "ships": "The N-API binding and ONNX Runtime library for the build's platform and architecture only, unpacked from the asar; macOS x64 has no build, so Auto routing is unavailable there.",
+      "license": "MIT, Copyright (c) Microsoft Corporation (the package declares MIT and ships no license file; the text is ONNX Runtime's, in docs/licenses/onnxruntime-LICENSE.txt)",
+      "lockLicense": "MIT",
+      "url": "https://github.com/microsoft/onnxruntime"
+    }
+  ],
+  "runtimeRoots": ["onnxruntime-node"],
+  "notices": [
+    { "title": "ONNX Runtime (onnxruntime-node)", "path": "docs/licenses/onnxruntime-LICENSE.txt" },
+    {
+      "title": "OpenSquilla (https://github.com/TokenRhythm/opensquilla, commit 96ad3e4, Apache-2.0): SquillaRouter's model weights, shipped unchanged in resources/auto-route; its feature pipeline, model policy and tokenizer contract ported to JavaScript in electron/autoRoute/squilla; and its fitted TF-IDF, SVD, PCA and scaler parameters, converted to plain arrays in electron/autoRoute/squilla/params",
+      "path": "docs/licenses/opensquilla-LICENSE.txt"
+    }
+  ]
+}

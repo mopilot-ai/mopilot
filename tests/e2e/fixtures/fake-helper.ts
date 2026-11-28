@@ -70,7 +70,15 @@ export interface FakeHelper {
    * time (notDetermined) and the user answers `onPrompt`; afterwards it just answers. A test turns a switch on by
    * setting the grant.
    */
-  eventkit: { calendar: string; reminders: string; onPrompt: string; nextId: number; items: Record<string, any>[] };
+  eventkit: {
+    calendar: string;
+    reminders: string;
+    onPrompt: string;
+    nextId: number;
+    items: Record<string, any>[];
+    /** what calendar.events answers (title, start and end in ms, calendar): empty unless a spec puts events on the calendar */
+    events: Record<string, any>[];
+  };
   /** what speech.status says about on-device recognition for the language (false: its model isn't on this Mac) */
   speech: { onDevice: boolean };
   /** sends main a control.paused notification, as a physical Esc or a take-over would */
@@ -102,6 +110,7 @@ export async function startFakeHelper(socket: string): Promise<FakeHelper> {
     onPrompt: 'granted',
     nextId: 0,
     items: [] as Record<string, any>[],
+    events: [] as Record<string, any>[],
   };
   const speech = { onDevice: true };
   const enforce = { on: false };
@@ -213,8 +222,9 @@ export async function startFakeHelper(socket: string): Promise<FakeHelper> {
       case 'calendar.calendars':
       case 'reminders.lists':
         return { items: [{ id: 'c1', title: 'Work', account: 'iCloud' }] };
-      // nothing on the calendar or in the lists: a MoMo read that gets this far says so
+      // nothing on the calendar (unless a spec put events there) or in the lists: a MoMo read that gets this far says so
       case 'calendar.events':
+        return { items: eventkit.events, truncated: false };
       case 'reminders.items':
         return { items: [], truncated: false };
       // MoMo's writes (eventKit protocol 2): the items it made, so a spec can see what a card allowed and what an undo removed

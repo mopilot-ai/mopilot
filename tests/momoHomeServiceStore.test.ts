@@ -187,7 +187,12 @@ test('a lease note an earlier build kept counts as the highest lease seen: a new
   const stop = start({ machines: r.m, dir, watch: () => () => undefined });
   await waitFor(() => getHomeApi(), 'the home');
   assert.equal(((await getHomeApi().intent({ kind: 'choose-home', machineId: 'studio' })) as any).ok, true);
-  assert.deepEqual(starts, [{ name: 'Studio', floor: 9 }]);
+  // every start also names the oldest Host release it accepts (#5626); its value is momoHomeMinVersion.test.ts's to check
+  assert.deepEqual(
+    starts.map(({ minVersion, ...rest }) => rest),
+    [{ name: 'Studio', floor: 9 }],
+  );
+  assert.match(starts[0].minVersion, /^\d+\.\d+\.\d+$/);
   stop();
   setHomeApi(null);
 });

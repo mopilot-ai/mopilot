@@ -17,6 +17,8 @@ const transcriptRequests: string[][] = [];
 stubStore({
   ...store.exports,
   toggleTasksPane: (id: string) => activityRequests.push(id),
+  openPaneTab: (kind: string, extra: { threadId?: string }) => kind === 'tasks' && activityRequests.push(extra.threadId!),
+  openAgentPage: (id: string, key: string) => activityRequests.push(`${id} agent ${key}`),
   openSubThread: (id: string, title: string) => transcriptRequests.push([id, title]),
 });
 installNative(
@@ -37,7 +39,9 @@ mock.module('../src/components/panels/SummaryEnvironment.tsx', {
 const planRequests: string[] = [];
 const sessionRequests: unknown[][] = [];
 mock.module('../src/store/plans/pane.ts', { namedExports: { openPlanPane: (id: string) => planRequests.push(id) } });
-mock.module('../src/store/outputs/pane.ts', { namedExports: { openSessionPane: (...args: unknown[]) => sessionRequests.push(args) } });
+mock.module('../src/store/outputs/pane.ts', {
+  namedExports: { openSessionPane: (...args: unknown[]) => sessionRequests.push(args), openOutputFile: async () => {} },
+});
 const { SummaryPanel } = await import('../src/components/panels/SummaryPanel.tsx');
 const { putAdapterTasks } = await import('../src/store/backgroundTasks.ts');
 const { useSessions } = await import('../src/store/session/useSession.ts');
@@ -84,26 +88,31 @@ const task: BackgroundTask = {
   ambient: false,
 };
 
-test('background work opens the shared pane for its chat, including completed work', async () => {
+test('running work has its own section on every harness: a task opens the shared pane, an agent its page, and finished ones are counted', async () => {
   const ids = ['codex-chat', 'claude:chat', 'acp:opencode:chat', 'acp:kimi:chat'];
   store.set({
     threads: Object.fromEntries(ids.map((id) => [id, { cwd: '/repo' }])),
     runtime: Object.fromEntries(ids.map((id) => [id, { loaded: true, turns: [] }])),
   });
   const r = await render(createElement(SummaryPanel, { threadId: ids[0] }));
+  const put = (id: string, tasks: BackgroundTask[]) =>
+    act(() => {
+      if (id.startsWith('claude:')) useSessions.setState({ sessions: { [id]: { ...EMPTY_SESSION, rev: 1, tasks } } });
+      else putAdapterTasks(id, tasks);
+    });
   for (const id of ids) {
     await r.rerender(createElement(SummaryPanel, { threadId: id }));
-    assert.equal(r.host.querySelector('.summary-activity'), null, 'a chat cannot inherit its predecessor’s task');
-    await act(() => {
-      if (id.startsWith('claude:')) {
-        useSessions.setState({ sessions: { [id]: { ...EMPTY_SESSION, rev: 1, tasks: [task] } } });
-      } else {
-        putAdapterTasks(id, [{ ...task, status: 'completed' }]);
-      }
-    });
-    const row = one(r.host, '.summary-activity button', 'Background tasks');
-    assert.equal(row.textContent, 'Background tasks1');
-    await act(() => row.click());
+    assert.equal(r.host.querySelector('.summary-background-tasks'), null, 'a chat cannot inherit its predecessor’s task');
+    // as Claude Desktop's, finished work alone has no section
+    await put(id, [{ ...task, status: 'completed' }]);
+    assert.equal(r.host.querySelector('.summary-background-tasks'), null);
+    await put(id, [task, { ...task, id: 'agent', agentKey: 'run-1', description: 'Agent' }, { ...task, id: 'done', status: 'failed' }]);
+    assert.equal(one(r.host, '.summary-background-tasks .rail-section-summary').textContent, '2 running');
+    await act(() => one(r.host, '.summary-background-tasks .summary-row', 'Review').click());
+    assert.equal(activityRequests.at(-1), id);
+    await act(() => one(r.host, '.summary-background-tasks .summary-row', 'Agent').click());
+    assert.equal(activityRequests.at(-1), `${id} agent run-1`);
+    await act(() => one(r.host, '.summary-background-tasks .summary-row', '1 finished').click());
     assert.equal(activityRequests.at(-1), id);
   }
   await r.unmount();

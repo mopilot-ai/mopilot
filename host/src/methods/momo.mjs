@@ -3,10 +3,12 @@ import { HostRefusal } from '../hostFs.mjs';
 import { momoDeliveryView } from '../../../shared/momoDeliveryView.mjs';
 
 import { isOwner } from '../momoOwner.mjs';
+import { hostAppVersion } from '../hostRelease.mjs';
+import { olderRelease } from '../../../shared/host/momoHomeClient.mjs';
 import { onlyAtHome } from '../momoHomeGuard.mjs';
 
-/** @param {{ momo?: ReturnType<typeof import('../momoHome.mjs').createMomoHome> }} deps */
-export default ({ momo }) => {
+/** @param {{ momo?: ReturnType<typeof import('../momoHome.mjs').createMomoHome>, hostVersion?: string }} deps `hostVersion`: the release this Host runs (its archive's; '' when it has none, and then no release is "newer") */
+export default ({ momo, hostVersion = hostAppVersion }) => {
   /** @param {unknown} principal */
   const paired = (principal) => !!momo && !!principal;
   /** @param {unknown} principal */
@@ -83,7 +85,17 @@ export default ({ momo }) => {
         _kind,
         /** @type {{ principal?: () => { fingerprint: string } | null }} */ who,
       ) => /** @type {any} */ (home.move)[p.op](p.op === 'reclaim' ? { ...p, by: who?.principal?.()?.fingerprint ?? null } : p),
-      'host.momoHomeStart': (/** @type {{ homeId: string, name: string, floor?: number }} */ p) => home.start(p),
+      'host.momoHomeStart': (
+        /** @type {{ homeId: string, name: string, floor?: number, revive?: boolean, minVersion?: string }} */ { minVersion, ...p },
+      ) => {
+        // the Host judges its own version (#5626): a client that took it for current cannot start a home on a Host that is too old to keep it
+        if (minVersion && olderRelease(hostVersion, minVersion))
+          throw new HostRefusal('host_too_old', `${home.machine()} needs a MoPilot update before it can hold MoMo's home.`, {
+            version: hostVersion,
+            needs: minVersion,
+          });
+        return home.start(p);
+      },
       'host.momoHomeLook': () => home.look(),
       'host.momoStandDown': (/** @type {{ homeId: string, leaseEpoch: number, name?: string }} */ p) => home.standDown(p),
       'host.momoChat': (/** @type {{ harness: string }} */ p) => /** @type {NonNullable<typeof home.chats>} */ (home.chats).start(p),

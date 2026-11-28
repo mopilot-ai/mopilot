@@ -44,6 +44,12 @@ export interface QueuedOptions {
   goal?: string;
   model?: string;
   effort?: string;
+  /** model and effort above are Auto's for this turn (electron/autoRoute/service.cjs), not a pick someone made */
+  autoRoute?: { tier: string; routerTier: string; thinking: string; intent: string };
+  /** on an ACP agent: what an earlier Auto turn set, which this message sets back to the chat's own (electron/autoRoute/acpRestore.cjs) */
+  autoRestore?: Partial<Record<'model' | 'effort', { own: string; applied: string }>>;
+  /** a new chat's first message: the Auto mode it starts in, before its saved config reaches main */
+  autoMode?: 'harness' | 'global';
   prefix?: string;
   note?: { kind: string; text: string; handoff?: string };
   human?: boolean;
@@ -101,6 +107,18 @@ export interface QueuedMessage {
   peer?: { messageId: string; sourceChatId: string; sourceTitle?: string | null; body?: string };
 }
 
+export interface AutoRouteDecision {
+  mode: 'harness' | 'global';
+  model?: string;
+  effort?: string | null;
+  tier?: 'C0' | 'C1' | 'C2' | 'C3';
+  intent?: 'new_task' | 'continue' | 'redo';
+  harness?: string;
+  reason?: string;
+  fallback?: true;
+  at: number;
+}
+
 export interface SessionState {
   rev: number;
   turn: TurnPhase;
@@ -117,6 +135,8 @@ export interface SessionState {
   questions: import('../acpForm.mjs').AcpQuestion[];
   approvals: SessionApproval[];
   pendingSwitch: PendingSwitch | null;
+  /** Auto's last decision for the chat (electron/autoRoute/service.cjs); fallback: the turn ran on the chat's own selection. */
+  autoRoute?: AutoRouteDecision | null;
   /** The current harness's ephemeral follow-up for the composer. */
   promptSuggestion: string | null;
   /** basic tier: what the harness declared for the session */

@@ -1,0 +1,233 @@
+{
+  "description": "SquillaRouter's word lists and Chinese-aware patterns from OpenSquilla 96ad3e4 (features/numeric.py, router.runtime.yaml flag_rules, model_policy.py). {S} is Python's \\s, {DOT} Python's '.'.",
+  "keywords": {
+    "debug": [
+      "error",
+      "bug",
+      "exception",
+      "traceback",
+      "failed",
+      "root cause",
+      "报错",
+      "根因",
+      "修复",
+      "stack trace",
+      "debug"
+    ],
+    "research": [
+      "调研",
+      "research",
+      "对比",
+      "compare",
+      "survey",
+      "分析报告",
+      "competitive analysis",
+      "综述"
+    ],
+    "architecture": [
+      "architecture",
+      "架构",
+      "重构",
+      "refactor",
+      "monorepo",
+      "codebase",
+      "module",
+      "dependency"
+    ],
+    "compare": [
+      "对比",
+      "compare",
+      "audit",
+      "审计",
+      "review",
+      "评估"
+    ],
+    "planning": [
+      "plan",
+      "规划",
+      "roadmap",
+      "设计方案",
+      "workflow",
+      "pipeline",
+      "步骤",
+      "step by step"
+    ],
+    "strict": [
+      "json",
+      "yaml",
+      "csv",
+      "schema",
+      "只返回",
+      "不要解释",
+      "按格式",
+      "only return",
+      "no explanation"
+    ],
+    "risk": [
+      "deploy",
+      "rollback",
+      "migration",
+      "delete",
+      "overwrite",
+      "production",
+      "生产",
+      "部署",
+      "删除",
+      "客户",
+      "法务",
+      "财务"
+    ],
+    "production": [
+      "production",
+      "生产",
+      "prod",
+      "线上",
+      "正式环境"
+    ],
+    "customer": [
+      "customer",
+      "客户",
+      "用户邮件",
+      "client"
+    ],
+    "delete": [
+      "delete",
+      "remove",
+      "drop",
+      "truncate",
+      "删除",
+      "清空",
+      "覆盖",
+      "overwrite"
+    ],
+    "formal": [
+      "formal",
+      "正式",
+      "official",
+      "公文",
+      "合同",
+      "法律"
+    ],
+    "constraint": [
+      "必须",
+      "不能",
+      "不要",
+      "只能",
+      "must",
+      "shall",
+      "required",
+      "forbidden",
+      "不允许",
+      "至少",
+      "最多"
+    ],
+    "teaching": [
+      "how does",
+      "explain",
+      "what is",
+      "why does",
+      "how to",
+      "教我",
+      "解释",
+      "为什么",
+      "怎么",
+      "是什么",
+      "how can",
+      "tell me about",
+      "walk me through",
+      "介绍",
+      "说明"
+    ],
+    "implementation": [
+      "implement",
+      "write function",
+      "write a",
+      "create a",
+      "写个",
+      "实现",
+      "用法",
+      "帮我写",
+      "生成代码",
+      "add a",
+      "build a",
+      "make a",
+      "写一个",
+      "编写"
+    ]
+  },
+  "patterns": {
+    "clarify": "(?:能否|请{S}*提供|需要(?:更多|具体){DOT}{0,8}信息|could you (?:clarify|provide)|please (?:specify|provide)|clarify which)",
+    "refusal": "(?:I cannot|I can't help|对不起{DOT}{0,5}无法|抱歉{DOT}{0,5}不能|作为(?:AI|大语言模型))",
+    "selfDoubt": "(?:我不(?:确定|清楚)|可能(?:不太|不一定)|not sure|might not be|I'm not entirely)",
+    "continue": "(?:请继续|继续|接着|续写|展开一下|再说|more|continue|go on|carry on|next)",
+    "reasoning": "(?:why|compare|trade[ -]?off|analy[sz]e|architecture|reasoning|design|解释|原因|对比|分析|架构|设计|权衡)"
+  },
+  "marks": {
+    "question": "？",
+    "exclamation": "！",
+    "enumeration": "、"
+  },
+  "flags": {
+    "highRisk": [
+      "生产",
+      "部署",
+      "回滚",
+      "迁移",
+      "删除",
+      "客户",
+      "法务",
+      "财务",
+      "deploy",
+      "rollback",
+      "migration",
+      "delete",
+      "overwrite",
+      "production",
+      "customer-facing"
+    ],
+    "debug": [
+      "error",
+      "bug",
+      "exception",
+      "traceback",
+      "failed",
+      "root cause",
+      "报错",
+      "根因",
+      "修复"
+    ],
+    "repoArch": [
+      "repo",
+      "codebase",
+      "monorepo",
+      "architecture",
+      "重构",
+      "架构",
+      "module",
+      "dependency"
+    ],
+    "strictFormat": [
+      "JSON",
+      "YAML",
+      "CSV",
+      "schema",
+      "只返回",
+      "不要解释",
+      "按格式"
+    ]
+  },
+  "trivialAcks": [
+    "thanks",
+    "thank you",
+    "ok",
+    "okay",
+    "yes",
+    "no",
+    "收到",
+    "好的",
+    "谢谢",
+    "是的",
+    "不用了"
+  ],
+  "ackEdges": " \t\r\n.!?。！？,，;；:："
+}

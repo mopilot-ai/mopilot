@@ -1,6 +1,6 @@
 // src/components/thread/OfferCountdown.tsx: an offer card's countdown as a window draws main's deadline: whole seconds
-// that tick as each one passes and never go below zero, then "Doing it here…" until main answers; and the fill's timing,
-// fixed once per countdown and started as far back as main's countdown already ran.
+// that tick as each one passes and never go below zero, then "Starting a new session…" until main answers; and the
+// fill's timing, fixed once per countdown and started as far back as main's countdown already ran.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { window } from './support/dom.ts';
@@ -33,31 +33,31 @@ test('the fill runs the whole countdown, started as far back as main already cou
   assert.deepEqual(fillTiming({ from: 5, at: 5 }, 5), { '--offer-countdown': '1ms', '--offer-countdown-ran': '0ms' });
 });
 
-test('the note ticks each whole second from main’s deadline, then says it is doing it here', async (t) => {
+test('the note ticks each whole second from main’s deadline, then says it is starting a new session', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 1_000_000 });
   const { host, root } = mount();
   const draw = (at: number) => act(() => root.render(h(OfferCountdownNote, { id: 'n1', at })));
   await draw(1_000_000 + 2500);
   const note = () => host.querySelector('#n1')!;
   assert.equal(note().getAttribute('role'), 'timer');
-  assert.equal(note().textContent, 'Doing it here in 3s');
+  assert.equal(note().textContent, 'Starting a new session in 3s');
   // the number changes the moment a whole second runs out, not a timer's period after the render
   await act(async () => t.mock.timers.tick(499));
-  assert.equal(note().textContent, 'Doing it here in 3s');
+  assert.equal(note().textContent, 'Starting a new session in 3s');
   await act(async () => t.mock.timers.tick(1));
-  assert.equal(note().textContent, 'Doing it here in 2s');
+  assert.equal(note().textContent, 'Starting a new session in 2s');
   await act(async () => t.mock.timers.tick(1000));
-  assert.equal(note().textContent, 'Doing it here in 1s');
+  assert.equal(note().textContent, 'Starting a new session in 1s');
   await act(async () => t.mock.timers.tick(1000));
-  assert.equal(note().textContent, 'Doing it here…');
+  assert.equal(note().textContent, 'Starting a new session…');
   // nothing ticks once it ran out; main's answer takes the card from here
   await act(async () => t.mock.timers.tick(5000));
-  assert.equal(note().textContent, 'Doing it here…');
+  assert.equal(note().textContent, 'Starting a new session…');
   // a new deadline (another window's hold, then a new countdown) starts the count again
   await draw(Date.now() + 2000);
-  assert.equal(note().textContent, 'Doing it here in 2s');
+  assert.equal(note().textContent, 'Starting a new session in 2s');
   await act(async () => t.mock.timers.tick(1000));
-  assert.equal(note().textContent, 'Doing it here in 1s');
+  assert.equal(note().textContent, 'Starting a new session in 1s');
   await act(() => root.unmount());
   host.remove();
 });

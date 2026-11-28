@@ -55,7 +55,9 @@ const LINES: Record<SessionCallKind, { doing: string; done: string; failed: stri
   handoff: { doing: 'Handing off to a new session', done: 'Handed off to a new session', failed: 'Couldn’t hand off' },
   dismiss: { doing: 'Withdrawing suggestion', done: 'Withdrew suggestion', failed: 'Couldn’t withdraw a suggestion' },
 };
-/** An offer kept here by its countdown: nobody answered the card in time (proposals.cjs goAheadHere). */
+/** An offer started by its countdown: nobody answered the card in time (proposals.cjs goAheadNew). */
+const STARTED_UNANSWERED = 'Started session (no answer)';
+/** An offer kept here by its countdown, as transcripts from before the countdown chose "New session" recorded it. */
 const KEPT_UNANSWERED = 'Kept in this session (no answer)';
 
 /** The line one of MoPilot's session calls reads as, running or finished, from what it was asked; else null. */
@@ -86,7 +88,15 @@ export function sessionCallLine(item: unknown): { kind: SessionCallKind; text: s
   return {
     kind: answered === 'here' ? 'kept' : answered === 'new_session' ? 'start' : kind,
     failed,
-    text: failed ? line.failed : running ? line.doing : answered === 'here' && result?.auto ? KEPT_UNANSWERED : line.done,
+    text: failed
+      ? line.failed
+      : running
+        ? line.doing
+        : result?.auto
+          ? answered === 'here'
+            ? KEPT_UNANSWERED
+            : STARTED_UNANSWERED
+          : line.done,
   };
 }
 

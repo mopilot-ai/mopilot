@@ -12,6 +12,8 @@ let state: { machine: { id: string; name: string; away: boolean } | null; pendin
 mock.module('../src/lib/chatMachine.ts', {
   namedExports: {
     useLocalFolder: (_id: string, cwd: string) => ({ ...state, cwd: state.machine || state.pending ? '' : cwd }),
+    // the Outputs section's reach to the machine's files
+    useChatMachine: () => ({ machine: state.machine }),
   },
 });
 let remote: any = null;
@@ -95,7 +97,7 @@ test('while the owner is not known the folder is not read either, and a chat on 
   await m.unmount();
   state = { machine: null, pending: true, ownerUnavailable: true };
   m = await mount();
-  assert.equal(one(m.host, '.summary-connector-hint').textContent, 'Unavailable');
+  assert.equal(one(m.host, '.summary-connectors .summary-connector-hint').textContent, 'Unavailable');
   assert.deepEqual(calls, []);
   await m.unmount();
   state = { machine: null, pending: false };
@@ -123,4 +125,23 @@ test('the machine’s branch is in the header and its changes are the Host’s: 
   v = await mount();
   assert.equal(one(v.host, '.machine-folder-note').textContent, "Branch and changes aren't available while box is offline.");
   await v.unmount();
+});
+
+test('a machine’s Outputs leaves files in its repository folder to Changes, and lists every file when the folder is no repository', async () => {
+  const diff = (name: string) => `diff --git a/${name} b/${name}\nnew file mode 100644\n--- /dev/null\n+++ b/${name}\n@@ -0,0 +1 @@\n+x\n`;
+  reset(
+    { t1: { cwd: '/srv/app' } },
+    { t1: { turns: [{ id: 't', items: [], status: 'completed', diff: diff('src/a.ts') + diff('/tmp/out.pdf') }] } },
+  );
+  state = { machine: { id: 'm', name: 'box', away: false }, pending: false };
+  const outputs = (host: HTMLElement) => [...host.querySelectorAll('.summary-outputs .summary-label')].map((l) => l.textContent);
+  remote = { state: 'ready', branch: 'feature', files: 1, added: 1, removed: 0, untracked: 0, truncated: false };
+  let v = await mount();
+  assert.deepEqual(outputs(v.host), ['/tmp/out.pdf']);
+  await v.unmount();
+  remote = { state: 'none' };
+  v = await mount();
+  assert.deepEqual(outputs(v.host), ['/tmp/out.pdf', 'src/a.ts']);
+  await v.unmount();
+  assert.deepEqual(calls, [], 'nothing read on this Mac');
 });

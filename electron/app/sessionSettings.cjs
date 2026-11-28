@@ -9,6 +9,7 @@ const { acpModeControl, selectValues } = require('../../shared/acpMode.mjs');
 const { saveMeta } = require('../../shared/metaSave.mjs');
 const { configuredSwitchModel } = require('../../shared/switchModel.mjs');
 const { modelLabel } = require('../../shared/modelLabels.mjs');
+const { autoModeOf } = require('../../shared/autoRoute.mjs');
 
 /** What an ACP mode's anchor tier is called as a permission, and the tiers' order. */
 const TIER_PERMISSION = { readOnly: 'read-only', ask: 'default', auto: 'auto-review', full: 'full-access' };
@@ -49,7 +50,13 @@ function createSessionSettings({ live, prefs, usable = async () => true }) {
     },
     async claude(id) {
       const info = live.claudeTurns.probeInfo(live.claudeTurns.accountOf(id));
-      return claudeModels(info?.models ?? []).map((m) => ({ id: m.id, efforts: m.efforts, fast: m.fast }));
+      return claudeModels(info?.models ?? []).map((m) => ({
+        id: m.id,
+        efforts: m.efforts,
+        fast: m.fast,
+        more: m.more,
+        resolved: m.resolved,
+      }));
     },
   };
 
@@ -271,6 +278,27 @@ function createSessionSettings({ live, prefs, usable = async () => true }) {
       }
       return { kind, family: familyOf(kind), ...SETTINGS[familyOf(kind)](id) };
     },
+    /**
+     * The models harness `kind` (the chat's own by default) offers the chat now, each with its effort levels, for Auto:
+     * an ACP agent lists its declared model choices only while it runs the chat, and none when it declares no model.
+     * @param {string} id
+     * @param {string} [kind]
+     * Older pinned versions listed under an alias's "More versions" are left out; an alias carries the model it resolves to.
+     * @returns {Promise<{ id: string, efforts: string[], resolved?: string }[]>}
+     */
+    async catalogOf(id, kind = kindOf(id)) {
+      const fam = familyOf(kind);
+      if (models[fam])
+        return (await models[fam](id))
+          .filter((m) => !('more' in m && m.more))
+          .map((m) => ({ id: m.id, efforts: m.efforts, ...('resolved' in m && m.resolved ? { resolved: m.resolved } : {}) }));
+      if (kind !== kindOf(id)) return [];
+      const acp = state(id)?.acp;
+      const levels = option(acp, 'thought_level');
+      const efforts = levels ? selectValues(levels).map((v) => String(v.value)) : [];
+      const choices = option(acp, 'model');
+      return choices ? selectValues(choices).map((v) => ({ id: String(v.value), efforts })) : [];
+    },
     /** Whether a switch to this harness takes a model and effort; a basic agent keeps its own. */
     selectsModel(kind) {
       return !!models[parseKind(kind)?.family];
@@ -327,6 +355,22 @@ function createSessionSettings({ live, prefs, usable = async () => true }) {
         },
       });
       return { harness, model: next || null, effort: level, cancelled: false };
+    },
+    /** The chat's Auto mode ('harness', 'global'), or null when it picks by hand. @param {string} id */
+    autoModeOf(id) {
+      return autoModeOf(config(id));
+    },
+    /**
+     * Auto on ('harness': each turn's model and effort; 'global': also the harness) or off (null), saved in the chat's
+     * config where every window and the router (autoRoute/service.cjs) read it.
+     * @param {string} id
+     * @param {'harness' | 'global' | null} mode
+     */
+    setAutoMode(id, mode) {
+      if (mode !== null && autoModeOf({ autoRoute: mode }) === null)
+        throw coded(`Unknown Auto mode ${JSON.stringify(mode)}.`, 'invalid_mode');
+      save(id, { autoRoute: mode });
+      return { auto: mode };
     },
     async setFast(id, enabled) {
       notWhileSwitching(id);

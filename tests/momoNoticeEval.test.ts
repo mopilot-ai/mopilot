@@ -14,6 +14,7 @@ import {
   runPreCheckEval,
   runTriageEval,
   summarize,
+  verdictScores,
   type EvalCase,
 } from '../shared/momoNotice/eval/triageEval.ts';
 import { main, runNoticeEval } from '../scripts/momo-notice-eval.mjs';
@@ -263,4 +264,52 @@ test('a perfect scripted model passes our own cases too, and silencing one fails
 test('a constant boundary id is refused by the evaluation too', async () => {
   const model: ReaderModel = { name: 'x', complete: async () => '{}' };
   await assert.rejects(runTriageEval(cases, { model, randomId: () => 'constant-id' }), /fresh value/);
+});
+
+const synthCases: EvalCase[] = loadTriageSet(
+  readFileSync(new URL('../shared/momoNotice/eval/triage-synth.jsonl', import.meta.url), 'utf8'),
+  24,
+);
+
+test('the synthetic set covers newsletters, receipts, a person waiting, deadlines, CJK and injected orders, and the pre-checks silence none that matters', () => {
+  const count = (label: string) => synthCases.filter((c) => c.expected === label).length;
+  assert.deepEqual([count('tell_now'), count('track'), count('quiet')], [6, 5, 13]);
+  assert.ok(synthCases.filter((c) => /[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/.test(c.mail.subject + c.mail.body)).length >= 4);
+  assert.ok(
+    synthCases.filter((c) => /ignore (your|previous) instructions|SYSTEM:|\u5ffd\u7565|answer quiet/i.test(c.mail.body)).length >= 4,
+  );
+  assert.equal(new Set([...cases, ...ownCases, ...synthCases].map((c) => c.id)).size, 62 + 5 + 24);
+  const lines = runPreCheckEval(synthCases);
+  assert.deepEqual(
+    lines.filter((l) => l.got === 'quiet').map((l) => [l.id, l.decidedBy]),
+    [
+      ['s01', 'rule:bulk'],
+      ['s03', 'rule:bulk'],
+      ['s17', 'rule:auto-reply'],
+      ['s18', 'rule:calendar-response'],
+      ['s19', 'rule:access-secret'],
+    ],
+  );
+  assert.deepEqual(gate(summarize(lines), PRECHECK_GATE), []);
+});
+
+test('verdict scores give precision and recall per verdict, null where nothing was answered or expected', () => {
+  const line = (expected: EvalCase['expected'], got: 'tell_now' | 'track' | 'quiet' | 'unsorted') => ({
+    id: `${expected}-${got}`,
+    expected,
+    got,
+    decidedBy: 'model:x',
+    reason: '',
+    ok: expected === got,
+    hard: false,
+  });
+  const scores = verdictScores([
+    line('tell_now', 'tell_now'),
+    line('tell_now', 'quiet'),
+    line('quiet', 'tell_now'),
+    line('quiet', 'unsorted'),
+  ]);
+  assert.deepEqual(scores.tell_now, { expected: 2, answered: 2, right: 1, precision: 0.5, recall: 0.5 });
+  assert.deepEqual(scores.quiet, { expected: 2, answered: 1, right: 0, precision: 0, recall: 0 });
+  assert.deepEqual(scores.track, { expected: 0, answered: 0, right: 0, precision: null, recall: null });
 });

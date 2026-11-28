@@ -165,9 +165,14 @@ test("an offer reads as the user's answer, and one still waiting is its turn's c
   const here = answered('k1', { status: 'declined', task_id: 'task_k', answer: 'here', title: 'Docs' });
   const kept = sessionCallLine(here)!;
   assert.deepEqual([kept.kind, kept.text], ['kept', 'Kept in this session']);
-  // one its countdown kept here, the user not having answered, says so
-  const unanswered = sessionCallLine(answered('k6', { status: 'declined', task_id: 'task_k', answer: 'here', auto: true, title: 'Docs' }))!;
-  assert.deepEqual([unanswered.kind, unanswered.text], ['kept', 'Kept in this session (no answer)']);
+  // one its countdown started, the user not having answered, says so
+  const unanswered = sessionCallLine(
+    answered('k6', { status: 'briefing', task_id: 'task_k', answer: 'new_session', auto: true, title: 'Docs' }),
+  )!;
+  assert.deepEqual([unanswered.kind, unanswered.text], ['start', 'Started session (no answer)']);
+  // and one a countdown kept here, in a transcript from before it chose "New session", still reads as it did
+  const keptBefore = sessionCallLine(answered('k7', { status: 'declined', task_id: 'task_k', answer: 'here', auto: true, title: 'Docs' }))!;
+  assert.deepEqual([keptBefore.kind, keptBefore.text], ['kept', 'Kept in this session (no answer)']);
   const started2 = answered('k2', { status: 'started', chat_id: 'c9', answer: 'new_session', title: 'Docs' });
   assert.deepEqual([sessionCallLine(started2)!.kind, sessionCallLine(started2)!.text], ['start', 'Started session']);
   // an answer the window can't read leaves the offer's own line

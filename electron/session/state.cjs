@@ -36,6 +36,8 @@ function emptySession() {
     questions: [],
     /** the harness the next message switches to (src/harness/switch.ts) */
     pendingSwitch: null,
+    /** Auto's last decision for the chat: {mode, model, effort, tier, intent, harness, reason, fallback, at} (autoRoute/service.cjs), or null */
+    autoRoute: null,
     /** an ephemeral follow-up offered by the current harness */
     promptSuggestion: null,
     /**

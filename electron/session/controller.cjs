@@ -28,7 +28,7 @@ const { completePromptSuggestion } = require('./promptSuggestions.cjs');
 const { activeCompaction, retireCompaction, guardCompaction, suspendCompactionStart } = require('./compactionQueue.cjs');
 const { ControllerApprovals } = require('./controllerApprovals.cjs');
 const { folderMutation } = require('./folderMutation.cjs');
-const { settleSwitch } = require('./controllerSwitch.cjs');
+const { settleSwitch, beforeStart } = require('./controllerSwitch.cjs');
 const {
   LABEL,
   crashText,
@@ -164,6 +164,8 @@ class ChatController extends ControllerApprovals {
     this.graceMs = o.graceMs ?? START_GRACE_MS;
     // Journal before native dispatch; observe results even when the native turn already finished.
     this.beforeDispatch = o.beforeDispatch ?? null;
+    /** @type {((start: { chatId: string, item: any, stale: () => boolean }) => unknown) | null} before a turn settles its pending switch (Global Auto, autoRoute/service.cjs); its failure leaves the chat where it is */
+    this.beforeStart = null;
     this.chromeContinuationCheck = null;
     this.onDispatchResult = o.onDispatchResult ?? null;
     this.onStopped =
@@ -353,9 +355,11 @@ class ChatController extends ControllerApprovals {
     let res;
     let dispatched = false;
     try {
+      const stale = () => r.token !== token || r.startAttempt !== startAttempt;
+      if (this.beforeStart && !item.opts.compact) await beforeStart(this, chatId, item, () => stale() || (r.stops ?? 0) !== stops);
       // Maintenance acts on existing context; the next message carries a pending switch's handoff.
       const ps = !item.opts.compact && (this.state.get(chatId).pendingSwitch ?? this.switcher?.pendingContinue?.(chatId));
-      if (ps) ({ item, res } = await settleSwitch(this, chatId, item, ps, () => r.token !== token || r.startAttempt !== startAttempt));
+      if (ps) ({ item, res } = await settleSwitch(this, chatId, item, ps, stale));
       if (!res) {
         dispatched = true;
         res = await this.dispatch(chatId, 'turn', item, item.origin);

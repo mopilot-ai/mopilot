@@ -328,6 +328,10 @@ export interface Prefs {
   momoRailWidth?: number;
   /** the rail hidden by its toggle or Cmd/Ctrl+B */
   momoRailHidden?: boolean;
+  /** the session rail's sections, as Claude Desktop's: whether each starts open in a new chat, and those hidden (store/railSections.ts) */
+  railSections?: { startsOpen?: Record<string, boolean>; hidden?: string[]; order?: string[] };
+  /** each chat's own folds of those sections, the most recent chats only */
+  railFolds?: Record<string, { collapsed: string[]; expanded: string[] }>;
   /** the shell's side pane: its width and the panel left open ('tasks', 'files' or 'sessions') */
   momoPaneWidth?: number;
   momoPane?: 'tasks' | 'files' | 'sessions' | null;
@@ -350,6 +354,12 @@ export interface Prefs {
    * sent, or a pick), 'default' the saved default harness and newChatDefault's model and effort.
    */
   newChatStart: 'last' | 'default';
+  /** Auto for new chats: 'harness' routes each turn's model and effort, 'global' also the harness (electron/autoRoute); null: by hand. */
+  autoRouteNewChats?: 'harness' | 'global' | null;
+  /** How much Global Auto weighs price against predicted success (shared/autoRoute.mjs COST_WEIGHT); absent: medium. */
+  autoRouteCost?: 'low' | 'medium' | 'high';
+  /** The user's own model per router tier, by harness family ('claude', 'codex', 'acp'); a tier left out uses Auto's ladder. */
+  autoRouteTiers?: Partial<Record<string, Partial<Record<'C0' | 'C1' | 'C2' | 'C3', string>>>>;
   /** The harness a message was last sent on (or picked for a new chat); 'last' new chats start on it. */
   lastHarness: HarnessKind | null;
   /** The fixed model and effort 'default' new chats start with, while `harness` is still defaultHarness. */

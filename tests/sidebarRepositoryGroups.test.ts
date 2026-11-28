@@ -1,4 +1,4 @@
-// Repository sidebar matching, fallback and source identity across local, machine and Cloud sessions.
+// Repository sidebar matching for local projects and Cloud tasks, with machine folders kept in their own groups.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sidebarRepository, cloudRepository } from '../shared/sidebarRepository.mjs';
@@ -71,20 +71,22 @@ test('GitHub aliases share an identity while forks and other Git servers remain 
   assert.equal(cloudRepository('unqualified'), null);
 });
 
-test('verified machine and cloud rows join the local group without changing session identities', () => {
+test('a machine folder keeps its own group while a verified Cloud task joins the local project', () => {
   const declared = [local, box];
   const result = groupRepositories(declared, new Set(declared.map(groupKey)), () => repo, [task], [env], [], groupKey(box));
   assert.deepEqual(result.cloud, []);
-  assert.deepEqual(result.listed.map(groupKey), ['saved-app']);
-  assert.equal(result.homeKey, 'saved-app');
+  assert.deepEqual(result.listed.map(groupKey), ['saved-app', groupKey(box)]);
+  assert.equal(result.homeKey, groupKey(box));
   assert.deepEqual(
-    result.listed[0].threads.map((thread) => thread.id),
-    ['local', 'machine'],
+    result.listed.map((group) => group.threads.map((thread) => thread.id)),
+    [['local'], ['machine']],
   );
   assert.deepEqual(
     result.listed[0].locations?.map((location) => location.kind),
-    ['machine', 'cloud'],
+    ['cloud'],
   );
+  assert.equal(result.listed[1].locations, undefined);
+  assert.equal(result.listed[1].repository, undefined);
   assert.deepEqual(
     local.threads.map((thread) => thread.id),
     ['local'],
@@ -92,11 +94,11 @@ test('verified machine and cloud rows join the local group without changing sess
   const mixed = projectRows(result.listed[0].threads, result.listed[0].cloudTasks);
   assert.deepEqual(
     sortProjectRows(mixed).map((row) => row.key),
-    ['cloud:task_a', 'machine', 'local'],
+    ['cloud:task_a', 'local'],
   );
   assert.deepEqual(
-    sortProjectRows(mixed, ['local', 'machine', 'cloud:task_a']).map((row) => row.key),
-    ['local', 'machine', 'cloud:task_a'],
+    sortProjectRows(mixed, ['local', 'cloud:task_a']).map((row) => row.key),
+    ['local', 'cloud:task_a'],
   );
   assert.equal(projectRecency(result.listed[0]), Date.parse(task.updated_at) / 1000);
 });
@@ -114,12 +116,13 @@ test('distinct saved local copies stay separate and unknown or multi-repository 
     [],
     null,
   );
-  assert.deepEqual(result.listed.map(groupKey), ['saved-app', 'other', 'repo:github.com/org/app']);
+  assert.deepEqual(result.listed.map(groupKey), ['saved-app', 'other', groupKey(box), 'repo:github.com/org/app']);
   assert.deepEqual(
     result.listed[2].threads.map((thread) => thread.id),
     ['machine'],
   );
-  assert.deepEqual(result.listed[2].cloudTasks, [task]);
+  assert.deepEqual(result.listed[3].threads, []);
+  assert.deepEqual(result.listed[3].cloudTasks, [task]);
   assert.deepEqual(result.cloud, [unmatched, legacy]);
 });
 
@@ -131,17 +134,14 @@ test('a machine with unknown repository keeps its folder group and a hidden save
   assert.equal(result.listed[1].threads[0].id, 'machine');
 });
 
-test('checkouts verified against one remote repository retain each destination in the shared project', () => {
-  const alias = `${box.path}/src`;
+test('checkouts of one repository on a machine keep separate folder groups', () => {
   const second = { ...box, path: '/other/checkout', threads: [chat('second', 3)] };
-  const checkouts = [{ ...box, machineFolders: new Set([alias]) }, second];
+  const checkouts = [box, second];
   const result = groupRepositories(checkouts, new Set(checkouts.map(groupKey)), () => repo, [], [], [], null);
-  assert.equal(result.listed.length, 1);
-  assert.deepEqual(result.listed[0].machineGroups, checkouts.map(groupKey));
-  assert.deepEqual(result.listed[0].machineFolderAliases, [groupKey({ ...box, path: alias })]);
+  assert.deepEqual(result.listed.map(groupKey), checkouts.map(groupKey));
   assert.deepEqual(
-    result.listed[0].locations,
-    checkouts.map(({ machine, path }) => ({ kind: 'machine', ...machine, path })),
+    result.listed.map((group) => group.threads.map((thread) => thread.id)),
+    [['machine'], ['second']],
   );
 });
 
@@ -159,14 +159,12 @@ test('remote groups retain the canonical name and only trust a single well-forme
     null,
   ] as unknown as Parameters<typeof groupRepositories>[4];
   const grouped = groupRepositories([box], new Set([groupKey(box)]), () => repo, [task], environments, [], null);
-  assert.equal(grouped.listed[0].name, 'app');
-  assert.equal(grouped.listed[0].hint, 'org');
-  assert.deepEqual(grouped.listed[0].locations, [
-    { kind: 'machine', ...box.machine, path: box.path },
-    { kind: 'cloud', id: 'env', label: 'Legacy environment' },
-  ]);
+  assert.deepEqual(grouped.listed.map(groupKey), [groupKey(box), key]);
+  assert.equal(grouped.listed[1].name, 'app');
+  assert.equal(grouped.listed[1].hint, 'org');
+  assert.deepEqual(grouped.listed[1].locations, [{ kind: 'cloud', id: 'env', label: 'Legacy environment' }]);
   const hidden = groupRepositories([box], new Set([groupKey(box)]), () => repo, [task], environments, [key], null);
-  assert.deepEqual(hidden.listed.map(groupKey), []);
+  assert.deepEqual(hidden.listed.map(groupKey), [groupKey(box)]);
   assert.deepEqual(hidden.cloud, [task]);
 });
 
@@ -184,25 +182,23 @@ test('repo comparison keeps path case on servers other than github.com', () => {
   assert.equal(sidebarRepository('git@github.com:org//app'), null);
 });
 
-test('a pinned repository keeps its checkout after its last active chat is gone', () => {
+test("a repository pin does not take a machine checkout's group", () => {
   const checkout = { ...box, threads: [] };
   const key = 'repo:github.com/org/app';
   const projected = groupRepositories([checkout], new Set(), () => repo, [], [], [], null, [key]);
-  assert.deepEqual(projected.listed.map(groupKey), [key]);
-  assert.deepEqual(projected.listed[0].machineGroups, [groupKey(box)]);
-  assert.deepEqual(projected.listed[0].locations, [{ kind: 'machine', ...box.machine, path: box.path }]);
+  assert.deepEqual(projected.groups.map(groupKey), [groupKey(box)]);
+  assert.deepEqual(projected.listed, []);
 });
 
-test('a repository gets its existing Custom position until the user orders it explicitly', () => {
+test('a Cloud repository row takes a Custom position only from an explicit order', () => {
   const first = { ...local, id: 'first' };
   const last = { ...local, id: 'last' };
   const key = 'repo:github.com/org/app';
-  const result = groupRepositories([box], new Set([groupKey(box)]), () => repo, [task], [env], [], null);
-  const merged = result.groups[0];
-  const sourceOrder = ['first', groupKey(box), 'last'];
-  assert.deepEqual(sortProjectGroups([first, last, merged], sourceOrder, [], 'custom').map(groupKey), ['first', key, 'last']);
-  assert.deepEqual(sortProjectGroups([first, last, merged], ['first', 'last'], [], 'custom').map(groupKey), ['first', 'last', key]);
-  assert.deepEqual(sortProjectGroups([first, last, merged], [...sourceOrder, key], [], 'custom').map(groupKey), ['first', 'last', key]);
+  const result = groupRepositories([], new Set(), () => undefined, [task], [env], [], null);
+  const remote = result.groups[0];
+  assert.equal(groupKey(remote), key);
+  assert.deepEqual(sortProjectGroups([first, last, remote], ['first', 'last'], [], 'custom').map(groupKey), ['first', 'last', key]);
+  assert.deepEqual(sortProjectGroups([first, last, remote], ['first', key, 'last'], [], 'custom').map(groupKey), ['first', key, 'last']);
 });
 
 test('Cloud activity joins the list without changing the chat order previously assigned to session families', () => {
@@ -229,17 +225,19 @@ test('an older Cloud task uncertain after reconfiguration stays available in the
   assert.deepEqual(result.cloud, [other]);
 });
 
-test('merged project rows retain starting sessions, machine pins and multiple verified Cloud environments', () => {
+test('a machine group keeps its starting sessions and pins while the local project takes every verified Cloud environment', () => {
   const key = groupKey(box);
   const starting = { id: 'starting', name: 'Working', cwd: box.path, hostId: 'box', projectId: null, updatedAt: 20 };
   const source = { ...box, starting: [starting], pinnedKeys: [key] };
   const env2 = { ...env, id: 'env-two', label: 'Other environment' };
   const result = groupRepositories([local, source], new Set([key]), () => repo, [task], [env, env2], [], null);
-  assert.deepEqual(result.listed[0].starting, [starting]);
-  assert.deepEqual(result.listed[0].pinnedKeys, [key]);
+  assert.deepEqual(result.listed.map(groupKey), ['saved-app', key]);
+  assert.deepEqual(result.listed[1].starting, [starting]);
+  assert.deepEqual(result.listed[1].pinnedKeys, [key]);
+  assert.equal(result.listed[0].starting, undefined);
   assert.deepEqual(
     result.listed[0].locations?.map((where) => where.id),
-    ['box', env.id, env2.id],
+    [env.id, env2.id],
   );
 });
 

@@ -65,7 +65,7 @@ test.describe('codex', () => {
     test.setTimeout(90_000);
     await expect(home(page)).toBeVisible();
     await send(page, 'start the server BGTERM 12s');
-    await expect(page.locator('.summary-activity').getByRole('button', { name: /^Background tasks/ })).toBeVisible();
+    await expect(page.locator('.summary-background-tasks .summary-task').first()).toBeVisible();
     await expect(stop(page)).toHaveCount(0);
     await expect(working(page)).toHaveCount(1);
     await expect(working(page)).toBeVisible();
@@ -82,7 +82,7 @@ test.describe('codex', () => {
   test('after a window reload, a Codex chat whose background command still runs shows its dot without being opened', async ({ page }) => {
     await expect(home(page)).toBeVisible();
     await send(page, 'start the server BGTERM 25s');
-    await expect(page.locator('.summary-activity').getByRole('button', { name: /^Background tasks/ })).toBeVisible();
+    await expect(page.locator('.summary-background-tasks .summary-task').first()).toBeVisible();
     await expect(stop(page)).toHaveCount(0);
     await standaloneNewChat(page).click();
     await expect(home(page)).toBeVisible();
